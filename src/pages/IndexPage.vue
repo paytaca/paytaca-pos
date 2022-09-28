@@ -2,7 +2,7 @@
   <q-page class="flex flex-center">
     <img
       alt="Paytaca logo"
-      src="~assets/paytaca_logo.png"
+      src="~assets/paytaca-pos-logo.png"
       style="width: 200px; height: 200px"
     >
   </q-page>
