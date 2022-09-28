@@ -1,0 +1,12 @@
+{
+  "name": "paytaca-pos",
+  "version": "0.0.1",
+  "description": "Point-of-Sale system with inventory for Bitcoin Cash-accepting merchants",
+  "author": "joemar@paytaca.com",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^2.5.0",
+    "@capacitor/cli": "^2.0.0",
+    "@capacitor/core": "^2.0.0"
+  }
+}
