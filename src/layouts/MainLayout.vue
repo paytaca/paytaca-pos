@@ -31,7 +31,7 @@
           Main Menu
         </q-item-label>
 
-        <EssentialLink
+        <MainMenu
           v-for="link in essentialLinks"
           :key="link.title"
           v-bind="link"
@@ -47,14 +47,18 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import EssentialLink from 'components/EssentialLink.vue'
+import MainMenu from 'src/components/MainMenu.vue'
 
 const linksList = [
   {
+    title: 'Home',
+    icon: 'home',
+    route: 'home'
+  },
+  {
     title: 'Settings',
-    caption: 'Settings',
     icon: 'settings',
-    link: ''
+    route: 'settings'
   }
 ]
 
@@ -62,7 +66,7 @@ export default defineComponent({
   name: 'MainLayout',
 
   components: {
-    EssentialLink
+    MainMenu
   },
 
   setup () {
