@@ -31,3 +31,13 @@ yarn-error.log*
 *.ntvs*
 *.njsproj
 *.sln
+
+# Environments
+.env
+.env_dev
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/

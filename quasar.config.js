@@ -26,6 +26,7 @@ module.exports = configure(function (ctx) {
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-webpack/boot-files
     boot: [
+      'clipboard',
       'qrcodereader'
     ],
 
@@ -37,7 +38,7 @@ module.exports = configure(function (ctx) {
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
       // 'ionicons-v4',
-      // 'mdi-v5',
+      'mdi-v5',
       // 'fontawesome-v6',
       // 'eva-icons',
       // 'themify',
@@ -51,6 +52,8 @@ module.exports = configure(function (ctx) {
     // Full list of options: https://v2.quasar.dev/quasar-cli-webpack/quasar-config-js#Property%3A-build
     build: {
       vueRouterMode: 'hash', // available values: 'hash', 'history'
+
+      env: require('dotenv').config().parsed,
 
       // transpile: false,
       // publicPath: '/',
@@ -75,6 +78,10 @@ module.exports = configure(function (ctx) {
       chainWebpack (chain) {
         chain.plugin('eslint-webpack-plugin')
           .use(ESLintPlugin, [{ extensions: [ 'js', 'vue' ] }])
+
+        const nodePolyfillWebpackPlugin = require('node-polyfill-webpack-plugin')
+          chain.plugin('node-polyfill').use(nodePolyfillWebpackPlugin)
+          chain.resolve.alias.set('fs', require.resolve('browserfs'))
       }
       
     },
@@ -103,7 +110,10 @@ module.exports = configure(function (ctx) {
       // directives: [],
 
       // Quasar plugins
-      plugins: []
+      plugins: [
+        'Notify',
+        'Dialog',
+      ]
     },
 
     // animations: 'all', // --- includes all animations
