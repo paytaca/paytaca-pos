@@ -71,11 +71,11 @@ export default {
           } else {
             errorMessage.value = 'Unknown error: ' + error.message
           }
-        })
 
-        if (errorMessage.value) {
-          emit('error', errorMessage)
-        }
+          if (errorMessage.value) {
+            emit('error', errorMessage.value)
+          }
+        })
     }
 
     return {
