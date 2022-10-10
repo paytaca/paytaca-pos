@@ -1,84 +1,108 @@
 <template>
   <q-page class="flex flex-center">
-    <q-card :bordered="false" :flat="true" style="margin-top: -30px;">
-      <q-img
-        alt="Paytaca logo"
-        src="~assets/paytaca-pos-logo.png"
-        style="width: 200px; height: 200px"
-      ></q-img>
+    <WalletLink v-if="!walletStore.walletHash"/>
+    <div v-else class="home-main-content q-py-md full-width">
+      <div class="q-px-md">
+        <q-btn padding="sm" class="full-width" :to="{ name: 'receive-page' }">
+          <div>
+            <q-icon name="qr_code" size="6rem"/>
+            <div class="text-caption">Receive Payment</div>
+          </div>
+        </q-btn>
+      </div>
 
-      <q-card-actions v-if="!store.walletHash" align="center" style="margin-top: 20px;">
-        <q-btn color="primary" @click="toggleQrScanner">Link to Wallet</q-btn>
-      </q-card-actions>
-    </q-card>
-    <QRCodeReader v-if="showQrScanner" :toggle="toggleQrScanner" @decode="onQrDecode" @error="onQrError" />
-    <div v-if="qrScanError" style="width: 100%; position: fixed; bottom: 0;">
-      <q-banner dense inline-actions class="text-white bg-red">
-        {{ qrScanError }}
-        <template v-slot:action>
-          <q-icon name="close" @click="() => { qrScanError = null }"></q-icon>
-        </template>
-      </q-banner>
+      <q-card class="q-mx-md q-mt-md home-transactions-list">
+        <q-card-section class="text-h6">
+          TRANSACTIONS
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <div class="row items-center justify-end">
+            <q-pagination
+              v-if="transactions?.num_pages >= 1"
+              :modelValue="transactions?.page"
+              :max="5"
+              unelevated
+              padding="xs sm"
+              boundary-numbers
+              @update:modelValue="val => fetchTransactions(val)"
+            />
+          </div>
+          <div v-if="fetchingTransactions" class="row items-center justify-center q-my-md">
+            <q-spinner color="primary" size="3rem"/>
+          </div>
+          <TransactionsList :transactions="transactions"/>
+        </q-card-section>
+      </q-card>
     </div>
   </q-page>
 </template>
 
 <script>
-import { ref } from 'vue'
-import { defineComponent } from 'vue'
+import { Wallet } from 'src/wallet'
 import { useWalletStore } from 'stores/wallet'
-import QRCodeReader from '../components/QRCodeReader.vue'
+import { defineComponent, markRaw, onMounted, ref } from 'vue'
+import TransactionsList from 'src/components/TransactionsList.vue'
+import WalletLink from 'src/components/WalletLink.vue'
+
+// import historyData from 'src/wallet/mockers/history.json'
 
 export default defineComponent({
   name: 'HomePage',
   components: {
-    QRCodeReader
+    TransactionsList,
+    WalletLink,
   },
-  setup (props) {
-    const showQrScanner = ref(false)
-    const qrScanError = ref(null)
+  setup () {
+    const walletStore = useWalletStore()
 
-    function toggleQrScanner () {
-      showQrScanner.value = !showQrScanner.value
-      if (showQrScanner.value === true) {
-        qrScanError.value = null
+    const wallet = ref(null)
+    onMounted(() => {
+      wallet.value = markRaw(new Wallet({
+        walletHash: walletStore.walletHash,
+        xPubKey: walletStore.xPubKey,
+        posId: walletStore.posId,
+      }))
+    })
+
+    const transactions = ref({ history: [] })
+    const fetchingTransactions = ref(false)
+    function fetchTransactions(page=1) {
+      const opts = {
+        page: Number.isInteger(page) ? page : 1,
+        type: 'all',
       }
+
+      fetchingTransactions.value = true
+      walletStore.walletObj.getTransactions(opts)
+        .then(response => {
+          if (response.success) transactions.value = response.transactions
+          transactions.value.page = Number(transactions.value.page)
+        })
+        .finally(() => {
+          fetchingTransactions.value = false
+        })
     }
-
-    function isJsonString(str) {
-        try {
-            JSON.parse(str);
-        } catch (e) {
-            return false;
-        }
-        return true;
-    }
-
-    function onQrDecode (content) {
-      let walletData
-      if (isJsonString(content)) {
-        console.log(content)
-      } else {
-        qrScanError.value = 'Invalid QR code'
-      }
-      toggleQrScanner()
-    }
-
-    function onQrError (error) {
-      qrScanError.value = error
-      toggleQrScanner()
-    }
-
-    const store = useWalletStore()
-
+    onMounted(() => fetchTransactions())
     return {
-      showQrScanner,
-      qrScanError,
-      toggleQrScanner,
-      onQrDecode,
-      onQrError,
-      store
+      walletStore,
+      transactions,
+      fetchingTransactions,
+      fetchTransactions,
     }
   }
 })
 </script>
+<style scoped>
+.home-main-content {
+  position: absolute;
+  top: 0;
+  overflow: auto;
+  max-height:100%;
+}
+
+.home-transactions-list {
+  position: relative;
+  top: 0;
+  max-height:100%;
+}
+</style>
