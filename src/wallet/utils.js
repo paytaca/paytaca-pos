@@ -69,7 +69,6 @@ export function parseWalletLinkData(data) {
   } catch(error) {
     if (typeof data === 'string') {
       let [ walletHash, xPubKey, posId ] = data.split('|')
-      console.log(walletHash, xPubKey, posId)
       posId = Number(posId)
       if (walletHash && xPubKey && Number.isInteger(posId)) {
         response.walletHash = walletHash

@@ -94,14 +94,11 @@ export default defineComponent({
       const addressesStore = useAddressesStore()
       const generatingAddress = ref(false)
       onMounted(() => {
-        console.log(Date.now(), 'mounted')
         generatingAddress.value = true
-        console.log(Date.now(), 'generating addresses')
         addressesStore.fillAddressSets()
           .finally(() => {
             generatingAddress.value = false
           })
-        console.log(Date.now(), 'mounted end')
       })
 
       const addressSet = computed(() => addressesStore.currentAddressSet)

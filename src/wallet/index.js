@@ -107,12 +107,9 @@ export class Wallet {
   }
 
   getAddressSetAt(index) {
-    console.log(Date.now(), index)
     const childNode = bchjs.HDNode.fromXPub(this.xPubKey)
-    console.log(Date.now(), index)
     const receivingAddressNode = childNode.derivePath('0/' + index.toString())
     const changeAddressNode = childNode.derivePath('1/' + index.toString())
-    console.log(Date.now(), index)
     return {
       receiving: bchjs.HDNode.toCashAddress(receivingAddressNode),
       change: bchjs.HDNode.toCashAddress(changeAddressNode)
