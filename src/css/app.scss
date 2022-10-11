@@ -1,1 +1,32 @@
 // app global css in SCSS form
+body.body--light {
+  background-color: $brandlight;
+}
+
+.text-brandblue {
+  color: $brandblue;
+}
+
+.bg-brandblue {
+  background: $brandblue;
+}
+
+.text-brandwhite {
+  color: $brandlight !important;
+}
+
+.bg-brandwhite {
+  background-color: $brandlight !important;
+}
+
+.text-brandgradient {
+  background: $brandgradient;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-box-decoration-break: clone;
+}
+
+.bg-brandgradient {
+  background-image: $brandgradient;
+}
