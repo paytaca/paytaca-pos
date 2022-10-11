@@ -73,7 +73,7 @@ export class Wallet {
     return value
   }
 
-  async generateOtp(opts) {
+  generateOtp(opts) {
     const secret = `${TOTP_SECRET_KEY}:${this.walletHash}-${this.posId}`
     return generateTOTP(secret, opts) 
   }
@@ -89,7 +89,7 @@ export class Wallet {
    * @param {Number} [opts.prevWindows] number of previous windows of OTPs that can be regarded as valid
    * @param {Number} [opts.nextWindows] number of future windows of OTPs that can be regarded as valid
    */
-  async checkOTP(otp, opts) {
+  checkOTP(otp, opts) {
     const response = { valid: false, otps: [], matchIndex: -1 }
     const _opts = {
       digits: opts?.digits || 6,
@@ -103,7 +103,7 @@ export class Wallet {
     if (Number.isSafeInteger(opts?.refTimestamp)) startTimestamp = opts.refTimestamp
     for (var i = -prevWindows; i <= nextWindows; i++) {
       _opts.timestamp = startTimestamp + (_opts.interval * i)
-      const generatedOTP = await this.generateOtp(_opts)
+      const generatedOTP = this.generateOtp(_opts)
       response.otps.push(generatedOTP)
       if (otp === generatedOTP) {
         response.valid = true

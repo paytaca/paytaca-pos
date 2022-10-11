@@ -132,30 +132,23 @@ export default defineComponent({
       watch(qrData, () => walletStore.cacheQrData(qrData.value))
 
       const otpInput = ref('')
-      const verifyingOtp = ref(false)
       function verifyOtp() {
         if (otpInput.value.length < 6) return
 
-        verifyingOtp.value = true
-        wallet.value.checkOTP(otpInput.value)
-          .then(response => {
-            const match = response?.valid
-            if (!match) console.log('OTP mismatch for ', otpInput.value, '. Valid otps:', response.otps)
-            $q.dialog({
-              title: 'OTP verification',
-              message: match ? 'OTP match' : 'OTP incorrect',
-            })
-              .onDismiss(() => {
-                if (match) {
-                  otpInput.value = ''
-                  receiveAmount.value = 0
-                  addressesStore.dequeueAddress()
-                  addressesStore.fillAddressSets()
-                }
-              })
-          })
-          .finally(() => {
-            verifyOtp.value = false
+        const response = wallet.value.checkOTP(otpInput.value)
+        const match = response?.valid
+        if (!match) console.log('OTP mismatch for ', otpInput.value, '. Valid otps:', response.otps)
+        $q.dialog({
+          title: 'OTP verification',
+          message: match ? 'OTP match' : 'OTP incorrect',
+        })
+          .onDismiss(() => {
+            if (match) {
+              otpInput.value = ''
+              receiveAmount.value = 0
+              addressesStore.dequeueAddress()
+              addressesStore.fillAddressSets()
+            }
           })
       }
 

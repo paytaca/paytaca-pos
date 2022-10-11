@@ -12,7 +12,7 @@ const bchjs = new BCHJS()
  * @param {Number} opts.offset
  * @param {Number} opts.timestamp
  */
-export async function generateTOTP(secret, opts) {
+export function generateTOTP(secret, opts) {
   const _opts = {
     digits: 6,
     interval: 30,
@@ -27,7 +27,7 @@ export async function generateTOTP(secret, opts) {
 
   const timecode = Math.floor((_opts.timestamp - _opts.offset) / _opts.interval)
 
-  const hexDigest = await hmacSha256Hex(secret, timecode.toString())
+  const hexDigest = hmacSha256Hex(secret, timecode.toString())
   const digestNumber = BigInt('0x'+hexDigest).toString()
   let codeStr = digestNumber.substring(digestNumber.length-_opts.digits)
   while (codeStr.length < _opts.digits) {
