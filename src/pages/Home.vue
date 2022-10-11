@@ -7,7 +7,9 @@
       </div>
       <div class="q-px-md">
         <q-btn
-          color="white" text-color="black" padding="sm"
+          :color="$q.dark.isActive ? 'dark' : 'white'"
+          :text-color="$q.dark.isActive ? 'white' : 'black'"
+          padding="sm"
           rounded
           class="full-width"
           :to="{ name: 'receive-page' }"

@@ -53,7 +53,7 @@
         unmasked-value
         v-model="otpInput"
         hint="Input OTP from payer"
-        bg-color="white"
+        :bg-color="$q.dark.isActive ? 'dark' : 'white'"
         class="q-space text-h6"
       >
         <template v-slot:append>

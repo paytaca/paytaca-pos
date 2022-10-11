@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf" class="bg-brandwhite">
+  <q-layout view="lHh Lpr lFf">
     <q-page-container>
       <router-view />
     </q-page-container>
@@ -7,7 +7,7 @@
 </template>
 
 <script>
-import { defineComponent, ref } from 'vue'
+import { defineComponent } from 'vue'
 
 export default defineComponent({
   name: 'MainLayout',

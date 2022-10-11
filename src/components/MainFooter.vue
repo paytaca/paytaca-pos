@@ -2,13 +2,14 @@
   <footer
     elevated
     reveal
-    class="layout-footer q-footer fixed-bottom bg-white shadow-up-3"
+    class="layout-footer q-footer fixed-bottom shadow-up-1"
   >
     <div class="row items-center justify-around">
       <div>
         <q-btn
           color="brandblue"
           flat
+          :ripple="false"
           size="1.5rem"
           padding="sm lg"
           icon="home"
@@ -16,7 +17,7 @@
         />
       </div>
       <div>
-        <div class="receive-page-btn-container bg-white shadow-20">
+        <div class="receive-page-btn-container shadow-20">
           <q-btn
             flat
             color="brandblue"
@@ -31,6 +32,7 @@
       <q-btn
         color="brandblue"
         flat
+        :ripple="false"
         size="1.5rem"
         padding="sm lg"
         icon="settings"
@@ -49,17 +51,25 @@ export default defineComponent({
   },
 })
 </script>
-<style scoped>
+<style scoped lang="scss">
 .receive-page-btn-container {
   position: absolute;
   left: 50%;
   top: 0;
   transform: translate(-50%, -40%);
   border-radius:999px;
+  padding: 2px;
+  background-color: white;
+}
+body.body--dark .receive-page-btn-container {
+  background: $dark;
 }
 .layout-footer {
   border-top-left-radius: 14px;
   border-top-right-radius: 14px;
-  background: none;
+  background-color: white;
+}
+body.body--dark .layout-footer {
+  background-color: $dark;  
 }
 </style>
