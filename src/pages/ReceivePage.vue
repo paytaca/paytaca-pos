@@ -12,7 +12,14 @@
         </div>
         <template v-else>
           <img src="~assets/paytaca_logo.png" height="50" class="qr-code-icon"/>
-          <QRCode :text="qrData" color="#253933" :size="200" error-level="H" class="q-mb-sm"/>
+          <QRCode
+            :text="qrData"
+            color="#253933"
+            :size="200"
+            error-level="H"
+            class="q-mb-sm"
+            :style="qrData ? '' : 'opacity:0;'"
+          />
         </template>
       </div>
     </div>
