@@ -81,19 +81,28 @@ export class Wallet {
   /**
    * 
    * @param {String} otp
-   * @param {Number} maxWindows number of previous windows of OTPs that can be regarded as valid
    * @param {Object} opts 
+   * @param {Number} [opts.digits]
+   * @param {Number} [opts.interval]
+   * @param {Number} [opts.offset]
+   * @param {Number} [opts.refTimestamp]
+   * @param {Number} [opts.prevWindows] number of previous windows of OTPs that can be regarded as valid
+   * @param {Number} [opts.nextWindows] number of future windows of OTPs that can be regarded as valid
    */
-  async checkOTP(otp, maxWindows=3, opts) {
+  async checkOTP(otp, opts) {
     const response = { valid: false, otps: [], matchIndex: -1 }
     const _opts = {
       digits: opts?.digits || 6,
       interval: opts?.interval || 30,
       offset: opts?.offset || 0,
     }
+    const prevWindows = Number.isSafeInteger(opts?.prevWindows) ? opts?.prevWindows : 3
+    const nextWindows = Number.isSafeInteger(opts?.nextWindows) ? opts?.nextWindows : 0
+
     let startTimestamp = Math.floor(Date.now()/1000)
-    for (var i = 0; i < maxWindows; i++) {
-      _opts.timestamp = startTimestamp - (_opts.interval * i)
+    if (Number.isSafeInteger(opts?.refTimestamp)) startTimestamp = opts.refTimestamp
+    for (var i = -prevWindows; i <= nextWindows; i++) {
+      _opts.timestamp = startTimestamp + (_opts.interval * i)
       const generatedOTP = await this.generateOtp(_opts)
       response.otps.push(generatedOTP)
       if (otp === generatedOTP) {
