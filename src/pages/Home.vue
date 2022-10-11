@@ -2,38 +2,49 @@
   <q-page class="flex flex-center">
     <WalletLink v-if="!walletStore.walletHash"/>
     <div v-else class="home-main-content q-py-md full-width">
+      <div class="text-h4 text-brandblue q-mx-md q-px-sm q-mb-md">
+        Paytaca POS
+      </div>
       <div class="q-px-md">
-        <q-btn padding="sm" class="full-width" :to="{ name: 'receive-page' }">
+        <q-btn
+          color="white" text-color="black" padding="sm"
+          rounded
+          class="full-width"
+          :to="{ name: 'receive-page' }"
+        >
           <div>
-            <q-icon name="qr_code" size="6rem"/>
+            <q-icon name="qr_code" size="5rem"/>
             <div class="text-caption">Receive Payment</div>
           </div>
         </q-btn>
       </div>
 
-      <q-card class="q-mx-md q-mt-md home-transactions-list">
+      <q-card class="q-mx-md q-mt-md home-transactions-list-container" style="border-radius:25px;">
         <q-card-section class="text-h6">
-          TRANSACTIONS
+          Transactions
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row items-center justify-end">
             <q-pagination
               v-if="transactions?.num_pages >= 1"
               :modelValue="transactions?.page"
-              :max="5"
+              :max="transactions?.num_pages || 0"
+              :max-pages="7"
+              input
               unelevated
               padding="xs sm"
               boundary-numbers
               @update:modelValue="val => fetchTransactions(val)"
             />
           </div>
-          <div v-if="fetchingTransactions" class="row items-center justify-center q-my-md">
-            <q-spinner color="primary" size="3rem"/>
+          <div v-if="fetchingTransactions" class="row items-center justify-center q-px-xs">
+            <q-linear-progress query color="brandblue"/>
           </div>
-          <TransactionsList :transactions="transactions"/>
+          <TransactionsList :transactions="transactions" class="home-transactions-list"/>
         </q-card-section>
       </q-card>
     </div>
+    <MainFooter/>
   </q-page>
 </template>
 
@@ -43,6 +54,7 @@ import { useWalletStore } from 'stores/wallet'
 import { defineComponent, markRaw, onMounted, ref } from 'vue'
 import TransactionsList from 'src/components/TransactionsList.vue'
 import WalletLink from 'src/components/WalletLink.vue'
+import MainFooter from 'src/components/MainFooter.vue'
 
 // import historyData from 'src/wallet/mockers/history.json'
 
@@ -51,7 +63,8 @@ export default defineComponent({
   components: {
     TransactionsList,
     WalletLink,
-  },
+    MainFooter
+},
   setup () {
     const walletStore = useWalletStore()
 
@@ -83,6 +96,12 @@ export default defineComponent({
         })
     }
     onMounted(() => fetchTransactions())
+
+    onMounted(() => {
+      window.t = () => {
+        fetchingTransactions.value = !fetchingTransactions.value
+      }
+    })
     return {
       walletStore,
       transactions,
@@ -95,14 +114,18 @@ export default defineComponent({
 <style scoped>
 .home-main-content {
   position: absolute;
-  top: 0;
+  top: 1.5rem;
   overflow: auto;
-  max-height:100%;
+  /* max-height:100%; */
 }
 
-.home-transactions-list {
+.home-transactions-list-container {
   position: relative;
-  top: 0;
+  bottom: 0;
   max-height:100%;
+}
+.home-transactions-list {
+  height: 40vh;
+  overflow-y: auto;
 }
 </style>

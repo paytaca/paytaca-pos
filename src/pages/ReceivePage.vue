@@ -1,9 +1,9 @@
 <template>
   <q-page padding>
+    <MainHeader title="Payment"/>
     <div class="text-center text-h4 q-mb-lg">
-      <div>Payment</div>
       <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
-      <div v-else class="text-body1">#{{ addressSet?.index }}</div>
+      <div v-else class="text-h6">#{{ addressSet?.index }}</div>
     </div>
     <div class="row items-center justify-center">
       <div class="qr-code-container" style="position:relative;" v-ripple @click="copyText(qrData, 'Copied payment URI')">
@@ -53,7 +53,8 @@
         unmasked-value
         v-model="otpInput"
         hint="Input OTP from payer"
-        class="q-space"
+        bg-color="white"
+        class="q-space text-h6"
       >
         <template v-slot:append>
           <q-btn
@@ -76,12 +77,14 @@ import { defineComponent, ref, onMounted, computed, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import QRCode from 'vue-qrcode-component'
 import { decodeBIP0021URI, sha256 } from 'src/wallet/utils'
+import MainHeader from 'src/components/MainHeader.vue'
 
 export default defineComponent({
     name: "ReceivePage",
     components: {
-      QRCode,
-    },
+    QRCode,
+    MainHeader
+},
     methods: {
       copyText(value, message='Copied address') {
         this.$copyText(value)
@@ -181,6 +184,7 @@ export default defineComponent({
 
   border-radius: 16px;
   border: 4px solid #ed5f59;
+  background-color: white;
 
   padding: 1.8rem 2.1rem;
 }
