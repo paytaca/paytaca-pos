@@ -70,7 +70,7 @@
 <script>
 import { useWalletStore } from 'stores/wallet'
 import { useAddressesStore } from 'stores/addresses'
-import { defineComponent, ref, onMounted, computed } from 'vue'
+import { defineComponent, ref, onMounted, computed, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import QRCode from 'vue-qrcode-component'
 
@@ -125,8 +125,11 @@ export default defineComponent({
         paymentUri += `?POS=${paymentUriLabel.value}`
 
         if (receiveAmount.value) paymentUri += `&amount=${receiveAmount.value}`
+
+        paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
         return paymentUri
       })
+      watch(qrData, () => walletStore.cacheQrData(qrData.value))
 
       const otpInput = ref('')
       const verifyingOtp = ref(false)
