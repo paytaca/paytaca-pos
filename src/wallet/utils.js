@@ -1,3 +1,5 @@
+import { createHmac } from "crypto"
+
 /**
  * 
  * @param {String} secret digest string
@@ -31,25 +33,10 @@ export async function generateTOTP(secret, opts) {
   return codeStr
 }
 
-async function hmacSha256Hex(secret, message) {
-  const enc = new TextEncoder("utf-8");
-  const algorithm = { name: "HMAC", hash: "SHA-256" };
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    algorithm,
-    false, ["sign", "verify"]
-  );
-  const hashBuffer = await crypto.subtle.sign(
-    algorithm.name, 
-    key, 
-    enc.encode(message)
-  );
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(
-      b => b.toString(16).padStart(2, '0')
-  ).join('');
-  return hashHex;
+export function hmacSha256Hex(secret, message) {
+  const hmac = createHmac("SHA256", Buffer.from(secret, "utf8"))
+  hmac.update(Buffer.from(message, "utf8"))
+  return hmac.digest().toString("hex")
 }
 
 /**
