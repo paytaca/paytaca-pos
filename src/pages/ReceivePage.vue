@@ -73,6 +73,7 @@ import { useAddressesStore } from 'stores/addresses'
 import { defineComponent, ref, onMounted, computed, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import QRCode from 'vue-qrcode-component'
+import { decodeBIP0021URI, sha256 } from 'src/wallet/utils'
 
 export default defineComponent({
     name: "ReceivePage",
@@ -134,10 +135,10 @@ export default defineComponent({
       const otpInput = ref('')
       function verifyOtp() {
         if (otpInput.value.length < 6) return
+        const _qrData = qrData.value
+        const match = walletStore.verifyOtpForQrData(otpInput.value, _qrData)
+        const decodedQrData = decodeBIP0021URI(_qrData)
 
-        const response = wallet.value.checkOTP(otpInput.value)
-        const match = response?.valid
-        if (!match) console.log('OTP mismatch for ', otpInput.value, '. Valid otps:', response.otps)
         $q.dialog({
           title: 'OTP verification',
           message: match ? 'OTP match' : 'OTP incorrect',
@@ -146,8 +147,11 @@ export default defineComponent({
             if (match) {
               otpInput.value = ''
               receiveAmount.value = 0
-              addressesStore.dequeueAddress()
+              addressesStore.removeAddressSet(decodedQrData.address)
               addressesStore.fillAddressSets()
+
+              const qrDataHash = sha256(_qrData)
+              delete walletStore.qrDataTimestampCache[qrDataHash]
             }
           })
       }

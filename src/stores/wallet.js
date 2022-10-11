@@ -29,6 +29,23 @@ export const useWalletStore = defineStore('wallet', {
   },
 
   actions: {
+    verifyOtpForQrData(otp, qrData) {
+      if (!qrData) return false
+      const qrDataHash = sha256(qrData)
+      let refTimestamp
+      if (this.qrDataTimestampCache[qrDataHash]?.timestamp) refTimestamp = this.qrDataTimestampCache[qrDataHash]?.timestamp
+      else refTimestamp = Math.floor(Date.now()/1000)
+
+      if (!Number.isSafeInteger(refTimestamp)) return false
+
+      const otpCheck = this.walletObj.checkOTP(otp, {
+        prevWindows: 3, nextWindows: 2,
+        refTimestamp: refTimestamp,
+      })
+
+      if (!otpCheck.valid) console.log('OTP mismatch for ', otpInput.value, '. Valid otps:', response.otps)
+      return otpCheck.valid
+    },
     /**
      * Remove qr data older than age specified in seconds
      * @param {Number} age seconds

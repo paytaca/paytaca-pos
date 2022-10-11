@@ -119,6 +119,10 @@ export const useAddressesStore = defineStore('addresses', {
         loopsLeft--
       }
     },
+    removeAddressSet(address) {
+      this.addressSets = this.addressSets
+        .filter(addressSet => addressSet?.receiving != address && addressSet?.change != address)
+    },
     enqueueAddress(addressSet, verify=true) {
       if (verify) {
         const wallet = useWalletStore().walletObj
