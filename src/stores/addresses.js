@@ -1,6 +1,39 @@
 import { defineStore } from 'pinia';
 import { Wallet } from 'src/wallet';
+import { hmacSha256Hex } from 'src/wallet/utils';
 import { useWalletStore } from './wallet';
+
+/**
+ * 
+ * @param {Object} addressSet 
+ * @param {String} addressSet.receiving 
+ * @param {String} addressSet.change 
+ * @param {Number} addressSet.index 
+ * @param {Number} addressSet.paymentIndex 
+ * @param {Object} [addressSet.hmac] 
+ * @param {String} [addressSet.hmac.receiving] 
+ * @param {String} [addressSet.hmac.change] 
+ * @param {Wallet} wallet
+ */
+export function isValidAddressSet(addressSet, wallet) {
+  if (!Number.isInteger(addressSet.index)) return false
+  if (!addressSet?.receiving || !addressSet?.change) return false
+
+  const receivingAddrHmac = hmacSha256Hex(wallet.xPubKey, addressSet?.receiving)
+  const changeAddrHmac = hmacSha256Hex(wallet.xPubKey, addressSet?.change)
+  if (addressSet?.hmac?.receiving && addressSet?.hmac?.change) {
+    if (addressSet?.hmac?.receiving !== receivingAddrHmac) return false
+    if (addressSet?.hmac?.change !== changeAddrHmac) return false
+    return true
+  }
+
+  const { receiving, change } = wallet.getAddressSetAt(addressSet.index)
+  if (receiving !== addressSet?.receiving) return false
+  if (change !== addressSet?.change) return false
+
+  addressSet.hmac = { receiving: receivingAddrHmac, change: changeAddrHmac }
+  return true
+}
 
 export const useAddressesStore = defineStore('addresses', {
   state: () => ({
@@ -11,6 +44,13 @@ export const useAddressesStore = defineStore('addresses', {
         change: '',
         index: 0,
         paymentIndex: 0,
+        // hmacSha256Hex(secret: <xPubKey>, message:<receiving|change>)
+        // used for verifying address and xpubkey instead of
+        // generating new address from xPubKey as it seems slow and costly
+        hmac: {
+          receiving: '',
+          change: '',
+        }
       }
     ]
   }),
@@ -29,14 +69,7 @@ export const useAddressesStore = defineStore('addresses', {
     removeInvalidAddressSets() {
       const wallet = useWalletStore().walletObj
       this.addressSets = this.addressSets
-        .filter((addressSet) => {
-          if (!Number.isInteger(addressSet.index)) return false
-
-          const { receiving, change } = wallet.getAddressSetAt(addressSet.index)
-          if (receiving == addressSet?.receiving && change == addressSet?.change) return true
-
-          return false
-        })
+        .filter(addressSet => isValidAddressSet(addressSet, wallet))
     },
     removeDuplicateIndices() {
       this.addressSets = this.addressSets
@@ -73,6 +106,10 @@ export const useAddressesStore = defineStore('addresses', {
               nextIndex, { skipSubscription: false },
             )
             addressSet.paymentIndex = nextIndex
+            addressSet.hmac = {
+              receiving: hmacSha256Hex(wallet.xPubKey, addressSet.receiving),
+              change: hmacSha256Hex(wallet.xPubKey, addressSet.change),
+            }
             this.enqueueAddress(addressSet)
           } catch(error) {
             console.error(error)
@@ -82,7 +119,12 @@ export const useAddressesStore = defineStore('addresses', {
         loopsLeft--
       }
     },
-    enqueueAddress(addressSet) {
+    enqueueAddress(addressSet, verify=true) {
+      if (verify) {
+        const wallet = useWalletStore().walletObj
+        if (!isValidAddressSet(addressSet, wallet)) return
+      }
+
       // this.addressSets = [...this.addressSets, addressSet]
       this.addressSets.push(addressSet)
     },
