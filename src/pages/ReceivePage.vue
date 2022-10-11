@@ -1,6 +1,6 @@
 <template>
   <q-page padding>
-    <div class="text-center text-h4 q-my-lg">
+    <div class="text-center text-h4 q-mb-lg">
       <div>Payment</div>
       <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
       <div v-else class="text-body1">#{{ addressSet?.index }}</div>
@@ -11,7 +11,7 @@
           <q-skeleton height="200px" width="200px" />
         </div>
         <template v-else>
-          <img src="~assets/paytaca_logo.png" height="50" class="qr-code-icon"/>
+          <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
           <QRCode
             :text="qrData"
             color="#253933"
@@ -45,25 +45,27 @@
       </div>
     </div>
     <div class="q-mt-lg q-px-md">
-      <q-form @submit="verifyOtp()">
-        <q-input
-          outlined
-          label="Confirmation OTP"
-          inputmode="numeric"
-          mask="#-#-#-#-#-#"
-          unmasked-value
-          v-model="otpInput"
-          hint="Input OTP from payer"
-          class="q-space"
-        />
-        <q-btn
-          no-caps
-          color="primary"
-          label="Verify"
-          type="submit"
-          class="q-my-md"
-        />
-      </q-form>
+      <q-input
+        outlined
+        label="Confirmation OTP"
+        inputmode="numeric"
+        mask="#-#-#-#-#-#"
+        unmasked-value
+        v-model="otpInput"
+        hint="Input OTP from payer"
+        class="q-space"
+      >
+        <template v-slot:append>
+          <q-btn
+            no-caps
+            color="primary"
+            label="Verify"
+            type="submit"
+            class="q-my-md"
+            @click="verifyOtp()"
+          />
+        </template>
+      </q-input>
     </div>
   </q-page>
 </template>
