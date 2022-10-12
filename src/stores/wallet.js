@@ -43,7 +43,7 @@ export const useWalletStore = defineStore('wallet', {
         refTimestamp: refTimestamp,
       })
 
-      if (!otpCheck.valid) console.log('OTP mismatch for ', otpInput.value, '. Valid otps:', response.otps)
+      if (!otpCheck.valid) console.log('OTP mismatch for', otp, '. Valid otps:', otpCheck.otps)
       return otpCheck.valid
     },
     /**
