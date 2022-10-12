@@ -135,7 +135,10 @@ export default defineComponent({
         paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
         return paymentUri
       })
-      watch(qrData, () => walletStore.cacheQrData(qrData.value))
+      watch(qrData, () => {
+        walletStore.cacheQrData(qrData.value)
+        walletStore.removeOldQrDataCache(86400*2) // remove qr data older than 2 days
+      })
 
       const otpInput = ref('')
       function verifyOtp() {

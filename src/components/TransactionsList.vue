@@ -4,6 +4,7 @@
       v-for="(tx, index) in transactions.history" :key="index"
       class="q-pt-sm q-mt-sm q-pb-xs q-mb-xs q-px-sm"
       style="position:relative" v-ripple
+      @click="displayTransaction(tx)"
     >
       <div class="row items-center">
         <div class="q-space">
@@ -21,6 +22,7 @@
 <script>
 import ago from 's-ago'
 import { defineComponent, ref } from 'vue'
+import TransactionDetailDialog from 'src/components/TransactionDetailDialog.vue'
 
 export default defineComponent({
   props: {
@@ -38,6 +40,12 @@ export default defineComponent({
     formatDate (date) {
       return ago(new Date(date))
     },
+    displayTransaction(tx) {
+      this.$q.dialog({
+        component: TransactionDetailDialog,
+        componentProps: { transaction: tx },
+      })
+    }
   },
 })
 </script>
