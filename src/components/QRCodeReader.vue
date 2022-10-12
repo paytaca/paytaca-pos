@@ -15,7 +15,7 @@
           <div class="line-design4"></div>
         </div>
       </div>
-      <span class="scanner-text text-center full-width">Scan QR code</span>
+      <span class="scanner-text text-center full-width">{{ text }}</span>
     </div>
 
     <qrcode-stream
@@ -37,6 +37,10 @@ import { ref } from 'vue'
 export default {
   components: { QrcodeStream },
   props: {
+    text: {
+      type: String,
+      default: 'Scan QR code',
+    },
     toggle: Function
   },
   emits: ['decode', 'error'],
@@ -94,14 +98,14 @@ export default {
   left: 0;
   right: 0;
   background: lightcoral;
-  z-index: 999;
+  z-index: 2999;
   display: flex;
 }
 .scanner-text {
 	position: absolute;
 	bottom: -30px;
 	color: white;
-	z-index: 1000;
+	z-index: 3000;
 }
 .scanner-box {
 	position: relative !important;

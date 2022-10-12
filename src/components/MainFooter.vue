@@ -25,6 +25,7 @@
             padding="md"
             size="1.75rem"
             icon="qr_code"
+            :disable="!$pinia.state.value.wallet?.walletHash"
             :to="{ name: 'receive-page' }"
           />
         </div>

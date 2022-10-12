@@ -1,15 +1,30 @@
 <template>
-  <q-card :bordered="false" :flat="true" style="margin-top: -30px;">
+  <div style="margin-top: -30px;">
     <q-img
       alt="Paytaca logo"
-      src="~assets/paytaca-pos-logo.png"
-      style="width: 200px; height: 200px"
+      src="~assets/paytaca-pos-icon.png"
+      style="width: 250px; height: 250px"
     />
+      <div
+        :class="[
+          'text-h4 text-center text-weight-medium',
+          $q.dark.isActive ? '' : 'text-dark-page',
+        ]"
+        style="margin-top:-45px;letter-spacing: 0.18rem;"
+      >
+        Paytaca<span class="q-ml-sm" style="font-weight:575;">POS</span>
+      </div>
     <q-card-actions v-if="!walletStore.walletHash" align="center" style="margin-top: 20px;">
       <q-btn color="primary" @click="toggleQrScanner">Link to Wallet</q-btn>
     </q-card-actions>
-  </q-card>
-  <QRCodeReader v-if="showQrScanner" :toggle="toggleQrScanner" @decode="onQrDecode" @error="onQrError" />
+  </div>
+  <QRCodeReader
+    v-if="showQrScanner"
+    text="Scan QR code for wallet link"
+    :toggle="toggleQrScanner"
+    @decode="onQrDecode"
+    @error="onQrError"
+  />
 </template>
 <script>
 import { useWalletStore } from 'stores/wallet'
