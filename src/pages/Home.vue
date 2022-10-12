@@ -28,7 +28,7 @@
         <q-card-section class="q-pt-none">
           <div class="row items-center justify-end">
             <q-pagination
-              v-if="transactions?.num_pages >= 1"
+              v-if="transactions?.num_pages > 1"
               :modelValue="transactions?.page"
               :max="transactions?.num_pages || 0"
               :max-pages="7"
@@ -53,7 +53,7 @@
 <script>
 import { Wallet } from 'src/wallet'
 import { useWalletStore } from 'stores/wallet'
-import { defineComponent, markRaw, onMounted, ref } from 'vue'
+import { defineComponent, markRaw, onMounted, ref, watch } from 'vue'
 import TransactionsList from 'src/components/TransactionsList.vue'
 import WalletLink from 'src/components/WalletLink.vue'
 import MainFooter from 'src/components/MainFooter.vue'
@@ -98,6 +98,7 @@ export default defineComponent({
         })
     }
     onMounted(() => fetchTransactions())
+    watch(() => [walletStore.walletHash, walletStore.posId], () => fetchTransactions())
 
     onMounted(() => {
       window.t = () => {

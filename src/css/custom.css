@@ -1,0 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap');
+
+
+/* @font-face {
+  font-family: Rubik;
+  src: url('../assets/fonts/Rubik.ttf');
+} */
+
+body {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 300 !important;
+}
