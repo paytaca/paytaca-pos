@@ -169,8 +169,8 @@ export class Wallet {
         `last-address-index/wallet/${this.walletHash}/`,
         { params: { with_tx: true, posid: this.posId } },
       )
-      if (Number.isInteger(apiResponse?.data?.address?.paymentIndex)) {
-        response.paymentIndex = apiResponse.data.address.paymentIndex
+      if (Number.isInteger(apiResponse?.data?.address?.payment_index)) {
+        response.paymentIndex = apiResponse.data.address.payment_index
       }
     } catch(error) {
       console.error(error)
