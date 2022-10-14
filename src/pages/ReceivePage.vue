@@ -125,7 +125,7 @@ export default defineComponent({
       const qrData = computed(() => {
         // QR data is a BIP0021 compliant
         // BIP0021 is a URI scheme for bitcoin payments
-        if (!addressSet.value?.receiving || !receiveAmount.value) return ''
+        if (!addressSet.value?.receiving) return ''
         let paymentUri = addressSet.value?.receiving
 
         paymentUri += `?POS=${paymentUriLabel.value}`
@@ -135,10 +135,12 @@ export default defineComponent({
         paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
         return paymentUri
       })
-      watch(qrData, () => {
+      function cacheQrData() {
         walletStore.cacheQrData(qrData.value)
         walletStore.removeOldQrDataCache(86400*2) // remove qr data older than 2 days
-      })
+      }
+      watch(qrData, () => cacheQrData())
+      onMounted(() => cacheQrData())
 
       const otpInput = ref('')
       function verifyOtp() {
