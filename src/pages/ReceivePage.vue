@@ -44,7 +44,7 @@
         {{ addressSet?.receiving }}
       </div>
     </div>
-    <div class="q-mt-lg q-px-md">
+    <div v-if="qrData" class="q-mt-lg q-px-md">
       <q-input
         outlined
         label="Confirmation OTP"
@@ -52,7 +52,7 @@
         mask="#-#-#-#-#-#"
         unmasked-value
         v-model="otpInput"
-        hint="Input OTP from payer"
+        hint="Input OTP sent to customer after payment"
         :bg-color="$q.dark.isActive ? 'dark' : 'white'"
         class="q-space text-h6"
       >
