@@ -23,10 +23,10 @@
         </template>
       </div>
     </div>
-    <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width">
-      <div v-if="receiveAmount">{{ receiveAmount }} BCH</div>
+    <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
+      <div v-if="receiveAmount">{{ receiveAmount }} {{ currency }}</div>
       <div v-else class="text-red">Set amount</div>
-      <q-popup-edit v-model="receiveAmount" v-slot="scope">
+      <!-- <q-popup-edit v-model="receiveAmount" v-slot="scope">
         <q-input
           label="Amount"
           type="number"
@@ -36,7 +36,7 @@
           autofocus
           @keyup.enter="scope.set"
         />
-      </q-popup-edit>
+      </q-popup-edit> -->
     </div>
     <div class="text-center text-h6 text-weight-light q-mt-lg q-mx-md q-px-lg" style="word-break:break-all;">
       <q-skeleton v-if="loading" height="3rem"/>
@@ -78,6 +78,7 @@ import { useQuasar } from 'quasar'
 import QRCode from 'vue-qrcode-component'
 import { decodeBIP0021URI, sha256 } from 'src/wallet/utils'
 import MainHeader from 'src/components/MainHeader.vue'
+import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 
 export default defineComponent({
     name: "ReceivePage",
@@ -122,6 +123,18 @@ export default defineComponent({
       })
 
       const receiveAmount = ref(0)
+      const currency = ref('BCH')
+      function showSetAmountDialog() {
+        $q.dialog({
+          component: SetAmountFormDialog,
+          componentProps: {
+            initialValue: { amount: receiveAmount.value, currency: currency.value }
+          }
+        }).onOk(data => {
+          receiveAmount.value = data?.value
+          currency.value = data?.currency || 'BCH'
+        })
+      }
       const qrData = computed(() => {
         // QR data is a BIP0021 compliant
         // BIP0021 is a URI scheme for bitcoin payments
@@ -131,6 +144,10 @@ export default defineComponent({
         paymentUri += `?POS=${paymentUriLabel.value}`
 
         if (receiveAmount.value) paymentUri += `&amount=${receiveAmount.value}`
+
+        if (currency.value && currency.value != 'BCH') {
+          paymentUri += `&currency=${currency.value}`
+        }
 
         paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
         return paymentUri
@@ -172,6 +189,8 @@ export default defineComponent({
         loading,
         generatingAddress,
         receiveAmount,
+        currency,
+        showSetAmountDialog,
         qrData,
         otpInput,
         verifyOtp,
