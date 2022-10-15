@@ -8,6 +8,7 @@
             <q-input
               label="Amount"
               type="number"
+              step="0.01"
               v-model.number="amount.value"
               outlined
               autofocus
