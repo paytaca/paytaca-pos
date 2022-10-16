@@ -168,7 +168,7 @@ export default defineComponent({
 
         $q.dialog({
           title: 'OTP verification',
-          message: match ? 'OTP match' : 'OTP incorrect',
+          message: match ? 'OTP match. Payment has been verified!' : 'OTP incorrect. Failed to verify the payment!',
         })
           .onDismiss(() => {
             if (match) {
