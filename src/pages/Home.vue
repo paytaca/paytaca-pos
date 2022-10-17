@@ -84,7 +84,7 @@ export default defineComponent({
     function fetchTransactions(page=1) {
       const opts = {
         page: Number.isInteger(page) ? page : 1,
-        type: 'all',
+        type: 'incoming',
       }
 
       fetchingTransactions.value = true
