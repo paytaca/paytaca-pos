@@ -74,6 +74,7 @@
 import { useWalletStore } from 'stores/wallet'
 import { useAddressesStore } from 'stores/addresses'
 import { defineComponent, ref, onMounted, computed, watch } from 'vue'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import QRCode from 'vue-qrcode-component'
 import { decodeBIP0021URI, sha256 } from 'src/wallet/utils'
@@ -102,6 +103,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    const $router = useRouter()
     const walletStore = useWalletStore();
     const wallet = ref(walletStore.walletObj);
 
@@ -179,10 +181,49 @@ export default defineComponent({
 
             const qrDataHash = sha256(_qrData)
             delete walletStore.qrDataTimestampCache[qrDataHash]
+            promptNewPayment()
           }
         })
     }
 
+    function promptNewPayment(text='') {
+      promptOnLeave.value = false
+      $q.dialog({
+        title: 'Create new payment?',
+        persistent: true,
+        ok: {
+          noCaps: true,
+          flat: true,
+          size: '1rem',
+          color: 'brandblue',
+          label: 'OK',
+        },
+        cancel: {
+          noCaps: true,
+          flat: true,
+          size: '1rem',
+          color: 'brandblue',
+          label: 'Return to home',
+        }
+      })
+        .onCancel(() => $router.push({ name: 'home' }))
+        .onDismiss(() => setTimeout(() => promptOnLeave.value = true, 100))
+    }
+
+    const promptOnLeave = ref(true)
+    onBeforeRouteLeave(async (to, from, next) => {
+      if (!qrData.value || !promptOnLeave.value) return next()
+
+      const proceed = await new Promise((resolve) => {
+        $q.dialog({
+          title: 'Leave Page',
+          message: 'Leaving page without confirming payment OTP. Are you sure?',
+          cancel: true,
+          ok: true,
+        }).onOk(() => resolve(true)).onDismiss(() => resolve(false))
+      })
+      return next(proceed)
+    })
     return {
       wallet,
       addressSet,
