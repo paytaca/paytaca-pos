@@ -1,6 +1,7 @@
 import Watchtower from 'watchtower-cash-js'
 import BCHJS from '@psf/bch-js'
 import { generateTOTP } from './utils'
+import { useTxCacheStore } from 'src/stores/tx-cache'
 
 const bchjs = new BCHJS()
 const projectId = process.env.WATCHTOWER_PROJECT_ID
@@ -183,10 +184,17 @@ export class Wallet {
    * 
    * @param {Object} opts
    * @param {Number} opts.page
+   * @param {Number} opts.cacheAge
    * @param {'incoming' | 'outgoing'} [opts.type]
    */
   async getTransactions (opts) {
     const response = { success: false, transactions: null, error: undefined }
+    const txCacheStore = useTxCacheStore()
+
+    const cacheAge = opts?.cacheAge || 15 * 1000 // default age
+    let pageKey = ''
+    let cachedPageData
+
     try {
       const queryParams = {
         page: opts?.page || 1,
@@ -195,13 +203,27 @@ export class Wallet {
 
       if (opts?.type === 'incoming' || opts?.type === 'outgoing') queryParams.type = opts.type
 
-      const request = await this.watchtower.BCH._api.get(`history/wallet/${this.walletHash}/`, { params: queryParams })
-      response.success = true
-      response.transactions = request?.data
+      pageKey = JSON.stringify(Object.assign({ walletHash: this.walletHash }, queryParams))
+      cachedPageData = txCacheStore.getPage(pageKey)
+      if (cachedPageData?.__cachedAt__ >= Date.now() - cacheAge) {  
+        response.success = true
+        response.transactions = cachedPageData
+      } else {
+        const request = await this.watchtower.BCH._api.get(`history/wallet/${this.walletHash}/`, { params: queryParams })
+        response.success = true
+        response.transactions = request?.data
+        txCacheStore.cachePage(pageKey, response.transactions)
+      }
     } catch(error) {
       console.error(error)
       response.success = false
       response.error = error
+    }
+
+    // get cached txs if unsuccessfully taken transactions from server
+    if (!response.success && pageKey && cachedPageData) {
+      response.success = true
+      response.transactions = cachedPageData
     }
     return response
   }
