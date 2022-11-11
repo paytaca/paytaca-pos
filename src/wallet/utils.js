@@ -1,5 +1,6 @@
 import BCHJS from "@psf/bch-js"
 import { createHmac, createHash } from "crypto"
+import axios from 'axios'
 
 const bchjs = new BCHJS()
 
@@ -114,4 +115,127 @@ export function parseWalletLinkData(data) {
   response.parameters = searchParams
 
   return response
+}
+
+
+/**
+ * @typedef {Object} TxRecord - data structured returned from watchtower's wallet history API
+ * @property {String} record_type - "incoming" | "outgoing"
+ * @property {String} txid - transaction hash
+ * @property {Number} amount - balance change of a wallet hash(not an address)
+ * @property {String} token - token id or "bch"
+ * @property {Number} tx_fee - transaction fee in satoshis
+ * @property {Object[]} senders - 2d array of senders/inputs: [address, amount][]
+ * @property {Object[]} recipients - 2d array of recipients/outputs: [adress, amount][]
+ * @property {String} date_created - timestamp of the record being created in server, not the transaction in blockchain. Is in ISO format
+ * 
+ */
+
+/**
+ *
+ * @param {String} qrData 
+ * @param {TxRecord[]} txRecords
+ * @param {Object} opts
+ * @param {Boolean} opts.checkAmount
+ */
+export function paymentUriHasMatch(qrData, txRecords, opts) {
+  let decodedPaymentUri = undefined
+  try {
+    decodedPaymentUri = decodeBIP0021URI(qrData)
+  } catch(error) {
+    if (error?.name === 'TypeError') return false
+  }
+
+  if (!Array.isArray(txRecords)) return false
+  
+  let bchAmount
+  if (decodedPaymentUri.amount) {
+    if (!decodedPaymentUri.parameters.currency || String(decodedPaymentUri.parameters.currency).toLowerCase() == 'bch') {
+      bchAmount = decodedPaymentUri.amount
+    }
+  }
+
+  return txRecords.find(txRecord => {
+    if (!Array.isArray(txRecord?.recipients)) return false
+    const createdDate = new Date(txRecord.date_created)
+    const isCreatedAfterQrData = createdDate >= Number(decodedPaymentUri.parameters?.ts * 1000)
+    if (bchAmount && opts?.checkAmount) {
+      const recipientsMap = {}
+      txRecord.recipients.forEach(recipient => {
+        if (!recipient[0]) return
+        const subtotal = recipientsMap[recipient[0]] || 0
+        recipientsMap[recipient[0]] = subtotal + Number(recipient[1])
+      })
+      const AMOUNT_COMPARE_ERROR_MARGIN = 546
+      const hasMatchingAmount = Math.abs(recipientsMap[decodedPaymentUri.address] - bchAmount * 10 ** 8) < AMOUNT_COMPARE_ERROR_MARGIN
+
+      if (hasMatchingAmount && isCreatedAfterQrData) return txRecord
+    } else {
+      const hasMatchingRecipient = txRecord.recipients.some(recipient => recipient?.[0] === decodedPaymentUri.address)
+      if (hasMatchingRecipient && isCreatedAfterQrData) return txRecord
+    }
+  })
+}
+
+/**
+ * 
+ * @typedef BitDBOutput
+ * @property {String} a address, without the prefix 'bitcoincash:'
+ * @property {Number} v value in satoshis
+ * @property {Number} i index
+ * @param {String} qrData 
+ * @param {Object} opts
+ * @param {Boolean} opts.checkAmount
+ * @returns {{tx: {h: String}, out: BitDBOutput[] }}
+ */
+export async function findMatchingPaymentLink(qrData, opts) {
+  let decodedPaymentUri = undefined
+  try {
+    decodedPaymentUri = decodeBIP0021URI(qrData)
+  } catch(error) {
+    if (error?.name === 'TypeError') return false
+  }
+
+  let bchAmount
+  if (decodedPaymentUri.amount) {
+    if (!decodedPaymentUri.parameters.currency || String(decodedPaymentUri.parameters.currency).toLowerCase() == 'bch') {
+      bchAmount = decodedPaymentUri.amount
+    }
+  }
+
+  // qpdfdtdf7x27gpvtmlgmgeem2wgrlemqky67jycqde
+  const truncatedAddress = decodedPaymentUri.address.replace('bitcoincash:', '')
+  const query = `{
+    "v": 3,
+    "q": {
+      "find": {
+        "out.e.a": "${truncatedAddress}",
+        "blk.t": {"$gte": ${decodedPaymentUri.parameters.ts} }
+      },
+      "project": { "tx.h": 1, "out.e": 1 },
+      "limit": 10
+    }
+  }`
+
+  const url = `https://bitdb.bch.sx/q/${btoa(query)}`
+  const {data: responseData} = await axios.get(url)
+  const txs = []
+  if (Array.isArray(responseData.c)) responseData.c.forEach(tx => txs.push(tx))
+  if (Array.isArray(responseData.u)) responseData.u.forEach(tx => txs.push(tx))
+  
+  if (bchAmount && opts?.checkAmount) {
+    const filteredTxs = txs.filter(tx => {
+      if (!Array.isArray(tx?.out)) return false
+
+      const totalReceived = tx.out
+        .filter(output => output.a === truncatedAddress)
+        .reduce((subtotal, output) => subtotal + output?.v, 0)
+      const AMOUNT_COMPARE_ERROR_MARGIN = 546
+      const hasMatchingAmount = Math.abs(totalReceived - bchAmount * 10 ** 8) < AMOUNT_COMPARE_ERROR_MARGIN
+      return hasMatchingAmount
+    })
+    return filteredTxs
+  }
+
+  return txs
 }
