@@ -129,7 +129,10 @@ export default defineComponent({
           }
 
           // last check is checking from bitdb
-          if (!hasMatch) hasMatch = await findMatchingPaymentLink(qrData, { checkAmount: true })
+          if (!hasMatch) {
+            const matchingTxs = await findMatchingPaymentLink(qrData, { checkAmount: true })
+            hasMatch = Boolean(matchingTxs?.length)
+          }
 
           if (hasMatch) txCacheStore.removeQrDataFromUnconfirmedPayments(qrData)
         })
