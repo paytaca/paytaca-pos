@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { sha256, decodeBIP0021URI } from 'src/wallet/utils';
 
 /**
  * @typedef {Object} TxRecord - data structured returned from watchtower's wallet history API
@@ -27,6 +28,12 @@ export const useTxCacheStore = defineStore('tx-cache', {
   state: () => ({
     /** @type {PageCacheMap} */
     pages: {},
+
+    /**
+     * Txs in home does not reflect immediately after payment received, especially when;
+     * POS device is offline. The qr data is stored here to display as an unconfirmed tx in the list;
+     * @type {String[]} */
+    unconfirmedTxsFromQrData: [],
   }),
 
   getters: {
@@ -36,6 +43,23 @@ export const useTxCacheStore = defineStore('tx-cache', {
         let page = Object.assign({}, this.pages[pageKey])
         return page
       }
+    },
+    unconfirmedPayments() {
+      const unconfirmedPaymentLinkData = this.unconfirmedTxsFromQrData
+        .filter(Boolean)
+        .map(qrData => {
+          const decoded = decodeBIP0021URI(qrData)
+          decoded.qrDataHash = sha256(qrData)
+          return decoded
+        })
+        .filter(data => data?.address)
+      return unconfirmedPaymentLinkData
+    },
+    lastUnconfirmedPayment() {
+      const unconfirmedTxsCopy = [...this.unconfirmedPayments]
+      return unconfirmedTxsCopy.sort((tx1, tx2) => {
+        return tx2?.parameters?.ts - tx1?.parameters?.ts
+      })[0]
     }
   },
 
@@ -72,5 +96,17 @@ export const useTxCacheStore = defineStore('tx-cache', {
     clearPageCache() {
       this.pages = {}
     },
+    addQrDataToUnconfirmedPayments(qrData='') {
+      if (!qrData) return
+      if (!decodeBIP0021URI(qrData)?.address) return
+
+      this.unconfirmedTxsFromQrData.push(qrData)
+      this.unconfirmedTxsFromQrData = this.unconfirmedTxsFromQrData
+        .filter((e,i,s) => s.indexOf(e) === i) // filter for removing duplicates
+    },
+    removeQrDataFromUnconfirmedPayments(qrDataToRemove='') {
+      this.unconfirmedTxsFromQrData = this.unconfirmedTxsFromQrData
+        .filter(qrData => qrDataToRemove !== qrData)
+    }
   }
 })

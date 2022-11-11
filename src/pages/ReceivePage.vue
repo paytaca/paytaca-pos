@@ -72,6 +72,7 @@
 </template>
 <script>
 import { useWalletStore } from 'stores/wallet'
+import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useAddressesStore } from 'stores/addresses'
 import { defineComponent, ref, onMounted, computed, watch } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
@@ -105,6 +106,7 @@ export default defineComponent({
     const $q = useQuasar()
     const $router = useRouter()
     const walletStore = useWalletStore();
+    const txCacheStore = useTxCacheStore();
     const wallet = ref(walletStore.walletObj);
 
     const addressesStore = useAddressesStore()
@@ -176,10 +178,11 @@ export default defineComponent({
           if (match) {
             otpInput.value = ''
             receiveAmount.value = 0
+            const qrDataHash = sha256(_qrData)
+            txCacheStore.addQrDataToUnconfirmedPayments(walletStore.qrDataTimestampCache[qrDataHash]?.qrData || _qrData)
             addressesStore.removeAddressSet(decodedQrData.address)
             addressesStore.fillAddressSets()
 
-            const qrDataHash = sha256(_qrData)
             delete walletStore.qrDataTimestampCache[qrDataHash]
             promptNewPayment()
           }
@@ -225,6 +228,7 @@ export default defineComponent({
       return next(proceed)
     })
     return {
+      txCacheStore,
       wallet,
       addressSet,
       loading,
