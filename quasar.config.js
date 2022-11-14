@@ -76,6 +76,16 @@ module.exports = configure(function (ctx) {
       // https://v2.quasar.dev/quasar-cli-webpack/handling-webpack
       // "chain" is a webpack-chain object https://github.com/neutrinojs/webpack-chain
       
+      // manually added due to error from bchjs.HDNode.fromXPub. Error: Expected Point, got 's'
+      // related links:
+      //    - https://github.com/bitcoinjs/bitcoinjs-lib/issues/659
+      uglifyOptions: {
+        mangle: {
+          reserved: ['Point'],
+          // reserved: ['Array','BigInteger','Boolean','Buffer','ECPair','Function','Number','Point'],
+        },
+      },
+      
       chainWebpack (chain) {
         chain.plugin('eslint-webpack-plugin')
           .use(ESLintPlugin, [{ extensions: [ 'js', 'vue' ] }])
