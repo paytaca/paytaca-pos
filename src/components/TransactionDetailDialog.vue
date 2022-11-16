@@ -19,7 +19,7 @@
         </div>
       </q-card-section>
       <q-card-section class="q-mt-xs">
-        <q-item clickable v-ripple @click="copyToClipboard(formatDate(transaction.date_created))">
+        <q-item clickable v-ripple @click="copyToClipboard(String(transaction.amount))">
           <q-item-section side>
             <img src="~assets/bch-logo.png" height="30"/>
           </q-item-section>
@@ -28,12 +28,18 @@
               <template v-if="transaction.record_type === 'outgoing'">{{ transaction.amount * -1 }} BCH</template>
               <template v-else> {{ transaction.amount }} BCH </template>
             </q-item-label>
+            <q-item-label v-if="transactionAmountMarketValue" caption>
+              {{ transactionAmountMarketValue }} {{ selectedMarketCurrency }}
+            </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable v-ripple @click="copyToClipboard(formatDate(transaction.date_created))">
+        <q-item clickable v-ripple @click="copyToClipboard(formatDate(transaction.tx_timestamp || transaction.date_created))">
           <q-item-section>
             <q-item-label class="text-grey" caption>Date</q-item-label>
-            <q-item-label>{{ formatDate(transaction.date_created) }}</q-item-label>
+            <q-item-label>
+              <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
+              <template v-else>{{ formatDate(transaction.date_created) }}</template>
+            </q-item-label>
           </q-item-section>
         </q-item>
         <q-item clickable v-ripple @click="copyToClipboard(transaction?.txid)" style="overflow-wrap: anywhere;">
@@ -103,6 +109,17 @@ export default defineComponent({
         logo: '~assets/bch-logo.png',
       }
     }
+  },
+  computed: {
+    selectedMarketCurrency () {
+      return 'USD'
+    },
+    transactionAmountMarketValue() {
+      if (!this.transaction?.usd_price) return
+      const value = Number(this.transaction.amount) * Number(this.transaction?.usd_price)
+      if (value < 10 ** -2) return value
+      return value.toFixed(2)
+    },
   },
   methods: {
     concatenate (array) {

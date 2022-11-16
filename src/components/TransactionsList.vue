@@ -9,7 +9,10 @@
       <div class="row items-center">
         <div class="q-space">
           <div class="text-weight-medium">{{ recordTypeMap[tx.record_type] }}</div>
-          <div class="text-subtitle text-grey">{{ formatDate(tx.date_created) }}</div>
+          <div class="text-subtitle text-grey">
+            <template v-if="tx.tx_timestamp">{{ formatDate(tx.tx_timestamp) }}</template>
+            <template v-else>{{ formatDate(tx.date_created) }}</template>
+          </div>
         </div>
         <div class="text-body2 text-weight-medium">
           {{ tx.amount }} BCH
