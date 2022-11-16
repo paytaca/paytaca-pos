@@ -11,7 +11,8 @@
           <q-skeleton height="200px" width="200px" />
         </div>
         <template v-else>
-          <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
+          <img v-if="paymentFrom === 'paytaca'" src="~assets/paytaca_logo.png" height="50" class="qr-code-icon"/>
+          <img v-else src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
           <QRCode
             :text="qrData"
             color="#253933"
@@ -88,6 +89,9 @@ export default defineComponent({
     QRCode,
     MainHeader
   },
+  props: {
+    paymentFrom: String, // paytaca | other
+  },
   methods: {
     copyText(value, message='Copied address') {
       this.$copyText(value)
@@ -102,12 +106,14 @@ export default defineComponent({
         .catch(() => {})
     }
   },
-  setup() {
+  setup(props) {
     const $q = useQuasar()
     const $router = useRouter()
     const walletStore = useWalletStore();
     const txCacheStore = useTxCacheStore();
     const wallet = ref(walletStore.walletObj);
+
+    const requireOtp = computed(() => props.paymentFrom === 'paytaca')
 
     const addressesStore = useAddressesStore()
     const generatingAddress = ref(false)
@@ -129,9 +135,12 @@ export default defineComponent({
     const receiveAmount = ref(0)
     const currency = ref('BCH')
     function showSetAmountDialog() {
+      let currencies = ['BCH']
+      if (props.paymentFrom === 'paytaca') currencies = ['BCH', 'PHP']
       $q.dialog({
         component: SetAmountFormDialog,
         componentProps: {
+          currencies: currencies,
           initialValue: { amount: receiveAmount.value, currency: currency.value }
         }
       }).onOk(data => {
@@ -139,21 +148,42 @@ export default defineComponent({
         currency.value = data?.currency || 'BCH'
       })
     }
+
     const qrData = computed(() => {
+      if (props.paymentFrom === 'paytaca') return qrDataforPaytaca.value
+      return qrDataForOtherWallets.value
+    })
+
+    const qrDataForOtherWallets = computed(() => {
       // QR data is a BIP0021 compliant
       // BIP0021 is a URI scheme for bitcoin payments
       if (!addressSet.value?.receiving) return ''
+      if (currency.value && currency.value != 'BCH')  return ''
+
       let paymentUri = addressSet.value?.receiving
 
       paymentUri += `?POS=${paymentUriLabel.value}`
 
       if (receiveAmount.value) paymentUri += `&amount=${receiveAmount.value}`
 
-      if (currency.value && currency.value != 'BCH') {
-        paymentUri += `&currency=${currency.value}`
+      paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
+      return paymentUri
+    })
+
+    const qrDataforPaytaca = computed(() => {
+      if (!addressSet.value?.receiving) return ''
+      let paymentUri = `paytaca:`
+      paymentUri += addressSet.value?.receiving.replace('bitcoincash:', '')
+
+      if (receiveAmount.value) {
+        let amount = receiveAmount.value
+        if (currency.value && currency.value != 'BCH') {
+          amount = `${currency.value}:${amount}`
+        }
+        paymentUri += `@${amount}`
       }
 
-      paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
+      paymentUri += `?POS=${paymentUriLabel.value}&ts=${Math.floor(Date.now()/1000)}`
       return paymentUri
     })
     function cacheQrData() {
@@ -216,6 +246,7 @@ export default defineComponent({
     const promptOnLeave = ref(true)
     onBeforeRouteLeave(async (to, from, next) => {
       if (!qrData.value || !promptOnLeave.value) return next()
+      if (!requireOtp.value) return next()
 
       const proceed = await new Promise((resolve) => {
         $q.dialog({
@@ -227,9 +258,11 @@ export default defineComponent({
       })
       return next(proceed)
     })
+
     return {
       txCacheStore,
       wallet,
+      requireOtp,
       addressSet,
       loading,
       generatingAddress,

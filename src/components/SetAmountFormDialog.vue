@@ -56,6 +56,7 @@ export default defineComponent({
   name: 'SetAmountFormDialog',
   props: {
     initialValue: Object,
+    currencies: Array,
   },
   emits: [
     // REQUIRED; need to specify some events that your
@@ -71,7 +72,8 @@ export default defineComponent({
     })
     const currencyOpts = computed(() => {
       const initialCurrency = props?.initialValue?.currency
-      const opts = ['BCH', 'PHP']
+      let opts = ['BCH', 'PHP']
+      if (Array.isArray(props.currencies)) opts = [...props.currencies]
       if (initialCurrency && opts.indexOf(initialCurrency) < 0) {
         opts.unshift(initialCurrency)
       }

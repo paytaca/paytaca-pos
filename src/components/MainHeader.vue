@@ -13,9 +13,11 @@
           @click="$router.go(-1)"
         />
       </div>
-      <q-toolbar-title class="text-center text-h4">
-        {{ $route.meta?.title ||  title || '' }}
-      </q-toolbar-title>
+      <slot name="title">
+        <q-toolbar-title class="text-center text-h4">
+          {{ $route.meta?.title ||  title || '' }}
+        </q-toolbar-title>
+      </slot>
     </q-toolbar>
   </q-header>
 </template>

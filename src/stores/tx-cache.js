@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { sha256, decodeBIP0021URI } from 'src/wallet/utils';
+import { sha256, decodePaymentUri } from 'src/wallet/utils';
 
 /**
  * @typedef {Object} TxRecord - data structured returned from watchtower's wallet history API
@@ -48,9 +48,14 @@ export const useTxCacheStore = defineStore('tx-cache', {
       const unconfirmedPaymentLinkData = this.unconfirmedTxsFromQrData
         .filter(Boolean)
         .map(qrData => {
-          const decoded = decodeBIP0021URI(qrData)
-          decoded.qrDataHash = sha256(qrData)
-          return decoded
+          try {
+            const decoded = decodePaymentUri(qrData)
+            decoded.qrDataHash = sha256(qrData)
+            return decoded
+          } catch(error) {
+            console.error(error)
+            console.error('Failed to decode unconfirmed payment link:', qrData)
+          }
         })
         .filter(data => data?.address)
       return unconfirmedPaymentLinkData

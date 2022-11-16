@@ -1,6 +1,7 @@
 import BCHJS from "@psf/bch-js"
 import { createHmac, createHash } from "crypto"
 import axios from 'axios'
+import { parsePaytacaPaymentUri } from "./payment-uri"
 
 const bchjs = new BCHJS()
 
@@ -78,6 +79,34 @@ export function parseWalletLinkData(data) {
   return response
 }
 
+export function decodePaymentUri(paymentUri) {
+  const response = {
+    address: '',
+    amount: undefined,
+    label: undefined,
+    message: undefined,
+    parameters: null,
+  }
+
+  if (paymentUri.startsWith('paytaca:')) {
+    const decoded = parsePaytacaPaymentUri(paymentUri, { keepParsedParams: true })
+    if (decoded?.outputs?.length) {
+      const output = decoded?.outputs?.[0]
+      response.address = output?.address
+      response.amount = output?.amount?.value
+      response.label = decoded?.name
+      response.message = decoded?.message
+
+      const parsedParams = { ts: decoded.timestamp }
+      if (output?.amount?.currency) parsedParams.currency = output?.amount?.currency
+      response.parameters = Object.assign(decoded?.otherParams, parsedParams)
+      return response
+    }
+  }
+
+  return decodeBIP0021URI(paymentUri)
+}
+
 
 /**
  * decoding a URI standard BIP 0021 used as bitcoin payment links
@@ -141,7 +170,7 @@ export function parseWalletLinkData(data) {
 export function paymentUriHasMatch(qrData, txRecords, opts) {
   let decodedPaymentUri = undefined
   try {
-    decodedPaymentUri = decodeBIP0021URI(qrData)
+    decodedPaymentUri = decodePaymentUri(qrData)
   } catch(error) {
     if (error?.name === 'TypeError') return false
   }
@@ -191,7 +220,7 @@ export function paymentUriHasMatch(qrData, txRecords, opts) {
 export async function findMatchingPaymentLink(qrData, opts) {
   let decodedPaymentUri = undefined
   try {
-    decodedPaymentUri = decodeBIP0021URI(qrData)
+    decodedPaymentUri = decodePaymentUri(qrData)
   } catch(error) {
     if (error?.name === 'TypeError') return false
   }

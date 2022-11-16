@@ -12,7 +12,7 @@
           padding="sm"
           rounded
           class="full-width"
-          :to="{ name: 'receive-page' }"
+          :to="{ name: 'select-receive-page' }"
         >
           <div>
             <q-icon name="qr_code" size="5rem"/>
