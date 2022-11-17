@@ -79,7 +79,7 @@ import { defineComponent, ref, onMounted, computed, watch } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import QRCode from 'vue-qrcode-component'
-import { decodeBIP0021URI, sha256 } from 'src/wallet/utils'
+import { decodePaymentUri, sha256 } from 'src/wallet/utils'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 
@@ -198,7 +198,7 @@ export default defineComponent({
       if (otpInput.value.length < 6) return
       const _qrData = qrData.value
       const match = walletStore.verifyOtpForQrData(otpInput.value, _qrData)
-      const decodedQrData = decodeBIP0021URI(_qrData)
+      const decodedQrData = decodePaymentUri(_qrData)
 
       $q.dialog({
         title: 'OTP verification',

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { Wallet } from 'src/wallet';
-import { sha256, decodeBIP0021URI } from 'src/wallet/utils';
+import { sha256, decodePaymentUri } from 'src/wallet/utils';
 
 export const useWalletStore = defineStore('wallet', {
   state: () => ({
@@ -62,13 +62,14 @@ export const useWalletStore = defineStore('wallet', {
       this.qrDataTimestampCache = {}
     },
     /**
-     * QR data must be BIP0021 URI with unix-timestamp 'ts' property in parameters 
+     * QR data must be BIP0021 URI with unix-timestamp 'ts' property in parameters or;
+     * a valid Paytaca payment uri
      * @param {String} qrData 
      */
     cacheQrData(qrData='') {
       if (!qrData) return
 
-      const paymentLinkData = decodeBIP0021URI(qrData)
+      const paymentLinkData = decodePaymentUri(qrData)
       const timestamp = Number(paymentLinkData?.parameters?.ts)
       if (!paymentLinkData?.address || !Number.isSafeInteger(timestamp)) return
 

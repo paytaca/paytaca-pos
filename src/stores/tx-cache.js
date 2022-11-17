@@ -103,7 +103,7 @@ export const useTxCacheStore = defineStore('tx-cache', {
     },
     addQrDataToUnconfirmedPayments(qrData='') {
       if (!qrData) return
-      if (!decodeBIP0021URI(qrData)?.address) return
+      if (!decodePaymentUri(qrData)?.address) return
 
       this.unconfirmedTxsFromQrData.push(qrData)
       this.unconfirmedTxsFromQrData = this.unconfirmedTxsFromQrData
