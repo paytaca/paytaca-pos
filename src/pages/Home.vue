@@ -3,7 +3,10 @@
     <WalletLink v-if="!walletStore.walletHash"/>
     <div v-else class="home-main-content q-py-md full-width">
       <div class="text-h4 text-brandblue q-mx-md q-px-sm q-mb-md">
-        Paytaca POS
+        <div>Paytaca POS</div>
+        <div v-if="walletStore.merchantInfo?.name" class="text-subtitle1" style="margin-top:-0.5em;">
+          {{ walletStore.merchantInfo?.name }}
+        </div>
       </div>
       <div class="q-px-md">
         <q-btn
@@ -77,6 +80,8 @@ export default defineComponent({
   setup () {
     const walletStore = useWalletStore()
     const txCacheStore = useTxCacheStore()
+
+    onMounted(() => walletStore.refetchMerchantInfo())
 
     const wallet = ref(null)
     onMounted(() => {

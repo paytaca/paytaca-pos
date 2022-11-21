@@ -1,3 +1,4 @@
+import Watchtower from 'watchtower-cash-js';
 import { defineStore } from 'pinia';
 import { Wallet } from 'src/wallet';
 import { sha256, decodePaymentUri } from 'src/wallet/utils';
@@ -7,6 +8,22 @@ export const useWalletStore = defineStore('wallet', {
     posId: -1,
     walletHash: null,
     xPubKey: null,
+
+    merchantInfo: {
+      id: 0,
+      walletHash: '',
+      name: '',
+      primaryContactNumber: '',
+      location: {
+        landmark: '',
+        location: '',
+        street: '',
+        city: '',
+        country: '',
+        longitude: null,
+        latitude: null,
+      },
+    },
     qrDataTimestampCache: {
       hash: { qrData: '', timestamp: -1 },
       // '0a3d13aecf...': { qrData: 'bitcoincash:ead42...?amount=0.01', timestamp: 1665457793 }
@@ -16,6 +33,15 @@ export const useWalletStore = defineStore('wallet', {
   }),
 
   getters: {
+    formattedMerchantAddress(state) {
+      const formattedLocation = [
+        state.merchantInfo?.location?.location || state.merchantInfo?.location?.landmark,
+        state.merchantInfo?.location?.street,
+        state.merchantInfo?.location?.city,
+        state.merchantInfo?.location?.country,
+      ].filter(Boolean).join(', ')
+      return formattedLocation
+    },
     getWalletHash (state) {
       return state.walletHash
     },
@@ -29,6 +55,57 @@ export const useWalletStore = defineStore('wallet', {
   },
 
   actions: {
+    /**
+     * @param {Object} state 
+     * @param {Object} data
+     * @param {Number} data.id
+     * @param {String} data.name
+     * @param {String} data.wallet_hash
+     * @param {String} data.primary_contact_number
+     * @param {Object} [data.location]
+     * @param {String} data.location.landmark
+     * @param {String} data.location.location
+     * @param {String} data.location.street
+     * @param {String} data.location.city
+     * @param {String} data.location.country
+     * @param {String} data.location.longitude
+     * @param {String} data.location.latitude
+     */
+    setMerchantInfo(data) {
+      const merchantInfo = {
+        id: data?.id,
+        walletHash: data?.wallet_hash,
+        name: data?.name,
+        primaryContactNumber: data?.primary_contact_number,
+        location: {
+          landmark: data?.location?.landmark,
+          location: data?.location?.location,
+          street: data?.location?.street,
+          city: data?.location?.city,
+          country: data?.location?.country,
+          longitude: data?.location?.longitude,
+          latitude: data?.location?.latitude,
+        },
+      }
+
+      this.merchantInfo = merchantInfo
+    },
+    refetchMerchantInfo() {
+      const watchtower = new Watchtower()
+      return watchtower.BCH._api.get(`paytacapos/merchants/${this.walletHash}/`)
+        .then(response => {
+          if (response?.data?.wallet_hash == this.walletHash) {
+            this.setMerchantInfo(response.data)
+            return Promise.resolve(response)
+          }
+          return Promise.reject({ response })
+        })
+        .catch(error => {
+          if (error?.response.status === 404) {
+            this.setMerchantInfo(null)
+          }
+        })
+    },
     verifyOtpForQrData(otp, qrData) {
       if (!qrData) return false
       const qrDataHash = sha256(qrData)
