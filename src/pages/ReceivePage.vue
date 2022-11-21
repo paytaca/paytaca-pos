@@ -7,9 +7,7 @@
     </div>
     <div class="row items-center justify-center">
       <div class="qr-code-container" style="position:relative;" v-ripple @click="copyText(qrData, 'Copied payment URI')">
-        <div v-if="loading">
-          <q-skeleton height="200px" width="200px" />
-        </div>
+        <div v-if="loading"><q-skeleton height="200px" width="200px" /></div>
         <template v-else>
           <img v-if="paymentFrom === 'paytaca'" src="~assets/paytaca_logo.png" height="50" class="qr-code-icon"/>
           <img v-else src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
@@ -45,7 +43,62 @@
         {{ addressSet?.receiving }}
       </div>
     </div>
-    <div v-if="qrData" class="q-mt-lg q-px-md">
+    <div v-if="canViewTransactionsReceived && !showOtpInput" class="q-px-md q-mt-md">
+      <div class="row items-center">
+        <div class="q-space text-subtitle1">
+          Transactions Received
+        </div>
+        <q-btn
+          flat
+          no-caps
+          label="Input OTP"
+          color="brandblue"
+          padding="none md"
+          style="text-decoration:underline;"
+          @click="showOtpInput = true"
+        />
+      </div>
+      <q-separator/>
+      <template v-if="transactionsReceived?.length">
+        <q-item
+          v-for="(txReceived, index) in transactionsReceived"
+          :key="index"
+          clickable
+          v-ripple
+          @click="displayReceivedTransaction(txReceived)"
+        >
+          <q-item-section v-if="txReceived?.logo" side>
+            <img :src="txReceived?.logo" height="25"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label class="ellipsis">
+              {{ txReceived?.txid }}
+            </q-item-label>
+          </q-item-section>
+          <q-item-section class="text-right">
+            <q-item-label caption>
+              {{ txReceived?.amount }} {{ txReceived?.tokenSymbol }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </template>
+      <div v-else-if="receiveWebsocket?.readyState === 1" class="row items-center justify-center">
+        <div class="text-grey text-center q-mt-xs">
+          <q-spinner size="2rem"/>
+          <div>Waiting payment ... </div>
+        </div>
+      </div>
+      <div v-else>
+        No transactions received
+      </div>
+    </div>
+    <div v-if="!canViewTransactionsReceived || showOtpInput" class="q-mt-lg q-px-md">
+      <div v-if="canViewTransactionsReceived" class="row justify-end q-mb-sm">
+        <q-btn flat no-caps padding="xs-sm" @click="showOtpInput = false">
+            <q-icon name="arrow_back" size="1.25em" class="q-mr-sm"/>
+            Received transactions
+        </q-btn>
+      </div>
       <q-input
         outlined
         label="Confirmation OTP"
@@ -53,7 +106,7 @@
         mask="#-#-#-#-#-#"
         unmasked-value
         v-model="otpInput"
-        hint="Input OTP sent to customer after payment"
+        hint="Input OTP sent to customer to confirm payment"
         :bg-color="$q.dark.isActive ? 'dark' : 'white'"
         class="q-space text-h6"
       >
@@ -75,13 +128,14 @@
 import { useWalletStore } from 'stores/wallet'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useAddressesStore } from 'stores/addresses'
-import { defineComponent, ref, onMounted, computed, watch } from 'vue'
+import { defineComponent, ref, onMounted, computed, watch, onUnmounted, markRaw } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import QRCode from 'vue-qrcode-component'
 import { decodePaymentUri, sha256 } from 'src/wallet/utils'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
+import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
 
 export default defineComponent({
   name: "ReceivePage",
@@ -187,13 +241,14 @@ export default defineComponent({
       return paymentUri
     })
     function cacheQrData() {
-      walletStore.cacheQrData(qrData.value)
+      // walletStore.cacheQrData(qrData.value)
       walletStore.removeOldQrDataCache(86400*2) // remove qr data older than 2 days
     }
     watch(qrData, () => cacheQrData())
     onMounted(() => cacheQrData())
 
     const otpInput = ref('')
+    const showOtpInput = ref(true)
     function verifyOtp() {
       if (otpInput.value.length < 6) return
       const _qrData = qrData.value
@@ -216,6 +271,121 @@ export default defineComponent({
             delete walletStore.qrDataTimestampCache[qrDataHash]
             promptNewPayment()
           }
+        })
+      }
+      
+    const receiveWebsocket = ref({ readyState: 0 })
+    const enableReconnect = ref(true)
+    const reconnectAttempts = ref(5)
+    const reconnectTimeout = ref(null)
+    const transactionsReceived = ref([])
+    const canViewTransactionsReceived = computed(() => {
+      return transactionsReceived.value?.length || receiveWebsocket.value?.readyState === 1
+    })
+    watch(addressSet, () => setupListener())
+    onMounted(() => addressSet.value?.receiving ? setupListener() : null)
+    onUnmounted(() => {
+      enableReconnect.value = false
+      receiveWebsocket.value?.close?.()
+    })
+    function setupListener() {
+      receiveWebsocket.value?.close?.()
+      const address = addressSet.value?.receiving
+      if (!address) return
+      const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
+      const url = `${scheme}://watchtower.cash/ws/watch/bch/${address}/`
+
+      console.log('Connecting ws:', url)
+      const websocket = new WebSocket(url)
+      if (receiveWebsocket.value?.url !== websocket.url) {
+        reconnectAttempts.value = 5
+      }
+
+      websocket.addEventListener('close', () => {
+        console.log('setupListener:', 'Listener closed')
+        if (!enableReconnect.value) return console.log('setupListener:', 'Skipping reconnection')
+        if (reconnectAttempts.value <= 0) return console.log('setupListener:', 'Reached reconnection attempts limit')
+        reconnectAttempts.value--;
+        const reconnectInterval = 5000
+        console.log('setupListener:', 'Attempting reconnection after', reconnectInterval / 1000, 'seconds')
+        clearTimeout(reconnectTimeout.value)
+        reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
+      })
+
+      websocket.addEventListener('message', message => {
+        const data = JSON.parse(message.data)
+        onWebsocketReceive(data)
+      })
+
+      websocket.addEventListener('open', () => {
+        // close existing websocket in case it exists
+        receiveWebsocket.value?.close?.()
+        receiveWebsocket.value = markRaw(websocket)
+        showOtpInput.value = false
+      })
+    }
+    function onWebsocketReceive(data) {
+      console.log(data)
+      if (!data?.amount) return
+      const parsedData = parseWebsocketDataReceived(data)
+      transactionsReceived.value.push(parsedData)
+    }
+
+    /**
+     * @param {Object} data 
+     * @param {String} data.token_name
+     * @param {String} data.token_id
+     * @param {String} data.token_symbol
+     * @param {Number} data.amount
+     * @param {String} data.address
+     * @param {String} data.source
+     * @param {String} data.txid
+     * @param {Number} data.index
+     * @param {String} data.address_path
+     * @param {String[]} data.senders
+     */
+    function parseWebsocketDataReceived(data) {
+      const response = {
+        amount: data?.amount,
+        txid: data?.txid,
+        index: data?.index,
+        address: data?.address,
+        tokenName: data?.token_name,
+        tokenId: data?.token_id,
+        tokenSymbol: data?.token_symbol,
+        addressPath: data?.address_path,
+        senders: Array.isArray(data?.senders) ? data?.senders : [],
+        source: data?.source,
+        logo: null,
+      }
+
+      if (typeof response.tokenSymbol === 'string') response.tokenSymbol = response.tokenSymbol.toUpperCase()
+      if (response.tokenSymbol === 'BCH') response.logo = 'bch-logo.png'
+      return response
+    }
+
+    function displayReceivedTransaction (data) {
+      const _qrData = qrData.value
+      $q.dialog({
+        component: ReceiveUpdateDialog,
+        componentProps: {
+          txid: data?.txid,
+          address: data?.address,
+          amount: data?.amount,
+          tokenCurrency: data?.tokenSymbol,
+          logo: data?.logo,
+        }
+      })
+        .onOk(() => {
+          otpInput.value = ''
+          receiveAmount.value = 0
+          transactionsReceived.value = []
+          const qrDataHash = sha256(_qrData)
+          delete walletStore.qrDataTimestampCache[qrDataHash]
+
+          addressesStore.removeAddressSet(data?.address)
+          addressesStore.fillAddressSets()
+          promptNewPayment()
         })
     }
 
@@ -271,7 +441,12 @@ export default defineComponent({
       showSetAmountDialog,
       qrData,
       otpInput,
+      showOtpInput,
       verifyOtp,
+      receiveWebsocket,
+      transactionsReceived,
+      canViewTransactionsReceived,
+      displayReceivedTransaction,
     }
   },
 })
