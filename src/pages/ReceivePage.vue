@@ -351,6 +351,8 @@ export default defineComponent({
       if (!data?.amount) return
       const parsedData = parseWebsocketDataReceived(data)
       transactionsReceived.value.push(parsedData)
+      displayReceivedTransaction(parsedData)
+      showOtpInput.value = false
     }
 
     /**
