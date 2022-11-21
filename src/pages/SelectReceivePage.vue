@@ -27,7 +27,9 @@
       <q-card>
         <q-item
           class="select-item"
-          clickable v-ripple
+          :clickable="isOnline"
+          :v-ripple="isOnline"
+          :disable="!isOnline"
           :to="{ name: 'receive-page', query: { paymentFrom: 'other'} }"
         >
           <q-item-section avatar>
@@ -46,7 +48,7 @@
 <script>
 import MainFooter from 'src/components/MainFooter.vue'
 import MainHeader from 'src/components/MainHeader.vue'
-import { defineComponent } from 'vue'
+import { defineComponent, inject } from 'vue'
 
 export default defineComponent({
   components: {
@@ -54,7 +56,10 @@ export default defineComponent({
     MainFooter,
   },
   setup() {
-    
+    const isOnline = inject('$isOnline')
+    return {
+      isOnline,
+    }
   },
 })
 </script>

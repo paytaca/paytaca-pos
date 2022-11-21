@@ -5,6 +5,16 @@
       <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
       <div v-else class="text-h6">#{{ addressSet?.index }}</div>
     </div>
+    <q-banner v-if="paymentFrom !== 'paytaca' && !isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-md rounded-borders">
+      <q-icon name="info" class="" size="1.5em">
+        <q-popup-proxy :breakpoint="0">
+          <div class="q-pa-md">
+            Confirmation OTP might be unavailable for payments received from non-paytaca wallets.
+          </div>
+        </q-popup-proxy>
+      </q-icon>
+      Detected offline, confirming payments might be unavailable
+    </q-banner>
     <div class="row items-center justify-center">
       <div class="qr-code-container" style="position:relative;" v-ripple @click="copyText(qrData, 'Copied payment URI')">
         <div v-if="loading"><q-skeleton height="200px" width="200px" /></div>
@@ -128,7 +138,7 @@
 import { useWalletStore } from 'stores/wallet'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useAddressesStore } from 'stores/addresses'
-import { defineComponent, ref, onMounted, computed, watch, onUnmounted, markRaw } from 'vue'
+import { defineComponent, ref, onMounted, computed, watch, onUnmounted, markRaw, inject, provide } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import QRCode from 'vue-qrcode-component'
@@ -161,6 +171,7 @@ export default defineComponent({
     }
   },
   setup(props) {
+    const isOnline = inject('$isOnline')
     const $q = useQuasar()
     const $router = useRouter()
     const walletStore = useWalletStore();
@@ -282,14 +293,25 @@ export default defineComponent({
     const canViewTransactionsReceived = computed(() => {
       return transactionsReceived.value?.length || receiveWebsocket.value?.readyState === 1
     })
-    watch(addressSet, () => setupListener())
+    watch(addressSet, () => setupListener({ resetAttempts: true }))
     onMounted(() => addressSet.value?.receiving ? setupListener() : null)
+    watch(isOnline, () => {
+      if (isOnline.value) {
+        setupListener({ resetAttempts: true })
+      } else {
+        receiveWebsocket.value?.close()
+        receiveWebsocket.value = null // for reactivity
+      }
+    })
     onUnmounted(() => {
       enableReconnect.value = false
       receiveWebsocket.value?.close?.()
+      receiveWebsocket.value = null
+      clearTimeout(reconnectTimeout.value)
     })
-    function setupListener() {
+    function setupListener(opts) {
       receiveWebsocket.value?.close?.()
+      receiveWebsocket.value = null // for reactivity
       const address = addressSet.value?.receiving
       if (!address) return
       const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
@@ -297,9 +319,7 @@ export default defineComponent({
 
       console.log('Connecting ws:', url)
       const websocket = new WebSocket(url)
-      if (receiveWebsocket.value?.url !== websocket.url) {
-        reconnectAttempts.value = 5
-      }
+      if (opts?.resetAttempts) reconnectAttempts.value = 5
 
       websocket.addEventListener('close', () => {
         console.log('setupListener:', 'Listener closed')
@@ -307,7 +327,7 @@ export default defineComponent({
         if (reconnectAttempts.value <= 0) return console.log('setupListener:', 'Reached reconnection attempts limit')
         reconnectAttempts.value--;
         const reconnectInterval = 5000
-        console.log('setupListener:', 'Attempting reconnection after', reconnectInterval / 1000, 'seconds')
+        console.log('setupListener:', 'Attempting reconnection after', reconnectInterval / 1000, 'seconds. retries left:', reconnectAttempts.value)
         clearTimeout(reconnectTimeout.value)
         reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
       })
@@ -320,6 +340,7 @@ export default defineComponent({
       websocket.addEventListener('open', () => {
         // close existing websocket in case it exists
         receiveWebsocket.value?.close?.()
+        receiveWebsocket.value = null // for reactivity
         receiveWebsocket.value = markRaw(websocket)
         showOtpInput.value = false
       })
@@ -430,6 +451,7 @@ export default defineComponent({
     })
 
     return {
+      isOnline,
       txCacheStore,
       wallet,
       requireOtp,
