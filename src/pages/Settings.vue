@@ -27,6 +27,9 @@
               {{ truncatedWalletHash }}
               <span>#{{ walletStore.posId }}</span>
             </q-item-label>
+            <q-item-label v-if="walletStore.deviceInfo.name">
+              {{ walletStore.deviceInfo.name }}
+            </q-item-label>
           </q-item-section>
         </q-item>
       </q-list>

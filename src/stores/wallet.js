@@ -9,6 +9,12 @@ export const useWalletStore = defineStore('wallet', {
     walletHash: null,
     xPubKey: null,
 
+    deviceInfo: {
+      name: '',
+      posId: -1,
+      walletHash: null,
+    },
+
     merchantInfo: {
       id: 0,
       walletHash: '',
@@ -103,6 +109,37 @@ export const useWalletStore = defineStore('wallet', {
         .catch(error => {
           if (error?.response.status === 404) {
             this.setMerchantInfo(null)
+          }
+        })
+    },
+    /**
+     * 
+     * @param {Object} data 
+     * @param {String} data.wallet_hash
+     * @param {Number} data.posid
+     * @param {String} data.name
+     */
+    setDeviceInfo(data) {
+      this.deviceInfo = {
+        name: data?.name,
+        walletHash: data?.wallet_hash,
+        posId: data?.posid,
+      }
+    },
+    refetchDeviceInfo() {
+      const handle = [this.walletHash, this.posId].join(':')
+      const watchtower = new Watchtower()
+      return watchtower.BCH._api.get(`paytacapos/devices/${handle}/`)
+        .then(response => {
+          if (response?.data?.wallet_hash == this.walletHash) {
+            this.setDeviceInfo(response.data)
+            return Promise.resolve(response)
+          }
+          return Promise.reject({ response })
+        })
+        .catch(error => {
+          if (error?.response.status === 404) {
+            this.setDeviceInfo(null)
           }
         })
     },

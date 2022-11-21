@@ -4,8 +4,11 @@
     <div v-else class="home-main-content q-py-md full-width">
       <div class="text-h4 text-brandblue q-mx-md q-px-sm q-mb-md">
         <div>Paytaca POS</div>
-        <div v-if="walletStore.merchantInfo?.name" class="text-subtitle1" style="margin-top:-0.5em;">
-          {{ walletStore.merchantInfo?.name }}
+        <div v-if="walletStore.merchantInfo?.name" class="text-subtitle1 ellipsis" style="margin-top:-0.5em;">
+          <span>{{ walletStore.merchantInfo?.name }}</span>
+          <span v-if="walletStore.deviceInfo?.name" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7' ">
+            | {{ walletStore.deviceInfo?.name }}
+          </span>
         </div>
       </div>
       <div class="q-px-md">
@@ -82,6 +85,7 @@ export default defineComponent({
     const txCacheStore = useTxCacheStore()
 
     onMounted(() => walletStore.refetchMerchantInfo())
+    onMounted(() => walletStore.refetchDeviceInfo())
 
     const wallet = ref(null)
     onMounted(() => {
