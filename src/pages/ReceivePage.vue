@@ -171,6 +171,7 @@ export default defineComponent({
     }
   },
   setup(props) {
+    const $networkDetect = inject('$networkDetect')
     const isOnline = inject('$isOnline')
     const $q = useQuasar()
     const $router = useRouter()
@@ -448,6 +449,23 @@ export default defineComponent({
         }).onOk(() => resolve(true)).onDismiss(() => resolve(false))
       })
       return next(proceed)
+    })
+
+    onMounted(() => {
+      if (!isOnline.value && props.paymentFrom !== 'paytaca') {
+        $networkDetect.check()
+          .then(_isOnline => {
+            console.log('Detected isOnline:', _isOnline)
+            if (!_isOnline) {
+              $q.dialog({
+                title: 'Detected offline',
+                message: 'Detected device is offline. Leaving page',
+                ok: true,
+              })
+                .onDismiss(() => $router.go(-1))
+            }
+          })
+      }
     })
 
     return {
