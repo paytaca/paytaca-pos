@@ -13,6 +13,7 @@ export const useWalletStore = defineStore('wallet', {
       name: '',
       posId: -1,
       walletHash: null,
+      branchId: null,
     },
 
     merchantInfo: {
@@ -20,6 +21,20 @@ export const useWalletStore = defineStore('wallet', {
       walletHash: '',
       name: '',
       primaryContactNumber: '',
+      location: {
+        landmark: '',
+        location: '',
+        street: '',
+        city: '',
+        country: '',
+        longitude: null,
+        latitude: null,
+      },
+    },
+
+    branchInfo: {
+      id: 0,
+      name: '',
       location: {
         landmark: '',
         location: '',
@@ -45,6 +60,15 @@ export const useWalletStore = defineStore('wallet', {
         state.merchantInfo?.location?.street,
         state.merchantInfo?.location?.city,
         state.merchantInfo?.location?.country,
+      ].filter(Boolean).join(', ')
+      return formattedLocation
+    },
+    formattedBranchAddress(state) {
+      const formattedLocation = [
+        state.branchInfo?.location?.location || state.branchInfo?.location?.landmark,
+        state.branchInfo?.location?.street,
+        state.branchInfo?.location?.city,
+        state.branchInfo?.location?.country,
       ].filter(Boolean).join(', ')
       return formattedLocation
     },
@@ -124,6 +148,7 @@ export const useWalletStore = defineStore('wallet', {
         name: data?.name,
         walletHash: data?.wallet_hash,
         posId: data?.posid,
+        branchId: data?.branch_id,
       }
     },
     refetchDeviceInfo() {
@@ -140,6 +165,55 @@ export const useWalletStore = defineStore('wallet', {
         .catch(error => {
           if (error?.response.status === 404) {
             this.setDeviceInfo(null)
+          }
+        })
+        .finally(() => {
+          this.refetchBranchInfo()
+        })
+    },
+    /**
+     * @param {Object} data 
+     * @param {Number} data.id
+     * @param {String} data.name
+     * @param {Object} [data.location]
+     * @param {String} data.location.landmark
+     * @param {String} data.location.location
+     * @param {String} data.location.street
+     * @param {String} data.location.city
+     * @param {String} data.location.country
+     * @param {String} data.location.longitude
+     * @param {String} data.location.latitude
+     */
+    setBranchInfo(data) {
+      this.branchInfo = {
+        id: data?.id,
+        name: data?.name,
+        location: {
+          landmark: data?.location?.landmark,
+          location: data?.location?.location,
+          street: data?.location?.street,
+          city: data?.location?.city,
+          country: data?.location?.country,
+          longitude: data?.location?.longitude,
+          latitude: data?.location?.latitude,
+        },
+      }
+    },
+    refetchBranchInfo() {
+      if (!this.deviceInfo.branchId) return this.setBranchInfo(null)
+      const watchtower = new Watchtower()
+      const params = { wallet_hash: this.deviceInfo.walletHash }
+      return watchtower.BCH._api.get(`paytacapos/branches/${this.deviceInfo.branchId}/`, { params })
+        .then(response => {
+          if (response?.data?.id) {
+            this.setBranchInfo(response.data)
+            return Promise.resolve(response)
+          }
+          return Promise.reject({ response })
+        })
+        .catch(error => {
+          if (error?.response.status === 404) {
+            this.setBranchInfo(null)
           }
         })
     },

@@ -53,6 +53,16 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item v-if="walletStore.branchInfo.id && walletStore.branchInfo.name" class="">
+          <q-item-section class="text-grey">
+            <q-item-label>Branch</q-item-label>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>
+              {{ walletStore.branchInfo.name }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item class="">
           <q-item-section class="text-grey">
             <q-item-label>Phone number</q-item-label>
@@ -70,6 +80,16 @@
           <q-item-section>
             <q-item-label>
               {{ walletStore.formattedMerchantAddress }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item v-if="walletStore.formattedBranchAddress" class="">
+          <q-item-section class="text-grey">
+            Branch address
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>
+              {{ walletStore.formattedBranchAddress }}
             </q-item-label>
           </q-item-section>
         </q-item>
