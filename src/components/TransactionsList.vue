@@ -14,8 +14,18 @@
             <template v-else>{{ formatDate(tx.date_created) }}</template>
           </div>
         </div>
-        <div class="text-body2 text-weight-medium">
-          {{ tx.amount }} BCH
+        <div class="text-body2 text-weight-medium text-right">
+          <div>
+            {{ tx.amount }} BCH
+          </div>
+          <div 
+            v-if="marketValue(tx)?.marketValue"
+            class="text-caption text-grey"
+            :class="[$q.dark.isActive ? 'text-weight-light' : '']"
+            style="margin-top:-0.25em;"
+          >
+            {{ marketValue(tx)?.marketValue }}
+          </div>
         </div>
       </div>
       <q-separator/>
@@ -39,6 +49,11 @@ export default defineComponent({
       },
     }
   },
+  computed: {
+    selectedMarketCurrency () {
+      return 'USD'
+    },
+  },
   methods: {
     formatDate (date) {
       return ago(new Date(date))
@@ -48,6 +63,23 @@ export default defineComponent({
         component: TransactionDetailDialog,
         componentProps: { transaction: tx },
       })
+    },
+    marketValue(transaction) {
+      const data = {
+        marketAssetPrice: null,
+        marketValue: null,
+      }
+
+      if (this.selectedMarketCurrency === 'USD' && transaction?.usd_price) {
+        data.marketAssetPrice = transaction.usd_price
+      } else if (transaction?.market_prices?.[this.selectedMarketCurrency]) {
+        data.marketAssetPrice = transaction?.market_prices?.[this.selectedMarketCurrency]
+      }
+
+      if (data.marketAssetPrice) {
+        data.marketValue = (Number(transaction?.amount) * Number(data.marketAssetPrice)).toFixed(5)
+      }
+      return data
     }
   },
 })
