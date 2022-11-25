@@ -138,6 +138,7 @@
 import { useWalletStore } from 'stores/wallet'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useAddressesStore } from 'stores/addresses'
+import { useMarketStore } from 'src/stores/market'
 import { defineComponent, ref, onMounted, computed, watch, onUnmounted, markRaw, inject, provide } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
@@ -180,6 +181,7 @@ export default defineComponent({
     const $router = useRouter()
     const walletStore = useWalletStore();
     const txCacheStore = useTxCacheStore();
+    const marketStore = useMarketStore()
     const wallet = ref(walletStore.walletObj);
 
     const requireOtp = computed(() => props.paymentFrom === 'paytaca')
@@ -204,6 +206,32 @@ export default defineComponent({
     const receiveAmount = ref(0)
     const currency = ref('BCH')
     const disableAmount = ref(false)
+
+    const currencyRateUpdateRate = 60 * 1000
+    const currencyBchRate = computed(() => {
+      if (!currency.value) return
+      if (currency.value === 'BCH') return { currency: 'BCH', rate: 1, timestamp: Date.now() }
+      return marketStore.bchRates.find(rate => rate.currency === currency.value)
+    })
+    const currencyBchRateUpdateInterval = ref(null)
+    onMounted(() => {
+      clearTimeout(currencyBchRateUpdateInterval.value)
+      currencyBchRateUpdateInterval.value = setInterval(
+        () => updateSelectedCurrencyRate(), currencyRateUpdateRate)
+      updateSelectedCurrencyRate()
+    })
+    onUnmounted(() => clearInterval(currencyBchRateUpdateInterval.value))
+    watch(currency, () => updateSelectedCurrencyRate())
+    function updateSelectedCurrencyRate() {
+      if (!currency.value || currency.value === 'BCH') return
+      marketStore.refreshBchPrice(currency.value, { age: currencyRateUpdateRate })
+    }
+
+    const bchValue = computed(() => {
+      if (!currency.value || currency.value === 'BCH') return receiveAmount.value
+      const rateValue = currencyBchRate.value?.rate || 1
+      return Number((receiveAmount.value / rateValue).toFixed(8))
+    })
     onMounted(() => {
       if (props.setAmount) receiveAmount.value = props.setAmount
       if (props.setCurrency) currency.value = props.setCurrency
@@ -237,13 +265,12 @@ export default defineComponent({
       // QR data is a BIP0021 compliant
       // BIP0021 is a URI scheme for bitcoin payments
       if (!addressSet.value?.receiving) return ''
-      if (currency.value && currency.value != 'BCH')  return ''
 
       let paymentUri = addressSet.value?.receiving
 
       paymentUri += `?POS=${paymentUriLabel.value}`
 
-      if (receiveAmount.value) paymentUri += `&amount=${receiveAmount.value}`
+      if (bchValue.value) paymentUri += `&amount=${bchValue.value}`
 
       paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
       return paymentUri
@@ -494,6 +521,8 @@ export default defineComponent({
       receiveAmount,
       currency,
       disableAmount,
+      currencyBchRate,
+      bchValue,
       showSetAmountDialog,
       qrData,
       otpInput,
