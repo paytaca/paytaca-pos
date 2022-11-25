@@ -45,6 +45,11 @@ export const useWalletStore = defineStore('wallet', {
         latitude: null,
       },
     },
+
+    preferences: {
+      selectedCurrency: 'USD',
+    },
+
     qrDataTimestampCache: {
       hash: { qrData: '', timestamp: -1 },
       // '0a3d13aecf...': { qrData: 'bitcoincash:ead42...?amount=0.01', timestamp: 1665457793 }
@@ -215,6 +220,21 @@ export const useWalletStore = defineStore('wallet', {
           if (error?.response.status === 404) {
             this.setBranchInfo(null)
           }
+        })
+    },
+    /**
+     * @param {Object} data 
+     * @param {Object} data.selected_currency
+     */
+    setPreferences(data) {
+      this.preferences.selectedCurrency = data?.selected_currency || 'USD'
+    },
+    refetchPreferences() {
+      if (!this.walletHash) return
+      const watchtower = new Watchtower()
+      return watchtower.BCH._api.get(`/wallet/preferences/${this.walletHash}/`)
+        .then(response => {
+          this.setPreferences(response?.data)
         })
     },
     verifyOtpForQrData(otp, qrData) {

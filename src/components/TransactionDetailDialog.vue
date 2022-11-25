@@ -91,6 +91,9 @@
 <script>
 import { useDialogPluginComponent } from 'quasar'
 import { defineComponent, ref } from 'vue'
+import { useWalletStore } from 'src/stores/wallet'
+
+const walletStore = useWalletStore()
 
 export default defineComponent({
   name: 'TransactionDetailDialog',
@@ -112,11 +115,17 @@ export default defineComponent({
   },
   computed: {
     selectedMarketCurrency () {
-      return 'USD'
+      return walletStore?.preferences?.selectedCurrency || 'USD'
+    },
+    marketPrice() {
+      if(this.transaction?.usd_price && this.selectedMarketCurrency === 'USD') return this.transaction?.usd_price
+      if (this.transaction?.market_prices?.[this.selectedMarketCurrency]) return this.transaction?.market_prices?.[this.selectedMarketCurrency]
+      return null
     },
     transactionAmountMarketValue() {
-      if (!this.transaction?.usd_price) return
-      const value = Number(this.transaction.amount) * Number(this.transaction?.usd_price)
+      if (!this.marketPrice) return
+
+      const value = Number(this.transaction.amount) * Number(this.marketPrice)
       if (value < 10 ** -2) return value
       return value.toFixed(2)
     },

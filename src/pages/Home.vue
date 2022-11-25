@@ -86,8 +86,10 @@ export default defineComponent({
 
     onMounted(() => walletStore.refetchMerchantInfo())
     onMounted(() => walletStore.refetchDeviceInfo())
+    onMounted(() => walletStore.refetchPreferences())
     watch(() => [walletStore.walletHash], () => walletStore.refetchMerchantInfo())
     watch(() => [walletStore.walletHash, walletStore.posId], () => walletStore.refetchDeviceInfo())
+    watch(() => [walletStore.walletHash], () => walletStore.refetchPreferences())
 
     const wallet = ref(null)
     onMounted(() => {

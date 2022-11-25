@@ -36,6 +36,9 @@
 import ago from 's-ago'
 import { defineComponent, ref } from 'vue'
 import TransactionDetailDialog from 'src/components/TransactionDetailDialog.vue'
+import { useWalletStore } from 'src/stores/wallet'
+
+const walletStore = useWalletStore()
 
 export default defineComponent({
   props: {
@@ -51,7 +54,7 @@ export default defineComponent({
   },
   computed: {
     selectedMarketCurrency () {
-      return 'USD'
+      return walletStore?.preferences?.selectedCurrency || 'USD'
     },
   },
   methods: {
