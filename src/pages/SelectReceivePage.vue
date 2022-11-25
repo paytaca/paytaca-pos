@@ -48,9 +48,10 @@
 <script>
 import MainFooter from 'src/components/MainFooter.vue'
 import MainHeader from 'src/components/MainHeader.vue'
-import { defineComponent, inject } from 'vue'
+import { defineComponent, inject, computed } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
+import { useWalletStore } from 'src/stores/wallet'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 
 export default defineComponent({
@@ -62,6 +63,9 @@ export default defineComponent({
     const isOnline = inject('$isOnline')
     const $q = useQuasar()
     const $router = useRouter()
+    const walletStore = useWalletStore()
+
+    const selectedCurrency = computed(() => walletStore.preferences.selectedCurrency)
 
     /**
      * 
@@ -74,6 +78,7 @@ export default defineComponent({
         component: SetAmountFormDialog,
         componentProps: {
           currencies: currencies,
+          initialValue: { currency: selectedCurrency.value },
         },
       }).onOk(data => {
         if (!data?.value) return
