@@ -3,7 +3,10 @@
     <q-card class="q-dialog-plugin">
       <q-form @submit="onDialogOK(amount)">
         <q-card-section>
-          <div class="text-h5 q-mb-md">Set amount</div>
+          <div class="text-h5 q-mb-md">{{ title || 'Set amount' }}</div>
+          <div v-if="message" class="text-subtitle1 q-mb-sm">
+            {{ message }}
+          </div>
           <div class="row items-center no-wrap q-gutter-x-sm">
             <q-input
               label="Amount"
@@ -57,6 +60,8 @@ export default defineComponent({
   props: {
     initialValue: Object,
     currencies: Array,
+    title: String,
+    message: String,
   },
   emits: [
     // REQUIRED; need to specify some events that your

@@ -13,7 +13,7 @@
         <q-item
           class="select-item"
           clickable v-ripple
-          :to="{ name: 'receive-page', query: { paymentFrom: 'paytaca'} }"
+          @click="promptAmount('paytaca')"
         >
           <q-item-section avatar>
             <img src="~assets/paytaca_logo.png" height="50"/>
@@ -30,7 +30,7 @@
           :clickable="isOnline"
           :v-ripple="isOnline"
           :disable="!isOnline"
-          :to="{ name: 'receive-page', query: { paymentFrom: 'other'} }"
+          @click="promptAmount('other')"
         >
           <q-item-section avatar>
             <img src="~assets/bch-logo.png" height="50"/>
@@ -49,6 +49,9 @@
 import MainFooter from 'src/components/MainFooter.vue'
 import MainHeader from 'src/components/MainHeader.vue'
 import { defineComponent, inject } from 'vue'
+import { useQuasar } from 'quasar'
+import { useRouter } from 'vue-router'
+import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 
 export default defineComponent({
   components: {
@@ -57,8 +60,38 @@ export default defineComponent({
   },
   setup() {
     const isOnline = inject('$isOnline')
+    const $q = useQuasar()
+    const $router = useRouter()
+
+    /**
+     * 
+     * @param {'paytaca' | 'other'} paymentFrom 
+     */
+    function promptAmount(paymentFrom) {
+      let currencies = ['BCH']
+      if (paymentFrom === 'paytaca') currencies = ['BCH', 'PHP']
+      $q.dialog({
+        component: SetAmountFormDialog,
+        componentProps: {
+          currencies: currencies,
+        },
+      }).onOk(data => {
+        if (!data?.value) return
+        $router.push({
+          name: 'receive-page',
+          query: {
+            paymentFrom: paymentFrom,
+            setAmount: data?.value || undefined,
+            setCurrency: data?.currency || undefined,
+            lockAmount: true,
+          }
+        })
+      })
+    }
+
     return {
       isOnline,
+      promptAmount,
     }
   },
 })

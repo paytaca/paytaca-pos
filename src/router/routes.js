@@ -5,7 +5,15 @@ const routes = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       { path: '', component: () => import('src/pages/Home.vue'), name: 'home'},
-      { path: 'receive', component: () => import('src/pages/ReceivePage.vue'), props: route => route.query, name: 'receive-page'},
+      {
+        path: 'receive',
+        name: 'receive-page',
+        component: () => import('src/pages/ReceivePage.vue'),
+        props: route => Object.assign(route.query, {
+          setAmount: Number(route.query?.setAmount) || route.query?.setAmount,
+          lockAmount: String(route.query?.lockAmount).toLowerCase() === 'false' ? false : Boolean(route.query?.lockAmount),
+        }),
+      },
       { path: 'receive/select', component: () => import('src/pages/SelectReceivePage.vue'), name: 'select-receive-page'},
       { path: 'settings', component: () => import('pages/Settings.vue'), name: 'settings'}
     ]

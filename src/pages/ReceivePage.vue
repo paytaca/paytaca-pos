@@ -155,6 +155,9 @@ export default defineComponent({
   },
   props: {
     paymentFrom: String, // paytaca | other
+    setAmount: Number,
+    setCurrency: String,
+    lockAmount: Boolean, // should only work if setAmount is given
   },
   methods: {
     copyText(value, message='Copied address') {
@@ -200,7 +203,16 @@ export default defineComponent({
 
     const receiveAmount = ref(0)
     const currency = ref('BCH')
-    function showSetAmountDialog() {
+    const disableAmount = ref(false)
+    onMounted(() => {
+      if (props.setAmount) receiveAmount.value = props.setAmount
+      if (props.setCurrency) currency.value = props.setCurrency
+
+      if (props.setAmount && props.lockAmount) disableAmount.value = true
+    })
+    function showSetAmountDialog(opts={force:false}) {
+      if (disableAmount.value && !opts?.force) return
+
       let currencies = ['BCH']
       if (props.paymentFrom === 'paytaca') currencies = ['BCH', 'PHP']
       $q.dialog({
@@ -480,6 +492,7 @@ export default defineComponent({
       generatingAddress,
       receiveAmount,
       currency,
+      disableAmount,
       showSetAmountDialog,
       qrData,
       otpInput,
