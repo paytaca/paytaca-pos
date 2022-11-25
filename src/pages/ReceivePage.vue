@@ -321,7 +321,7 @@ export default defineComponent({
             addressesStore.fillAddressSets()
 
             delete walletStore.qrDataTimestampCache[qrDataHash]
-            promptNewPayment()
+            $router.push({ name: 'home' })
           }
         })
       }
@@ -449,32 +449,8 @@ export default defineComponent({
 
           addressesStore.removeAddressSet(data?.address)
           addressesStore.fillAddressSets()
-          promptNewPayment()
+          $router.push({ name: 'home' })
         })
-    }
-
-    function promptNewPayment(text='') {
-      promptOnLeave.value = false
-      $q.dialog({
-        title: 'Create new payment?',
-        persistent: true,
-        ok: {
-          noCaps: true,
-          flat: true,
-          size: '1rem',
-          color: 'brandblue',
-          label: 'OK',
-        },
-        cancel: {
-          noCaps: true,
-          flat: true,
-          size: '1rem',
-          color: 'brandblue',
-          label: 'Return to home',
-        }
-      })
-        .onCancel(() => $router.push({ name: 'home' }))
-        .onDismiss(() => setTimeout(() => promptOnLeave.value = true, 100))
     }
 
     const promptOnLeave = ref(true)
