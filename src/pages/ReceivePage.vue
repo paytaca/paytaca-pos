@@ -228,6 +228,7 @@ export default defineComponent({
     }
 
     const qrData = computed(() => {
+      if (!receiveAmount.value) return ''
       if (props.paymentFrom === 'paytaca') return qrDataforPaytaca.value
       return qrDataForOtherWallets.value
     })
