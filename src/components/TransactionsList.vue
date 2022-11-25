@@ -24,7 +24,7 @@
             :class="[$q.dark.isActive ? 'text-weight-light' : '']"
             style="margin-top:-0.25em;"
           >
-            {{ marketValue(tx)?.marketValue }}
+            {{ marketValue(tx)?.marketValue }} {{ selectedMarketCurrency }}
           </div>
         </div>
       </div>
