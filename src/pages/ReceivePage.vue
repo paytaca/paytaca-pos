@@ -19,8 +19,7 @@
       <div class="qr-code-container" style="position:relative;" v-ripple @click="copyText(qrData, 'Copied payment URI')">
         <div v-if="loading"><q-skeleton height="200px" width="200px" /></div>
         <template v-else>
-          <img v-if="paymentFrom === 'paytaca'" src="~assets/paytaca_logo.png" height="50" class="qr-code-icon"/>
-          <img v-else src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
+          <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
           <QRCode
             :text="qrData"
             color="#253933"
