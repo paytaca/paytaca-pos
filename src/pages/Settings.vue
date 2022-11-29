@@ -32,6 +32,28 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item
+          v-if="walletStore.preferences.selectedCurrency"
+          :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'"
+        >
+          <q-item-section>
+            <q-item-label>
+              Currency
+            </q-item-label>
+          </q-item-section>
+          <q-item-section avatar>
+            <q-item-label>
+              {{ walletStore.preferences.selectedCurrency }}
+              <q-icon name="info" class="" size="1.5em">
+                <q-popup-proxy :breakpoint="0">
+                  <div class="q-pa-md">
+                    Currency is set by the wallet owner in Paytaca App
+                  </div>
+                </q-popup-proxy>
+              </q-icon>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-card>
     <q-card v-if="walletStore?.merchantInfo?.id" class="q-mx-md q-mt-lg text-weight-medium" style="border-radius:16px;">
