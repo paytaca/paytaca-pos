@@ -13,6 +13,18 @@
       <q-card-section class="q-pt-none">
         <div class="text-h6 text-center">
           {{ actionMap[transaction.record_type] }}
+          <q-icon
+            v-if="transaction._offline"
+            name="cloud_off"
+            size="1.25em"
+            :class="$q.dark.isActive ? '': 'text-grey'"
+          >
+            <q-popup-proxy :breakpoint="0">
+              <div class="q-pa-md">
+                Transaction was confirmed offline
+              </div>
+            </q-popup-proxy>
+          </q-icon>
         </div>
         <div class="text-h6 text-center q-mt-sm">
           <q-icon :name="iconMap[transaction.record_type]" class="record-type-icon"/>
@@ -20,16 +32,21 @@
       </q-card-section>
       <q-card-section class="q-mt-xs">
         <q-item clickable v-ripple @click="copyToClipboard(String(transaction.amount))">
-          <q-item-section side>
+          <q-item-section v-if="!transaction?._offline || transaction?.amount" side>
             <img src="~assets/bch-logo.png" height="30"/>
           </q-item-section>
-          <q-item-section>
+          <q-item-section v-if="!transaction?._offline || transaction?.amount">
             <q-item-label class="text-h5">
               <template v-if="transaction.record_type === 'outgoing'">{{ transaction.amount * -1 }} BCH</template>
               <template v-else> {{ transaction.amount }} BCH </template>
             </q-item-label>
             <q-item-label v-if="transactionAmountMarketValue" caption>
               {{ transactionAmountMarketValue }} {{ selectedMarketCurrency }}
+            </q-item-label>
+          </q-item-section>
+          <q-item-section v-else-if="transaction?.marketValue?.amount && transaction?.marketValue?.currency">
+            <q-item-label class="text-h5">
+              {{transaction?.marketValue?.amount}} {{transaction?.marketValue?.currency}}
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -42,13 +59,13 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable v-ripple @click="copyToClipboard(transaction?.txid)" style="overflow-wrap: anywhere;">
+        <q-item v-if="transaction?.txid" clickable v-ripple @click="copyToClipboard(transaction?.txid)" style="overflow-wrap: anywhere;">
           <q-item-section>
             <q-item-label caption class="text-grey">Transaction ID</q-item-label>
             <q-item-label>{{ transaction?.txid }}</q-item-label>
           </q-item-section>
         </q-item>
-        <q-item v-if="transaction.record_type === 'incoming'" style="overflow-wrap: anywhere;">
+        <q-item v-if="transaction.record_type === 'incoming' && transaction?.senders?.length" style="overflow-wrap: anywhere;">
           <q-item-section>
             <q-item-label caption class="text-grey">
               {{ transaction?.senders?.length > 1 ? 'Senders' : 'Sender' }}
@@ -56,7 +73,7 @@
             <q-item-label>{{ concatenate(transaction?.senders) }}</q-item-label>
           </q-item-section>
         </q-item>
-        <q-item v-if="transaction.record_type === 'outgoing'" style="overflow-wrap: anywhere;">
+        <q-item v-if="transaction.record_type === 'outgoing' && transaction?.recipients?.length" style="overflow-wrap: anywhere;">
           <q-item-section>
             <q-item-label caption class="text-grey">
               {{ transaction?.recipients?.length > 1 ? 'Recipients' : 'Recipient' }}
@@ -64,13 +81,13 @@
             <q-item-label>{{ concatenate(transaction?.recipients) }}</q-item-label>
           </q-item-section>
         </q-item>
-        <q-item>
+        <q-item v-if="transaction?.tx_fee">
           <q-item-section>
             <q-item-label caption class="text-grey">Miner fee</q-item-label>
             <q-item-label >{{ transaction?.tx_fee / (10**8) }} BCH</q-item-label>
           </q-item-section>
         </q-item>
-        <q-item clickable>
+        <q-item v-if="transaction?.txid" clickable>
           <q-item-section>
             <q-item-label class="text-gray" caption>Explorer Link</q-item-label>
             <q-item-label>

@@ -31,9 +31,6 @@
         <q-card-section class="text-h6">
           Transactions
         </q-card-section>
-        <q-card-section class="q-pt-none q-pb-sm">
-          <UnconfirmedPaymentsPanel/>
-        </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row items-center justify-end">
             <q-pagination
@@ -66,7 +63,6 @@ import { defineComponent, markRaw, onMounted, ref, watch } from 'vue'
 import TransactionsList from 'src/components/TransactionsList.vue'
 import WalletLink from 'src/components/WalletLink.vue'
 import MainFooter from 'src/components/MainFooter.vue'
-import UnconfirmedPaymentsPanel from 'src/components/UnconfirmedPaymentsPanel.vue'
 import { paymentUriHasMatch, findMatchingPaymentLink } from 'src/wallet/utils'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 
@@ -78,7 +74,6 @@ export default defineComponent({
     TransactionsList,
     WalletLink,
     MainFooter,
-    UnconfirmedPaymentsPanel,
 },
   setup () {
     const walletStore = useWalletStore()

@@ -65,6 +65,35 @@ export const useTxCacheStore = defineStore('tx-cache', {
       return unconfirmedTxsCopy.sort((tx1, tx2) => {
         return tx2?.parameters?.ts - tx1?.parameters?.ts
       })[0]
+    },
+    offlineTransactions() {
+      if (!Array.isArray(this.unconfirmedPayments)) return []
+      return this.unconfirmedPayments.map(unconfirmedPayment => {
+        const data = {
+          _offline: true,
+          date_created: new Date(Number(unconfirmedPayment.parameters.ts * 1000)).toISOString(),
+          record_type: 'incoming',
+          txid: '',
+          amount: 0,
+          tx_fee: 0,
+          recipients: [
+            [unconfirmedPayment.address],
+          ],
+          senders: [],
+        }
+        const isBCH = !unconfirmedPayment.parameters.currency || unconfirmedPayment.parameters.currency === 'BCH'
+        if (unconfirmedPayment.amount) {
+          if (isBCH) {
+            data.amount = unconfirmedPayment.amount
+          } else {
+            data.marketValue = {
+              currency: unconfirmedPayment.parameters.currency,
+              amount: unconfirmedPayment.amount,
+            }
+          }
+        }
+        return data
+      })
     }
   },
 
