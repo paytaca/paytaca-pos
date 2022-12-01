@@ -19,6 +19,7 @@
     "pinia": "^2.0.22",
     "pinia-plugin-persistedstate-2": "^2.0.1",
     "quasar": "^2.6.0",
+    "rpc-websocket-client": "^1.1.4",
     "s-ago": "^2.2.0",
     "vue": "^3.0.0",
     "vue-clipboard2": "^0.3.3",
