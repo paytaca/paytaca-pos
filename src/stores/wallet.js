@@ -8,6 +8,7 @@ export const useWalletStore = defineStore('wallet', {
     posId: -1,
     walletHash: null,
     xPubKey: null,
+    linkCode: null,
 
     deviceInfo: {
       name: '',
