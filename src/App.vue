@@ -34,10 +34,10 @@ export default defineComponent({
     const pingIntervalId = ref(null)
     onMounted(() => {
       clearInterval(pingIntervalId.value)
-      pingIntervalId.value = setInterval(
-        () => $rpc?.client?.call('ping'),
-        30 * 1000,
-      )
+      pingIntervalId.value = setInterval(() => {
+        if ($rpc?.client?.ws?.readyState !== WebSocket.OPEN) return
+        $rpc?.client?.call('ping')
+      }, 30 * 1000)
       $rpc?.client?.onOpen(() => $rpc.client.call('ping'))
     })
     onUnmounted(() => clearInterval(pingIntervalId.value))
