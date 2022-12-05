@@ -39,10 +39,13 @@ export default defineComponent({
   components: {
     QRCodeReader,
   },
+  emits: [
+    'device-linked',
+  ],
   props: {
     displayLinkButton: Boolean,
   },
-  setup() {
+  setup(props, { emit }) {
     const $q = useQuasar()
     const watchtower = new Watchtower()
 
@@ -157,6 +160,7 @@ export default defineComponent({
             }
           })
 
+          console.log(emit('device-linked'))
           dialog.update({ title: 'Device Linked', message: 'POS device linked successfully!'})
         })
         .catch(error => {

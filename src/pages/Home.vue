@@ -1,6 +1,10 @@
 <template>
   <q-page class="flex flex-center q-pb-lg">
-    <WalletLink v-if="forceDisplayWalletLink || !walletStore.walletHash" :display-link-button="forceDisplayWalletLink"/>
+    <WalletLink
+      v-if="forceDisplayWalletLink || !walletStore.walletHash"
+      :display-link-button="forceDisplayWalletLink"
+      @device-linked="() => forceDisplayWalletLink = false"
+    />
     <div v-else class="home-main-content q-py-md full-width">
       <div class="text-h4 text-brandblue q-mx-md q-px-sm q-mb-md">
         <div>Paytaca POS</div>
