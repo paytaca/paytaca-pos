@@ -1,6 +1,7 @@
 import BCHJS from "@psf/bch-js"
 import { createHmac, createHash } from "crypto"
 import axios from 'axios'
+import * as crypto from 'crypto'
 import { parsePaytacaPaymentUri } from "./payment-uri"
 
 const bchjs = new BCHJS()
@@ -267,4 +268,48 @@ export async function findMatchingPaymentLink(qrData, opts) {
   }
 
   return txs
+}
+
+export const aes = {
+  generateKey() {
+    return {
+      password: crypto.randomBytes(16).toString('hex'),
+      iv: crypto.randomBytes(8).toString('hex'),
+    }
+  },
+  encrypt(data, password, iv) {
+    const CHUNK_SIZE = 15
+    const bytes = Buffer.from(data)
+    let encrypted = ''
+    for (var i = 0; i < bytes.length; i += CHUNK_SIZE) {
+      const chunk = bytes.toString('hex', i, i+CHUNK_SIZE)
+      const cipheriv = crypto.createCipheriv('aes-256-cbc', password, iv)
+      cipheriv.update(chunk, 'hex', 'hex')
+      encrypted += cipheriv.final('hex')
+    }
+    return encrypted
+  },
+
+  decrypt(encryptedData='', password, iv) {
+    const CHUNK_SIZE = 32
+    let decryptedData = ''
+    for(var i = 0; i < encryptedData.length; i += CHUNK_SIZE) {
+      const chunk = encryptedData.substring(i, i + CHUNK_SIZE)
+      const decipheriv = crypto.createDecipheriv('aes-256-cbc', password, iv)
+      decipheriv.update(chunk, 'hex', 'utf8')
+      decryptedData += decipheriv.final('utf8')
+    }
+    return decryptedData
+  }
+}
+
+/**
+ * 
+ * @param {String} xpubkey 
+ * @param {String|Number} path
+ */
+export function getPubkeyAt(xpubkey, path) {
+  const mainNode = bchjs.HDNode.fromXPub(xpubkey)
+  const childNode = mainNode.derivePath(String(path))
+  return bchjs.HDNode.toPublicKey(childNode).toString('hex')
 }
