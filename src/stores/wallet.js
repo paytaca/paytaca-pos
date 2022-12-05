@@ -1,7 +1,7 @@
 import Watchtower from 'watchtower-cash-js';
 import { defineStore } from 'pinia';
 import { Wallet } from 'src/wallet';
-import { sha256, decodePaymentUri } from 'src/wallet/utils';
+import { sha256, decodePaymentUri, getPubkeyAt } from 'src/wallet/utils';
 
 export const useWalletStore = defineStore('wallet', {
   state: () => ({
@@ -21,6 +21,13 @@ export const useWalletStore = defineStore('wallet', {
         deviceModel: '',
         os: '',
         isSuspended: false,
+        unlinkRequest: {
+          id: 0,
+          force: false,
+          signature: '',
+          nonce: 0,
+          updatedAt: '',
+        },
       },
     },
 
@@ -67,6 +74,9 @@ export const useWalletStore = defineStore('wallet', {
   }),
 
   getters: {
+    walletHandle() {
+      return `${this.walletHash}:${this.posId}`
+    },
     formattedMerchantAddress(state) {
       const formattedLocation = [
         state.merchantInfo?.location?.location || state.merchantInfo?.location?.landmark,
@@ -156,11 +166,22 @@ export const useWalletStore = defineStore('wallet', {
         })
     },
     /**
-     * 
      * @param {Object} data 
      * @param {String} data.wallet_hash
      * @param {Number} data.posid
-     * @param {String} data.name
+     * @param {Number} [data.branch_id]
+     * @param {Object} [data.linked_device]
+     * @param {String} [data.linked_device.link_code]
+     * @param {String} [data.linked_device.name]
+     * @param {String} [data.linked_device.device_model]
+     * @param {String} [data.linked_device.os]
+     * @param {Boolean} data.linked_device.is_suspended
+     * @param {Object} [data.linked_device.unlink_request]
+     * @param {Number} data.linked_device.unlink_request.id
+     * @param {Boolean} data.linked_device.unlink_request.force
+     * @param {Number} data.linked_device.unlink_request.nonce
+     * @param {String} data.linked_device.unlink_request.signature
+     * @param {String} data.linked_device.unlink_request.updated_at
      */
     setDeviceInfo(data) {
       this.deviceInfo = {
@@ -174,13 +195,19 @@ export const useWalletStore = defineStore('wallet', {
           deviceModel: data?.linked_device?.device_model,
           os: data?.linked_device?.os,
           isSuspended: data?.linked_device?.is_suspended,
+          unlinkRequest: {
+            id: data?.linked_device?.unlink_request?.id,
+            force: data?.linked_device?.unlink_request?.force,
+            nonce: data?.linked_device?.unlink_request?.nonce,
+            signature: data?.linked_device?.unlink_request?.signature,
+            updatedAt: data?.linked_device?.unlink_request?.updated_at,
+          },
         }
       }
     },
     refetchDeviceInfo() {
-      const handle = [this.walletHash, this.posId].join(':')
       const watchtower = new Watchtower()
-      return watchtower.BCH._api.get(`paytacapos/devices/${handle}/`)
+      return watchtower.BCH._api.get(`paytacapos/devices/${this.walletHandle}/`)
         .then(response => {
           if (response?.data?.wallet_hash == this.walletHash) {
             this.setDeviceInfo(response.data)
@@ -196,6 +223,15 @@ export const useWalletStore = defineStore('wallet', {
         .finally(() => {
           this.refetchBranchInfo()
         })
+    },
+    confirmUnlinkRequest() {
+      const pubkey = getPubkeyAt(this.xPubKey, this.deviceInfo.linkedDevice.unlinkRequest.nonce)
+      const watchtower = new Watchtower()
+      return watchtower.BCH._api.post(`paytacapos/devices/${this.walletHandle}/unlink_device/`, { verifying_pubkey: pubkey })
+    },
+    cancelUnlinkRequest() {
+      const watchtower = new Watchtower()
+      return watchtower.BCH._api.post(`paytacapos/devices/${this.walletHandle}/unlink_device/cancel/`)
     },
     /**
      * @param {Object} data 
@@ -307,6 +343,17 @@ export const useWalletStore = defineStore('wallet', {
         qrData: qrData,
         timestamp: timestamp,
       }
+    },
+    clearAll() {
+      this.walletHash = ''
+      this.posId = -1
+      this.xPubKey = ''
+      this.linkCode = ''
+      this.setDeviceInfo(null)
+      this.setBranchInfo(null)
+      this.setMerchantInfo(null)
+      this.setPreferences(null)
+      this.clearQrDataTimestampCache()
     }
   }
 })

@@ -62,6 +62,9 @@ export default defineComponent({
           case 'unlink':
             walletStore.refetchDeviceInfo()
             break
+          case 'unlink_request':
+            walletStore.refetchDeviceInfo()
+            break
         }
       }
     }

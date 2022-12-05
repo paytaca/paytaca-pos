@@ -81,6 +81,7 @@ export default defineComponent({
     MainFooter,
 },
   setup () {
+    const $q = useQuasar()
     const walletStore = useWalletStore()
     const txCacheStore = useTxCacheStore()
 
@@ -153,7 +154,6 @@ export default defineComponent({
 
     const forceDisplayWalletLink = ref(false)
     onMounted(() => {
-      const $q = useQuasar()
       if (walletStore.isLinked && !walletStore.isDeviceValid) $q.dialog({
         title: 'Invalid device',
         message: 'Linked device does not match',
@@ -170,6 +170,35 @@ export default defineComponent({
           forceDisplayWalletLink.value = true
         })
     })
+
+    watch(() => walletStore.deviceInfo.linkedDevice.unlinkRequest.id, () => promptUnlinkRequest())
+    onMounted(() => promptUnlinkRequest())
+
+    function promptUnlinkRequest() {
+      if (!walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.id) return
+      console.log(walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.force)
+      $q.dialog({
+        title: 'Unlink device request',
+        message: 'Merchant requested to unlink device',
+        persistent: walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.force,
+        ok: {
+          noCaps: true,
+          color: 'red',
+          label: 'Confirm unlink',
+          flat: true,
+        },
+        cancel: !walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.force ? {
+          flat: true,
+          color: 'grey',
+          noCaps: true,
+        } : false,
+      })
+        .onOk(() => walletStore.confirmUnlinkRequest().then(() => walletStore.clearAll()))
+        .onCancel(() => {
+          if (!walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.force) return
+          walletStore.cancelUnlinkRequest().then(() => walletStore.refetchDeviceInfo())
+        })
+    }
 
     return {
       walletStore,
