@@ -25,7 +25,7 @@
             padding="md"
             size="1.75rem"
             icon="qr_code"
-            :disable="!$pinia.state.value.wallet?.walletHash"
+            :disable="(!$pinia.state.value.wallet?.walletHash || !walletStore.isDeviceValid)"
             :to="{ name: 'select-receive-page' }"
           />
         </div>
@@ -43,12 +43,17 @@
   </footer>
 </template>
 <script>
+import { useWalletStore } from 'src/stores/wallet';
 import { defineComponent } from 'vue'
 
 export default defineComponent({
   name: 'MainFooter',
   setup() {
+    const walletStore = useWalletStore()
     
+    return {
+      walletStore,
+    }
   },
 })
 </script>

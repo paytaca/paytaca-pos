@@ -15,6 +15,13 @@ export const useWalletStore = defineStore('wallet', {
       posId: -1,
       walletHash: null,
       branchId: null,
+      linkedDevice: {
+        linkCode: '',
+        name: '',
+        deviceModel: '',
+        os: '',
+        isSuspended: false,
+      },
     },
 
     merchantInfo: {
@@ -80,6 +87,12 @@ export const useWalletStore = defineStore('wallet', {
     },
     getWalletHash (state) {
       return state.walletHash
+    },
+    isLinked() {
+      return Boolean(this.walletHash && this.posId >= 0)
+    },
+    isDeviceValid() {
+      return this.linkCode == this.deviceInfo.linkedDevice.linkCode
     },
     walletObj(state) {
       return new Wallet({
@@ -155,6 +168,13 @@ export const useWalletStore = defineStore('wallet', {
         walletHash: data?.wallet_hash,
         posId: data?.posid,
         branchId: data?.branch_id,
+        linkedDevice: {
+          linkCode: data?.linked_device?.link_code,
+          name: data?.linked_device?.name,
+          deviceModel: data?.linked_device?.device_model,
+          os: data?.linked_device?.os,
+          isSuspended: data?.linked_device?.is_suspended,
+        }
       }
     },
     refetchDeviceInfo() {

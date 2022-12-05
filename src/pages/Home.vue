@@ -1,6 +1,6 @@
 <template>
   <q-page class="flex flex-center q-pb-lg">
-    <WalletLink v-if="!walletStore.walletHash"/>
+    <WalletLink v-if="forceDisplayWalletLink || !walletStore.walletHash" :display-link-button="forceDisplayWalletLink"/>
     <div v-else class="home-main-content q-py-md full-width">
       <div class="text-h4 text-brandblue q-mx-md q-px-sm q-mb-md">
         <div>Paytaca POS</div>
@@ -65,6 +65,7 @@ import WalletLink from 'src/components/WalletLink.vue'
 import MainFooter from 'src/components/MainFooter.vue'
 import { paymentUriHasMatch, findMatchingPaymentLink } from 'src/wallet/utils'
 import { useTxCacheStore } from 'src/stores/tx-cache'
+import { useQuasar } from 'quasar'
 
 // import historyData from 'src/wallet/mockers/history.json'
 
@@ -145,11 +146,33 @@ export default defineComponent({
           if (hasMatch) txCacheStore.removeQrDataFromUnconfirmedPayments(qrData)
         })
     }
+
+    const forceDisplayWalletLink = ref(false)
+    onMounted(() => {
+      const $q = useQuasar()
+      if (walletStore.isLinked && !walletStore.isDeviceValid) $q.dialog({
+        title: 'Invalid device',
+        message: 'Linked device does not match',
+        persistent: true,
+        ok: false,
+        cancel: {
+          noCaps: true,
+          flat: true,
+          color:'red',
+          label: 'Link another wallet',
+        },
+      })
+        .onCancel(() => {
+          forceDisplayWalletLink.value = true
+        })
+    })
+
     return {
       walletStore,
       transactions,
       fetchingTransactions,
       fetchTransactions,
+      forceDisplayWalletLink,
     }
   }
 })
