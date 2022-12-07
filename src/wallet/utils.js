@@ -7,6 +7,17 @@ import { parsePaytacaPaymentUri } from "./payment-uri"
 const bchjs = new BCHJS()
 
 /**
+ * @param {Number} posId 
+ */
+ export function padPosId(posId, digits=4) {
+  let val = String(posId)
+  while(val.length < digits) {
+    val = "0" + val
+  }
+  return val
+}
+
+/**
  * 
  * @param {String} secret digest string
  * @param {Object} [opts]

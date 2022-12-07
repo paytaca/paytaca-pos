@@ -25,7 +25,7 @@
           <q-item-section avatar>
             <q-item-label class="text-subtitle1">
               {{ truncatedWalletHash }}
-              <span>#{{ walletStore.posId }}</span>
+              <span>#{{ padPosId(walletStore.posId) }}</span>
             </q-item-label>
             <q-item-label v-if="walletStore.deviceInfo.name">
               {{ walletStore.deviceInfo.name }}
@@ -124,6 +124,7 @@
 import { computed, defineComponent } from 'vue'
 import MainHeader from 'src/components/MainHeader.vue'
 import { useWalletStore } from 'src/stores/wallet'
+import { padPosId } from 'src/wallet/utils'
 
 export default defineComponent({
     name: "SettingsPage",
@@ -141,6 +142,7 @@ export default defineComponent({
       })
 
       return {
+        padPosId,
         walletStore,
         truncatedWalletHash,
       }
