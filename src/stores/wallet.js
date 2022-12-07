@@ -65,6 +65,12 @@ export const useWalletStore = defineStore('wallet', {
       selectedCurrency: 'USD',
     },
 
+    salesReport: {
+      timestampFrom: 0,
+      timestampTo: 0,
+      data: [{ month: 0, year: 0, day: 0, total: 0, currency: 0, totalMarketValue: 0, count: 0 }],
+    },
+
     qrDataTimestampCache: {
       hash: { qrData: '', timestamp: -1 },
       // '0a3d13aecf...': { qrData: 'bitcoincash:ead42...?amount=0.01', timestamp: 1665457793 }
@@ -74,6 +80,41 @@ export const useWalletStore = defineStore('wallet', {
   }),
 
   getters: {
+    salesReportSummary() {
+      const data = {
+        today: { total: 0, currency: 0, totalMarketValue: 0, count: 0 },
+        last7Days: { total: 0, currency: 0, totalMarketValue: 0, count: 0 },
+      }
+      const today = new Date()
+      Object.assign(
+        data.today,
+        this.salesReport.data.find((record) => record?.year === today.getFullYear() && record?.month-1 === today.getMonth() && record?.day === today.getDate()),
+      )
+
+      const lastWeek = new Date()
+      lastWeek.setDate(lastWeek.getDate() - 7)
+      const records = this.salesReport.data.filter((record) => {
+        const timestamp = new Date(record.year, record.month-1, record.day)
+        return timestamp <= today && timestamp >= lastWeek
+      })
+
+      const currencies = records.map(record => record?.currency).filter(Boolean).filter((e, i, l) => l.indexOf(e) === i)
+      const hasMissingMarketValue = records.find(record => !record?.totalMarketValue || !record?.currency)
+      data.last7Days.total = records.reduce((subtotal, record) => subtotal + record.total, 0)
+      data.last7Days.count = records.reduce((subtotal, record) => subtotal + record.count, 0)
+      if (currencies.length === 1 && !hasMissingMarketValue) {
+        data.last7Days.currency = records?.[0]?.currency
+        data.last7Days.totalMarketValue = records.reduce((subtotal, record) => subtotal + record.totalMarketValue, 0)
+      }
+
+      data.today.total = Number(data.today.total.toFixed(8))
+      data.today.totalMarketValue = Number(data.today.total.toFixed(2))
+
+      data.last7Days.total = Number(data.last7Days.total.toFixed(8))
+      data.last7Days.totalMarketValue = Number(data.last7Days.total.toFixed(2))
+      return data
+    },
+    
     walletHandle() {
       return `${this.walletHash}:${this.posId}`
     },
@@ -292,6 +333,41 @@ export const useWalletStore = defineStore('wallet', {
       return watchtower.BCH._api.get(`/wallet/preferences/${this.walletHash}/`)
         .then(response => {
           this.setPreferences(response?.data)
+        })
+    },
+    refetchSalesReport() {
+      const params = {
+        to: Math.floor(Date.now() / 1000),
+        from: 0,
+        currency: this.preferences.selectedCurrency,
+        range: 'day',
+        posid: this.posId,
+      }
+      params.from = params.to - 86400 * 7
+      const watchtower = new Watchtower()
+      watchtower.BCH._api.get(`paytacapos/devices/sales_report/${this.walletHash}/`, { params })
+        .then(response => {
+          const salesReport = {
+            timestampFrom: response?.data?.timestamp_from,
+            timestampTo: response?.data?.timestamp_to,
+            data: [],
+          }
+
+          if (Array.isArray(response?.data?.data)) {
+            salesReport.data = response?.data?.data.map(record => {
+              return {
+                year: record?.year,
+                month: record?.month,
+                day: record?.day,
+                total: record?.total,
+                currency: record?.currency,
+                totalMarketValue: record?.total_market_value,
+                count: record?.count,
+              }
+            })
+          }
+
+          this.salesReport = salesReport
         })
     },
     verifyOtpForQrData(otp, qrData) {

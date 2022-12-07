@@ -15,20 +15,34 @@
           </span>
         </div>
       </div>
-      <div class="q-px-md">
-        <q-btn
-          :color="$q.dark.isActive ? 'dark' : 'white'"
-          :text-color="$q.dark.isActive ? 'white' : 'black'"
-          padding="sm"
-          rounded
-          class="full-width"
-          :to="{ name: 'select-receive-page' }"
-        >
-          <div>
-            <q-icon name="qr_code" size="5rem"/>
-            <div class="text-caption">Receive Payment</div>
+      <div class="q-px-md row q-gutter-x-sm no-wrap">
+        <q-card class="q-space q-pa-md column">
+            <div class="row items-center">
+              <div class="text-subtitle1">Today</div>
+              <q-badge :label="walletStore.salesReportSummary.today.count" class="q-ml-xs"/>
+            </div>
+            <!-- <div class="text-body2">
+              {{ walletStore.salesReportSummary.today.count }} transaction{{ walletStore.salesReportSummary.today.count > 1 ? 's' : '' }}
+            </div> -->
+            <div class="column justify-center q-space">
+              <div class="text-weight-medium">{{ walletStore.salesReportSummary.today.total }} BCH</div>
+              <div v-if="(walletStore.salesReportSummary.today.currency && walletStore.salesReportSummary.today.totalMarketValue)" class="text-caption" style="margin-top:-0.5em;">
+                {{ walletStore.salesReportSummary.today.totalMarketValue }} {{ walletStore.salesReportSummary.today.currency }}
+              </div>
+            </div>
+        </q-card>
+        <q-card class="q-space q-pa-md column">
+          <div class="row items-center">
+            <div class="text-subtitle1">Last 7 days</div>
+            <q-badge :label="walletStore.salesReportSummary.last7Days.count" class="q-ml-xs"/>
           </div>
-        </q-btn>
+          <div class="column justify-center q-space">
+            <div class="text-weight-medium">{{ walletStore.salesReportSummary.last7Days.total }} BCH</div>
+            <div v-if="(walletStore.salesReportSummary.last7Days.totalMarketValue && walletStore.salesReportSummary.last7Days.currency)" class="text-caption" style="margin-top:-0.5em;">
+              {{ walletStore.salesReportSummary.last7Days.totalMarketValue }} {{ walletStore.salesReportSummary.last7Days.currency }}
+            </div>
+          </div>
+        </q-card>
       </div>
 
       <q-card class="q-mx-md q-mt-md home-transactions-list-container" style="border-radius:25px;">
@@ -85,6 +99,7 @@ export default defineComponent({
     const walletStore = useWalletStore()
     const txCacheStore = useTxCacheStore()
 
+    onMounted(() => walletStore.refetchSalesReport())
     onMounted(() => walletStore.refetchMerchantInfo())
     onMounted(() => walletStore.refetchDeviceInfo())
     onMounted(() => walletStore.refetchPreferences())
