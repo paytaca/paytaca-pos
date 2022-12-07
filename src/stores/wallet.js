@@ -83,7 +83,9 @@ export const useWalletStore = defineStore('wallet', {
     salesReportSummary() {
       const data = {
         today: { total: 0, currency: 0, totalMarketValue: 0, count: 0 },
-        last7Days: { total: 0, currency: 0, totalMarketValue: 0, count: 0 },
+        yesterday: { total: 0, currency: 0, totalMarketValue: 0, count: 0 },
+        last7Days: this.salesReportPastWeek,
+        lastMonth: this.salesReportPastMonth,
       }
       const today = new Date()
       Object.assign(
@@ -91,6 +93,22 @@ export const useWalletStore = defineStore('wallet', {
         this.salesReport.data.find((record) => record?.year === today.getFullYear() && record?.month-1 === today.getMonth() && record?.day === today.getDate()),
       )
 
+      data.today.total = Number(data.today.total.toFixed(8))
+      data.today.totalMarketValue = Number(data.today.totalMarketValue.toFixed(2))
+
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      Object.assign(
+        data.yesterday,
+        this.salesReport.data.find((record) => record?.year === yesterday.getFullYear() && record?.month-1 === yesterday.getMonth() && record?.day === yesterday.getDate()),
+      )
+      data.yesterday.total = Number(data.yesterday.total.toFixed(8))
+      data.yesterday.totalMarketValue = Number(data.yesterday.totalMarketValue.toFixed(2))
+      return data
+    },
+    salesReportPastWeek() {
+      const data = { total: 0, currency: 0, totalMarketValue: 0, count: 0 }
+      const today = new Date()
       const lastWeek = new Date()
       lastWeek.setDate(lastWeek.getDate() - 7)
       const records = this.salesReport.data.filter((record) => {
@@ -100,21 +118,40 @@ export const useWalletStore = defineStore('wallet', {
 
       const currencies = records.map(record => record?.currency).filter(Boolean).filter((e, i, l) => l.indexOf(e) === i)
       const hasMissingMarketValue = records.find(record => !record?.totalMarketValue || !record?.currency)
-      data.last7Days.total = records.reduce((subtotal, record) => subtotal + record.total, 0)
-      data.last7Days.count = records.reduce((subtotal, record) => subtotal + record.count, 0)
+      data.total = records.reduce((subtotal, record) => subtotal + record.total, 0)
+      data.count = records.reduce((subtotal, record) => subtotal + record.count, 0)
       if (currencies.length === 1 && !hasMissingMarketValue) {
-        data.last7Days.currency = records?.[0]?.currency
-        data.last7Days.totalMarketValue = records.reduce((subtotal, record) => subtotal + record.totalMarketValue, 0)
+        data.currency = records?.[0]?.currency
+        data.totalMarketValue = records.reduce((subtotal, record) => subtotal + record.totalMarketValue, 0)
       }
 
-      data.today.total = Number(data.today.total.toFixed(8))
-      data.today.totalMarketValue = Number(data.today.totalMarketValue.toFixed(2))
-
-      data.last7Days.total = Number(data.last7Days.total.toFixed(8))
-      data.last7Days.totalMarketValue = Number(data.last7Days.totalMarketValue.toFixed(2))
+      data.total = Number(data.total.toFixed(8))
+      data.totalMarketValue = Number(data.totalMarketValue.toFixed(2))
       return data
     },
-    
+    salesReportPastMonth() {
+      const data = { total: 0, currency: 0, totalMarketValue: 0, count: 0 }
+      const today = new Date()
+      const lastMonth = new Date()
+      lastMonth.setMonth(lastMonth.getMonth() - 7)
+      const records = this.salesReport.data.filter((record) => {
+        const timestamp = new Date(record.year, record.month-1, record.day)
+        return timestamp <= today && timestamp >= lastMonth
+      })
+
+      const currencies = records.map(record => record?.currency).filter(Boolean).filter((e, i, l) => l.indexOf(e) === i)
+      const hasMissingMarketValue = records.find(record => !record?.totalMarketValue || !record?.currency)
+      data.total = records.reduce((subtotal, record) => subtotal + record.total, 0)
+      data.count = records.reduce((subtotal, record) => subtotal + record.count, 0)
+      if (currencies.length === 1 && !hasMissingMarketValue) {
+        data.currency = records?.[0]?.currency
+        data.totalMarketValue = records.reduce((subtotal, record) => subtotal + record.totalMarketValue, 0)
+      }
+
+      data.total = Number(data.total.toFixed(8))
+      data.totalMarketValue = Number(data.totalMarketValue.toFixed(2))
+      return data
+    },
     walletHandle() {
       return `${this.walletHash}:${this.posId}`
     },
@@ -336,14 +373,16 @@ export const useWalletStore = defineStore('wallet', {
         })
     },
     refetchSalesReport() {
+      const today = new Date()
+      const lastMonth = new Date()
+      lastMonth.setMonth(lastMonth.getMonth() - 1)
       const params = {
-        to: Math.floor(Date.now() / 1000),
-        from: 0,
+        to: Math.floor(today / 1000),
+        from: Math.floor(lastMonth / 1000),
         currency: this.preferences.selectedCurrency,
         range: 'day',
         posid: this.posId,
       }
-      params.from = params.to - 86400 * 7
       const watchtower = new Watchtower()
       watchtower.BCH._api.get(`paytacapos/devices/sales_report/${this.walletHash}/`, { params })
         .then(response => {
