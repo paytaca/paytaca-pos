@@ -3,7 +3,8 @@
 </template>
 
 <script>
-import { defineComponent, inject, onMounted, onUnmounted, ref } from 'vue'
+import { useQuasar } from 'quasar'
+import { defineComponent, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useWalletStore } from './stores/wallet'
 
 export default defineComponent({
@@ -29,6 +30,7 @@ export default defineComponent({
     }
   },
   setup() {
+    const $q = useQuasar()
     const walletStore = useWalletStore()
     const $rpc = inject('$rpc')
     const pingIntervalId = ref(null)
@@ -60,17 +62,34 @@ export default defineComponent({
           case 'update':
           case 'link':
           case 'unlink':
-            walletStore.refetchDeviceInfo()
-            break
           case 'unlink_request':
+          case 'suspend':
+          case 'unsuspend':
             walletStore.refetchDeviceInfo()
-            break
         }
       }
     }
 
     if ($rpc.client.onNotification.indexOf(rpcUpdateHandler) < 0) {
       $rpc.client.onNotification.push(rpcUpdateHandler)
+    }
+
+    const deviceSuspensionDialog = ref(null)
+    watch(() => walletStore.deviceInfo.linkedDevice.isSuspended, () => checkSuspended())
+    onMounted(() => checkSuspended())
+    function checkSuspended() {
+      if (walletStore.deviceInfo.linkedDevice.isSuspended) {
+        deviceSuspensionDialog.value = $q.dialog({
+          title: 'Suspended',
+          message: 'POS Device is suspended, contact merchant to unsuspend device',
+          persistent: true,
+          ok: false,
+          cancel: false,
+        })
+      } else {
+        deviceSuspensionDialog.value?.hide?.() 
+        deviceSuspensionDialog.value = null
+      }
     }
   }
 })
