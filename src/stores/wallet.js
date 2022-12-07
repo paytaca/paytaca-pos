@@ -108,10 +108,10 @@ export const useWalletStore = defineStore('wallet', {
       }
 
       data.today.total = Number(data.today.total.toFixed(8))
-      data.today.totalMarketValue = Number(data.today.total.toFixed(2))
+      data.today.totalMarketValue = Number(data.today.totalMarketValue.toFixed(2))
 
       data.last7Days.total = Number(data.last7Days.total.toFixed(8))
-      data.last7Days.totalMarketValue = Number(data.last7Days.total.toFixed(2))
+      data.last7Days.totalMarketValue = Number(data.last7Days.totalMarketValue.toFixed(2))
       return data
     },
     
