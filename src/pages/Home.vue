@@ -7,42 +7,21 @@
     />
     <div v-else class="home-main-content q-py-md full-width">
       <div class="text-h4 text-brandblue q-mx-md q-px-sm q-mb-md">
-        <div>Paytaca POS</div>
-        <div v-if="walletStore.merchantInfo?.name" class="text-subtitle1 ellipsis" style="margin-top:-0.5em;">
-          <span>{{ walletStore.merchantInfo?.name }}</span>
-          <span v-if="walletStore.deviceInfo?.name" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7' ">
-            | {{ walletStore.deviceInfo?.name }}
-          </span>
+        <div class="ellipsis">{{ walletStore.merchantInfo?.name || 'Paytaca POS' }}</div>
+        <div
+          v-if="walletStore.deviceInfo?.name"
+          class="text-subtitle1 ellipsis"
+          :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7' "
+          style="margin-top:-0.5em;"
+        >
+          {{ walletStore.deviceInfo?.name }}
         </div>
       </div>
-      <div class="q-px-md row q-gutter-x-sm no-wrap">
-        <q-card class="q-space q-pa-md column">
-            <div class="row items-center">
-              <div class="text-subtitle1">Today</div>
-              <q-badge :label="walletStore.salesReportSummary.today.count" class="q-ml-xs"/>
-            </div>
-            <!-- <div class="text-body2">
-              {{ walletStore.salesReportSummary.today.count }} transaction{{ walletStore.salesReportSummary.today.count > 1 ? 's' : '' }}
-            </div> -->
-            <div class="column justify-center q-space">
-              <div class="text-weight-medium">{{ walletStore.salesReportSummary.today.total }} BCH</div>
-              <div v-if="(walletStore.salesReportSummary.today.currency && walletStore.salesReportSummary.today.totalMarketValue)" class="text-caption" style="margin-top:-0.5em;">
-                {{ walletStore.salesReportSummary.today.totalMarketValue }} {{ walletStore.salesReportSummary.today.currency }}
-              </div>
-            </div>
-        </q-card>
-        <q-card class="q-space q-pa-md column">
-          <div class="row items-center">
-            <div class="text-subtitle1">Last 7 days</div>
-            <q-badge :label="walletStore.salesReportSummary.last7Days.count" class="q-ml-xs"/>
-          </div>
-          <div class="column justify-center q-space">
-            <div class="text-weight-medium">{{ walletStore.salesReportSummary.last7Days.total }} BCH</div>
-            <div v-if="(walletStore.salesReportSummary.last7Days.totalMarketValue && walletStore.salesReportSummary.last7Days.currency)" class="text-caption" style="margin-top:-0.5em;">
-              {{ walletStore.salesReportSummary.last7Days.totalMarketValue }} {{ walletStore.salesReportSummary.last7Days.currency }}
-            </div>
-          </div>
-        </q-card>
+      <div class="q-px-md row q-gutter-sm">
+        <SalesReportCard title="Today" :sales-report="walletStore.salesReportSummary.today" class="col-5"/>
+        <SalesReportCard title="Yesterday" :sales-report="walletStore.salesReportSummary.yesterday" class="col-5"/>
+        <SalesReportCard title="Last 7 days" :sales-report="walletStore.salesReportSummary.last7Days" class="col-5"/>
+        <SalesReportCard title="This month" :sales-report="walletStore.salesReportSummary.lastMonth" class="col-5"/>
       </div>
 
       <q-card class="q-mx-md q-mt-md home-transactions-list-container" style="border-radius:25px;">
@@ -66,7 +45,7 @@
           <div v-if="fetchingTransactions" class="row items-center justify-center q-px-xs">
             <q-linear-progress query color="brandblue"/>
           </div>
-          <TransactionsList :transactions="transactions" class="home-transactions-list"/>
+          <TransactionsList :transactions="transactions" class="home-transactions-list" :class="(transactions?.num_pages > 1 ? 'pagination': '')"/>
         </q-card-section>
       </q-card>
     </div>
@@ -78,6 +57,7 @@
 import { Wallet } from 'src/wallet'
 import { useWalletStore } from 'stores/wallet'
 import { defineComponent, markRaw, onMounted, ref, watch } from 'vue'
+import SalesReportCard from 'src/components/SalesReportCard.vue'
 import TransactionsList from 'src/components/TransactionsList.vue'
 import WalletLink from 'src/components/WalletLink.vue'
 import MainFooter from 'src/components/MainFooter.vue'
@@ -90,6 +70,7 @@ import { useQuasar } from 'quasar'
 export default defineComponent({
   name: 'HomePage',
   components: {
+    SalesReportCard,
     TransactionsList,
     WalletLink,
     MainFooter,
@@ -230,7 +211,7 @@ export default defineComponent({
   overflow: auto;
   /* max-height:100%; */
   padding-bottom: 50px;
-  padding-top: 20px;
+  /* padding-top: 20px; */
 }
 
 .home-transactions-list-container {
@@ -239,7 +220,10 @@ export default defineComponent({
   max-height:100%;
 }
 .home-transactions-list {
-  height: 40vh;
+  height: 35vh;
   overflow-y: auto;
+}
+.home-transactions-list.pagination {
+  height: 31vh;
 }
 </style>
