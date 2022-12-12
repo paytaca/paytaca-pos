@@ -357,8 +357,8 @@ export default defineComponent({
       receiveWebsocket.value = null // for reactivity
       const address = addressSet.value?.receiving
       if (!address) return
-      const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
-      const url = `${scheme}://watchtower.cash/ws/watch/bch/${address}/`
+      // const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
+      const url = `wss://watchtower.cash/ws/watch/bch/${address}/`
 
       console.log('Connecting ws:', url)
       const websocket = new WebSocket(url)
