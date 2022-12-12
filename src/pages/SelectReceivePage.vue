@@ -8,7 +8,7 @@
       </template>
     </MainHeader>
     <div class="q-mt-lg q-px-lg">
-      <div class="text-subtitle1 q-mb-md">Select payment terminal</div>
+      <div class="text-subtitle1 q-mb-md">Select the wallet being used to pay</div>
       <q-card>
         <q-item
           class="select-item"
@@ -20,7 +20,7 @@
           </q-item-section>
           <q-item-section top class="q-py-sm">
             <q-item-label class="text-subtitle1">Paytaca</q-item-label>
-            <q-item-label caption>Receive payments from paytaca app</q-item-label>
+            <q-item-label caption>Receive payments from Paytaca</q-item-label>
           </q-item-section>
         </q-item>
       </q-card>
@@ -36,8 +36,8 @@
             <img src="~assets/bch-logo.png" height="50"/>
           </q-item-section>
           <q-item-section top class="q-py-sm">
-            <q-item-label class="text-subtitle1">Other</q-item-label>
-            <q-item-label caption>Receive payments from other wallets</q-item-label>
+            <q-item-label class="text-subtitle1">Other BCH Wallets</q-item-label>
+            <q-item-label caption>Receive payments from other BCH wallets</q-item-label>
           </q-item-section>
         </q-item>
       </q-card>

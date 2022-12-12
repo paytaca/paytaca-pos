@@ -6,13 +6,13 @@
       @device-linked="() => forceDisplayWalletLink = false"
     />
     <div v-else class="home-main-content q-py-md full-width">
-      <div class="text-h4 text-brandblue q-mx-md q-px-sm q-mb-md">
+      <div class="text-h5 text-brandblue q-mx-md q-px-sm q-mb-md">
         <div class="ellipsis">{{ walletStore.merchantInfo?.name || 'Paytaca POS' }}</div>
         <div
           v-if="walletStore.deviceInfo?.name"
           class="text-subtitle1 ellipsis"
           :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7' "
-          style="margin-top:-0.5em;"
+          style="margin-top:-0.4em;"
         >
           {{ walletStore.deviceInfo?.name }}
         </div>

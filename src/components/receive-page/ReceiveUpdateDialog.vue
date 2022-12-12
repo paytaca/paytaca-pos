@@ -40,7 +40,7 @@
         <div class="q-mt-sm">
           <q-btn
             no-caps
-            label="Confirm Payment"
+            label="Okay"
             color="brandblue"
             class="full-width"
             @click="onDialogOK()"

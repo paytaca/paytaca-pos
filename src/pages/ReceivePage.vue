@@ -115,7 +115,7 @@
         mask="#-#-#-#-#-#"
         unmasked-value
         v-model="otpInput"
-        hint="Input OTP sent to customer to confirm payment"
+        hint="Input OTP sent to customer to verify payment"
         :bg-color="$q.dark.isActive ? 'dark' : 'white'"
         class="q-space text-h6"
       >
