@@ -88,6 +88,9 @@
             <q-item-label caption>
               {{ txReceived?.amount }} {{ txReceived?.tokenSymbol }}
             </q-item-label>
+            <q-item-label v-if="txReceived?.marketValue?.amount && txReceived?.marketValue?.currency" caption>
+              {{ txReceived?.marketValue?.amount }} {{ txReceived?.marketValue?.currency }}
+            </q-item-label>
           </q-item-section>
         </q-item>
       </template>
@@ -408,8 +411,16 @@ export default defineComponent({
      * @param {String[]} data.senders
      */
     function parseWebsocketDataReceived(data) {
+      const marketValue = { amount: 0, currency: '' }
+      if (data?.tokenSymbol === 'BCH' && currencyBchRate.value.rate) {
+        marketValue.amount = Number(
+          (Number(data?.amount) * currencyBchRate.value.rate).toFixed(3)
+        )
+        marketValue.currency = currencyBchRate.value.currency
+      }
       const response = {
         amount: data?.amount,
+        marketValue: marketValue,
         txid: data?.txid,
         index: data?.index,
         address: data?.address,
@@ -429,6 +440,15 @@ export default defineComponent({
 
     function displayReceivedTransaction (data) {
       const _qrData = qrData.value
+      let marketValue = data?.marketValue || { amount: 0, currency: '' }
+      if (!marketValue?.amount || !marketValue?.currency) {
+        if (data?.tokenSymbol === 'BCH' && currencyBchRate.value.rate) {
+          marketValue.amount = Number(
+            (Number(data?.amount) * currencyBchRate.value.rate).toFixed(3)
+          )
+          marketValue.currency = currencyBchRate.value.currency
+        }
+      }
       $q.dialog({
         component: ReceiveUpdateDialog,
         componentProps: {
@@ -436,6 +456,8 @@ export default defineComponent({
           address: data?.address,
           amount: data?.amount,
           tokenCurrency: data?.tokenSymbol,
+          marketValue: marketValue.amount,
+          marketValueCurrency: marketValue.currency,
           logo: data?.logo,
         }
       })

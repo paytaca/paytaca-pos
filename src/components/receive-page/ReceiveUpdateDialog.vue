@@ -11,12 +11,18 @@
         />
       </div>
       <q-card-section>
-        <div class="row items-center justify-center q-gutter-x-sm q-mb-md">
-          <div class="text-h5">
-            {{ amount }} {{ tokenCurrency }}
+        <div class="q-mb-md">
+          <div class="row items-center justify-center q-gutter-x-sm">
+            <div class="text-h5">
+              {{ amount }} {{ tokenCurrency }}
+            </div>
+            <img v-if="logo" :src="logo" height="30"/>
           </div>
-          <img v-if="logo" :src="logo" height="30"/>
+          <div v-if="marketValue && marketValueCurrency" class="text-center text-body2">
+            {{ marketValue }} {{ marketValueCurrency }}
+          </div>
         </div>
+
         <div class="text-grey" style="margin-bottom:-0.5em;">Transaction ID</div>
         <div class="row items-center no-wrap text-subtitle1">
           <div class="ellipsis">{{txid}}</div>
@@ -66,6 +72,8 @@ export default defineComponent({
     address: String,
     amount: [String, Number],
     tokenCurrency: String,
+    marketValue: [String, Number],
+    marketValueCurrency: String,
     logo: [String, null],
   },
   methods: {
