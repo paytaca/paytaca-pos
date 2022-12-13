@@ -410,6 +410,11 @@ export const useWalletStore = defineStore('wallet', {
           this.salesReport = salesReport
         })
     },
+    clearSalesReport() {
+      this.salesReport.timestampFrom = 0
+      this.salesReport.timestampTo = 0
+      this.salesReport.data = []
+    },
     verifyOtpForQrData(otp, qrData) {
       if (!qrData) return false
       const qrDataHash = sha256(qrData)
@@ -470,6 +475,7 @@ export const useWalletStore = defineStore('wallet', {
       this.setMerchantInfo(null)
       this.setPreferences(null)
       this.clearQrDataTimestampCache()
+      this.clearSalesReport()
       const addressesStore = useAddressesStore()
       addressesStore.addressSets = []
       console.log(addressesStore.addressSets)
