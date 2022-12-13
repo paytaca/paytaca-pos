@@ -2,6 +2,7 @@ import Watchtower from 'watchtower-cash-js';
 import { defineStore } from 'pinia';
 import { Wallet } from 'src/wallet';
 import { sha256, decodePaymentUri, getPubkeyAt } from 'src/wallet/utils';
+import { useAddressesStore } from './addresses';
 
 export const useWalletStore = defineStore('wallet', {
   state: () => ({
@@ -469,6 +470,9 @@ export const useWalletStore = defineStore('wallet', {
       this.setMerchantInfo(null)
       this.setPreferences(null)
       this.clearQrDataTimestampCache()
+      const addressesStore = useAddressesStore()
+      addressesStore.addressSets = []
+      console.log(addressesStore.addressSets)
     }
   }
 })

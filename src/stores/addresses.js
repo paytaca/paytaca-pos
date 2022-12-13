@@ -18,6 +18,7 @@ import { useWalletStore } from './wallet';
 export function isValidAddressSet(addressSet, wallet) {
   if (!Number.isInteger(addressSet.index)) return false
   if (!addressSet?.receiving || !addressSet?.change) return false
+  if (addressSet.index % 10 ** Wallet.paymentIndexValidator.POS_DEVICE_ID_DIGITS !== wallet.posId) return false
 
   const receivingAddrHmac = hmacSha256Hex(wallet.xPubKey, addressSet?.receiving)
   const changeAddrHmac = hmacSha256Hex(wallet.xPubKey, addressSet?.change)
