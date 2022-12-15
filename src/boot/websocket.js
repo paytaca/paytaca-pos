@@ -4,8 +4,9 @@ import { computed, ref, watch } from 'vue';
 import Watchtower from 'watchtower-cash-js';
 
 const watchtower = new Watchtower()
-const host = new URL(watchtower.BCH._api.defaults.baseURL).host
-const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
+const watchtowerUrl = new URL(watchtower.BCH._api.defaults.baseURL)
+const host = watchtowerUrl.host
+const scheme = watchtowerUrl.protocol === 'https:' ? 'wss' : 'ws'
 
 export default boot(({ app, store }) => {
   const $rpc = {
