@@ -1,7 +1,7 @@
 {
-  "appId": "com.paytaca.pos",
-  "appName": "Paytaca POS",
-  "bundledWebRuntime": false,
-  "npmClient": "npm",
-  "webDir": "www"
+	"appId": "com.paytaca.pos",
+	"appName": "Paytaca POS",
+	"bundledWebRuntime": false,
+	"npmClient": "npm",
+	"webDir": "www"
 }
