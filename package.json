@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@capacitor/core": "^2.5.0",
+    "@capacitor/device": "^4.1.0",
     "@psf/bch-js": "^4.18.0",
     "@quasar/extras": "^1.0.0",
     "core-js": "^3.6.5",

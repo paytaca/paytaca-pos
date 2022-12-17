@@ -23,7 +23,6 @@
         <SalesReportCard title="Last 7 days" :sales-report="walletStore.salesReportSummary.last7Days" class="col-5"/>
         <SalesReportCard title="This month" :sales-report="walletStore.salesReportSummary.lastMonth" class="col-5"/>
       </div>
-
       <q-card class="q-mx-md q-mt-md home-transactions-list-container" style="border-radius:25px;">
         <q-card-section class="text-h6">
           Transactions
@@ -90,6 +89,7 @@ export default defineComponent({
 
     const wallet = ref(null)
     onMounted(() => {
+
       wallet.value = markRaw(new Wallet({
         walletHash: walletStore.walletHash,
         xPubKey: walletStore.xPubKey,

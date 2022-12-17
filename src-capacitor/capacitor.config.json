@@ -3,5 +3,8 @@
   "appName": "Paytaca POS",
   "bundledWebRuntime": false,
   "npmClient": "npm",
-  "webDir": "www"
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
 }
