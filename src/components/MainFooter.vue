@@ -16,7 +16,7 @@
           :to="{ name: 'home' }"
         />
       </div>
-      <div>
+      <div v-if="walletStore.walletHash">
         <div class="receive-page-btn-container shadow-20">
           <q-btn
             flat

@@ -16,7 +16,7 @@
             />
           </q-item-section>
         </q-item>
-        <q-item :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'">
+        <q-item v-if="walletStore.walletHash" :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'">
           <q-item-section>
             <q-item-label>
               POS Device
@@ -33,7 +33,7 @@
           </q-item-section>
         </q-item>
         <q-item
-          v-if="walletStore.preferences.selectedCurrency"
+          v-if="walletStore.walletHash && walletStore.preferences.selectedCurrency"
           :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'"
         >
           <q-item-section>
