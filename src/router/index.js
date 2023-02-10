@@ -1,6 +1,8 @@
 import { route } from 'quasar/wrappers'
 import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory } from 'vue-router'
 import routes from './routes'
+import { App } from '@capacitor/app'
+window.App = App
 
 /*
  * If not building with SSR mode, you can
@@ -24,6 +26,14 @@ export default route(function (/* { store, ssrContext } */) {
     // quasar.conf.js -> build -> vueRouterMode
     // quasar.conf.js -> build -> publicPath
     history: createHistory(process.env.MODE === 'ssr' ? void 0 : process.env.VUE_ROUTER_BASE)
+  })
+
+  App.addListener('appUrlOpen', event => {
+    const url = new URL(event?.url)
+    console.log(url)
+    if (url.pathname.includes('link') && url.searchParams.get('code')) {
+      Router.push({ name: 'home', query: { walletLinkUrl: url.searchParams.get('code') } })
+    }
   })
 
   return Router

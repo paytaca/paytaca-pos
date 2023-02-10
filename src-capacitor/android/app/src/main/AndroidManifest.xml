@@ -29,6 +29,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="@string/custom_url_scheme" />
+                <data android:scheme="app" />
+                <data android:host="@string/package_name" />
             </intent-filter>
 
         </activity>

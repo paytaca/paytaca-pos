@@ -1,6 +1,7 @@
 <template>
   <q-page class="flex flex-center q-pb-lg">
     <WalletLink
+      ref="walletLinkComponent"
       v-if="forceDisplayWalletLink || !walletStore.walletHash"
       :display-link-button="forceDisplayWalletLink"
       @device-linked="() => forceDisplayWalletLink = false"
@@ -54,7 +55,7 @@
 
 <script>
 import { useWalletStore } from 'stores/wallet'
-import { defineComponent, markRaw, onMounted, ref, watch } from 'vue'
+import { defineComponent, markRaw, nextTick, onMounted, ref, watch } from 'vue'
 import SalesReportCard from 'src/components/SalesReportCard.vue'
 import TransactionsList from 'src/components/TransactionsList.vue'
 import WalletLink from 'src/components/WalletLink.vue'
@@ -62,6 +63,7 @@ import MainFooter from 'src/components/MainFooter.vue'
 import { paymentUriHasMatch, findMatchingPaymentLink } from 'src/wallet/utils'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useQuasar } from 'quasar'
+import { useRouter } from 'vue-router'
 
 // import historyData from 'src/wallet/mockers/history.json'
 
@@ -72,9 +74,13 @@ export default defineComponent({
     TransactionsList,
     WalletLink,
     MainFooter,
-},
-  setup () {
+  },
+  props: {
+    walletLinkUrl: String,
+  },
+  setup (props) {
     const $q = useQuasar()
+    const $router = useRouter()
     const walletStore = useWalletStore()
     const txCacheStore = useTxCacheStore()
 
@@ -185,12 +191,29 @@ export default defineComponent({
         })
     }
 
+    const walletLinkComponent = ref()
+    // onMounted(() => linkWalletFromUrl())
+    watch(() => [props.walletLinkUrl], linkWalletFromUrl())
+    async function linkWalletFromUrl() {
+      console.log(props.walletLinkUrl, walletStore.walletHash, walletStore.isDeviceValid)
+      if (!props.walletLinkUrl) return
+      if (walletStore.walletHash && walletStore.isDeviceValid) return
+      console.log(walletLinkComponent.value)
+
+      forceDisplayWalletLink.value = true
+      await nextTick()
+      walletLinkComponent.value.linkToWallet(props.walletLinkUrl)
+      $router.replace({ query: {} }) 
+    }
+
+    window.t = walletLinkComponent
     return {
       walletStore,
       transactions,
       fetchingTransactions,
       fetchTransactions,
       forceDisplayWalletLink,
+      walletLinkComponent,
     }
   }
 })

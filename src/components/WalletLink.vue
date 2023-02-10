@@ -109,6 +109,10 @@ export default defineComponent({
       })
     }
 
+    function linkToWallet(content='') {
+      return onQrDecode(content)
+    }
+
     function onQrDecode(content='') {
       showQrScanner.value = false
       const dialog = $q.dialog({
@@ -228,6 +232,7 @@ export default defineComponent({
       linkCodePrompt,
       toggleQrScanner,
       showQrScanner,
+      linkToWallet,
       onQrDecode,
       onQrError,
     }
