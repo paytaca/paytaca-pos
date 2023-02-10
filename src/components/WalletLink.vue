@@ -1,21 +1,36 @@
 <template>
-  <div style="margin-top: -30px;">
+  <div style="margin-top: -130px;">
     <q-img
       alt="Paytaca logo"
       src="~assets/paytaca-pos-icon.png"
       style="width: 250px; height: 250px"
     />
-      <div
-        :class="[
-          'text-h4 text-center text-weight-medium',
-          $q.dark.isActive ? '' : 'text-dark-page',
-        ]"
-        style="margin-top:-45px;letter-spacing: 0.18rem;"
-      >
-        Paytaca<span class="q-ml-sm" style="font-weight:575;">POS</span>
-      </div>
-    <q-card-actions v-if="displayLinkButton || !walletStore.walletHash" align="center" style="margin-top: 20px;">
-      <q-btn color="primary" @click="toggleQrScanner">Link to Wallet</q-btn>
+    <div
+      :class="[
+        'text-h4 text-center text-weight-medium',
+        $q.dark.isActive ? '' : 'text-dark-page',
+      ]"
+      style="margin-top:-45px;letter-spacing: 0.18rem;"
+    >
+      Paytaca<span class="q-ml-sm" style="font-weight:575;">POS</span>
+    </div>
+    <q-card-actions v-if="displayLinkButton || !walletStore.walletHash" vertical align="center" class="q-gutter-y-sm q-mt-md">
+      <div class="text-h6 text-weight-light">Link to Wallet</div>
+      <q-btn
+        color="primary"
+        icon="mdi-link-variant"
+        class="full-width q-mb-xs"
+        label="Input link"
+        @click="linkCodePrompt()"
+      />
+
+      <q-btn
+        color="primary"
+        icon="mdi-qrcode-scan"
+        class="full-width q-mb-xs"
+        label="Scan"
+        @click="toggleQrScanner"
+      />
     </q-card-actions>
   </div>
   <QRCodeReader
@@ -50,6 +65,36 @@ export default defineComponent({
     const watchtower = new Watchtower()
 
     const walletStore = useWalletStore()
+    function parseLinkCode(value) {
+      let linkCode = ''
+      try {
+        let url = new URL(value)
+        linkCode = url.searchParams.get('code') || ''
+      } catch(error) {
+        console.error(error)
+        linkCode = value
+      }
+
+      try {
+        return atob(linkCode)
+      } catch(error) {
+        console.error(error)
+      }
+    }
+
+    function linkCodePrompt() {
+      $q.dialog({
+        title: 'Wallet link',
+        message: 'Input wallet link code',
+        prompt: { outlined: true },
+        // ok: { color: 'brandblue', flat: true },
+        position: 'bottom',
+      })
+        .onOk(data => {
+          if(data) onQrDecode(data)
+        })
+    }
+
     const showQrScanner = ref(false)
     function toggleQrScanner () {
       showQrScanner.value = !showQrScanner.value
@@ -74,6 +119,9 @@ export default defineComponent({
       })
 
       return Promise.resolve(content)
+        .then(content => {
+          return parseLinkCode(content) || content
+        })
         .then(content => {
             dialog.update({ message: 'Decoding content'})
             const decodedContent = JSON.parse(content)
@@ -176,6 +224,7 @@ export default defineComponent({
 
     return {
       walletStore,
+      linkCodePrompt,
       toggleQrScanner,
       showQrScanner,
       onQrDecode,
