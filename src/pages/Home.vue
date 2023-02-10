@@ -53,7 +53,6 @@
 </template>
 
 <script>
-import { Wallet } from 'src/wallet'
 import { useWalletStore } from 'stores/wallet'
 import { defineComponent, markRaw, onMounted, ref, watch } from 'vue'
 import SalesReportCard from 'src/components/SalesReportCard.vue'
@@ -86,16 +85,6 @@ export default defineComponent({
     watch(() => [walletStore.walletHash], () => walletStore.refetchMerchantInfo())
     watch(() => [walletStore.walletHash, walletStore.posId], () => walletStore.refetchDeviceInfo())
     watch(() => [walletStore.walletHash], () => walletStore.refetchPreferences())
-
-    const wallet = ref(null)
-    onMounted(() => {
-
-      wallet.value = markRaw(new Wallet({
-        walletHash: walletStore.walletHash,
-        xPubKey: walletStore.xPubKey,
-        posId: walletStore.posId,
-      }))
-    })
 
     const transactions = ref({ history: [] })
     const fetchingTransactions = ref(false)
