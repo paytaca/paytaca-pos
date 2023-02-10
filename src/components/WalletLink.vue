@@ -46,7 +46,7 @@ import Watchtower from 'watchtower-cash-js';
 import { useWalletStore } from 'stores/wallet'
 import { aes, getPubkeyAt } from 'src/wallet/utils'
 import QRCodeReader from 'src/components/QRCodeReader.vue';
-import { Device } from '@capacitor/core'
+import { Device } from '@capacitor/device'
 import { defineComponent, onMounted, ref } from 'vue'
 import { useQuasar } from 'quasar' 
 
@@ -179,6 +179,7 @@ export default defineComponent({
           if (skip) return { skip }
           dialog.update({ persistent: true, progress: true, message: 'Retrieving device information' })
           const deviceInfo = await Device.getInfo()
+          deviceInfo.uuid = (await Device.getId())?.uuid
           return { qrCodeData, xpubkey, verifyingPubkey, deviceInfo }
         })
         .catch(error => {
