@@ -84,6 +84,7 @@ export default defineComponent({
     const walletStore = useWalletStore()
     const txCacheStore = useTxCacheStore()
 
+    onMounted(() => fetchTransactions())
     onMounted(() => walletStore.refetchSalesReport())
     onMounted(() => walletStore.refetchMerchantInfo())
     onMounted(() => walletStore.refetchDeviceInfo())
@@ -95,6 +96,7 @@ export default defineComponent({
     const transactions = ref({ history: [] })
     const fetchingTransactions = ref(false)
     function fetchTransactions(page=1) {
+      if (!walletStore.walletHash) return
       const opts = {
         page: Number.isInteger(page) ? page : 1,
         type: 'incoming',
@@ -111,11 +113,11 @@ export default defineComponent({
           fetchingTransactions.value = false
         })
     }
-    onMounted(() => fetchTransactions())
     watch(() => [walletStore.walletHash, walletStore.posId], () => fetchTransactions())
 
     async function searchUnconfirmedPaymentsTransaction() {
       console.log("Finding transaction of unconfirmed payments")
+      console.log(txCacheStore.unconfirmedTxsFromQrData)
       txCacheStore.unconfirmedTxsFromQrData.forEach(async (qrData) => {
           let hasMatch = false
 
@@ -167,7 +169,6 @@ export default defineComponent({
 
     function promptUnlinkRequest() {
       if (!walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.id) return
-      console.log(walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.force)
       $q.dialog({
         title: 'Unlink device request',
         message: 'Merchant requested to unlink device',
@@ -195,10 +196,8 @@ export default defineComponent({
     // onMounted(() => linkWalletFromUrl())
     watch(() => [props.walletLinkUrl], linkWalletFromUrl())
     async function linkWalletFromUrl() {
-      console.log(props.walletLinkUrl, walletStore.walletHash, walletStore.isDeviceValid)
       if (!props.walletLinkUrl) return
       if (walletStore.walletHash && walletStore.isDeviceValid) return
-      console.log(walletLinkComponent.value)
 
       forceDisplayWalletLink.value = true
       await nextTick()
