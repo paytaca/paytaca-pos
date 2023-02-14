@@ -290,6 +290,7 @@ export const useWalletStore = defineStore('wallet', {
       if (!this.walletHandle) {
         this.setDeviceInfo(null)
         this.setBranchInfo(null)
+        return
       }
       const watchtower = new Watchtower()
       return watchtower.BCH._api.get(`paytacapos/devices/${this.walletHandle}/`)
