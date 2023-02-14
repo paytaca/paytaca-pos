@@ -55,10 +55,8 @@
 
 <script>
 import { useWalletStore } from 'stores/wallet'
+import { defineAsyncComponent } from 'vue'
 import { defineComponent, markRaw, nextTick, onMounted, ref, watch } from 'vue'
-import SalesReportCard from 'src/components/SalesReportCard.vue'
-import TransactionsList from 'src/components/TransactionsList.vue'
-import WalletLink from 'src/components/WalletLink.vue'
 import MainFooter from 'src/components/MainFooter.vue'
 import { paymentUriHasMatch, findMatchingPaymentLink } from 'src/wallet/utils'
 import { useTxCacheStore } from 'src/stores/tx-cache'
@@ -70,9 +68,9 @@ import { useRouter } from 'vue-router'
 export default defineComponent({
   name: 'HomePage',
   components: {
-    SalesReportCard,
-    TransactionsList,
-    WalletLink,
+    SalesReportCard: defineAsyncComponent(() => import('src/components/SalesReportCard.vue')),
+    TransactionsList: defineAsyncComponent(() => import('src/components/TransactionsList.vue')),
+    WalletLink: defineAsyncComponent(() => import('src/components/WalletLink.vue')),
     MainFooter,
   },
   props: {
