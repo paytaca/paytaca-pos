@@ -44,6 +44,7 @@
 <script>
 import Watchtower from 'watchtower-cash-js';
 import { useWalletStore } from 'stores/wallet'
+import { useAddressesStore } from 'src/stores/addresses';
 import { aes, getPubkeyAt } from 'src/wallet/utils'
 import QRCodeReader from 'src/components/QRCodeReader.vue';
 import { Device } from '@capacitor/device'
@@ -65,6 +66,7 @@ export default defineComponent({
     const watchtower = new Watchtower()
 
     const walletStore = useWalletStore()
+    const addressesStore = useAddressesStore()
     function parseLinkCode(value) {
       let linkCode = ''
       try {
@@ -224,6 +226,7 @@ export default defineComponent({
           }
           dialog.update({ title: 'Link device error', message: message, html: true })
         })
+        .then(() => addressesStore.fillAddressSets())
         .finally(() => dialog.update({ persistent: false, progress: false }))
     }
 
