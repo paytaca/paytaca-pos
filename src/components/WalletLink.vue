@@ -226,7 +226,9 @@ export default defineComponent({
           }
           dialog.update({ title: 'Link device error', message: message, html: true })
         })
-        .then(() => addressesStore.fillAddressSets())
+        .then(() => {
+          addressesStore.fillAddressSets()
+        })
         .finally(() => dialog.update({ persistent: false, progress: false }))
     }
 
