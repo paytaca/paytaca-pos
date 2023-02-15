@@ -32,7 +32,12 @@
       </div>
     </div>
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
-      <div v-if="receiveAmount">{{ receiveAmount }} {{ currency }}</div>
+      <div v-if="receiveAmount">
+        <div>{{ receiveAmount }} {{ currency }}</div>
+        <div v-if="currency !== 'BCH'" class="text-caption text-grey">
+          {{ bchValue }} BCH
+        </div>
+      </div>
       <div v-else class="text-red">Set amount</div>
       <!-- <q-popup-edit v-model="receiveAmount" v-slot="scope">
         <q-input
