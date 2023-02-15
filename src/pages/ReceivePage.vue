@@ -32,7 +32,12 @@
       </div>
     </div>
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
-      <div v-if="receiveAmount">{{ receiveAmount }} {{ currency }}</div>
+      <div v-if="receiveAmount">
+        <div>{{ receiveAmount }} {{ currency }}</div>
+        <div v-if="currency !== 'BCH'" class="text-caption text-grey">
+          {{ bchValue }} BCH
+        </div>
+      </div>
       <div v-else class="text-red">Set amount</div>
       <!-- <q-popup-edit v-model="receiveAmount" v-slot="scope">
         <q-input
@@ -184,7 +189,6 @@ export default defineComponent({
     const walletStore = useWalletStore();
     const txCacheStore = useTxCacheStore();
     const marketStore = useMarketStore()
-    const wallet = ref(walletStore.walletObj);
 
     const requireOtp = computed(() => props.paymentFrom === 'paytaca')
 
@@ -201,9 +205,15 @@ export default defineComponent({
     const addressSet = computed(() => addressesStore.currentAddressSet)
     const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
 
-    const paymentUriLabel = computed(() => {
-      return `${wallet.value.walletHash}-${wallet.value.posId}`
-    })
+    // not using computed to stop calculating immediately causing slight delay in changing page
+    // this is due to usage of walletStore.walletObj
+    const paymentUriLabel = ref('')
+    onMounted(() => setTimeout(() => updatePaymentUriLabel(), 5))
+    watch(() => [walletStore.walletHash, walletStore.posId], () => updatePaymentUriLabel())
+    function updatePaymentUriLabel() {
+      if (!walletStore.walletHash) paymentUriLabel.value = ''
+      else paymentUriLabel.value = `${walletStore.walletHash}-${walletStore.posId}`
+    }
 
     const receiveAmount = ref(0)
     const currency = ref('BCH')
@@ -216,6 +226,7 @@ export default defineComponent({
       return marketStore.bchRates.find(rate => rate.currency === currency.value)
     })
     const currencyBchRateUpdateInterval = ref(null)
+    // 0.02ms - 0.026ms
     onMounted(() => {
       clearTimeout(currencyBchRateUpdateInterval.value)
       currencyBchRateUpdateInterval.value = setInterval(
@@ -234,6 +245,7 @@ export default defineComponent({
       const rateValue = currencyBchRate.value?.rate || 1
       return Number((receiveAmount.value / rateValue).toFixed(8))
     })
+    // 0.015ms - 0.031ms
     onMounted(() => {
       if (props.setAmount) receiveAmount.value = props.setAmount
       if (props.setCurrency) currency.value = props.setCurrency
@@ -267,6 +279,7 @@ export default defineComponent({
       // QR data is a BIP0021 compliant
       // BIP0021 is a URI scheme for bitcoin payments
       if (!addressSet.value?.receiving) return ''
+      if (!paymentUriLabel.value) return ''
 
       let paymentUri = addressSet.value?.receiving
 
@@ -280,6 +293,7 @@ export default defineComponent({
 
     const qrDataforPaytaca = computed(() => {
       if (!addressSet.value?.receiving) return ''
+      if (!paymentUriLabel.value) return ''
       let paymentUri = `paytaca:`
       paymentUri += addressSet.value?.receiving.replace('bitcoincash:', '')
 
@@ -337,6 +351,7 @@ export default defineComponent({
       return transactionsReceived.value?.length || receiveWebsocket.value?.readyState === 1
     })
     watch(addressSet, () => setupListener({ resetAttempts: true }))
+    // 0.4ms - 0.5ms
     onMounted(() => addressSet.value?.receiving ? setupListener() : null)
     watch(isOnline, () => {
       if (isOnline.value) {
@@ -510,7 +525,6 @@ export default defineComponent({
     return {
       isOnline,
       txCacheStore,
-      wallet,
       requireOtp,
       addressSet,
       loading,

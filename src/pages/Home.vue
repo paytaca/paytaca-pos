@@ -1,6 +1,7 @@
 <template>
   <q-page class="flex flex-center q-pb-lg">
     <WalletLink
+      ref="walletLinkComponent"
       v-if="forceDisplayWalletLink || !walletStore.walletHash"
       :display-link-button="forceDisplayWalletLink"
       @device-linked="() => forceDisplayWalletLink = false"
@@ -53,32 +54,35 @@
 </template>
 
 <script>
-import { Wallet } from 'src/wallet'
 import { useWalletStore } from 'stores/wallet'
-import { defineComponent, markRaw, onMounted, ref, watch } from 'vue'
-import SalesReportCard from 'src/components/SalesReportCard.vue'
-import TransactionsList from 'src/components/TransactionsList.vue'
-import WalletLink from 'src/components/WalletLink.vue'
+import { defineAsyncComponent } from 'vue'
+import { defineComponent, markRaw, nextTick, onMounted, ref, watch } from 'vue'
 import MainFooter from 'src/components/MainFooter.vue'
 import { paymentUriHasMatch, findMatchingPaymentLink } from 'src/wallet/utils'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useQuasar } from 'quasar'
+import { useRouter } from 'vue-router'
 
 // import historyData from 'src/wallet/mockers/history.json'
 
 export default defineComponent({
   name: 'HomePage',
   components: {
-    SalesReportCard,
-    TransactionsList,
-    WalletLink,
+    SalesReportCard: defineAsyncComponent(() => import('src/components/SalesReportCard.vue')),
+    TransactionsList: defineAsyncComponent(() => import('src/components/TransactionsList.vue')),
+    WalletLink: defineAsyncComponent(() => import('src/components/WalletLink.vue')),
     MainFooter,
-},
-  setup () {
+  },
+  props: {
+    walletLinkUrl: String,
+  },
+  setup (props) {
     const $q = useQuasar()
+    const $router = useRouter()
     const walletStore = useWalletStore()
     const txCacheStore = useTxCacheStore()
 
+    onMounted(() => fetchTransactions())
     onMounted(() => walletStore.refetchSalesReport())
     onMounted(() => walletStore.refetchMerchantInfo())
     onMounted(() => walletStore.refetchDeviceInfo())
@@ -87,19 +91,10 @@ export default defineComponent({
     watch(() => [walletStore.walletHash, walletStore.posId], () => walletStore.refetchDeviceInfo())
     watch(() => [walletStore.walletHash], () => walletStore.refetchPreferences())
 
-    const wallet = ref(null)
-    onMounted(() => {
-
-      wallet.value = markRaw(new Wallet({
-        walletHash: walletStore.walletHash,
-        xPubKey: walletStore.xPubKey,
-        posId: walletStore.posId,
-      }))
-    })
-
     const transactions = ref({ history: [] })
     const fetchingTransactions = ref(false)
     function fetchTransactions(page=1) {
+      if (!walletStore.walletHash) return
       const opts = {
         page: Number.isInteger(page) ? page : 1,
         type: 'incoming',
@@ -116,11 +111,11 @@ export default defineComponent({
           fetchingTransactions.value = false
         })
     }
-    onMounted(() => fetchTransactions())
     watch(() => [walletStore.walletHash, walletStore.posId], () => fetchTransactions())
 
     async function searchUnconfirmedPaymentsTransaction() {
       console.log("Finding transaction of unconfirmed payments")
+      console.log(txCacheStore.unconfirmedTxsFromQrData)
       txCacheStore.unconfirmedTxsFromQrData.forEach(async (qrData) => {
           let hasMatch = false
 
@@ -172,7 +167,6 @@ export default defineComponent({
 
     function promptUnlinkRequest() {
       if (!walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.id) return
-      console.log(walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.force)
       $q.dialog({
         title: 'Unlink device request',
         message: 'Merchant requested to unlink device',
@@ -196,12 +190,27 @@ export default defineComponent({
         })
     }
 
+    const walletLinkComponent = ref()
+    // onMounted(() => linkWalletFromUrl())
+    watch(() => [props.walletLinkUrl], linkWalletFromUrl())
+    async function linkWalletFromUrl() {
+      if (!props.walletLinkUrl) return
+      if (walletStore.walletHash && walletStore.isDeviceValid) return
+
+      forceDisplayWalletLink.value = true
+      await nextTick()
+      walletLinkComponent.value.linkToWallet(props.walletLinkUrl)
+      $router.replace({ query: {} }) 
+    }
+
+    window.t = walletLinkComponent
     return {
       walletStore,
       transactions,
       fetchingTransactions,
       fetchTransactions,
       forceDisplayWalletLink,
+      walletLinkComponent,
     }
   }
 })

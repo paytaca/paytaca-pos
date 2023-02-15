@@ -11,9 +11,11 @@
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
-    "@capacitor/core": "^2.5.0",
-    "@capacitor/device": "^4.1.0",
-    "@psf/bch-js": "^4.18.0",
+    "@capacitor/app": "^1.1.1",
+    "@capacitor/cli": "^3.9.0",
+    "@capacitor/core": "^3.9.0",
+    "@capacitor/device": "^1.1.2",
+    "@psf/bch-js": "^6.2.11",
     "@quasar/extras": "^1.0.0",
     "core-js": "^3.6.5",
     "ping.js": "^0.3.0",

@@ -74,6 +74,24 @@ export class Wallet {
     return value
   }
 
+  get xPubKey() {
+    return this._xPubKey
+  }
+
+  set xPubKey(value) {
+    this._xPubKey = value
+    try {
+      this._mainHDNode = bchjs.HDNode.fromXPub(this._xPubKey)
+    } catch(error) {
+      console.error(error)
+      this._mainHDNode = null
+    }
+  }
+
+  get mainHDNode() {
+    return this._mainHDNode
+  }
+
   generateOtp(opts) {
     const secret = `${TOTP_SECRET_KEY}:${this.walletHash}-${this.posId}`
     return generateTOTP(secret, opts) 
@@ -117,7 +135,7 @@ export class Wallet {
   }
 
   getAddressSetAt(index) {
-    const childNode = bchjs.HDNode.fromXPub(this.xPubKey)
+    const childNode = this.mainHDNode
     const receivingAddressNode = childNode.derivePath('0/' + index.toString())
     const changeAddressNode = childNode.derivePath('1/' + index.toString())
     return {

@@ -4,7 +4,7 @@ const routes = [
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', component: () => import('src/pages/Home.vue'), name: 'home'},
+      { path: '', component: () => import('src/pages/Home.vue'), name: 'home', props: route => route?.query},
       {
         path: 'receive',
         name: 'receive-page',

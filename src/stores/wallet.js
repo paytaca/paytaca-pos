@@ -154,6 +154,7 @@ export const useWalletStore = defineStore('wallet', {
       return data
     },
     walletHandle() {
+      if (!this.walletHash) return ''
       return `${this.walletHash}:${this.posId}`
     },
     formattedMerchantAddress(state) {
@@ -229,6 +230,7 @@ export const useWalletStore = defineStore('wallet', {
       this.merchantInfo = merchantInfo
     },
     refetchMerchantInfo() {
+      if (!this.walletHash) return this.setMerchantInfo(null)
       const watchtower = new Watchtower()
       return watchtower.BCH._api.get(`paytacapos/merchants/${this.walletHash}/`)
         .then(response => {
@@ -285,6 +287,11 @@ export const useWalletStore = defineStore('wallet', {
       }
     },
     refetchDeviceInfo() {
+      if (!this.walletHandle) {
+        this.setDeviceInfo(null)
+        this.setBranchInfo(null)
+        return
+      }
       const watchtower = new Watchtower()
       return watchtower.BCH._api.get(`paytacapos/devices/${this.walletHandle}/`)
         .then(response => {
@@ -341,6 +348,7 @@ export const useWalletStore = defineStore('wallet', {
       }
     },
     refetchBranchInfo() {
+      if (!this.walletHash || Number.isNaN(this.deviceInfo.branchId)) return this.setBranchInfo(null)
       if (!this.deviceInfo.branchId) return this.setBranchInfo(null)
       const watchtower = new Watchtower()
       const params = { wallet_hash: this.deviceInfo.walletHash }
@@ -374,6 +382,7 @@ export const useWalletStore = defineStore('wallet', {
         })
     },
     refetchSalesReport() {
+      if (!this.walletHash) return this.clearSalesReport()
       const today = new Date()
       const lastMonth = new Date()
       lastMonth.setMonth(lastMonth.getMonth() - 1)
