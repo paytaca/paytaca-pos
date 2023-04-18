@@ -23,7 +23,7 @@
         :disable="loading"
         padding="none sm"
         no-caps
-        @click="() => stocksSearchDialog.show = true"
+        @click="() => openStockSearchDialog()"
       >
         <q-icon name="add"/>
         <span class="text-underline">Select more stocks</span>
@@ -115,75 +115,6 @@
         />
       </div>
     </q-form>
-
-    <q-dialog
-      v-model="stocksSearchDialog.show"
-      position="bottom"
-      @show="() => updateStockSearchList()"
-    >
-      <q-card>
-        <q-card-section>
-          <q-input
-            dense
-            outlined
-            :loading="stocksSearchDialog.loading"
-            placeholder="Item name / PO#"
-            v-model="stocksSearchDialog.searchVal"
-            debounce="500"
-            @update:model-value="() => updateStockSearchList()"
-          >
-            <template v-slot:append>
-              <q-icon name="search"/>
-            </template>
-          </q-input>
-        </q-card-section>
-        <q-list separator style="max-height:70vh;overflow:auto;">
-          <template v-if="stocksSearchDialog.stocks?.length">
-            <q-item
-              v-for="stock in stocksSearchDialog.stocks" :key="stock?.id"
-              clickable
-              @click="() => toggleStock(stock)"
-            >
-              <q-item-section side>
-                <q-checkbox
-                  :model-value="Boolean(stockIdExists(stock?.id))"
-                  @click="() => toggleStock(stock)"
-                />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>{{ stock?.itemName }}</q-item-label>
-                <q-item-label class="text-caption">#{{ stock?.id }}</q-item-label>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>Qty: {{ stock?.quantity }}</q-item-label>
-                <q-item-label>Cost Price: {{ stock?.costPrice }} {{ marketplaceStore?.currency }}</q-item-label>
-              </q-item-section>
-            </q-item>
-          </template>
-          <div v-else-if="!stocksSearchDialog.searchVal" class="q-pa-md text-grey text-center">
-            Search stocks
-          </div>
-          <div v-else class="q-pa-md text-grey text-center">
-            No data
-          </div>
-
-          <q-item
-            v-if="stocksSearchDialog.pagination?.count > stocksSearchDialog.stocks?.length"
-            clickable
-            v-ripple
-            :disable="stocksSearchDialog.loading"
-            @click="() => updateStockSearchList({append: true })"
-          >
-            <q-item-section class="text-center">
-              <q-item-label :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'">
-                Show more
-                <q-spinner v-if="stocksSearchDialog.loading"/>
-              </q-item-label>
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </q-card>
-    </q-dialog>
     <StockDetailDialog v-model="stockDetailDialog.show" :stock="stockDetailDialog.stock"/>
   </q-page>
 </template>
@@ -197,6 +128,7 @@ import { useRouter } from 'vue-router'
 import { defineComponent, onMounted, ref } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import StockDetailDialog from 'src/components/marketplace/inventory/StockDetailDialog.vue'
+import StockSearchDialog from 'src/components/marketplace/inventory/StockSearchDialog.vue'
 
 export default defineComponent({
   name: 'CreateStockRecount',
@@ -335,39 +267,22 @@ export default defineComponent({
         })
     }
 
-    const stocksSearchDialog = ref({
-      show: false,
-      loading: false,
-      searchVal: '',
-      stocks: [].map(Stock.parse),
-      pagination: {count: 0, limit: 0, offset: 0},
-    })
-    function updateStockSearchList(opts={append: false}) {
-      const params = {
-        limit: 5,
-        offset: undefined,
-        s: stocksSearchDialog.value.searchVal,
-        shop_id: marketplaceStore.activeShopId || null,
-      }
-
-      if (opts?.append) {
-        params.offset = stocksSearchDialog.value.pagination.limit + stocksSearchDialog.value.pagination.offset
-      }
-
-      stocksSearchDialog.value.loading = true
-      backend.get(`stocks/`, { params })
-        .then(response => {
-          if (!Array.isArray(response?.data?.results)) return
-          const stocks = response?.data?.results.map(Stock.parse)
-          if (opts?.append) stocksSearchDialog.value.stocks.push(...stocks)
-          else stocksSearchDialog.value.stocks = stocks
-          stocksSearchDialog.value.pagination.count = response?.data?.count || 0
-          stocksSearchDialog.value.pagination.limit = response?.data?.limit || 0
-          stocksSearchDialog.value.pagination.offset = response?.data?.offset || 0
+    function openStockSearchDialog() {
+      $q.dialog({
+        component: StockSearchDialog,
+        componentProps: {
+          selected: formData.value.items.map(item => item?.stock).filter(Boolean),
+          ok: true,
+        }
+      }).onOk(stocks => {
+        formData.value.items = formData.value.items.filter(item => {
+          return stocks.find(stock => item.stock.id === stock.id)
         })
-        .finally(() => {
-          stocksSearchDialog.value.loading = false
+        stocks.map(stock => {
+          if (stockIdExists(stock.id)) return
+          addStockToList(stock)
         })
+      })
     }
 
     const stockDetailDialog = ref({ show: false, stock: Stock.parse() })
@@ -390,8 +305,7 @@ export default defineComponent({
       formErrors,
       createStockRecount,
 
-      stocksSearchDialog,
-      updateStockSearchList,
+      openStockSearchDialog,
       stockDetailDialog,
       displayStock,
     }
