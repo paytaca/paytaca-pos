@@ -34,7 +34,7 @@
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
         <div>{{ receiveAmount }} {{ currency }}</div>
-        <div v-if="currency !== 'BCH'" class="text-caption text-grey">
+        <div v-if="currency !== 'BCH' && !isNaN(bchValue)" class="text-caption text-grey">
           {{ bchValue }} BCH
         </div>
       </div>
@@ -223,7 +223,7 @@ export default defineComponent({
     const currencyBchRate = computed(() => {
       if (!currency.value) return
       if (currency.value === 'BCH') return { currency: 'BCH', rate: 1, timestamp: Date.now() }
-      return marketStore.bchRates.find(rate => rate.currency === currency.value)
+      return marketStore.getRate(currency.value)
     })
     const currencyBchRateUpdateInterval = ref(null)
     // 0.02ms - 0.026ms
@@ -242,7 +242,7 @@ export default defineComponent({
 
     const bchValue = computed(() => {
       if (!currency.value || currency.value === 'BCH') return receiveAmount.value
-      const rateValue = currencyBchRate.value?.rate || 1
+      const rateValue = currencyBchRate.value?.rate
       return Number((receiveAmount.value / rateValue).toFixed(8))
     })
     // 0.015ms - 0.031ms
@@ -285,7 +285,8 @@ export default defineComponent({
 
       paymentUri += `?POS=${paymentUriLabel.value}`
 
-      if (bchValue.value) paymentUri += `&amount=${bchValue.value}`
+      if (!bchValue.value) return ''
+      paymentUri += `&amount=${bchValue.value}`
 
       paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
       return paymentUri
