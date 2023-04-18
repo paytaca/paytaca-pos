@@ -18,6 +18,19 @@ const routes = [
       { path: 'settings', component: () => import('pages/Settings.vue'), name: 'settings'}
     ]
   },
+  {
+    path: '/marketplace',
+    component: () => import('layouts/MarketplaceLayout.vue'),
+    children: [
+      {
+        path: '',
+        meta: { requireAuth: true },
+        children: [
+          { path: '', component: () => import('src/pages/marketplace/index.vue'), name: 'marketplace', props: route => route?.query},
+        ]
+      },
+    ]
+  },
 
   // Always leave this as last one,
   // but you can also remove it

@@ -30,3 +30,15 @@ body.body--light {
 .bg-brandgradient {
   background-image: $brandgradient;
 }
+
+.text-underline {
+  text-decoration: underline;
+}
+
+.text-caption.bottom {
+  margin-top: -0.5em;
+}
+
+.text-caption.top {
+  margin-bottom: -0.5em;
+}
