@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { backend } from 'src/marketplace/backend'
-import { Shop, ROLES } from 'src/marketplace/objects';
+import { Shop, ROLES, User } from 'src/marketplace/objects';
 import { useWalletStore } from './wallet';
 
 
@@ -33,6 +33,14 @@ export const useMarketplaceStore = defineStore('marketplace', {
         name: '',
         location: { id: 0, address1: '', address2: '', street: '', city: '', state: '', country: '', longitude: '', latitude: '' },
       },
+      shopSettingsData: {
+        id: 0,
+        defaultPurchaseOrderReviewer: {
+          id: 0, first_name: '', last_name: '',
+        },
+        startingPurchaseOrderNumber: 0,
+        startingSalesOrderNumber: 0,
+      }
     }
   },
 
@@ -43,7 +51,10 @@ export const useMarketplaceStore = defineStore('marketplace', {
     shop() {
       return Shop.parse(this.shopData)
     },
-    userAccessControl() {
+    shopSettings() {
+      const data = Object.assign({}, this.shopSettingsData)
+      data.defaultPurchaseOrderReviewer = User.parse(data.defaultPurchaseOrderReviewer)
+      return data
     },
     shopUserRole() {
       return this.user.shopRoles?.find?.(shopRole => shopRole?.shopId === this.activeShopId)
@@ -71,6 +82,33 @@ export const useMarketplaceStore = defineStore('marketplace', {
       this.setMerchant(null)
       this.setShopData(null)
       this.activeShopId = null
+    },
+    refetchShopSettings() {
+      backend.get(`shops/${this.shop.id}/settings/`)
+        .then(response => {
+          if (!response?.data?.id) return Promise.reject({ response })
+          this.setShopSettingsData(response?.data)
+          return response
+        })
+    },
+    /**
+     * @param {Object} data 
+     * @param {Number} data.id
+     * @param {{id:Number, first_name:String, last_name:String}} [data.default_purchase_order_reviewer] 
+     * @param {Number} data.starting_purchase_order_number
+     * @param {Number} data.starting_sales_order_number
+     */
+    setShopSettingsData(data) {
+      this.shopSettingsData = {
+        id: data?.id,
+        defaultPurchaseOrderReviewer: {
+          id: data?.default_purchase_order_reviewer?.id,
+          first_name: data?.default_purchase_order_reviewer?.first_name,
+          last_name: data?.default_purchase_order_reviewer?.last_name,
+        },
+        startingPurchaseOrderNumber: data?.starting_purchase_order_number,
+        startingSalesOrderNumber: data?.starting_sales_order_number,
+      }
     },
     /**
      * 

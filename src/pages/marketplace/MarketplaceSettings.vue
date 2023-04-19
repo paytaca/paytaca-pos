@@ -51,6 +51,49 @@
         </q-item>
       </q-list>
     </q-card>
+
+    <q-card class="q-pt-sm q-mt-lg text-weight-medium" style="border-radius:16px;">
+      <q-card-section>
+        Settings
+      </q-card-section>
+      <q-list>
+        <q-item>
+          <q-item-section class="text-grey" top>
+            <q-item-label>Default Reviewer</q-item-label>
+          </q-item-section>
+          <q-item-section top>
+            <q-item-label>
+              <template v-if="marketplaceStore?.shopSettings?.defaultPurchaseOrderReviewer?.id">
+                {{ marketplaceStore?.shopSettings?.defaultPurchaseOrderReviewer?.fullName }}
+              </template>
+              <span v-else class="text-grey">
+                Unset
+              </span>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item>
+          <q-item-section class="text-grey" top>
+            <q-item-label>Last Purchase Order Number</q-item-label>
+          </q-item-section>
+          <q-item-section top>
+            <q-item-label>
+              {{ marketplaceStore?.shopSettings?.startingPurchaseOrderNumber }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item>
+          <q-item-section class="text-grey" top>
+            <q-item-label>Last Sales Order Number</q-item-label>
+          </q-item-section>
+          <q-item-section top>
+            <q-item-label>
+              {{ marketplaceStore?.shopSettings?.startingSalesOrderNumber }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </q-card>
   </q-page>
 </template>
 <script>
@@ -68,6 +111,7 @@ export default defineComponent({
 
     onMounted(() => {
       marketplaceStore.updateActiveShopId({ silent: true, forceSync: true, forceSyncAge: 5 * 60 * 1000 })
+      marketplaceStore.refetchShopSettings()
     })
 
     return {
