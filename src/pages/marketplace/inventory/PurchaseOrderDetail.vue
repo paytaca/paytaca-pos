@@ -40,7 +40,8 @@
         <q-card-section>
           <div class="text-h6">Supplier</div>
           <div class="text-subtitle1">{{ purchaseOrder.vendor.name }}</div>
-          <div v-if="purchaseOrder.vendor?.location?.formatted" class="text-caption bottom">
+          <div class="text-body2">{{ purchaseOrder.vendor.phoneNumber }}</div>
+          <div v-if="purchaseOrder.vendor?.location?.formatted" class="text-caption">
             {{ purchaseOrder.vendor?.location?.formatted }}
           </div>
         </q-card-section>
@@ -169,6 +170,31 @@
             </q-form>
             <q-separator/>
           </div>
+          <q-slide-transition>
+            <div v-if="selectedItemIds?.length" class="row items-center q-mb-sm q-gutter-sm">
+              <div class="q-space">
+                {{ selectedItemIds?.length }}
+                <template v-if="selectedItemIds?.length === 1">item</template>
+                <template v-else>items</template>
+              </div>
+              <q-btn
+                rounded
+                :outline="$q.dark.isActive"
+                no-caps
+                label="Mark received"
+                padding="2px md"
+                @click="markSelectedItemsAsReceived"
+              />
+              <q-btn
+                rounded
+                :outline="$q.dark.isActive"
+                no-caps
+                label="Remove"
+                padding="2px md"
+                @click="removeSelectedItems"
+              />
+            </div>
+          </q-slide-transition>
           <q-tabs v-model="itemsViewMode" dense>
             <q-tab name="default" icon="info"/>
             <q-tab name="delivery_status" icon="local_shipping" @click="() => showReceiveItemsDialog = !allItemsReceived"/>
@@ -177,6 +203,9 @@
             v-for="item in purchaseOrder.items" :key="item?.id"
             class="row items-center no-wrap q-gutter-x-sm q-my-sm"
           >
+            <div>
+              <q-checkbox v-model="selectedItemIds" :val="item.id"/>
+            </div>
             <div class="q-space row items-center no-wrap text-weight-medium" @click="() => viewVariant(item?.variant)">
               <img
                 v-if="item?.variant?.imageUrl || item?.variant?.product?.imageUrl"
@@ -494,6 +523,70 @@ export default defineComponent({
         })
     }
 
+    const selectedItemIds = ref([].map(Number))
+    const selectedItems = computed(() => {
+      return purchaseOrder.value.items.filter(item => selectedItemIds.value.indexOf(item.id) >= 0)
+    })
+    function removeSelectedItems() {
+      const data = {
+        // used selected items to ensure they exist in purchase order items
+        item_ids: selectedItems.value.map(item => item?.id),
+      }
+      const dialog = $q.dialog({
+        title: 'Removing items',
+        progress: true,
+        persistent: true,
+        ok: false,
+      })
+
+      purchaseOrder.value.$state.loading = true
+      return backend.post(`purchase-orders/${purchaseOrder.value.id}/remove_items/`, data)
+        .then(response => {
+          purchaseOrder.value.raw = response?.data
+          dialog.hide()
+          selectedItemIds.value = []
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          let errorMsg = data?.detail || errorParser.firstElementOrValue(data?.non_field_errors)
+          dialog.update({ title: 'Unable to remove items', message: errorMsg })
+        })
+        .finally(() => {
+          purchaseOrder.value.$state.loading = false
+          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+        })
+    }
+
+    function markSelectedItemsAsReceived() {
+      const data = {
+        // used selected items to ensure they exist in purchase order items
+        item_ids: selectedItems.value.map(item => item?.id),
+      }
+      const dialog = $q.dialog({
+        title: 'Marking items as delivered',
+        progress: true,
+        persistent: true,
+        ok: false,
+      })
+
+      purchaseOrder.value.$state.loading = true
+      return backend.post(`purchase-orders/${purchaseOrder.value.id}/receive/`, data)
+        .then(response => {
+          purchaseOrder.value.raw = response?.data
+          dialog.hide()
+          selectedItemIds.value = []
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          let errorMsg = data?.detail || errorParser.firstElementOrValue(data?.non_field_errors)
+          dialog.update({ title: 'Unable to update items', message: errorMsg })
+        })
+        .finally(() => {
+          purchaseOrder.value.$state.loading = false
+          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+        })
+    }
+
     const addItemsForm = ref({
       loading: false,
       showAddItemFormDialog: false,
@@ -586,6 +679,11 @@ export default defineComponent({
       assignReviewerFormDialog,
       filterAssignReviewerOpts,
       assignReviewer,
+
+      selectedItemIds,
+      selectedItems,
+      removeSelectedItems,
+      markSelectedItemsAsReceived,
 
       addItemsForm,
       addItem,
