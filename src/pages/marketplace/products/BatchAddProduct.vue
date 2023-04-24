@@ -11,7 +11,7 @@
     </MarketplaceHeader>
     <div class="row items-center q-mb-md">
       <q-space/>
-      <q-btn flat no-caps label="Upload Excel / CSV" @click="updloadSpreadsheet"/>
+      <q-btn flat no-caps label="Open from Excel / CSV / ZIP" @click="updloadSpreadsheet"/>
     </div>
     <q-form @submit="() => addProducts()">
       <q-banner v-if="formErrors?.detail?.length" class="bg-red text-white rounded-borders q-mb-sm">
@@ -114,6 +114,35 @@
         </q-btn>
       </div>
     </q-form>
+    <q-dialog v-model="openAddProductsOptsDialog" full-width>
+      <q-card>
+        <q-card-section>
+          <div class="text-h5 text-center q-mb-md">Add Products</div>
+          <q-btn-group spread>
+            <q-btn
+              no-caps
+              v-close-popup
+              @click="updloadSpreadsheet"
+            >
+              <div>
+                <div><q-icon name="upload_file" size="3em"/></div>
+                <div>Upload a file</div>
+              </div>
+            </q-btn>
+            <q-btn
+              no-caps
+              v-close-popup
+              @click="() => addRow({skipForm: false})"
+            >
+              <div>
+                <div><q-icon name="edit_note" size="3em"/></div>
+                <div>Input form</div>
+              </div>
+            </q-btn>
+          </q-btn-group>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 <script>
@@ -122,7 +151,7 @@ import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
-import { defineComponent, onMounted, ref } from 'vue'
+import { defineComponent, ref } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import ProductFormDialog from 'src/components/marketplace/inventory/ProductFormDialog.vue'
 
@@ -137,6 +166,8 @@ export default defineComponent({
     const $q = useQuasar()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
+    const openAddProductsOptsDialog = ref(true)
+
     let rowGenCounter = 0
     function createEmptyRow() {
       return {
@@ -160,7 +191,6 @@ export default defineComponent({
     const formData = ref({
       products: [].map(createEmptyRow),
     })
-    onMounted(() => addRow())
     function addRow(opts={ skipForm: false }) {
       const productData = createEmptyRow()
       if(opts?.skipForm) return formData.value.products.push(productData)
@@ -199,10 +229,16 @@ export default defineComponent({
     }
 
     function updloadSpreadsheet() {
+      let note = ''
+      if (formData.value.products.length) note += 'NOTE: Loading a file will overwrite current info in the form'
       $q.dialog({
+        title: 'Load products data',
+        message: note,
+        html: true,
         prompt: {
           type: 'file',
           color: 'brandblue',
+          hint: 'Upload excel / csv / zip file',
         },
         ok: {
           flat: true,
@@ -359,6 +395,7 @@ export default defineComponent({
 
     return {
       marketplaceStore,
+      openAddProductsOptsDialog,
 
       loading,
       formData,
