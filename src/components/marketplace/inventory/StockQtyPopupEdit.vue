@@ -69,6 +69,7 @@ export default defineComponent({
       if (payload.adjustment_type === 'set' && payload.quantity === this.inventory?.quantity) return
 
       try {
+        this.stock.$state.updatingFields.add('quantity')
         const response = await backend.post('stocks/adjustments/', payload)
         this.reset()
         this.$emit('updated', Stock.parse(response?.data))
@@ -85,6 +86,7 @@ export default defineComponent({
           type: 'negative',
         })
       } finally {
+        this.stock.$state.updatingFields.delete('quantity')
         this.loading = false
       }
     },

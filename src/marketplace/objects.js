@@ -134,6 +134,7 @@ export class Stock {
 
     this.$state = {
       updating: false,
+      updatingFields: new Set(),
       fetchingAdjustments: false,
       fetchingProduct: false,
       fetchingPurchaseOrder: false,

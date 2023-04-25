@@ -190,6 +190,7 @@
           <q-td :props="props">
             <span class="text-underline">
               {{ props.row.quantity }}
+              <q-spinner v-if="props.row.$state.updatingFields?.has('quantity')" class="q-ml-xs"/>
               <StockQtyPopupEdit :stock="props.row" @updated="updateStockData"/>
             </span>
           </q-td>
@@ -203,6 +204,7 @@
               <span v-else class="text-grey text-underline">
                 Set price
               </span>
+              <q-spinner v-if="props.row.$state.updatingFields?.has('cost_price')" class="q-ml-xs"/>
               <q-popup-edit
                 :model-value="props.row.costPrice"
                 :cover="false"
@@ -232,6 +234,7 @@
               <span v-else class="text-grey text-underline">
                 Set expiry
               </span>
+              <q-spinner v-if="props.row.$state.updatingFields?.has('expires_at')" class="q-ml-xs"/>
               <q-popup-edit
                 :model-value="props.row.expiresAt?.toISOString()"
                 :cover="false"
@@ -488,9 +491,15 @@ export default defineComponent({
     }
 
     function updateStock(stock=Stock.parse(), field='', value) {
+      stock.$state.updating = true
+      stock.$state.updatingFields.add(field)
       backend.patch(`stocks/${stock.id}/`, { [field]: value })
         .then(response => {
           if (response?.data.id) stock.raw = response.data
+        })
+        .finally(() => {
+          stock.$state.updatingFields.delete(field)
+          stock.$state.updating = false
         })
     }
 
