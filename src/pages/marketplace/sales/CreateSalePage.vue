@@ -344,6 +344,7 @@ export default defineComponent({
       $q.dialog({
         component: StockSearchDialog,
         componentProps: {
+          context: 'sales',
           selected: selected,
           ok: true,
           searchFilterKwargs: {

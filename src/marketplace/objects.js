@@ -158,6 +158,7 @@ export class Stock {
    * @param {String} data.variant.product.name
    * @param {Number} data.quantity
    * @param {Number} [data.cost_price]
+   * @param {String} [data.expires_at]
    * @param {{id: Number: name: String }} data.shop
    * @param {Object} data.metadata
    * @param {Number} [data.purchase_order_id]
@@ -172,6 +173,8 @@ export class Stock {
     this.quantity = data?.quantity
     this.costPrice = data?.cost_price
     this.shop = data?.shop
+    if (data?.expires_at) this.expiresAt = new Date(data?.expires_at)
+    else if(this.expiresAt) this.expiresAt = undefined
     this.metadata = data?.metadata
     this.purchaseOrderId = data?.purchase_order_id
     this.purchaseOrderNumber = data?.purchase_order_number
@@ -316,6 +319,7 @@ export class Variant {
    * @param {String} data.name
    * @param {Number} data.price
    * @param {Number} data.total_stocks
+   * @param {Number} data.expired_stocks
    * @param {{ id:Number, name:String, image_url:String }} [data.product]
    */
   set raw(data) {
@@ -328,6 +332,7 @@ export class Variant {
     this.name = data?.name
     this.price = data?.price
     this.totalStocks = data?.total_stocks
+    this.expiredStocks = data?.expired_stocks
 
     if (data?.product?.id) this.product = Product.parse(data?.product)
   }
@@ -386,6 +391,7 @@ export class Product {
    * @param {String} data.name
    * @param {String} [data.description]
    * @param {Number} data.total_stocks
+   * @param {Number} data.expired_stocks
    * @param {Number} data.variants_count
    * @param {String} [data.created_at]
    * @param {Number[]} data.shop_ids
@@ -401,6 +407,7 @@ export class Product {
     this.name = data?.name
     this.description = data?.description
     this.totalStocks = data?.total_stocks
+    this.expiredStocks = data?.expired_stocks
     this.variantsCount = data?.variants_count
     this.shopIds = data?.shop_ids
     if(data?.created_at) this.createdAt = new Date(data?.created_at)

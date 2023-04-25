@@ -223,6 +223,33 @@
             </span>
           </q-td>
         </template>
+        <template v-slot:body-cell-expires-at="props">
+          <q-td :props="props">
+            <span>
+              <span v-if="props.row.expiresAt" class="text-underline">
+                {{ formatDateRelative(props.row.expiresAt) }}
+              </span>
+              <span v-else class="text-grey text-underline">
+                Set expiry
+              </span>
+              <q-popup-edit
+                :model-value="props.row.expiresAt?.toISOString()"
+                :cover="false"
+                self="top middle"
+                @update:model-value="val => updateStock(props.row, 'expires_at', val ? new Date(val).toISOString() : null)"
+                v-slot="scope"
+                class="q-pa-none"
+              >
+                <q-date v-model="scope.value" flat mask="YYYY-MM-DD">
+                  <div class="row items-center justify-end">
+                    <q-btn v-close-popup no-caps label="Close" flat/>
+                    <q-btn v-close-popup no-caps label="Set" color="brandblue" @click="() => scope.set()"/>
+                  </div>
+                </q-date>
+              </q-popup-edit>
+            </span>
+          </q-td>
+        </template>
         <template v-slot:body-cell-updated-at="props">
           <q-td :props="props">
             {{ formatDateRelative(props.row.updatedAt) }}
@@ -414,6 +441,7 @@ export default defineComponent({
       { name: 'purchase-order', align: 'center', label: 'Purchase Order', field: 'purchaseOrderNumber' },
       { name: 'quantity', align: 'center', label: 'Qty', field: 'quantity' },
       { name: 'cost-price', align: 'center', label: 'Cost Price', field: obj => obj.costPrice && `${obj.costPrice} ${marketplaceStore?.currency}` },
+      { name: 'expires-at', align: 'center', label: 'Expires', field: obj => obj.expiresAt, format: val => val ? formatDateRelative(val) : '' },
       // { name: 'created-at', align: 'center', label: 'Created' },
       { name: 'updated-at', align: 'center', label: 'Updated' },
       { name: 'actions', align: 'center', label: '' },

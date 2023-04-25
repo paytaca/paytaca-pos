@@ -3,7 +3,7 @@
     <q-card style="width: max(90vw, 500px)">
       <q-card-section>
         <div class="text-h5">{{ stock?.itemName || `Stock#${stock?.id}` }}</div>
-        <div class="text-caption text-grey" style="margin-top:-0.5em;">stock#{{ stock?.id }}</div>
+        <div class="text-caption bottom text-grey">stock#{{ stock?.id }}</div>
       </q-card-section>
       <q-card-section v-if="stock?.$state?.updating" class="row items-center justify-center">
         <q-spinner size="2.5em"/>
@@ -15,23 +15,30 @@
             :class="{ 'text-weight-medium': stock.purchaseOrderId }"
             @click="() => showStockPurchaseOrder()"
           >
-            <q-item-label class="text-caption" style="margin-bottom:-0.5em;">Purchase Order</q-item-label>
+            <q-item-label class="text-caption top">Purchase Order</q-item-label>
             <q-item-label>
               {{ stock.purchaseOrderNumber }}
             </q-item-label>
           </div>
 
           <div>
-            <q-item-label class="text-caption" style="margin-bottom:-0.5em;">Quantity</q-item-label>
+            <q-item-label class="text-caption top">Quantity</q-item-label>
             <q-item-label>{{ stock.quantity || 0 }}</q-item-label>
           </div>
           <div v-if="stock.costPrice">
-            <q-item-label class="text-caption" style="margin-bottom:-0.5em;">Cost Price</q-item-label>
+            <q-item-label class="text-caption top">Cost Price</q-item-label>
             <q-item-label>{{ stock.costPrice }} {{ marketplaceStore?.currency }}</q-item-label>
           </div>
           <div v-if="stock.shop?.name">
-            <q-item-label class="text-caption" style="margin-bottom:-0.5em;">Shop</q-item-label>
+            <q-item-label class="text-caption top">Shop</q-item-label>
             <q-item-label>{{ stock.shop?.name }}</q-item-label>
+          </div>
+          <div v-if="stock.expiresAt">
+            <q-item-label class="text-caption top">Expires</q-item-label>
+            <q-item-label>{{ formatDateRelative(stock.expiresAt) }}</q-item-label>
+            <q-menu class="q-pa-sm">
+              {{ formatTimestampToText(stock.expiresAt) }}
+            </q-menu>
           </div>
         </div>
 

@@ -29,13 +29,20 @@
                 @click="() => toggleStock(stock)"
               />
             </q-item-section>
-            <q-item-section>
+            <q-item-section top>
               <q-item-label>{{ stock?.itemName }}</q-item-label>
               <q-item-label class="text-caption">#{{ stock?.id }}</q-item-label>
             </q-item-section>
             <q-item-section>
               <q-item-label>Qty: {{ stock?.quantity }}</q-item-label>
               <q-item-label>Cost Price: {{ stock?.costPrice }} {{ marketplaceStore?.currency }}</q-item-label>
+              <q-item-label v-if="context === 'sales' && stock?.expiresAt">
+                <template v-if="stock?.expiresAt?.getTime() <= Date.now()">
+                  Expired:
+                </template>
+                <template v-else>Expires:</template>
+                {{ formatDateRelative(stock.expiresAt) }}
+              </q-item-label>
             </q-item-section>
           </q-item>
         </template>
@@ -82,10 +89,11 @@
 </template>
 <script>
 import { Stock } from 'src/marketplace/objects'
+import { backend } from 'src/marketplace/backend'
+import { formatDateRelative } from 'src/marketplace/utils'
+import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useDialogPluginComponent } from 'quasar'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
-import { useMarketplaceStore } from 'src/stores/marketplace'
-import { backend } from 'src/marketplace/backend'
 
 export default defineComponent({
   name: 'StockSearchDialog',
@@ -98,6 +106,7 @@ export default defineComponent({
     ...useDialogPluginComponent.emits,
   ],
   props: {
+    context: String, // where the component is used (e.g. sales, batch-update, stock-recount)
     modelValue: Boolean,
     selected: [Array, Stock],
     searchFilterKwargs: Object,
@@ -197,6 +206,9 @@ export default defineComponent({
       removeStockFromList,
 
       submit,
+
+      // utils funcs
+      formatDateRelative,
     }
   },
 })
