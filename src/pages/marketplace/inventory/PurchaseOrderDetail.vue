@@ -175,7 +175,6 @@
             <div class="q-space">
               <q-checkbox
                 v-if="editable"
-                dense
                 :model-value="selectedItemIds.length === purchaseOrder?.items?.length"
                 @update:model-value="val => {
                   selectedItemIds = val ? purchaseOrder?.items?.map(item => item?.id) : []
@@ -197,7 +196,7 @@
                 no-caps
                 label="Remove"
                 padding="2px md"
-                @click="removeSelectedItems"
+                @click="confirmRemoveSelectedItems"
               />
             </q-btn-group>
           </div>
@@ -215,6 +214,7 @@
               dense
               v-model="selectedItemIds"
               :val="item.id"
+              class="q-pa-xs"
             />
             <div class="q-space row items-center no-wrap text-weight-medium" @click="() => viewVariant(item?.variant)">
               <img
@@ -249,11 +249,14 @@
                 Stock #{{ item?.stockId }}
               </div>
               <div v-else-if="item?.deliveredAt">
-                <span v-if="!item?.expiresAt" class="text-grey">
+                <span v-if="!item?.expiresAt" class="text-grey text-underline">
                   Set expiration date
                 </span>
                 <div v-else>
-                  <div>{{ item?.expiresAt.toLocaleDateString() }}</div>
+                  <div>
+                    {{ item?.expiresAt.toLocaleDateString() }}
+                    <q-icon name="edit" size="1.1em"/>
+                  </div>
                   <div class="text-caption bottom">Expiration date</div>
                 </div>
                 <q-popup-edit
@@ -573,6 +576,15 @@ export default defineComponent({
       return purchaseOrder.value.items.filter(item => selectedItemIds.value.indexOf(item.id) >= 0)
     })
 
+    function confirmRemoveSelectedItems() {
+      $q.dialog({
+        title: 'Remove items',
+        message: `Remove ${selectedItems.value.length} ${selectedItems.value.length === 1 ? 'item' : 'items'}. Are you sure?`,
+        ok: { color: 'red', flat: true, noCaps: true, label: 'Remove' },
+        cancel: { flat: true, color: 'grey', noCaps: true }
+      }).onOk(() => removeSelectedItems())
+    }
+
     function removeSelectedItems() {
       const data = {
         // used selected items to ensure they exist in purchase order items
@@ -605,7 +617,7 @@ export default defineComponent({
         })
         .finally(() => {
           purchaseOrder.value.$state.loading = false
-          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue', flat: true }})
         })
     }
 
@@ -633,44 +645,6 @@ export default defineComponent({
         })
         .finally(() => {
           purchaseOrder.value.$state.loading = false
-        })
-    }
-
-    function markSelectedItemsAsReceived() {
-      const now = new Date()
-      const data = {
-        // used selected items to ensure they exist in purchase order items
-        update_items: selectedItems.value
-          .filter(item => !item.deliveredAt)
-          .map(item => {
-            return {
-              purchase_order_item_id: item.id,
-              delivered_at: now,
-            }
-          }),
-      }
-      const dialog = $q.dialog({
-        title: 'Marking items as delivered',
-        progress: true,
-        persistent: true,
-        ok: false,
-      })
-
-      purchaseOrder.value.$state.loading = true
-      return backend.patch(`purchase-orders/${purchaseOrder.value.id}/items/`, data)
-        .then(response => {
-          purchaseOrder.value.raw = response?.data
-          dialog.hide()
-          selectedItemIds.value = []
-        })
-        .catch(error => {
-          const data = error?.response?.data
-          let errorMsg = data?.detail || errorParser.firstElementOrValue(data?.non_field_errors)
-          dialog.update({ title: 'Unable to update items', message: errorMsg })
-        })
-        .finally(() => {
-          purchaseOrder.value.$state.loading = false
-          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
         })
     }
 
@@ -772,9 +746,8 @@ export default defineComponent({
 
       selectedItemIds,
       selectedItems,
-      removeSelectedItems,
+      confirmRemoveSelectedItems,
       updateItemExpirationDate,
-      markSelectedItemsAsReceived,
 
       addItemsForm,
       addItem,
