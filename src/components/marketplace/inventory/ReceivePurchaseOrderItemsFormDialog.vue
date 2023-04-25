@@ -58,7 +58,7 @@
 import { useDialogPluginComponent } from 'quasar'
 import { backend } from 'src/marketplace/backend'
 import { PurchaseOrder, PurchaseOrderItem } from 'src/marketplace/objects'
-import { defineComponent, ref, watch } from 'vue'
+import { computed, defineComponent, ref, watch } from 'vue'
 
 export default defineComponent({
   name: 'ReceivePurchaseOrderItemsFormDialog',
@@ -87,13 +87,22 @@ export default defineComponent({
       if (index >= 0) selected.value.splice(index, 1)
       else selected.value.push(itemId)
     }
+    const selectedItems = computed(() => {
+      return props.purchaseOrder.items.filter(item => selected.value.indexOf(item.id) >= 0)
+    })
 
     function markItemsReceived() {
+      const now = new Date()
       const data = {
-        item_ids: selected.value,
+        update_items: selectedItems.value.filter(item => !item.deliveredAt).map(item => {
+          return {
+            purchase_order_item_id: item.id,
+            delivered_at: now,
+          }
+        })
       }
       loading.value = true
-      backend.post(`purchase-orders/${props.purchaseOrder.id}/receive/`, data)
+      backend.patch(`purchase-orders/${props.purchaseOrder.id}/items/`, data)
         .then(response => {
           props.purchaseOrder.refetch()
           onDialogOK(response?.data)

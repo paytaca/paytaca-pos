@@ -171,7 +171,7 @@
             <q-separator/>
           </div>
           <q-slide-transition>
-            <div v-if="selectedItemIds?.length" class="row items-center q-mb-sm q-gutter-sm">
+            <div v-if="selectedItemIds?.length" class="row items-center q-my-sm q-gutter-sm">
               <div class="q-space">
                 {{ selectedItemIds?.length }}
                 <template v-if="selectedItemIds?.length === 1">item</template>
@@ -530,8 +530,14 @@ export default defineComponent({
     function removeSelectedItems() {
       const data = {
         // used selected items to ensure they exist in purchase order items
-        item_ids: selectedItems.value.map(item => item?.id),
+        update_items: selectedItems.value.map(item => {
+          return {
+            purchase_order_item_id: item?.id,
+            remove: true,
+          }
+        }),
       }
+
       const dialog = $q.dialog({
         title: 'Removing items',
         progress: true,
@@ -540,7 +546,7 @@ export default defineComponent({
       })
 
       purchaseOrder.value.$state.loading = true
-      return backend.post(`purchase-orders/${purchaseOrder.value.id}/remove_items/`, data)
+      return backend.patch(`purchase-orders/${purchaseOrder.value.id}/items/`, data)
         .then(response => {
           purchaseOrder.value.raw = response?.data
           dialog.hide()
@@ -558,9 +564,17 @@ export default defineComponent({
     }
 
     function markSelectedItemsAsReceived() {
+      const now = new Date()
       const data = {
         // used selected items to ensure they exist in purchase order items
-        item_ids: selectedItems.value.map(item => item?.id),
+        update_items: selectedItems.value
+          .filter(item => !item.deliveredAt)
+          .map(item => {
+            return {
+              purchase_order_item_id: item.id,
+              delivered_at: now,
+            }
+          }),
       }
       const dialog = $q.dialog({
         title: 'Marking items as delivered',
@@ -570,7 +584,7 @@ export default defineComponent({
       })
 
       purchaseOrder.value.$state.loading = true
-      return backend.post(`purchase-orders/${purchaseOrder.value.id}/receive/`, data)
+      return backend.patch(`purchase-orders/${purchaseOrder.value.id}/items/`, data)
         .then(response => {
           purchaseOrder.value.raw = response?.data
           dialog.hide()
@@ -622,17 +636,19 @@ export default defineComponent({
     }
 
     function submitAddItems() {
-      const dataList = addItemsForm.value.items.map(item => {
-        const data = {
-          variant_id: item?.variant?.id,
-          quantity: item?.quantity,
-          cost_price: item?.costPrice,
-        }
-        return data
-      })
+      const data = {
+        add_items: addItemsForm.value.items.map(item => {
+          const data = {
+            variant_id: item?.variant?.id,
+            quantity: item?.quantity,
+            cost_price: item?.costPrice,
+          }
+          return data
+        })
+      }
 
       addItemsForm.value.loading = true
-      backend.post(`purchase-orders/${purchaseOrder.value.id}/add_items/`, dataList)
+      backend.patch(`purchase-orders/${purchaseOrder.value.id}/items/`, data)
         .then(response => {
           purchaseOrder.value.raw = response?.data
           addItemsForm.value.items = []

@@ -777,6 +777,7 @@ export class PurchaseOrderItem {
     this.quantity = data?.quantity
     this.costPrice = data?.cost_price
     if (data?.delivered_at) this.deliveredAt = new Date(data.delivered_at)
+    else if (this.deliveredAt) this.deliveredAt = undefined
     if (data?.stock_id) this.stockId = data.stock_id
   }
 
