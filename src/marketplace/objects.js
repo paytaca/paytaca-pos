@@ -768,6 +768,7 @@ export class PurchaseOrderItem {
    * @param {Number} data.quantity
    * @param {Number} data.cost_price
    * @param {String} [data.delivered_at]
+   * @param {String} [data.expires_at]
    * @param {Number} [data.stock_id]
    */
   set raw(data) {
@@ -778,6 +779,10 @@ export class PurchaseOrderItem {
     this.costPrice = data?.cost_price
     if (data?.delivered_at) this.deliveredAt = new Date(data.delivered_at)
     else if (this.deliveredAt) this.deliveredAt = undefined
+
+    if (data?.expires_at) this.expiresAt = new Date(data.expires_at)
+    else if (this.expiresAt) this.expiresAt = undefined
+    
     if (data?.stock_id) this.stockId = data.stock_id
   }
 

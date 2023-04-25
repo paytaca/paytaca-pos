@@ -1,5 +1,13 @@
 <template>
-  <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom" :persistent="loading">
+  <q-dialog
+    ref="dialogRef" 
+    full-width
+    position="bottom" 
+    :persistent="loading"
+    v-model="innerVal"
+    @hide="onDialogHide"
+    @before-show="() => syncInitialSelected()"
+  >
     <q-card>
       <q-card-section>
         <div class="text-h6">Receive Items</div>
@@ -58,7 +66,7 @@
 import { useDialogPluginComponent } from 'quasar'
 import { backend } from 'src/marketplace/backend'
 import { PurchaseOrder, PurchaseOrderItem } from 'src/marketplace/objects'
-import { computed, defineComponent, ref, watch } from 'vue'
+import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 
 export default defineComponent({
   name: 'ReceivePurchaseOrderItemsFormDialog',
@@ -71,6 +79,7 @@ export default defineComponent({
   props: {
     modelValue: Boolean,
     purchaseOrder: PurchaseOrder,
+    initialSelectedIds: Array,
   },
   setup(props, { emit: $emit }) {
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
@@ -81,6 +90,9 @@ export default defineComponent({
 
     const loading = ref(false)
     const selected = ref([])
+    function syncInitialSelected() {
+      selected.value = props.initialSelectedIds
+    }
     function toggleSelected(item=PurchaseOrderItem.parse()) {
       const itemId = item?.id
       const index = selected.value.indexOf(itemId)
@@ -118,6 +130,7 @@ export default defineComponent({
 
       loading,
       selected,
+      syncInitialSelected,
       toggleSelected,
       markItemsReceived,
     }

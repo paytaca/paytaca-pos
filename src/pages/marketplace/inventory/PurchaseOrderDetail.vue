@@ -83,8 +83,9 @@
         <q-card-section>
           <div class="row items-center">
             <div class="text-h6 q-space">Items</div>
+            <q-btn @click="() => $q.dark.toggle()"/>
             <q-btn
-              v-if="!purchaseOrder?.reviewedAt && purchaseOrder?.status !== 'complete'"
+              v-if="editable"
               icon="add"
               padding="xs"
               color="brandblue"
@@ -170,42 +171,51 @@
             </q-form>
             <q-separator/>
           </div>
-          <q-slide-transition>
-            <div v-if="selectedItemIds?.length" class="row items-center q-my-sm q-gutter-sm">
-              <div class="q-space">
-                {{ selectedItemIds?.length }}
-                <template v-if="selectedItemIds?.length === 1">item</template>
-                <template v-else>items</template>
-              </div>
+          <div class="row items-center q-my-sm q-gutter-sm">
+            <div class="q-space">
+              <q-checkbox
+                v-if="editable"
+                dense
+                :model-value="selectedItemIds.length === purchaseOrder?.items?.length"
+                @update:model-value="val => {
+                  selectedItemIds = val ? purchaseOrder?.items?.map(item => item?.id) : []
+                }"
+              />
+            </div>
+            <q-btn-group flat>
               <q-btn
-                rounded
                 :outline="$q.dark.isActive"
+                :disable="!selectedItemIds.length"
                 no-caps
                 label="Mark received"
                 padding="2px md"
-                @click="markSelectedItemsAsReceived"
+                @click="() => showReceiveItemsDialog = true"
               />
               <q-btn
-                rounded
                 :outline="$q.dark.isActive"
+                :disable="!selectedItemIds.length"
                 no-caps
                 label="Remove"
                 padding="2px md"
                 @click="removeSelectedItems"
               />
-            </div>
-          </q-slide-transition>
+            </q-btn-group>
+          </div>
           <q-tabs v-model="itemsViewMode" dense>
             <q-tab name="default" icon="info"/>
-            <q-tab name="delivery_status" icon="local_shipping" @click="() => showReceiveItemsDialog = !allItemsReceived"/>
+            <q-tab name="delivery_status" icon="local_shipping"/>
+            <q-tab name="inventory" icon="inventory"/>
           </q-tabs>
           <div
             v-for="item in purchaseOrder.items" :key="item?.id"
-            class="row items-center no-wrap q-gutter-x-sm q-my-sm"
+            class="row items-center no-wrap q-gutter-x-sm q-my-md"
           >
-            <div>
-              <q-checkbox v-model="selectedItemIds" :val="item.id"/>
-            </div>
+            <q-checkbox
+              v-if="editable"
+              dense
+              v-model="selectedItemIds"
+              :val="item.id"
+            />
             <div class="q-space row items-center no-wrap text-weight-medium" @click="() => viewVariant(item?.variant)">
               <img
                 v-if="item?.variant?.imageUrl || item?.variant?.product?.imageUrl"
@@ -228,14 +238,44 @@
                 <div v-else class="text-grey" @click="() => showReceiveItemsDialog = !allItemsReceived">
                   Undelivered
                 </div>
-                <template v-if="item?.stockId">
-                  <q-separator/>
-                  <div @click="() => displayItemStock(item)" class="text-weight-medium text-underline">
-                    View stock #{{ item?.stockId }}
-                  </div>
-                </template>
               </div>
             </template>
+            <div v-else-if="itemsViewMode === 'inventory'" class="col-5 text-right" >
+              <div
+                v-if="item?.stockId"
+                class="text-weight-medium text-underline"
+                @click="() => displayItemStock(item)" 
+              >
+                Stock #{{ item?.stockId }}
+              </div>
+              <div v-else-if="item?.deliveredAt">
+                <span v-if="!item?.expiresAt" class="text-grey">
+                  Set expiration date
+                </span>
+                <div v-else>
+                  <div>{{ item?.expiresAt.toLocaleDateString() }}</div>
+                  <div class="text-caption bottom">Expiration date</div>
+                </div>
+                <q-popup-edit
+                  :model-value="item.expiresAt?.toISOString()"
+                  :cover="false"
+                  self="top middle"
+                  @update:model-value="val => updateItemExpirationDate(item, val ? new Date(val).toISOString() : null)"
+                  v-slot="scope"
+                  class="q-pa-none"
+                >
+                  <q-date v-model="scope.value" flat mask="YYYY-MM-DD">
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup no-caps label="Close" flat/>
+                      <q-btn v-close-popup no-caps label="Set" color="brandblue" @click="() => scope.set()"/>
+                    </div>
+                  </q-date>
+                </q-popup-edit>
+              </div>
+              <div v-else class="text-grey">
+                Not yet delivered
+              </div>
+            </div>
             <template v-else>
               <div class="col-3 col-sm-2">
                 <template v-if="item.costPrice">
@@ -259,7 +299,7 @@
           </div>
           </q-card-section>
       </q-card>
-  
+
       <div v-if="purchaseOrder.status !== 'complete' && purchaseOrder.reviewedAt">
         <q-btn
           :disable="purchaseOrder.$state.loading"
@@ -276,6 +316,7 @@
     <ReceivePurchaseOrderItemsFormDialog
       v-model="showReceiveItemsDialog"
       :purchaseOrder="purchaseOrder"
+      :initialSelectedIds="selectedItems.map(item => item?.id)"
       @ok="purchaseOrderData => purchaseOrder.raw = purchaseOrderData"
     />
     <VariantInfoDialog v-model="variantInfoDialog.show" :variant="variantInfoDialog.variant">
@@ -397,6 +438,9 @@ export default defineComponent({
 
     const purchaseOrder = ref(PurchaseOrder.parse({ id: props.purchaseOrderId }))
     onMounted(() => purchaseOrder.value.refetch())
+    const editable = computed(() => {
+      return purchaseOrder.value.status !== 'complete' && !purchaseOrder.value.reviewedAt
+    })
 
     const itemsViewMode = ref('default')
     const showReceiveItemsDialog = ref(false)
@@ -525,8 +569,10 @@ export default defineComponent({
 
     const selectedItemIds = ref([].map(Number))
     const selectedItems = computed(() => {
+      if (!Array.isArray(purchaseOrder.value.items)) return []
       return purchaseOrder.value.items.filter(item => selectedItemIds.value.indexOf(item.id) >= 0)
     })
+
     function removeSelectedItems() {
       const data = {
         // used selected items to ensure they exist in purchase order items
@@ -560,6 +606,33 @@ export default defineComponent({
         .finally(() => {
           purchaseOrder.value.$state.loading = false
           dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+        })
+    }
+
+    function updateItemExpirationDate(item=PurchaseOrderItem.parse(), value) {
+      const data = {
+        update_items: [{
+          purchase_order_item_id: item?.id,
+          expires_at: value
+        }]
+      }
+
+      purchaseOrder.value.$state.loading = true
+      return backend.patch(`purchase-orders/${purchaseOrder.value.id}/items/`, data)
+        .then(response => {
+          purchaseOrder.value.raw = response?.data
+          selectedItemIds.value = []
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          let errorMsg = data?.detail || errorParser.firstElementOrValue(data?.non_field_errors)
+          $q.notify({
+            type: 'negative',
+            message: errorMsg || 'Failed to update expiration date',
+          })
+        })
+        .finally(() => {
+          purchaseOrder.value.$state.loading = false
         })
     }
 
@@ -681,6 +754,7 @@ export default defineComponent({
 
     return {
       purchaseOrder,
+      editable,
       itemsViewMode,
       showReceiveItemsDialog,
       canReviewPurchaseOrder,
@@ -699,6 +773,7 @@ export default defineComponent({
       selectedItemIds,
       selectedItems,
       removeSelectedItems,
+      updateItemExpirationDate,
       markSelectedItemsAsReceived,
 
       addItemsForm,
