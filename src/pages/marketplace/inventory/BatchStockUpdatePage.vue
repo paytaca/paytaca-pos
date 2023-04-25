@@ -38,71 +38,114 @@
           <li v-for="(err, index) in formErrors?.detail" :key="index">{{err}}</li>
         </ul>
       </q-banner>
-      <table class="stocks-table full-width">
-        <tr>
-          <th>Stock</th>
-          <th>Quantity</th>
-          <th>Cost Price</th>
-        </tr>
-        <tr v-for="(formData, index) in formDataList" :key="index">
-          <td class="text-weight-medium" @click="() => displayStock(formData.stock)">
-            <div>Stock#{{ formData?.stock?.id }}</div>
-            <div class="text-caption bottom ellipsis" style="max-width:25vw;">{{ formData.stock.itemName }}</div>
-          </td>
-          <td>
-            <q-input
-              dense outlined
-              :disable="loading"
-              :placeholder="formData.adjustment?.adjustType === 'add' ? '0' : formData?.stock?.quantity"
-              type="number"
-              v-model.number="formData.adjustment.quantity"
-              :error="Boolean(formErrors?.stocks?.[index]?.adjustment?.quantity || formErrors?.stocks?.[index]?.adjustment?.adjustType)"
-              :error-message="formErrors?.stocks?.[index]?.adjustment?.quantity || formErrors?.stocks?.[index]?.adjustment?.adjustType"
-              reactive-rules
-              :rules="[
-                val => formData.adjustment?.adjustType === 'add' || val >= 0 || 'Invalid',
-              ]"
-            >
-              <template v-slot:prepend>
-                <span class="text-body2">
-                  {{ formData.adjustment.adjustType }}
-                </span>
-              </template>
-              <q-menu no-focus class="q-pa-sm">
-                <div class="text-grey text-subtitle2">Adjust type</div>
-                <q-btn-toggle
-                  :disable="loading"
-                  no-caps
-                  padding="2px md"
-                  v-model="formData.adjustment.adjustType"
-                  toggle-color="brandblue"
-                  :options="[
-                    {label: 'Set', value: 'set'},
-                    {label: 'Add', value: 'add'},
-                  ]"
-                  @update:model-value="val => {
-                    formData.adjustment.quantity = val === 'set' ? (formData.stock.quantity + formData.adjustment.quantity) : (formData.adjustment.quantity - formData.stock.quantity)
-                  }"
-                />
-              </q-menu>
-            </q-input>
-          </td>
-          <td>
-            <q-input
-              dense outlined
-              :disable="loading"
-              :suffix="marketplaceStore?.currency"
-              type="numeric"
-              v-model.number="formData.costPrice"
-              :error="Boolean(formErrors?.stocks?.[index]?.costPrice)"
-              :error-message="formErrors?.stocks?.[index]?.costPrice"
-            />
-          </td>
-        </tr>
-      </table>
-      <div class="fixed-bottom q-pa-sm">
+      <div :class="{ dark: $q.dark.isActive }" class="row stocks-table-container" style="overflow:auto;">
+        <table class="stocks-table full-width" :class="{ dark: $q.dark.isActive }">
+          <tr>
+            <th>Stock</th>
+            <th>Quantity</th>
+            <th>Cost Price</th>
+            <th>Expires At</th>
+            <th></th>
+          </tr>
+          <tr v-for="(formData, index) in formDataList" :key="index">
+            <td class="text-weight-medium" @click="() => displayStock(formData.stock)">
+              <div>Stock#
+                {{ formData?.stock?.id }}
+                <template v-if="serializedFormDataList[index]?.$edited">
+                  *
+                </template>
+              </div>
+              <div class="text-caption bottom ellipsis" style="max-width:25vw;">{{ formData.stock.itemName }}</div>
+            </td>
+            <td>
+              <q-input
+                dense outlined
+                :disable="loading"
+                :placeholder="formData.adjustment?.adjustType === 'add' ? '0' : formData?.stock?.quantity"
+                type="number"
+                v-model.number="formData.adjustment.quantity"
+                :error="Boolean(formErrors?.stocks?.[index]?.adjustment?.quantity || formErrors?.stocks?.[index]?.adjustment?.adjustType)"
+                :error-message="formErrors?.stocks?.[index]?.adjustment?.quantity || formErrors?.stocks?.[index]?.adjustment?.adjustType"
+                reactive-rules
+                :rules="[
+                  val => formData.adjustment?.adjustType === 'add' || val >= 0 || 'Invalid',
+                ]"
+                style="min-width:6em;"
+              >
+                <template v-slot:prepend>
+                  <span class="text-body2">
+                    {{ formData.adjustment.adjustType }}
+                  </span>
+                </template>
+                <q-menu no-focus class="q-pa-sm">
+                  <div class="text-grey text-subtitle2">Adjust type</div>
+                  <q-btn-toggle
+                    :disable="loading"
+                    no-caps
+                    padding="2px md"
+                    v-model="formData.adjustment.adjustType"
+                    toggle-color="brandblue"
+                    :options="[
+                      {label: 'Set', value: 'set'},
+                      {label: 'Add', value: 'add'},
+                    ]"
+                    @update:model-value="val => {
+                      formData.adjustment.quantity = val === 'set' ? (formData.stock.quantity + formData.adjustment.quantity) : (formData.adjustment.quantity - formData.stock.quantity)
+                    }"
+                  />
+                </q-menu>
+              </q-input>
+            </td>
+            <td>
+              <q-input
+                dense outlined
+                :disable="loading"
+                :suffix="marketplaceStore?.currency"
+                type="numeric"
+                v-model.number="formData.costPrice"
+                :error="Boolean(formErrors?.stocks?.[index]?.costPrice)"
+                :error-message="formErrors?.stocks?.[index]?.costPrice"
+                style="min-width:11em;"
+              />
+            </td>
+            <td>
+              <q-input
+                dense outlined
+                :disable="loading"
+                mask="####-##-##"
+                v-model="formData.expiresAt"
+                :error="Boolean(formErrors?.stocks?.[index]?.expiresAt)"
+                :error-message="formErrors?.stocks?.[index]?.expiresAt"
+                clearable
+                style="min-width:13em;"
+              >
+                <template v-slot:append>
+                  <q-icon name="calendar_today">
+                    <q-popup-proxy breakpoint="0">
+                      <q-date v-model="formData.expiresAt" mask="YYYY-MM-DD">
+                        <div class="row items-center justify-end">
+                          <q-btn v-close-popup label="Close" color="brandblue" flat />
+                        </div>
+                      </q-date>
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
+            </td>
+            <td>
+              <q-btn
+                icon="close"
+                flat padding="sm"
+                color="red" class="q-mx-sm"
+                @click="() => toggleStock(formData.stock)"
+              />
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="fixed-bottom q-pa-sm" style="z-index:5;">
         <q-btn
-          :disable="loading"
+          :disable="loading || serializedFormDataList.every(d => !d.$edited)"
           :loading="loading"
           no-caps
           label="Update"
@@ -121,7 +164,7 @@ import { backend } from 'src/marketplace/backend'
 import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
-import { defineComponent, onMounted, ref } from 'vue'
+import { computed, defineComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import StockDetailDialog from 'src/components/marketplace/inventory/StockDetailDialog.vue'
@@ -150,14 +193,44 @@ export default defineComponent({
           quantity: 0,
         },
         costPrice: null,
+        expiresAt: null,
       }
     }))
+
+    const serializedFormDataList = computed(() => {
+      const dataList = formDataList.value.map(formData => {
+        const data = {
+          stock_id: formData.stock.id,
+          adjustment: {
+            adjust_type: formData.adjustment.adjustType,
+            quantity: formData.adjustment.quantity,
+          },
+          cost_price: formData.costPrice,
+          expires_at: formData.expiresAt ? new Date(formData.expiresAt) : null,
+        }
+
+        if (data.expires_at) data.expires_at.setUTCHours(0,0,0,0)
+
+        // remove data thats not updated anyway
+        if (data.expires_at?.getTime() === formData.stock.expiresAt?.getTime()) data.expires_at = undefined
+        if (data.cost_price === formData.stock.costPrice) data.cost_price = undefined
+        if (data.adjustment.adjust_type === 'add' && !formData.adjustment.quantity) data.adjustment = undefined
+        else if (data.adjustment.adjust_type === 'set' && formData.adjustment.quantity === formData.stock.quantity) data.adjustment = undefined
+
+        data.$edited = data.adjustment !== undefined ||
+                       data.cost_price !== undefined ||
+                       data.expires_at !== undefined
+        return data
+      })
+      return dataList
+    })
 
     function resetFormDataList() {
       formDataList.value.forEach(formData => {
         formData.adjustment.adjustType = 'set'
         formData.adjustment.quantity = formData.stock?.quantity
         formData.costPrice = formData.stock?.costPrice
+        formData.expiresAt = formData.stock?.expiresAt ? formData.stock?.expiresAt.toISOString() : null
       })
     }
 
@@ -192,6 +265,7 @@ export default defineComponent({
           quantity: stock?.quantity,
         },
         costPrice: stock?.costPrice,
+        expiresAt: stock?.expiresAt ? stock?.expiresAt.toISOString() : null,
       })
     }
 
@@ -210,6 +284,7 @@ export default defineComponent({
             quantity: '',
           },
           costPrice: '',
+          expiresAt: '',
         }
       }) 
     })
@@ -219,25 +294,9 @@ export default defineComponent({
     }
 
     function updateStocks() {
-      const dataList = formDataList.value.map(formData => {
-        const data = {
-          stock_id: formData.stock.id,
-          adjustment: {
-            adjust_type: formData.adjustment.adjustType,
-            quantity: formData.adjustment.quantity,
-          },
-          cost_price: formData.costPrice
-        }
-
-        // remove data thats not updated anyway
-        if (data.cost_price === formData.stock.costPrice) data.cost_price = undefined
-        if (data.adjustment.adjust_type === 'add' && !formData.adjustment.quantity) data.adjustment = undefined
-        if (data.adjustment.adjust_type === 'set' && formData.adjustment.quantity === formData.stock.quantity) data.adjustment = undefined
-
-        return data
-      })
-      
+      const dataList = serializedFormDataList.value
       const data = { stocks: dataList }
+      data.stocks.forEach(d => delete d.$edited)
       if (!dataList?.length) {
         return $q.dialog({ title: 'No stocks to update' })
       }
@@ -291,6 +350,7 @@ export default defineComponent({
               formErrors.value.stocks[i].adjustment.adjustType = errorParser.firstElementOrValue(stockFormErrors?.adjustment?.adjust_type)
               formErrors.value.stocks[i].adjustment.adjustType = errorParser.firstElementOrValue(stockFormErrors?.adjustment?.adjust_type)
               formErrors.value.stocks[i].costPrice = errorParser.firstElementOrValue(stockFormErrors?.cost_price)
+              formErrors.value.stocks[i].expiresAt = errorParser.firstElementOrValue(stockFormErrors?.expires_at)
             }
           }
 
@@ -334,6 +394,7 @@ export default defineComponent({
       marketplaceStore,
       loading,
       formDataList,
+      serializedFormDataList,
       stockIdExists,
       toggleStock,
       addStockToList,
@@ -349,12 +410,43 @@ export default defineComponent({
   },
 })
 </script>
-<style scoped>
+<style scoped lang="scss">
+.stocks-table-container {
+  background-color: $grey-1;
+  border-radius: 8px;
+}
+.stocks-table-container.dark {
+  background-color: $dark;
+}
 table.stocks-table {
   margin-left: auto;
   margin-right: auto;
+  border-spacing: 0px;
+  padding: 10px 10px 5px 0px;
 }
 table.stocks-table > tr > td {
   vertical-align: top;
+}
+table.stocks-table tr th:first-child,
+table.stocks-table tr td:first-child {
+  padding-left: 10px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background-color: $grey-1;
+}
+table.stocks-table.dark tr th:first-child,
+table.stocks-table.dark tr td:first-child {
+  background-color: $dark;
+}
+table.stocks-table tr th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  // width: 25vw;
+  background: $grey-1;
+}
+table.stocks-table.dark tr th {
+  background-color: $dark;
 }
 </style>
