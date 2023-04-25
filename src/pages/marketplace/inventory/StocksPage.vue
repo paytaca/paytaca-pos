@@ -39,6 +39,13 @@
           </q-btn>
         </div>
         <div class="row items-center q-gutter-x-md q-gutter-y-sm">
+          <div class="q-space">
+            <q-checkbox
+              v-model="filterOpts.expired"
+              toggle-indeterminate
+              label="Expired"
+            />
+          </div>
           <template v-if="filterOptsMetadata.product?.id">
             <q-chip v-if="filterOptsMetadata?.variant?.id" clickable @click="() => showVariantInfoDialog = true">
               Variant:
@@ -356,6 +363,7 @@ export default defineComponent({
 
     const filterOpts = ref({
       search: '',
+      expired: null,
       productId: Number(props.productId) || null,
       variantId: Number(props.variantId) || null,
       categories: [],
@@ -412,6 +420,9 @@ export default defineComponent({
         offset: opts?.offset || 0,
         s: filterOpts.value.search || undefined,
         categories: filterOpts.value.categories.join('|') || undefined,
+      }
+      if (typeof filterOpts.value.expired === 'boolean') {
+        params[filterOpts.value.expired ? 'expired_after' : 'not_expired_after'] = new Date()
       }
 
       if (filterOpts.value.productId) {
