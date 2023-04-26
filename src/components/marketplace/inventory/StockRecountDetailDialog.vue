@@ -13,7 +13,11 @@
       </q-card-section>
       <template v-else>
         <q-card-section class="q-pb-none row">
-          <div v-if="stockRecount.createdAt || stockRecount?.createdBy?.id" class="q-space q-pa-sm">
+          <div v-if="stockRecount.remarks" class="col-12">
+            <div class="text-caption top text-grey">Remarks</div>
+            <div>{{ stockRecount.remarks }}</div>
+          </div>
+          <div v-if="stockRecount.createdAt || stockRecount?.createdBy?.id">
             <div class="text-caption top text-grey">Created</div>
             <div>{{ stockRecount?.createdBy?.fullName }}</div>
             <div v-if="stockRecount.createdAt">

@@ -134,6 +134,7 @@
             </td>
             <td>
               <q-btn
+                :disable="loading"
                 icon="close"
                 flat padding="sm"
                 color="red" class="q-mx-sm"

@@ -172,8 +172,7 @@
               />
               <div class="text-left">
                 <div class="text-weight-medium">
-                  {{ props.row?.variant?.product?.name }}
-                  <template v-if="props.row?.variant?.name">- {{ props.row?.variant?.name }}</template>
+                  {{ props.row?.variant?.itemName }}
                 </div>
                 <div v-if="props.row?.variant?.code" class="text-caption bottom">
                   {{ props.row?.variant?.code }}
@@ -627,3 +626,20 @@ export default defineComponent({
   },
 });
 </script>
+<style scoped lang="scss">
+.my-sticky-column-table::v-deep th.sticky,
+.my-sticky-column-table td.sticky {
+  background-color: white;
+}
+.q-dark.my-sticky-column-table::v-deep th.sticky,
+.q-dark.my-sticky-column-table td.sticky {
+  background-color: $dark;
+}
+.my-sticky-column-table::v-deep th.sticky,
+.my-sticky-column-table td.sticky {
+  overflow:hidden;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+</style>

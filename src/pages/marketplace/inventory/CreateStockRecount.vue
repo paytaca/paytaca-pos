@@ -38,74 +38,101 @@
           <li v-for="(err, index) in formErrors?.detail" :key="index">{{err}}</li>
         </ul>
       </q-banner>
-      <TransitionGroup name="fade">
-        <q-card
-          v-for="(item, index) in formData.items" :key="index"
-          class="q-mb-sm"
-        >
-          <q-card-section>
-            <q-banner v-if="formErrors?.items?.[index]?.detail?.length" class="bg-red text-white rounded-borders q-mb-sm">
-              <div v-if="formErrors?.items?.[index]?.detail?.length === 1">
-                {{ formErrors?.items?.[index]?.detail[0] }}
-              </div>
-              <ul v-else class="q-pl-md">
-                <li v-for="(err, index) in formErrors?.items?.[index]?.detail" :key="index">{{err}}</li>
-              </ul>
-            </q-banner>
-            <div class="row items-bottom">
-              <div class="q-space text-weight-medium" @click="() => displayStock(item.stock)">
-                <div>Stock#{{ item?.stock?.id }}</div>
-                <div class="text-caption bottom ellipsis">{{ item.stock.itemName }}</div>
-              </div>
-              <q-checkbox
-                dense
-                label="Update stocks"
-                v-model="item.autoAdjust"
-              />
-            </div>
-            <div class="q-mt-sm row">  
-              <q-input
-                dense outlined
-                :disable="loading"
-                label="Actual"
-                type="number"
-                v-model.number="item.actualQuantity"
-                :rules="[
-                  val => val >= 0 || 'Invalid',
-                ]"
-                :error="Boolean(formErrors?.items?.[index]?.actualQuantity)"
-                :error-message="formErrors?.items?.[index]?.actualQuantity"
-                class="col-6"
-              />
-              <q-input
-                dense outlined
-                :disable="loading"
-                label="Expected"
-                :placeholder="item?.stock?.quantity"
-                type="number"
-                v-model.number="item.expectedQuantity"
-                :rules="[
-                  val => val >= 0 || 'Invalid',
-                ]"
-                :error="Boolean(formErrors?.items?.[index]?.expectedQuantity)"
-                :error-message="formErrors?.items?.[index]?.expectedQuantity"
-                class="col-6"
-              />
-            </div>
-            <q-input
-              dense
-              outlined
-              :disable="loading"
-              autogrow
-              label="Remarks"
-              v-model="item.remarks"
-              :error="Boolean(formErrors?.items?.[index]?.remarks)"
-              :error-message="formErrors?.items?.[index]?.remarks"
-            />
-          </q-card-section>
-        </q-card>
-      </TransitionGroup>
-      <div class="fixed-bottom q-pa-sm">
+      <div :class="{ dark: $q.dark.isActive }" class="row stocks-table-container" style="overflow:auto;">
+        <table class="stocks-table full-width" :class="{ dark: $q.dark.isActive }">
+          <tr>
+            <th>Stock</th>
+            <th>Expected</th>
+            <th>Actual</th>
+            <th>Remarks</th>
+            <th></th>
+          </tr>
+          <TransitionGroup name="fade">
+            <tr v-for="(item, index) in formData.items" :key="item?.stock?.id">
+              <td class="row items-center no-wrap text-weight-medium field" @click="() => displayStock(item.stock)">
+                <div class="q-space">
+                  <div>Stock#{{ item?.stock?.id }}</div>
+                  <div class="text-caption bottom ellipsis" style="max-width:25vw;">{{ item.stock.itemName }}</div>
+                </div>
+                <q-icon
+                  v-if="formErrors?.items?.[index]?.detail?.length"
+                  name="error" color="red"
+                  size="1.5em" class="q-ml-xs q-pa-sm"
+                  @click.stop
+                >
+                  <q-menu class="q-pa-sm bg-red text-white">
+                    <div v-if="formErrors?.items?.[index]?.detail?.length === 1">
+                      {{ formErrors?.items?.[index]?.detail[0] }}
+                    </div>
+                    <ul v-else class="q-pl-md q-my-none">
+                      <li v-for="(err, index) in formErrors?.items?.[index]?.detail" :key="index">{{err}}</li>
+                    </ul>
+                  </q-menu>
+                </q-icon>
+              </td>
+              <td class="field">
+                <q-input
+                  dense
+                  outlined
+                  readonly
+                  type="number"
+                  :model-value="item?.stock?.quantity"
+                  bottom-slots
+                />
+              </td>
+              <td class="field">
+                <q-input
+                  dense
+                  outlined
+                  :disable="loading"
+                  type="number"
+                  :placeholder="item?.stock?.quantity"
+                  v-model.number="item.actualQuantity"
+                  :rules="[
+                    val => val >= 0 || 'Invalid',
+                  ]"
+                  :error="Boolean(formErrors?.items?.[index]?.actualQuantity)"
+                  :error-message="formErrors?.items?.[index]?.actualQuantity"
+                />
+              </td>
+              <td class="field">
+                <q-input
+                  dense
+                  outlined
+                  :disable="loading"
+                  autogrow
+                  v-model="item.remarks"
+                  :error="Boolean(formErrors?.items?.[index]?.remarks)"
+                  :error-message="formErrors?.items?.[index]?.remarks"
+                />
+              </td>
+              <td>
+                <q-btn
+                  :disable="loading"
+                  icon="close"
+                  flat padding="sm"
+                  color="red" class="q-mx-sm"
+                  @click="() => toggleStock(item.stock)"
+                />
+              </td>
+            </tr>
+          </TransitionGroup>
+        </table>
+      </div>
+      <q-card class="q-mt-sm">
+        <q-card-section>
+          <div>Remarks</div>
+          <q-input
+            dense
+            outlined
+            autogrow
+            v-model="formData.remarks"
+            :error="Boolean(formErrors?.remarks)"
+            :error-message="formErrors?.remarks"
+          />
+        </q-card-section>
+      </q-card>
+      <div class="fixed-bottom q-pa-sm" style="z-index: 2;">
         <q-btn
           no-caps
           label="Update stocks"
@@ -160,10 +187,8 @@ export default defineComponent({
       items: [].map(() => {
         return {
           stock: Stock.parse(),
-          expectedQuantity: 0,
           actualQuantity: 0,
           remarks: '',
-          autoAdjust: true,
         }
       })
     })
@@ -183,10 +208,8 @@ export default defineComponent({
 
       formData.value.items.push({
         stock: stock,
-        expectedQuantity: stock?.quantity,
-        actualQuantity: stock?.quantity,
+        actualQuantity: null,
         remarks: '',
-        autoAdjust: true,
       })
     }
 
@@ -204,7 +227,6 @@ export default defineComponent({
         return {
           detail: [],
           stock: '',
-          expectedQuantity: '',
           actualQuantity: '',
           remarks: '',
         }
@@ -225,9 +247,9 @@ export default defineComponent({
           return {
             stock_id: item?.stock?.id,
             actual_quantity: item?.actualQuantity,
-            expected_quantity: item?.expectedQuantity,
+            expected_quantity: item?.stock?.quantity,
             remarks: item?.remarks || undefined,
-            auto_adjust: item?.autoAdjust,
+            auto_adjust: true,
           }
         })
       }
@@ -247,13 +269,16 @@ export default defineComponent({
           console.error(error)
           const data = error?.response?.data
           formErrors.value.detail = errorParser.toArray(data?.non_field_errors)
-          formErrors.value.items = data?.items?.map?.(itemErrors => {
-            return {
+          formErrors.value.items = data?.items?.map?.((itemErrors, index) => {
+            const errors = {
               detail: errorParser.toArray(itemErrors?.non_field_errors),
               actualQuantity: errorParser.firstElementOrValue(itemErrors?.actual_quantity),
-              expectedQuantity: errorParser.firstElementOrValue(itemErrors?.expected_quantity),
               remarks: errorParser.firstElementOrValue(itemErrors?.remarks),
             }
+            if (errors?.detail?.[0]?.indexOf?.('Incorrect expected quantity') >= 0) {
+              formData.value.items?.[index]?.stock?.refetch()
+            }
+            return errors
           })
 
           if (Array.isArray(data)) formErrors.value.detail = data
@@ -312,3 +337,69 @@ export default defineComponent({
   },
 })
 </script>
+<style scoped lang="scss">
+.stocks-table-container {
+  background-color: $grey-1;
+  border-radius: 8px;
+}
+.stocks-table-container.dark {
+  background-color: $dark;
+}
+table.stocks-table {
+  margin-left: auto;
+  margin-right: auto;
+  border-spacing: 0px;
+  padding: 10px 10px 5px 0px;
+}
+table.stocks-table > tr > td {
+  vertical-align: top;
+}
+table.stocks-table tr th:first-child,
+table.stocks-table tr td:first-child {
+  padding-left: 10px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background-color: $grey-1;
+}
+table.stocks-table.dark tr th:first-child,
+table.stocks-table.dark tr td:first-child {
+  background-color: $dark;
+}
+table.stocks-table tr th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  // width: 25vw;
+  background: $grey-1;
+}
+table.stocks-table.dark tr th {
+  background-color: $dark;
+}
+
+table.stocks-table td.field {
+  min-width: min(30vw, 8rem);
+  padding: 8px;
+}
+
+
+/* 1. declare transition */
+.fade-move,
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+/* 2. declare enter from and leave to state */
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translate(30px, 0);
+}
+
+/* 3. ensure leaving items are taken out of layout flow so that moving
+      animations can be calculated correctly. */
+/* .fade-leave-active {
+  position: absolute;
+} */
+</style>
