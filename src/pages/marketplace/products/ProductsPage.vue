@@ -246,13 +246,14 @@ export default defineComponent({
     function fetchProducts(opts={limit: 0, offset: 0}) {
       const params = {
         s: filterOpts?.value?.search || undefined,
+        shop_id: Number(marketplaceStore.activeShopId),
         limit: opts?.limit || 10,
         offset: opts?.offset || 0,
         categories: filterOpts.value.categories.join('|') || undefined,
       }
 
       fetchingProducts.value = true
-      return backend.get(`shops/${marketplaceStore.activeShopId}/products/`, { params })
+      return backend.get(`products/info`, { params })
         .then(response => {
           if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
           products.value = response?.data?.results.map(Product.parse)
