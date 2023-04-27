@@ -40,7 +40,13 @@ export const useMarketplaceStore = defineStore('marketplace', {
         },
         startingPurchaseOrderNumber: 0,
         startingSalesOrderNumber: 0,
-      }
+      },
+      storefrontData: {
+        id: 0,
+        shop_id: 0,
+        name: '',
+        auto_subscribe_products: false,
+      },
     }
   },
 
@@ -240,6 +246,30 @@ export const useMarketplaceStore = defineStore('marketplace', {
         shopRoles: data?.shop_roles?.map?.(shopRole => {
           return { shopId: shopRole?.shop_id, roles: shopRole.roles }
         }),
+      }
+    },
+    fetchStorefront() {
+      const params = { shop_id: this.activeShopId }
+      return backend.get(`connecta/storefronts/`, { params })
+        .then(response => {
+          const data = response?.data?.results?.[0]
+          this.setStorefrontData(data)
+          return response
+        })
+    },
+    /**
+     * @param {Object} data 
+     * @param {Number} data.id
+     * @param {Number} data.shop_id
+     * @param {String} data.name
+     * @param {Boolean} data.auto_subscribe_products
+     */
+    setStorefrontData(data) {
+      this.storefrontData = {
+        id: data?.id,
+        shop_id: data?.shop_id,
+        name: data?.name,
+        auto_subscribe_products: data?.auto_subscribe_products,
       }
     }
   }
