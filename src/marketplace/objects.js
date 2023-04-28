@@ -1014,3 +1014,44 @@ export class StockRecountItem {
       })
   }
 }
+
+
+export class Collection {
+  static parse(data) {
+    return new Collection(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Number} data.name
+   * @param {Boolean} data.auto
+   * @param {String[]} [data.categories]
+   * @param {Number} [data.price_less_than]
+   * @param {Number} [data.price_greater_than]
+   * @param {String} [data.created_at]
+   * @param {Object} [data.created_by]
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data }) 
+    this.id = data?.id
+    this.name = data?.name
+    this.auto = data?.auto
+    this.categories = data?.categories
+    this.priceLessThan = data?.price_less_than
+    this.priceGreaterThan = data?.price_greater_than
+
+    if (data?.created_at) this.createdAt = new Date(data?.created_at)
+    else if (this.createdAt) this.createdAt = undefined
+
+    if (data?.created_by) this.createdBy = User.parse(data?.created_by)
+  }
+}
