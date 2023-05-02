@@ -64,7 +64,7 @@
                     <template v-for="(category, index) in condition.value" :key="index">
                       <q-chip
                         dense color="brandblue"
-                        class="q-ma-none q-mr-xs"
+                        class="q-ma-none q-mr-xs text-white"
                       >
                         {{ category }}
                       </q-chip>
