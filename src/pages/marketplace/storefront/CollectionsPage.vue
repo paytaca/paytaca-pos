@@ -29,6 +29,39 @@
             @click="() => openCreateCollectionDialog()"
           />
         </div>
+        <div class="row items-center">
+          <q-btn-dropdown
+            no-caps
+            :outline="$q.dark.isActive"
+          >
+            <template v-slot:label>
+              <template v-if="filterOpts.auto == true">
+                Auto
+              </template>
+              <template v-else-if="filterOpts.auto === false">
+                Manual
+              </template>
+              <template v-else>
+                Filter type
+              </template>
+            </template>
+            <q-item clickable v-ripple v-close-popup @click="() => filterOpts.auto = null">
+              <q-item-section>
+                <q-item-label>All</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-ripple v-close-popup @click="() => filterOpts.auto = true">
+              <q-item-section>
+                <q-item-label>Auto</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-ripple v-close-popup @click="() => filterOpts.auto = false">
+              <q-item-section>
+                <q-item-label>Manual</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-btn-dropdown>
+        </div>
       </div>
 
       <q-table
