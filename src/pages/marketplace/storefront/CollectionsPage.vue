@@ -103,6 +103,7 @@ export default defineComponent({
     const collectionsTableColumns = [
       { name: 'name', align: 'center', label: 'Name', field: 'name', classes: 'text-weight-medium' },
       { name: 'auto', align: 'center', label: 'Type', field: 'auto', format: val => val ? 'Auto' : 'Manual' },
+      { name: 'count', align: 'center', label: 'Products', field: 'productsCount' },
       { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText },
     ]
 

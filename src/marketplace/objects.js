@@ -1015,8 +1015,93 @@ export class StockRecountItem {
   }
 }
 
+export class CollectionCondition {
+  static fields = {
+    price: 'variants__price',
+    name: 'name',
+    categories: 'categories__name',
+    created: 'created_at',
+  }
+
+  static fieldOpts = [
+    { label: 'Price', value: this.fields.price },
+    { label: 'Name', value: this.fields.name, },
+    { label: 'Categories', value: this.fields.categories, },
+    { label: 'Created', value: this.fields.created, },
+  ]
+
+  static getFieldExpressions(fieldValue) {
+    switch(fieldValue) {
+      case this.fields.price:
+        return [
+          { label: 'Equals', value: '' },
+          { label: 'Less than', value: 'lt' },
+          { label: 'Greater than', value: 'gt' },
+        ]
+      case this.fields.name:
+        return [
+          { label: 'Equals', value: '' },
+          { label: 'Contains', value: 'contains' },
+          { label: 'Starts with', value: 'startswith' },
+        ]
+      case this.fields.categories:
+        return [
+          { label: 'Contains', value: 'in' },
+        ]
+      case this.fields.created:
+        return [
+          { label: 'Before', value: 'lt' },
+          { label: 'After', value: 'gt'},
+        ]
+      default:
+        return []
+    }
+  }
+
+  static parse(data) {
+    return new CollectionCondition(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {String} data.field
+   * @param {String} data.expression
+   * @param {{ value: any }} data.value
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data }) 
+
+    this.field = data?.field
+    this.expression = data?.expression
+    this.value = data?.value?.value
+  }
+
+  get fieldLabel() {
+    return CollectionCondition.fieldOpts.find(fieldOpt => fieldOpt.value == this.field)?.label
+  }
+
+  get expressionLabel() {
+    return CollectionCondition.getFieldExpressions(this.field)?.find(expressionOpt => {
+      return expressionOpt.value == this.expression
+    })?.label
+  }
+}
 
 export class Collection {
+  static orderings = {
+    price: 'variants__price',
+    name: 'name',
+    created: 'created_at',
+  }
+
   static parse(data) {
     return new Collection(data)
   }
@@ -1034,9 +1119,9 @@ export class Collection {
    * @param {Number} data.id
    * @param {Number} data.name
    * @param {Boolean} data.auto
-   * @param {String[]} [data.categories]
-   * @param {Number} [data.price_less_than]
-   * @param {Number} [data.price_greater_than]
+   * @param {Object[]} data.conditions
+   * @param {'all' | 'any'} data.conditions_operand
+   * @param {Number} data.products_count
    * @param {String} [data.created_at]
    * @param {Object} [data.created_by]
    */
@@ -1045,9 +1130,9 @@ export class Collection {
     this.id = data?.id
     this.name = data?.name
     this.auto = data?.auto
-    this.categories = data?.categories
-    this.priceLessThan = data?.price_less_than
-    this.priceGreaterThan = data?.price_greater_than
+    if (Array.isArray(data?.conditions)) this.conditions = data?.conditions.map(CollectionCondition.parse)
+    this.conditionsOperand = data?.conditions_operand
+    this.productsCount = data?.products_count
 
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) this.createdAt = undefined

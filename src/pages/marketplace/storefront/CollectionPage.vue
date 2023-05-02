@@ -33,35 +33,75 @@
           </div>
           <div v-if="collection?.auto" class="row">
             <div class="text-subtitle1 col-12">Conditions</div>
-            <div v-if="collection?.categories?.length" class="col-12 q-pa-xs">
-              <div class="row q-gutter-xs">
-                <q-chip
-                  v-for="category in collection?.categories" :key="category"
-                  dense
-                  :outline="!$q.dark.isActive"
-                  color="brandblue"
-                >
-                  {{ category }}
-                </q-chip>
-              </div>
-              <div class="text-caption bottom">Categories</div>
+            <div>
+              Products matching
+              <span v-if="collection?.conditionsOperand == 'any'">
+                any of the
+              </span>
+              <span v-else-if="collection?.conditionsOperand == 'all'">
+                all of the
+              </span>
+              conditions
             </div>
-
-            <div v-if="!isNaN(collection?.priceLessThan) && collection?.priceLessThan !== null" class="q-pa-xs">
-              <div>{{ collection?.priceLessThan }} {{ marketplaceStore?.currency }}</div>
-              <div class="text-caption bottom">Price less than</div>
-            </div>
-
-            <div v-if="!isNaN(collection?.priceGreaterThan) && collection?.priceGreaterThan !== null" class="q-pa-xs">
-              <div>{{ collection?.priceGreaterThan }} {{ marketplaceStore?.currency }}</div>
-              <div class="text-caption bottom">Price creater than</div>
-            </div>
+            <table v-if="Array.isArray(collection?.conditions)" class="full-width text-left">
+              <tr>
+                <th>Field</th>
+                <th>Condition</th>
+                <th>Value</th>
+              </tr>
+              <tr v-for="(condition, index) in collection?.conditions" :key="index">
+                <td>{{ condition.fieldLabel }}</td>
+                <td>{{ condition?.expressionLabel }}</td>
+                <td>
+                  <template v-if="condition.field === CollectionCondition.fields.price">
+                    {{ condition.value }}
+                    {{ marketplaceStore?.currency }}
+                  </template>
+                  <template v-else-if="condition.field == CollectionCondition.fields.created">
+                    {{ formatTimestampToText(condition.value) }}
+                  </template>
+                  <template v-else-if="condition.field == CollectionCondition.fields.categories">
+                    <template v-for="(category, index) in condition.value" :key="index">
+                      <q-chip
+                        dense color="brandblue"
+                        class="q-ma-none q-mr-xs"
+                      >
+                        {{ category }}
+                      </q-chip>
+                    </template>
+                  </template>
+                  <template v-else>
+                    {{ condition.value }}
+                  </template>
+                </td>
+              </tr>
+            </table>
           </div>
         </q-card-section>
       </q-card>
       <q-card class="q-mb-md">
         <q-card-section class="q-pb-none">
-          <div class="text-h6">Products</div>
+          <div class="row items-center full-width">
+            <div class="text-h6">
+              Products
+              <template v-if="productsPagination?.count && !isNaN(productsPagination?.count)">
+                ({{ productsPagination?.count }})
+              </template>
+            </div>
+            <q-space/>
+            <LimitOffsetPagination
+              :pagination-props="{
+                maxPages: 5,
+                round: true,
+                padding: 'sm md',
+                flat: true,
+                boundaryNumbers: true
+              }"
+              :hide-below-pages="2"
+              :modelValue="productsPagination"
+              @update:modelValue="fetchProducts"
+            />
+          </div>
         </q-card-section>
         <q-list class="q-pb-md">
           <q-item
@@ -96,17 +136,20 @@
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
-import { Collection, Product } from 'src/marketplace/objects'
+import { Collection, CollectionCondition, Product } from 'src/marketplace/objects'
+import { formatTimestampToText } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
+import { useRouter } from 'vue-router'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import ProductInventoryDialog from 'src/components/marketplace/inventory/ProductInventoryDialog.vue';
-import { useRouter } from 'vue-router'
+import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 
 export default defineComponent({
   name: 'CollectionPage',
   components: {
+    LimitOffsetPagination,
     ProductInventoryDialog,
     MarketplaceHeader,
   },
@@ -177,14 +220,20 @@ export default defineComponent({
     }
 
     const products = ref([].map(Product.parse))
-    function fetchProducts() {
+    const productsPagination = ref({ count: 0, limit: 0, offset: 0 })
+    function fetchProducts(opts={ limit: 0, offset: 0 }) {
       const params = {
         collection_id: props.collectionId || null,
+        limit: opts?.limit || 10,
+        offset: opts?.offset || undefined,
       }
       return backend.get(`products/info/`, { params })
         .then(response => {
           if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
           products.value = response?.data?.results.map(Product.parse)
+          productsPagination.value.limit = response?.data?.limit
+          productsPagination.value.offset = response?.data?.offset
+          productsPagination.value.count = response?.data?.count
           return response
         })
     }
@@ -211,6 +260,7 @@ export default defineComponent({
     }
 
     return {
+      CollectionCondition,
       marketplaceStore,
       collection,
       fetchCollection,
@@ -218,12 +268,16 @@ export default defineComponent({
       confirmDeleteCollection,
 
       products,
+      productsPagination,
       fetchProducts,
 
       productDetailDialog,
       viewProductDetail,
 
       refreshPage,
+
+      // utils funcs
+      formatTimestampToText,
     }
   },
 })
