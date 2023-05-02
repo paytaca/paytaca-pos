@@ -103,6 +103,7 @@ import { defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import CollectionFormDialog from 'src/components/marketplace/storefront/CollectionFormDialog.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
+import { useMarketplaceStore } from 'src/stores/marketplace'
 
 export default defineComponent({
   name: 'CollectionsPage',
@@ -112,6 +113,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    const marketplaceStore = useMarketplaceStore()
 
     const filterOpts = ref({
       search: '',
@@ -125,6 +127,7 @@ export default defineComponent({
     onMounted(() => fetchCollections())
     function fetchCollections(opts={limit: 0, offset: 0}) {
       const params = {
+        storefront_id: marketplaceStore.storefrontData.id,
         limit: opts?.limit || 10,
         offset: opts?.offset || 0,
         s: filterOpts.value?.search || undefined,

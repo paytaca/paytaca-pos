@@ -83,7 +83,6 @@
         <q-card-section>
           <div class="row items-center">
             <div class="text-h6 q-space">Items</div>
-            <q-btn @click="() => $q.dark.toggle()"/>
             <q-btn
               v-if="editable"
               icon="add"
