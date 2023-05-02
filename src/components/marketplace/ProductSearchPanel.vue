@@ -17,34 +17,36 @@
     </q-input>
     <q-list separator style="max-height:70vh;overflow:auto;">
       <slot name="options" v-bind="{ products, searchVal, toggleProduct, productIdExists }">
-        <q-virtual-scroll
-          v-if="products?.length"
-          :items="products"
-          v-slot="{ item: product }"
-        >
-          <slot name="option" v-bind="{ product, toggleProduct, productIdExists }">
-            <q-item clickable @click="() => toggleProduct(product)">
-              <q-item-section side>
-                <q-checkbox
-                  :disable="disable"
-                  :model-value="Boolean(productIdExists(product?.id))"
-                  @click="() => toggleProduct(product)"
-                />
-              </q-item-section>
-              <q-item-section v-if="product?.displayImageUrl" avatar class="q-pr-xs">
-                <img
-                  :src="product?.displayImageUrl"
-                  width="50"
-                  class="rounded-borders"
-                />
-              </q-item-section>
-              <q-item-section top>
-                <q-item-label>{{ product?.name }}</q-item-label>
-                <q-item-label class="text-caption">#{{ product?.id }}</q-item-label>
-              </q-item-section>
-            </q-item>
-          </slot>
-        </q-virtual-scroll>
+        <div v-if="products?.length">
+          <TransitionGroup name="fade">
+            <div v-for="product in products" :key="product?.id">
+            <!-- <q-virtual-scroll :items="products" v-slot="{ item: product }"> -->
+              <slot name="option" v-bind="{ product, toggleProduct, productIdExists }">
+                <q-item clickable @click="() => toggleProduct(product)" :key="product?.id">
+                  <q-item-section side>
+                    <q-checkbox
+                      :disable="disable"
+                      :model-value="Boolean(productIdExists(product?.id))"
+                      @click="() => toggleProduct(product)"
+                    />
+                  </q-item-section>
+                  <q-item-section v-if="product?.displayImageUrl" avatar class="q-pr-xs">
+                    <img
+                      :src="product?.displayImageUrl"
+                      width="50"
+                      class="rounded-borders"
+                    />
+                  </q-item-section>
+                  <q-item-section top>
+                    <q-item-label>{{ product?.name }}</q-item-label>
+                    <q-item-label class="text-caption">#{{ product?.id }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </slot>
+            </div>
+            <!-- </q-virtual-scroll> -->
+          </TransitionGroup>
+        </div>
         <div v-else-if="!searchVal" class="q-pa-md text-grey text-center">
           Search products
         </div>
@@ -189,3 +191,24 @@ export default defineComponent({
   },
 })
 </script>
+<style scoped>
+/* 1. declare transition */
+.fade-move,
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+/* 2. declare enter from and leave to state */
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translate(30px, 0);
+}
+
+/* 3. ensure leaving items are taken out of layout flow so that moving
+      animations can be calculated correctly. */
+/* .fade-leave-active {
+  position: absolute;
+} */
+</style>
