@@ -7,18 +7,31 @@
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <q-form @submit="() => createCollection()">
+          <q-banner v-if="formErrors?.detail?.length" class="bg-red text-white rounded-borders">
+            <div v-if="formErrors?.detail?.length === 1">
+              {{ formErrors.detail[0] }}
+            </div>
+            <ul v-else class="q-pl-md">
+              <li v-for="(err, index) in formErrors?.detail" :key="index">{{err}}</li>
+            </ul>
+          </q-banner>
           <div>Name</div>
           <q-input
             dense
             outlined
             :disable="loading"
             v-model="formData.name"
+            :error="Boolean(formErrors?.name)"
+            :error-message="formErrors?.name"
             :rules="[
               val => Boolean(val) || 'Required',
             ]"
           />
           <div class="q-mb-md">
             <div class="text-subtitle1">Collection type</div>
+            <div v-if="formErrors?.auto" class="bg-red text-white text-body2 rounded-borders q-pa-sm">
+              {{ formErrors?.auto }}
+            </div>
             <q-radio
               :disable="loading"
               v-model="formData.auto"
@@ -50,18 +63,29 @@
                   @click="() => addConditionRow()"
                 />  
               </div>
-              <div>
-                Must match: 
-                <q-radio
-                  label="any condition"
-                  v-model="formData.conditionsOperand"
-                  val="any"
-                />
-                <q-radio
-                  label="all conditions"
-                  v-model="formData.conditionsOperand"
-                  val="all"
-                />
+              <div class="row items-start">
+                <div class="q-my-sm">
+                  Must match:
+                </div>
+                <div>
+                  <q-radio
+                    label="any condition"
+                    v-model="formData.conditionsOperand"
+                    val="any"
+                    :color="formErrors?.conditionsOperand ? 'red' : undefined"
+                    keep-color
+                  />
+                  <q-radio
+                    label="all conditions"
+                    v-model="formData.conditionsOperand"
+                    val="all"
+                    :color="formErrors?.conditionsOperand ? 'red' : undefined"
+                    keep-color
+                  />
+                  <div v-if="formErrors?.conditionsOperand" class="text-red text-caption bottom">
+                    {{ formErrors?.conditionsOperand }}
+                  </div>
+                </div>
               </div>
               <div style="max-height:35vh;overflow:auto;">
                 <TransitionGroup name="fade">
@@ -73,6 +97,17 @@
                       <div class="col-12 q-mx-xs text-caption top text-grey">
                         Condition {{ index+1 }}
                       </div>
+                      <div
+                        v-if="formErrors?.conditions?.[index]?.detail?.length"
+                        class="col-12 bg-red text-white text-body2 rounded-borders q-pa-sm q-my-xs"
+                      >
+                      <div v-if="formErrors?.conditions?.[index]?.detail?.length === 1">
+                        {{ formErrors?.conditions?.[index]?.detail[0] }}
+                      </div>
+                      <ul v-else class="q-pl-md q-my-xs">
+                        <li v-for="(err, index) in formErrors?.conditions?.[index]?.detail" :key="index">{{err}}</li>
+                      </ul>
+                      </div>
                       <q-select
                         dense
                         outlined
@@ -81,6 +116,9 @@
                         emit-value
                         map-options
                         :options="CollectionCondition.fieldOpts"
+                        hide-bottom-space
+                        :error="Boolean(formErrors?.conditions?.[index]?.field)"
+                        :error-message="formErrors?.conditions?.[index]?.field"
                         class="q-space q-ma-xs"
                         style="min-width:10em;"
                       />
@@ -92,6 +130,9 @@
                         emit-value
                         map-options
                         :options="CollectionCondition.getFieldExpressions(condition.field)"
+                        hide-bottom-space
+                        :error="Boolean(formErrors?.conditions?.[index]?.expression)"
+                        :error-message="formErrors?.conditions?.[index]?.expression"
                         class="q-space q-ma-xs"
                         style="min-width:10em;"
                       />
@@ -110,6 +151,8 @@
                         bottom-slots
                         @new-value="(inputValue, done) => done(inputValue)"
                         @filter="categoriesFilter"
+                        :error="Boolean(formErrors?.conditions?.[index]?.value)"
+                        :error-message="formErrors?.conditions?.[index]?.value"
                         class="q-space q-ma-xs"
                       >
                         <template v-slot:before-options="props">
@@ -125,6 +168,8 @@
                         v-model.number="condition.value"
                         :suffix="marketplaceStore?.currency"
                         bottom-slots
+                        :error="Boolean(formErrors?.conditions?.[index]?.value)"
+                        :error-message="formErrors?.conditions?.[index]?.value"
                         class="q-space q-ma-xs"
                       />
                       <q-input
@@ -136,6 +181,8 @@
                         mask="####-##-##"
                         v-model="condition.value"
                         bottom-slots
+                        :error="Boolean(formErrors?.conditions?.[index]?.value)"
+                        :error-message="formErrors?.conditions?.[index]?.value"
                         class="q-space q-ma-xs"
                       >
                         <template v-slot:append>
@@ -157,6 +204,8 @@
                         :disable="loading"
                         v-model="condition.value"
                         bottom-slots
+                        :error="Boolean(formErrors?.conditions?.[index]?.value)"
+                        :error-message="formErrors?.conditions?.[index]?.value"
                         class="q-space q-ma-xs"
                       />
                     </div>
@@ -272,6 +321,7 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { CollectionCondition, Product } from 'src/marketplace/objects'
+import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { defineComponent, onMounted, ref, watch } from 'vue'
@@ -350,6 +400,29 @@ export default defineComponent({
         })
     }
 
+    const formErrors = ref({
+      detail: [],
+      name: '',
+      auto: '',
+      conditionsOperand: '',
+      conditions: [0].map(() => {
+        return {
+          detail: [],
+          field: '',
+          expression: '',
+          value: '',
+        }
+      })
+    })
+
+    function clearFormErrors() {
+      formErrors.value.detail = []
+      formErrors.value.name = ''
+      formErrors.value.auto = ''
+      formErrors.value.conditionsOperand = ''
+      formErrors.value.conditions = []
+    }
+
     function createCollection() {
       const data = {
         storefront_id: marketplaceStore.storefrontData.id,
@@ -375,10 +448,40 @@ export default defineComponent({
 
       loading.value = true
       return backend.post(`connecta/collections/`, data)
+        .finally(() => clearFormErrors())
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
           onDialogOK(response?.data)
           return response
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          if (!data) {
+            formErrors.value.detail = ['Encountered errors in creating collection']
+            return
+          }
+
+          formErrors.value.detail = errorParser.toArray(data?.non_field_errors)
+          formErrors.value.name = errorParser.firstElementOrValue(data?.name)
+          formErrors.value.auto = errorParser.firstElementOrValue(data?.auto)
+          formErrors.value.conditionsOperand = errorParser.firstElementOrValue(data?.conditions_operand)
+          if (Array.isArray(data?.conditions)) {
+            data?.conditions.forEach((conditionError, index) => {
+              formErrors.value.conditions[index] = {
+                detail: errorParser.toArray(conditionError?.non_field_errors),
+                field: errorParser.firstElementOrValue(conditionError?.field),
+                expression: errorParser.firstElementOrValue(conditionError?.expression),
+                value: errorParser.firstElementOrValue(conditionError?.value),
+              } 
+            })
+          }
+
+          if (Array.isArray(data)) formErrors.value.detail = data
+          if (data?.detail) formErrors.value.detail = [data?.detail]
+
+          if (!formErrors.value.detail?.length) {
+            formErrors.value.detail = ['Encountered errors in creating collection']
+          }
         })
         .finally(() => {
           loading.value = false
@@ -396,6 +499,8 @@ export default defineComponent({
 
       categoriesOpts,
       categoriesFilter,
+
+      formErrors,
 
       createCollection,
     }
