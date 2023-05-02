@@ -130,6 +130,7 @@ export default defineComponent({
         s: filterOpts.value?.search || undefined,
         auto: typeof filterOpts.value.auto === 'boolean' ? filterOpts.value.auto : undefined,
       }
+      fetchingCollections.value = true
       return backend.get(`connecta/collections/`, { params })
         .then(response => {
           if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
@@ -138,6 +139,9 @@ export default defineComponent({
           collectionsPagination.value.offset = response?.data?.offset
           collectionsPagination.value.count = response?.data?.count
           return response
+        })
+        .finally(() => {
+          fetchingCollections.value = false
         })
     }
 

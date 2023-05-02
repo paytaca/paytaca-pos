@@ -1108,6 +1108,9 @@ export class Collection {
 
   constructor(data) {
     this.raw = data
+    this.$state = {
+      updating: false,
+    }
   }
 
   get raw() {
@@ -1142,5 +1145,19 @@ export class Collection {
 
   updateData(data) {
     this.raw = data
+  }
+
+  async refetch() {
+    if (!this.id) return
+    this.$state.updating = true
+    return backend.get(`products/${this.id}/`, { params })
+      .then(response => {
+        if (!response?.data?.id) return Promise.reject({ response })
+        this.raw = response.data
+        return response
+      })
+      .finally(() => {
+        this.$state.updating = false
+      })
   }
 }

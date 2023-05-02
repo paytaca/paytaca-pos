@@ -22,9 +22,12 @@
       </div>
       <q-card class="q-mb-md" style="position:relative;" v-ripple @click="() => openEditForm()">
         <q-card-section>
-          <q-icon name="edit" style="float:right;" size="1.5em"/>
-          <div class="text-h5">{{ collection?.name }}</div>
-          <div>
+          <q-icon v-if="collection?.id" name="edit" style="float:right;" size="1.5em"/>
+          <div class="text-h5">
+            {{ collection?.name }}
+            <q-spinner v-if="fetchingCollection || collection?.$state?.updating"/>
+          </div>
+          <div v-if="typeof collection?.auto === 'boolean'">
             <div>
               <template v-if="collection?.auto">Auto</template>
               <template v-else>Manual</template>
@@ -87,6 +90,7 @@
               <template v-if="productsPagination?.count && !isNaN(productsPagination?.count)">
                 ({{ productsPagination?.count }})
               </template>
+              <q-spinner v-if="fetchingProducts"/>
             </div>
             <q-space/>
             <LimitOffsetPagination
@@ -226,6 +230,7 @@ export default defineComponent({
     }
 
     const products = ref([].map(Product.parse))
+    const fetchingProducts = ref(false)
     const productsPagination = ref({ count: 0, limit: 0, offset: 0 })
     function fetchProducts(opts={ limit: 0, offset: 0 }) {
       const params = {
@@ -233,6 +238,7 @@ export default defineComponent({
         limit: opts?.limit || 10,
         offset: opts?.offset || undefined,
       }
+      fetchingProducts.value = true
       return backend.get(`products/info/`, { params })
         .then(response => {
           if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
@@ -241,6 +247,9 @@ export default defineComponent({
           productsPagination.value.offset = response?.data?.offset
           productsPagination.value.count = response?.data?.count
           return response
+        })
+        .finally(() => {
+          fetchingProducts.value = false
         })
     }
 
@@ -278,11 +287,13 @@ export default defineComponent({
       CollectionCondition,
       marketplaceStore,
       collection,
+      fetchingCollection,
       fetchCollection,
 
       confirmDeleteCollection,
 
       products,
+      fetchingProducts,
       productsPagination,
       fetchProducts,
 

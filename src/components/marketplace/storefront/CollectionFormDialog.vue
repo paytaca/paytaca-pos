@@ -335,9 +335,9 @@ export default defineComponent({
       if (!props?.collection?.id) return
       try {
         loading.value = true
-        if (!props.collection.auto) await syncCollectionProducts()
         formData.value.name = props.collection.name
         formData.value.auto = props.collection.auto
+        if (!props.collection.auto) await syncCollectionProducts()
         formData.value.conditionsOperand = props.collection.conditionsOperand
         formData.value.conditions = props.collection.conditions.map(condition => {
           const conditionData = createConditionRow()
