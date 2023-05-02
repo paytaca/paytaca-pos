@@ -14,7 +14,7 @@
         <div class="row items-end q-mb-md">
           <q-input
             dense
-            model-value=""
+            v-model="filterOpts.search"
             placeholder="Name"
             debounce="500"
           >
@@ -66,7 +66,7 @@ import { Collection } from 'src/marketplace/objects'
 import { backend } from 'src/marketplace/backend'
 import { formatTimestampToText } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
-import { defineComponent, onMounted, ref } from 'vue'
+import { defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import CollectionCreateFormDialog from 'src/components/marketplace/storefront/CollectionCreateFormDialog.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
@@ -80,6 +80,12 @@ export default defineComponent({
   setup() {
     const $q = useQuasar()
 
+    const filterOpts = ref({
+      search: '',
+      auto: null,
+    })
+    watch(filterOpts, () => fetchCollections(), { deep: true })
+
     const collections = ref([].map(Collection.parse))
     const fetchingCollections = ref(false)
     const collectionsPagination = ref({ count: 0, limit: 0, offset: 0 })
@@ -88,6 +94,8 @@ export default defineComponent({
       const params = {
         limit: opts?.limit || 10,
         offset: opts?.offset || 0,
+        s: filterOpts.value?.search || undefined,
+        auto: typeof filterOpts.value.auto === 'boolean' ? filterOpts.value.auto : undefined,
       }
       return backend.get(`connecta/collections/`, { params })
         .then(response => {
@@ -122,6 +130,7 @@ export default defineComponent({
     }
 
     return {
+      filterOpts,
       collections,
       fetchingCollections,
       fetchCollections,
