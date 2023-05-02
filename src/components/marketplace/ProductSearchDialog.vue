@@ -50,7 +50,7 @@
           clickable
           v-ripple
           :disable="loading"
-          @click="() => updateStockSearchList({append: true })"
+          @click="() => updateProductSearchList({append: true })"
         >
           <q-item-section class="text-center">
             <q-item-label :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'">

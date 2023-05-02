@@ -222,58 +222,6 @@
               </div>
             </div>
           </q-slide-transition>
-          <!-- <q-slide-transition>
-            <div v-if="formData.auto" class="q-mb-md">
-              <div class="text-subtitle1">Conditions</div>
-              <div>Categories</div>
-              <q-select
-                dense
-                outlined
-                :disable="loading"
-                multiple
-                use-chips
-                use-input
-                new-value-mode="add-unique"
-                behavior="menu"
-                :options="categoriesOpts"
-                v-model="formData.categories"
-                bottom-slots
-                @new-value="(inputValue, done) => done(inputValue)"
-                @filter="categoriesFilter"
-              >
-                <template v-slot:before-options="props">
-                  {{ props }}
-                </template>
-              </q-select>
-
-              <div class="row no-wrap q-gutter-xs">
-                <div class="q-space">
-                  <div>Price greater than</div>
-                  <q-input
-                    dense
-                    outlined
-                    :disable="loading"
-                    :suffix="marketplaceStore.currency"
-                    type="number"
-                    v-model.number="formData.priceGreaterThan"
-                    bottom-slots
-                  />
-                </div>
-                <div class="q-space">
-                  <div>Price less than</div>
-                  <q-input
-                    dense
-                    outlined
-                    :disable="loading"
-                    :suffix="marketplaceStore.currency"
-                    type="number"
-                    v-model.number="formData.priceLessThan"
-                    bottom-slots
-                  />
-                </div>
-              </div>
-            </div>
-          </q-slide-transition> -->
           <q-slide-transition>
             <div v-if="!formData.auto" class="q-mb-md">
               <div class="text-subtitle1">Products</div>
@@ -308,7 +256,7 @@
             no-caps
             :disable="loading"
             :loading="loading"
-            label="Create Collection"
+            :label="collection?.id ? 'Update Collection' : 'Create Collection'"
             type="submit"
             color="brandblue"
             class="full-width"
@@ -320,7 +268,7 @@
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
-import { CollectionCondition, Product } from 'src/marketplace/objects'
+import { Collection, CollectionCondition, Product } from 'src/marketplace/objects'
 import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
@@ -328,12 +276,13 @@ import { defineComponent, onMounted, ref, watch } from 'vue'
 import ProductSearchPanel from '../ProductSearchPanel.vue'
 
 export default defineComponent({
-  name: 'CollectionCreateFormDialog',
+  name: 'CollectionFormDialog',
   components: {
     ProductSearchPanel,
   },
   props: {
     modelValue: Boolean,
+    collection: Collection,
   },
   emits: [
     'update:modelValue',
@@ -352,7 +301,7 @@ export default defineComponent({
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
     let conditionRowCtr = 0
-    function addConditionRow(opts = {setDefaults: false }) {
+    function createConditionRow(opts = {setDefaults: false }) {
       const field = opts?.setDefaults ? CollectionCondition.fieldOpts?.[0]?.value : ''
       const data = {
         _index: conditionRowCtr++,
@@ -361,8 +310,11 @@ export default defineComponent({
         value: null,
       }
 
-      formData.value.conditions.push(data)
       return data
+    }
+    function addConditionRow(opts ={setDefaults: false}) {
+      const data = createConditionRow(opts)
+      formData.value.conditions.push(data)
     }
 
     onMounted(() => addConditionRow({ setDefaults: true }))
@@ -376,6 +328,36 @@ export default defineComponent({
 
       products: [].map(Product.parse),
     })
+
+    onMounted(() => syncCollection())
+    watch(() => [props?.collection?.id], () => syncCollection())
+    async function syncCollection() {
+      if (!props?.collection?.id) return
+      try {
+        loading.value = true
+        if (!props.collection.auto) await syncCollectionProducts()
+        formData.value.name = props.collection.name
+        formData.value.auto = props.collection.auto
+        formData.value.conditionsOperand = props.collection.conditionsOperand
+        formData.value.conditions = props.collection.conditions.map(condition => {
+          const conditionData = createConditionRow()
+          conditionData.field = condition.field
+          conditionData.expression = condition.expression
+          conditionData.value = condition.value
+          return conditionData
+        })
+      } finally {
+        loading.value = false
+      }
+    }
+
+    async function syncCollectionProducts() {
+      if (!props.collection?.id) return Promise.reject()
+      const params = { collection_id: props.collection?.id }
+      const response = await backend.get(`products/`, { params })
+      if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+      formData.value.products = response?.data?.results.map(Product.parse)
+    }
 
     const categoriesOpts = ref([].map(String))
     function categoriesFilter(val, done) {
@@ -429,8 +411,8 @@ export default defineComponent({
         name: formData.value.name,
         auto: formData.value.auto,
         conditions_operand: undefined,
-        product_ids: undefined,
-        conditions: undefined,
+        product_ids: [],
+        conditions: [],
       }
 
       if (data?.auto) {
@@ -447,10 +429,15 @@ export default defineComponent({
       }
 
       loading.value = true
-      return backend.post(`connecta/collections/`, data)
+      const request = props.collection?.id
+        ? backend.patch(`connecta/collections/${props.collection.id}/`, data)
+        : backend.post(`connecta/collections/`, data)
+
+      return request
         .finally(() => clearFormErrors())
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
+          if (props?.collection?.id == response?.data?.id) props.collection.updateData(response?.data)
           onDialogOK(response?.data)
           return response
         })

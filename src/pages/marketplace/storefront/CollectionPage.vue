@@ -10,8 +10,7 @@
           </div>
         </template>
       </MarketplaceHeader>
-      <div v-if="collection?.id" class="row items-center justify-end q-mb-sm">
-        <q-btn @click="() => $q.dark.toggle()"/>
+      <div v-if="collection?.id" class="row items-center justify-end q-mb-sm q-gutter-sm">
         <q-btn
           :outline="$q.dark.isActive"
           no-caps label="Delete"
@@ -21,8 +20,9 @@
           @click="() => confirmDeleteCollection()"
         />
       </div>
-      <q-card class="q-mb-md">
+      <q-card class="q-mb-md" style="position:relative;" v-ripple @click="() => openEditForm()">
         <q-card-section>
+          <q-icon name="edit" style="float:right;" size="1.5em"/>
           <div class="text-h5">{{ collection?.name }}</div>
           <div>
             <div>
@@ -117,7 +117,12 @@
               />
             </q-item-section>
             <q-item-section top>
-              <q-item-label>{{ product?.name }}</q-item-label>
+              <q-item-label>
+                {{ product?.name }}
+                <template v-if="product?.hasVariants">
+                  ({{ product?.variants?.length || product?.variantsCount }} variants)
+                </template>
+              </q-item-label>
               <q-item-label class="text-caption">#{{ product?.id }}</q-item-label>
             </q-item-section>
             <q-item-section v-if="!isNaN(product?.totalStocks) && product?.totalStocks !== null" avatar top>
@@ -145,6 +150,7 @@ import { defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import ProductInventoryDialog from 'src/components/marketplace/inventory/ProductInventoryDialog.vue';
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
+import CollectionFormDialog from 'src/components/marketplace/storefront/CollectionFormDialog.vue'
 
 export default defineComponent({
   name: 'CollectionPage',
@@ -248,6 +254,15 @@ export default defineComponent({
       productDetailDialog.value.show = true
     }
 
+    function openEditForm() {
+      $q.dialog({
+        component: CollectionFormDialog,
+        componentProps: {
+          collection: collection.value
+        }
+      }).onOk(() => fetchProducts())
+    }
+
     async function refreshPage(done) {
       try {
         await Promise.all([
@@ -273,6 +288,8 @@ export default defineComponent({
 
       productDetailDialog,
       viewProductDetail,
+
+      openEditForm,
 
       refreshPage,
 

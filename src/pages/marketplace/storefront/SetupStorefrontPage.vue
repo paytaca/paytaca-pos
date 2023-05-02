@@ -216,7 +216,7 @@ export default defineComponent({
 
           marketplaceStore.setStorefrontData(response?.data)
           $q.dialog({
-            title: 'Storefront created',
+            title: marketplaceStore?.storefrontData?.id ? 'Storefront updated' : 'Storefront created',
             ok: { color: 'brandblue' },
           }).onDismiss(() => $router.go(-1))
 

@@ -1139,4 +1139,8 @@ export class Collection {
 
     if (data?.created_by) this.createdBy = User.parse(data?.created_by)
   }
+
+  updateData(data) {
+    this.raw = data
+  }
 }

@@ -68,7 +68,7 @@ import { formatTimestampToText } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
-import CollectionCreateFormDialog from 'src/components/marketplace/storefront/CollectionCreateFormDialog.vue'
+import CollectionFormDialog from 'src/components/marketplace/storefront/CollectionFormDialog.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 
 export default defineComponent({
@@ -117,7 +117,7 @@ export default defineComponent({
 
     function openCreateCollectionDialog() {
       $q.dialog({
-        component: CollectionCreateFormDialog,
+        component: CollectionFormDialog,
       }).onOk(() => fetchCollections())
     }
 

@@ -51,6 +51,21 @@
         <div v-else class="q-pa-md text-grey text-center">
           No data
         </div>
+
+        <q-item
+          v-if="pagination?.count > productOpts?.length"
+          clickable
+          v-ripple
+          :disable="loading"
+          @click="() => updateProductSearchList({append: true })"
+        >
+          <q-item-section class="text-center">
+            <q-item-label :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'">
+              Show more
+              <q-spinner v-if="loading"/>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
       </slot>
     </q-list>
   </div>
@@ -87,7 +102,7 @@ export default defineComponent({
     onMounted(() => updateProductSearchList())
     function updateProductSearchList(opts={append: false}) {
       const params = Object.assign({}, {
-        // limit: 5,
+        limit: 5,
         offset: undefined,
         s: searchVal.value,
         shop_id: marketplaceStore.activeShopId || null,
