@@ -18,8 +18,8 @@ export const useMarketplaceStore = defineStore('marketplace', {
       },
       fetchingMerchant: false,
       merchant: {
-        id: 1,
-        name: 'Dummy Data',
+        id: 0,
+        name: '',
         paytacaWalletHash: '',
         currency: { code: '', symbol: '' },
       },
@@ -44,6 +44,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
       storefrontData: {
         id: 0,
         shop_id: 0,
+        image_url: '',
         name: '',
         auto_subscribe_products: false,
       },
@@ -260,6 +261,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
     /**
      * @param {Object} data 
      * @param {Number} data.id
+     * @param {String} data.image_url
      * @param {Number} data.shop_id
      * @param {String} data.name
      * @param {Boolean} data.auto_subscribe_products
@@ -267,6 +269,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
     setStorefrontData(data) {
       this.storefrontData = {
         id: data?.id,
+        image_url: data?.image_url,
         shop_id: data?.shop_id,
         name: data?.name,
         auto_subscribe_products: data?.auto_subscribe_products,
