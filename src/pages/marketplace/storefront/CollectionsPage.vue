@@ -90,6 +90,19 @@
             />
           </div>
         </template>
+        <template v-slot:body-cell-name="props">
+          <q-td :props="props">
+            <div class="row items-center no-wrap q-gutter-xs">
+              <img
+                v-if="props.row?.imageUrl"
+                :src="props.row?.imageUrl"
+                width="50"
+                class="rounded-borders"
+              />
+              <div>{{ props.row?.name }}</div>
+            </div>
+          </q-td>
+        </template>
       </q-table>
     </q-pull-to-refresh>
   </q-page>
@@ -149,7 +162,7 @@ export default defineComponent({
     }
 
     const collectionsTableColumns = [
-      { name: 'name', align: 'center', label: 'Name', field: 'name', classes: 'text-weight-medium' },
+      { name: 'name', align: 'left', label: 'Name', field: 'name', classes: 'text-weight-medium' },
       { name: 'auto', align: 'center', label: 'Type', field: 'auto', format: val => val ? 'Auto' : 'Manual' },
       { name: 'count', align: 'center', label: 'Products', field: 'productsCount' },
       { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText },

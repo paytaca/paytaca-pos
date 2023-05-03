@@ -15,6 +15,7 @@
               <li v-for="(err, index) in formErrors?.detail" :key="index">{{err}}</li>
             </ul>
           </q-banner>
+          <UploadImageField v-model="formData.imageUrl" :loading="loading" :disable="loading"/>
           <div>Name</div>
           <q-input
             dense
@@ -274,11 +275,13 @@ import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import ProductSearchPanel from '../ProductSearchPanel.vue'
+import UploadImageField from '../UploadImageField.vue'
 
 export default defineComponent({
   name: 'CollectionFormDialog',
   components: {
     ProductSearchPanel,
+    UploadImageField,
   },
   props: {
     modelValue: Boolean,
@@ -320,6 +323,7 @@ export default defineComponent({
     onMounted(() => addConditionRow({ setDefaults: true }))
     const loading = ref(false)
     const formData = ref({
+      imageUrl: null,
       name: '',
       auto: true,
 
@@ -335,6 +339,7 @@ export default defineComponent({
       if (!props?.collection?.id) return
       try {
         loading.value = true
+        formData.value.imageUrl = props.collection.imageUrl
         formData.value.name = props.collection.name
         formData.value.auto = props.collection.auto
         if (!props.collection.auto) await syncCollectionProducts()
@@ -384,6 +389,7 @@ export default defineComponent({
 
     const formErrors = ref({
       detail: [],
+      imageUrl: '',
       name: '',
       auto: '',
       conditionsOperand: '',
@@ -408,6 +414,7 @@ export default defineComponent({
     function createCollection() {
       const data = {
         storefront_id: marketplaceStore.storefrontData.id,
+        image_url: formData.value.imageUrl,
         name: formData.value.name,
         auto: formData.value.auto,
         conditions_operand: undefined,
@@ -449,6 +456,7 @@ export default defineComponent({
           }
 
           formErrors.value.detail = errorParser.toArray(data?.non_field_errors)
+          formErrors.value.imageUrl = errorParser.firstElementOrValue(data?.image_url)
           formErrors.value.name = errorParser.firstElementOrValue(data?.name)
           formErrors.value.auto = errorParser.firstElementOrValue(data?.auto)
           formErrors.value.conditionsOperand = errorParser.firstElementOrValue(data?.conditions_operand)

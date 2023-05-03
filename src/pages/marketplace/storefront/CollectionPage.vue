@@ -27,6 +27,13 @@
             {{ collection?.name }}
             <q-spinner v-if="fetchingCollection || collection?.$state?.updating"/>
           </div>
+          <div v-if="collection?.imageUrl" class="row items-center justify-center full-width">
+            <img
+              :src="collection?.imageUrl"
+              class="rounded-borders"
+              style="max-height:250px;"
+            />
+          </div>
           <div v-if="typeof collection?.auto === 'boolean'">
             <div>
               <template v-if="collection?.auto">Auto</template>

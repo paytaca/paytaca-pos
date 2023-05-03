@@ -1120,6 +1120,7 @@ export class Collection {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {String} data.image_url
    * @param {Number} data.name
    * @param {Boolean} data.auto
    * @param {Object[]} data.conditions
@@ -1131,6 +1132,7 @@ export class Collection {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data }) 
     this.id = data?.id
+    this.imageUrl = data?.image_url
     this.name = data?.name
     this.auto = data?.auto
     if (Array.isArray(data?.conditions)) this.conditions = data?.conditions.map(CollectionCondition.parse)
