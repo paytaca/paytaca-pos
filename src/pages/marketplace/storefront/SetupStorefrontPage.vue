@@ -26,6 +26,7 @@
     </q-banner>
     <q-card class="q-mb-md">
       <q-card-section class="q-gutter-y-sm">
+        <UploadImageField v-model="formData.imageUrl" :loading="loading" :disable="loading"/>
         <div>
           <div>Name</div>
           <q-input
@@ -108,7 +109,7 @@
     <div>
       <q-btn
         no-caps
-        label="Create storefront"
+        :label="marketplaceStore?.storefrontData?.id ? 'Update storefront' : 'Create storefront'"
         color="brandblue"
         class="full-width"
         @click="() => createStorefront()"
@@ -125,11 +126,13 @@ import { debounce, useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
+import UploadImageField from 'src/components/marketplace/UploadImageField.vue'
 
 export default defineComponent({
   name: 'SetupStorefronPage.vue',
   components: {
     MarketplaceHeader,
+    UploadImageField,
   },
   setup() {
     const $q = useQuasar()
@@ -138,6 +141,7 @@ export default defineComponent({
 
     const loading = ref(false)
     const formData = ref({
+      imageUrl: marketplaceStore?.storefrontData?.image_url,
       name: marketplaceStore?.storefrontData?.name,
       autoSubscribeProducts: Boolean(marketplaceStore?.storefrontData?.auto_subscribe_products),
       subscribeProducts: [].map(Product.parse)
@@ -202,6 +206,7 @@ export default defineComponent({
     function createStorefront() {
       const data = {
         shop_id: marketplaceStore.activeShopId,
+        image_url: formData.value.imageUrl,
         name: formData.value.name || undefined,
         auto_subscribe_products: formData.value.autoSubscribeProducts,
         subscribe_product_ids: formData.value.subscribeProducts.map(product => product?.id),
