@@ -18,7 +18,7 @@ export function formatTimestampToText(timestamp) {
 }
 
 /** 
- * @param {'shop_admin' | 'inventory_control_manager' | 'cashier' } value
+ * @param {'shop_admin' | 'inventory_control_manager' | 'cashier' | 'storefront_staff' } value
  */
 export function formatRole(value) {
   switch(value) {
@@ -28,6 +28,8 @@ export function formatRole(value) {
       return 'Inventory'
     case 'cashier':
       return 'Cashier'
+    case 'storefront_staff':
+      return 'Storefront'
     default:
       if (typeof value === 'string') return capitalize(value).replaceAll('_', ' ')
   }

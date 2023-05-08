@@ -4,6 +4,7 @@ export const ROLES = Object.freeze({
   admin: 'shop_admin',
   inventory: 'inventory_control_manager',
   cashier: 'cashier',
+  storefront: 'storefront_staff',
 })
 
 export class Location {
