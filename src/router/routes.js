@@ -55,6 +55,8 @@ const routes = [
           { path: 'products', component: () => import('src/pages/marketplace/storefront/StorefrontProducts.vue'), name: 'marketplace-storefront-products', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'collections', component: () => import('src/pages/marketplace/storefront/CollectionsPage.vue'), name: 'marketplace-storefront-collections', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'collections/:collectionId', component: () => import('src/pages/marketplace/storefront/CollectionPage.vue'), name: 'marketplace-storefront-collection', props: route => Object.assign({}, route?.query, route?.params)},
+          { path: 'orders', component: () => import('src/pages/marketplace/storefront/OrdersPage.vue'), name: 'marketplace-storefront-orders', props: route => Object.assign({}, route?.query, route?.params)},
+          { path: 'orders/:orderId', component: () => import('src/pages/marketplace/storefront/OrderPage.vue'), name: 'marketplace-storefront-order', props: route => Object.assign({}, route?.query, route?.params)},
         ]
       },
       {

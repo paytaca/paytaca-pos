@@ -1,4 +1,5 @@
 import { backend } from "./backend"
+import { formatOrderStatus, parseOrderStatusColor } from './utils'
 
 export const ROLES = Object.freeze({
   admin: 'shop_admin',
@@ -1161,6 +1162,214 @@ export class Collection {
       })
       .finally(() => {
         this.$state.updating = false
+      })
+  }
+}
+
+
+export class BchPrice {
+  static parse(data) {
+    return new BchPrice(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {{ code:String, symbol: String }} data.currency
+   * @param {Number} data.price
+   * @param {String | Number} data.timestamp
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
+    this.price = data?.price
+    if (data?.timestamp) this.timestamp = new Date(data?.timestamp)
+    else if (this.timestamp) delete this.timestamp
+  }
+}
+
+
+export class DeliveryAddress {
+  static parse(data) {
+    return new DeliveryAddress(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.first_name
+   * @param {String} data.last_name
+   * @param {String} data.phone_number
+   * @param {Object} data.location
+   * @param {Number} [data.distance]
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.firstName = data?.first_name
+    this.lastName = data?.last_name
+    this.phoneNumber = data?.phone_number
+    this.location = Location.parse(data?.location)
+    this.distance = data?.distance
+  }
+}
+
+
+export class Customer {
+  static parse(data) {
+    return new Customer(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  } 
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.ref
+   * @param {String} data.first_name
+   * @param {String} data.last_name
+   * @param {String} data.phone_number
+   * @param {Object} data.default_location
+   * @param {{wallet_hash:String, verifying_pubkey:String, verifying_pubkey_index:Number}} data.paytaca_wallet
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.ref = data?.ref
+    this.firstName = data?.first_name
+    this.lastName = data?.last_name
+    this.phoneNumber = data?.phone_number
+    if (data?.default_location) this.defaultLocation = Location.parse(data?.default_location)
+    if (data?.paytaca_wallet) this.paytacaWallet = {
+      walletHash: data?.paytaca_wallet?.wallet_hash,
+      verifyingPubkey: data?.paytaca_wallet?.verifying_pubkey,
+      verifyingPubkeyIndex: data?.paytaca_wallet?.verifying_pubkey_index,
+    }
+  }
+}
+
+
+export class OrderItem {
+  static parse(data) {
+    return new OrderItem(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Object} data.variant
+   * @param {Number} data.item_name
+   * @param {Number} data.quantity
+   * @param {Number} data.price
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.variant = Variant.parse(data?.variant)
+    this.itemName = data?.item_name
+    this.quantity = data?.quantity
+    this.price = data?.price
+  }
+}
+
+
+export class Order {
+  static parse(data) {
+    return new Order(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Number} data.checkout_id
+   * @param {Number} data.storefront_id
+   * @param {String} data.status
+   * @param {{ code:String, symbol:String }} data.currency
+   * @param {Object} data.bch_price
+   * @param {Object} [data.customer]
+   * @param {Object} data.delivery_address
+   * @param {Object[]} data.items
+   * @param {Number} data.subtotal
+   * @param {{ delivery_fee:Number }} data.payment
+   * @param {String | Number} data.created_at
+   * @param {String | Number} data.updated_at
+  */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.checkoutId = data?.checkout_id
+    this.storefrontId = data?.storefront_id
+    this.status = data?.status
+    this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
+    this.bchPrice = BchPrice.parse(data?.bch_price)
+    if (data?.customer) this.customer = Customer.parse(data?.customer)
+    this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
+    this.items = data?.items?.map?.(OrderItem.parse)
+    this.subtotal = data?.subtotal
+    this.payment = {
+      deliveryFee: data?.payment?.delivery_fee,
+    }
+
+    if (data?.created_at) this.createdAt = new Date(data?.created_at)
+    else if (this.createdAt) delete this.createdAt
+
+    if (data?.updated_at) this.updatedAt = new Date(data?.updated_at)
+    else if (this.updatedAt) delete this.updatedAt
+  }
+
+  get formattedStatus() {
+    return formatOrderStatus(this.status)
+  }
+
+  get statusColor() {
+    return parseOrderStatusColor(this.status)
+  }
+
+  async fetchStorefront() {
+    if (!this.storefrontId) return Promise.reject('No storefront id')
+
+    return backend.get(`connecta/storefronts/${this.storefrontId}/`)
+      .then(response => {
+        if (!response?.data?.id) return Promise.reject({ response })
+        this.storefront = Storefront.parse(response?.data)
+        return response
       })
   }
 }
