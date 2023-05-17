@@ -13,9 +13,51 @@
 
       <div class="row items-center q-mb-md">
         <div class="text-h5 q-space">Order #{{ order?.id }}</div>
-        <q-chip :color="parseOrderStatusColor(order?.status)" class="text-weight-medium">
-          {{ formatOrderStatus(order?.status) }}
-        </q-chip>
+        <div>
+          <q-chip :color="parseOrderStatusColor(order?.status)" class="text-weight-medium">
+            {{ formatOrderStatus(order?.status) }}
+          </q-chip>
+          <q-btn flat icon="more_vert" padding="xs">
+            <q-menu>
+              <q-item
+                v-if="prevStatus"
+                v-close-popup clickable
+                @click="() => updateStatus({ status: prevStatus, errorMessage:'Unable to revert status'})"
+              >
+                <q-item-section>
+                  <q-item-label class="text-no-wrap">
+                    <template v-if="prevStatus === 'pending'">Unconfirm order</template>
+                    <template v-else-if="prevStatus === 'confirmed'">Revert to confirmed</template>
+                    <template v-else-if="prevStatus === 'preparing'">Revert as preparing</template>
+                    <template v-else>Revert to '{{ formatOrderStatus(prevStatus) }}'</template>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-close-popup clickable
+                @click="() => confirmCancelOrder()"
+              >
+                <q-item-section>
+                  <q-item-label class="text-no-wrap">Cancel Order</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-menu>
+          </q-btn>
+        </div>
+        <div v-if="order?.createdAt" class="text-caption text-grey bottom col-12">
+          {{ formatTimestampToText(order?.createdAt) }}
+        </div>
+      </div>
+      
+      <div class="row items-center q-gutter-sm q-mb-md">
+        <q-btn
+          v-if="nextStatus"
+          no-caps
+          :label="formatOrderStatus(nextStatus)"
+          :color="parseOrderStatusColor(nextStatus)"
+          class="q-space"
+          @click="() => updateStatus({ status: nextStatus, errorMessage:'Unable to update order' })"
+        />
       </div>
       <q-card class="q-mb-md">
         <q-card-section class="q-pt-sm">
@@ -92,10 +134,12 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { Order, Variant } from 'src/marketplace/objects'
-import { formatOrderStatus, parseOrderStatusColor } from 'src/marketplace/utils'
+import { errorParser, formatOrderStatus, parseOrderStatusColor, formatTimestampToText } from 'src/marketplace/utils'
+import { useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoDialog.vue'
+import CancelReasonFormDailog from 'src/components/marketplace/storefront/CancelReasonFormDailog.vue'
 
 export default defineComponent({
   name: 'OrderPage',
@@ -107,6 +151,7 @@ export default defineComponent({
     orderId: [String, Number]
   },
   setup(props) {
+    const $q = useQuasar()
     onMounted(() => refreshPage())
     const order = ref(Order.parse())
     function fetchOrder() {
@@ -126,6 +171,7 @@ export default defineComponent({
         total: { currency: 0, bch: 0 },
       }
       data.total.currency = Number(data.subtotal.currency) + Number(data.deliveryFee.currency)
+      data.total.currency = Math.round(data.total.currency * 10 ** 3) / 10 ** 3
 
       if(!isNaN(orderBchPrice.value)) {
         data.subtotal.bch = parseBch(data.subtotal.currency / orderBchPrice.value)
@@ -149,6 +195,53 @@ export default defineComponent({
       displayBch.value = !displayBch.value
     }
 
+    const orderStatusSequence = [
+      'pending', 'confirmed', 'preparing', 'ready_for_pickup',
+    ]
+    const nextStatus = computed(() => {
+      const index = orderStatusSequence.indexOf(order.value?.status)
+      return orderStatusSequence[index+1]
+    })
+    const prevStatus = computed(() => {
+      const index = orderStatusSequence.indexOf(order.value?.status)
+      return orderStatusSequence[index-1]
+    })
+
+    function updateStatus(opts={ status: '', errorMessage: '', cancelReason: '' }) {
+      const data = { status: opts?.status, cancel_reason: opts?.cancelReason || undefined }
+      return backend.post(`connecta/orders/${order.value.id}/update_status/`, data)
+        .then(response => {
+          order.value.raw = response?.data
+        })
+        .catch(error => {
+          $q.notify({
+            type: 'negative',
+            message: opts?.errorMessage || 'Unable to update status',
+            caption: error?.response?.data?.detail ||
+                    errorParser.firstElementOrValue(error?.response?.data),
+          })
+        })
+    }
+
+    function confirmCancelOrder() {
+      $q.dialog({
+        title: 'Cancel order',
+        message: 'Cancel order, are you sure?',
+        ok: { color: 'brandblue', flat: true },
+      }).onOk(() => cancelOrder())
+    }
+
+    function cancelOrder() {
+      $q.dialog({
+        component: CancelReasonFormDailog,
+      }).onOk(cancelReason => {
+        updateStatus({
+          status: 'cancelled',
+          errorMessage: 'Unable to cancel order',
+          cancelReason: cancelReason,
+        })
+      })
+    }
 
     const variantInfoDIalog = ref({ show: false, variant: Variant.parse() })
     function displayVariant(variant = Variant.parse()) {
@@ -170,9 +263,13 @@ export default defineComponent({
       orderCurrency,
       orderBchPrice,
       orderAmounts,
-
       displayBch,
       toggleAmountsDisplay,
+      nextStatus,
+      prevStatus,
+
+      updateStatus,
+      confirmCancelOrder,
 
       variantInfoDIalog,
       displayVariant,
@@ -181,6 +278,7 @@ export default defineComponent({
 
       // utils funcs
       formatOrderStatus, parseOrderStatusColor,
+      formatTimestampToText,
     }
   },
 })
