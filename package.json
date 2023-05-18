@@ -20,6 +20,7 @@
     "apexcharts": "^3.37.3",
     "capacitor-secure-storage-plugin": "^0.7.1",
     "core-js": "^3.6.5",
+    "leaflet": "^1.9.2",
     "ping.js": "^0.3.0",
     "pinia": "^2.0.22",
     "pinia-plugin-persistedstate-2": "^2.0.1",

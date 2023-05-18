@@ -69,7 +69,17 @@
             {{ order?.deliveryAddress?.lastName }}
           </div>
           <div>{{ order?.deliveryAddress?.phoneNumber }}</div>
-          <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
+          <div @click="() => displayDeliveryAddressLocation()">
+            <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
+            <q-btn
+              v-if="order?.deliveryAddress?.location?.validCoordinates"
+              flat
+              padding="none"
+              no-caps
+              label="View location"
+              class="text-underline"
+            />
+          </div>
         </q-card-section>
       </q-card>
 
@@ -138,6 +148,7 @@ import { errorParser, formatOrderStatus, parseOrderStatusColor, formatTimestampT
 import { useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
+import PinLocationDialog from 'src/components/marketplace/PinLocationDialog.vue'
 import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoDialog.vue'
 import CancelReasonFormDailog from 'src/components/marketplace/storefront/CancelReasonFormDailog.vue'
 
@@ -193,6 +204,20 @@ export default defineComponent({
         return
       }
       displayBch.value = !displayBch.value
+    }
+
+    function displayDeliveryAddressLocation() {
+      if (!order.value?.deliveryAddress?.location?.validCoordinates) return
+      $q.dialog({
+        component: PinLocationDialog,
+        componentProps: {
+          static: true,
+          initLocation: {
+            latitude: parseFloat(order.value?.deliveryAddress?.location?.latitude),
+            longitude: parseFloat(order.value?.deliveryAddress?.location?.longitude),
+          }
+        }
+      })
     }
 
     const orderStatusSequence = [
@@ -265,6 +290,7 @@ export default defineComponent({
       orderAmounts,
       displayBch,
       toggleAmountsDisplay,
+      displayDeliveryAddressLocation,
       nextStatus,
       prevStatus,
 

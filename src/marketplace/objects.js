@@ -50,6 +50,10 @@ export class Location {
     const addressStr = [this.address2, this.address1].filter(Boolean).join(' ')
     return [addressStr, this.street, this.city, this.state, this.country].filter(Boolean).join(', ') 
   }
+
+  get validCoordinates() {
+    return isFinite(parseFloat(this.longitude)) && isFinite(parseFloat(this.latitude))
+  }
 }
 
 export class StockAdjustment {
