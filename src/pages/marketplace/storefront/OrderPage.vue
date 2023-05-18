@@ -166,8 +166,8 @@ export default defineComponent({
     const orderAmounts = computed(() => {
       const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
       const data = {
-        subtotal: { currency: order.value?.subtotal, bch: 0 },
-        deliveryFee: { currency: order.value?.payment?.deliveryFee, bch: 0 },
+        subtotal: { currency: order.value?.subtotal || 0, bch: 0 },
+        deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
         total: { currency: 0, bch: 0 },
       }
       data.total.currency = Number(data.subtotal.currency) + Number(data.deliveryFee.currency)
