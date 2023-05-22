@@ -81,6 +81,50 @@
             />
           </div>
         </q-card-section>
+        <template v-if="delivery?.id">
+          <q-separator/>
+          <q-card-section class="q-pt-sm">
+            <q-btn flat icon="more_vert" padding="xs" class="float-right">
+              <q-menu>
+                <q-list separator>
+                  <q-item
+                    v-if="!delivery?.activeRiderId"
+                    clickable v-close-popup
+                    @click="() => searchRiderForDelivery()"
+                  >
+                    <q-item-section>Search for rider</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+            <div class="text-subtitle1">Delivery status</div>
+            <div class="text-caption bottom">Delivery #{{ delivery?.id }}</div>
+            <div v-if="delivery?.rider?.id" class="q-mt-xs">
+              <div class="text-subtitle2">
+                Rider
+                <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.25em" color="green">
+                  <q-menu class="q-pa-sm">Rider has accepted delivery</q-menu>
+                </q-icon>
+              </div>
+              <div class="row items-start q-gutter-x-xs">
+                <div>{{ delivery?.rider?.firstName }} {{ delivery?.rider?.lastName }}</div>
+                <div>{{ delivery?.rider?.phoneNumber }}</div>
+              </div>
+            </div>
+            <div v-else class="text-grey">No rider yet</div>
+          </q-card-section>
+        </template>
+        <template v-else>
+          <q-card-section class="q-pt-sm">
+            <q-btn
+              no-caps
+              label="Create delivery request"
+              color="brandblue"
+              class="full-width"
+              @click="() => createDeliveryRequest()"
+            />
+          </q-card-section>
+        </template>
       </q-card>
 
       <q-card class="q-mb-md">
@@ -143,7 +187,7 @@
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
-import { Order, Variant } from 'src/marketplace/objects'
+import { Delivery, Order, Rider, Variant } from 'src/marketplace/objects'
 import { errorParser, formatOrderStatus, parseOrderStatusColor, formatTimestampToText } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref } from 'vue'
@@ -151,6 +195,7 @@ import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import PinLocationDialog from 'src/components/marketplace/PinLocationDialog.vue'
 import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoDialog.vue'
 import CancelReasonFormDailog from 'src/components/marketplace/storefront/CancelReasonFormDailog.vue'
+import SearchDeliveryRiderDialog from 'src/components/marketplace/storefront/SearchDeliveryRiderDialog.vue'
 
 export default defineComponent({
   name: 'OrderPage',
@@ -268,6 +313,84 @@ export default defineComponent({
       })
     }
 
+    const delivery = ref(Delivery.parse())
+    const fetchingDelivery = ref(false)
+    function fetchDelivery() {
+      if (!props.orderId) return Promise.reject()
+      const params = { order_id: props.orderId }
+
+      fetchingDelivery.value = true
+      return backend.get(`connecta-express/deliveries/`, { params })
+        .then(response => {
+          const data = response?.data?.results?.[0]
+          delivery.value = Delivery.parse(data)
+          return response
+        })
+        .finally(() => {
+          fetchingDelivery.value = false
+        })
+    }
+
+    function createDeliveryRequest() {
+      const data = { order_id: order.value.id }
+      const dialog = $q.dialog({
+        title: 'Delivery request',
+        message: 'Creating delivery request',
+        progress: true,
+        persistent: true,
+        ok: false,
+      })
+
+      return backend.post(`connecta-express/deliveries/`, data)
+        .then(response => {
+          delivery.value = Delivery.parse(response?.data)
+          dialog.hide()
+          return response
+        })
+        .catch(error => {
+          const errorMessage = error?.response?.data?.detail ||
+              errorParser.firstElementOrValue(error?.response?.data?.non_field_errors) ||
+              errorParser.firstElementOrValue(error?.response?.data?.order_id)
+          dialog.update({ message: errorMessage || 'Unable to create delivery request' })
+        })
+        .finally(() => {
+          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+        })
+    }
+
+    function searchRiderForDelivery() {
+      $q.dialog({
+        component: SearchDeliveryRiderDialog,
+        componentProps: { delivery: delivery.value }
+      }).onOk(assignRider)
+    }
+    function assignRider(rider=Rider.parse()) {
+      const riderId = rider?.id
+      if (!riderId) return Promise.reject('Invalid rider ID')
+      const data = { rider_id: riderId }
+
+      const dialog = $q.dialog({
+        title: 'Delivery request',
+        message: 'Assigning rider',
+        progress: true, persistent: true,
+        ok: false,
+      })
+      return backend.post(`connecta-express/deliveries/${delivery.value?.id}/assign_rider/`, data)
+        .then(response => {
+          delivery.value = Delivery.parse(response?.data)
+          dialog.hide()
+          return response
+        })
+        .catch(error => {
+          const errorMessage = error?.response?.data?.detail ||
+              errorParser.firstElementOrValue(error?.response?.data?.non_field_errors)
+          dialog.update({ message: errorMessage || 'Unable to assign rider' })
+        })
+        .finally(() => {
+          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+        })
+    }
+
     const variantInfoDIalog = ref({ show: false, variant: Variant.parse() })
     function displayVariant(variant = Variant.parse()) {
       variantInfoDIalog.value.variant = variant
@@ -278,6 +401,7 @@ export default defineComponent({
       try {
         await Promise.all([
           fetchOrder(),
+          fetchDelivery(),
         ])
       } finally {
         done()
@@ -296,6 +420,11 @@ export default defineComponent({
 
       updateStatus,
       confirmCancelOrder,
+
+      delivery,
+      fetchingDelivery,
+      createDeliveryRequest,
+      searchRiderForDelivery,
 
       variantInfoDIalog,
       displayVariant,
