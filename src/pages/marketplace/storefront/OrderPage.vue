@@ -83,7 +83,7 @@
         <template v-if="delivery?.id">
           <q-separator/>
           <q-card-section class="q-pt-sm">
-            <q-btn flat icon="more_vert" padding="xs" class="float-right">
+            <q-btn v-if="!delivery?.activeRiderId" flat icon="more_vert" padding="xs" class="float-right">
               <q-menu>
                 <q-list separator>
                   <q-item
@@ -96,15 +96,31 @@
                 </q-list>
               </q-menu>
             </q-btn>
+            <div class="float-right">
+              <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.5em" color="green">
+                <q-menu class="q-pa-sm">Rider has accepted delivery</q-menu>
+              </q-icon>
+              <q-icon
+                v-if="delivery?.pickedUpAt || delivery?.deliveredAt"
+                name="delivery_dining"
+                size="2em"
+                :color="delivery?.deliveredAt ? 'green' : 'amber'"
+                class="q-mx-sm"
+              >
+                <q-menu class="q-pa-sm">
+                  <div v-if="delivery.pickedUpAt">
+                    Picked up {{ formatDateRelative(delivery.pickedUpAt) }}
+                  </div>
+                  <div v-if="delivery.deliveredAt">
+                    Delivered {{ formatDateRelative(delivery.deliveredAt) }}
+                  </div>
+                </q-menu>
+              </q-icon>
+            </div>
             <div class="text-subtitle1">Delivery status</div>
             <div class="text-caption bottom">Delivery #{{ delivery?.id }}</div>
             <div v-if="delivery?.rider?.id" class="q-mt-xs">
-              <div class="text-subtitle2">
-                Rider
-                <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.25em" color="green">
-                  <q-menu class="q-pa-sm">Rider has accepted delivery</q-menu>
-                </q-icon>
-              </div>
+              <div class="text-subtitle2">Rider</div>
               <div class="row items-start q-gutter-x-xs">
                 <div>{{ delivery?.rider?.firstName }} {{ delivery?.rider?.lastName }}</div>
                 <div>{{ delivery?.rider?.phoneNumber }}</div>
@@ -274,10 +290,12 @@ export default defineComponent({
     ]
     const nextStatus = computed(() => {
       const index = orderStatusSequence.indexOf(order.value?.status)
+      if (index < 0) return
       return orderStatusSequence[index+1]
     })
     const prevStatus = computed(() => {
       const index = orderStatusSequence.indexOf(order.value?.status)
+      if (index < 0) return
       return orderStatusSequence[index-1]
     })
 
@@ -507,6 +525,7 @@ export default defineComponent({
       // utils funcs
       formatOrderStatus, parseOrderStatusColor,
       formatTimestampToText,
+      formatDateRelative,
     }
   },
 })
