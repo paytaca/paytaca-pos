@@ -1379,6 +1379,44 @@ export class Order {
 }
 
 
+export class Storefront {
+  static parse(data) {
+    return new Storefront(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data 
+   * @param {Number} data.id
+   * @param {Number} data.shop_id
+   * @param {String} data.name
+   * @param {String} data.image_url
+   * @param {{ code:String, symbol:String }} data.currency
+   * @param {Object} data.location
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.shopId = data?.shop_id
+    this.name = data?.name
+    this.imageUrl = data?.image_url
+    this.currency = {
+      code: data?.currency?.code,
+      symbol: data?.currency?.symbol,
+    }
+    if (data?.location) this.location = Location.parse(data?.location)
+    else if (this.location) this.location = undefined
+  }
+}
+
+
 export class Rider {
   static parse(data) {
     return new Rider(data) 

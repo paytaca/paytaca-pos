@@ -17,6 +17,7 @@
     "@capacitor/device": "^1.1.2",
     "@psf/bch-js": "^6.2.11",
     "@quasar/extras": "^1.0.0",
+    "@vue-leaflet/vue-leaflet": "^0.9.0",
     "apexcharts": "^3.37.3",
     "capacitor-secure-storage-plugin": "^0.7.1",
     "core-js": "^3.6.5",

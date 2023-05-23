@@ -61,6 +61,15 @@
       </div>
       <q-card class="q-mb-md">
         <q-card-section class="q-pt-sm">
+          <q-btn
+            flat
+            padding="none"
+            no-caps
+            label="Open Map"
+            class="float-right q-mt-sm text-underline"
+            @click="() => showMap = true"
+          />
+          <LeafletMapDialog v-model="showMap" :locations="mapLocations"/>
           <div class="row items-center">
             <div class="text-h6 q-space">Delivery</div>
           </div>
@@ -69,17 +78,7 @@
             {{ order?.deliveryAddress?.lastName }}
           </div>
           <div>{{ order?.deliveryAddress?.phoneNumber }}</div>
-          <div @click="() => displayDeliveryAddressLocation()">
-            <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
-            <q-btn
-              v-if="order?.deliveryAddress?.location?.validCoordinates"
-              flat
-              padding="none"
-              no-caps
-              label="View location"
-              class="text-underline"
-            />
-          </div>
+          <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
         </q-card-section>
         <template v-if="delivery?.id">
           <q-separator/>
@@ -187,29 +186,33 @@
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
-import { Delivery, Order, Rider, Variant } from 'src/marketplace/objects'
-import { errorParser, formatOrderStatus, parseOrderStatusColor, formatTimestampToText } from 'src/marketplace/utils'
+import { Delivery, Order, Rider, Storefront, Variant } from 'src/marketplace/objects'
+import { errorParser, formatOrderStatus, parseOrderStatusColor, formatTimestampToText, formatDateRelative } from 'src/marketplace/utils'
+import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
-import { computed, defineComponent, onMounted, ref } from 'vue'
+import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
-import PinLocationDialog from 'src/components/marketplace/PinLocationDialog.vue'
 import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoDialog.vue'
 import CancelReasonFormDailog from 'src/components/marketplace/storefront/CancelReasonFormDailog.vue'
 import SearchDeliveryRiderDialog from 'src/components/marketplace/storefront/SearchDeliveryRiderDialog.vue'
+import LeafletMapDialog from 'src/components/marketplace/LeafletMapDialog.vue'
 
 export default defineComponent({
   name: 'OrderPage',
   components: {
     MarketplaceHeader,
     VariantInfoDialog,
+    LeafletMapDialog,
   },
   props: {
     orderId: [String, Number]
   },
   setup(props) {
     const $q = useQuasar()
+    const marketplaceStore = useMarketplaceStore()
     onMounted(() => refreshPage())
     const order = ref(Order.parse())
+    const storefrontId = computed(() => order.value?.storefrontId)
     function fetchOrder() {
       return backend.get(`connecta/orders/${props.orderId}/`)
       .then(response => {
@@ -251,18 +254,19 @@ export default defineComponent({
       displayBch.value = !displayBch.value
     }
 
-    function displayDeliveryAddressLocation() {
-      if (!order.value?.deliveryAddress?.location?.validCoordinates) return
-      $q.dialog({
-        component: PinLocationDialog,
-        componentProps: {
-          static: true,
-          initLocation: {
-            latitude: parseFloat(order.value?.deliveryAddress?.location?.latitude),
-            longitude: parseFloat(order.value?.deliveryAddress?.location?.longitude),
-          }
-        }
-      })
+    const storefront = ref(Storefront.parse())
+    watch(storefrontId, () => fetchStorefront())
+    function fetchStorefront() {
+      if (!storefrontId.value) return Promise.reject()
+      if (storefrontId.value == marketplaceStore.storefront?.id) {
+        storefront.value = marketplaceStore.storefront
+        return Promise.resolve()
+      }
+      return backend.get(`connecta/storefronts/${storefrontId.value}/`)
+        .then(response => {
+          storefront.value = Storefront.parse(response?.data)
+          return response
+        })
     }
 
     const orderStatusSequence = [
@@ -391,6 +395,72 @@ export default defineComponent({
         })
     }
 
+    const trackRiderInterval = ref(null)
+    function stopTrackRider () {
+      clearInterval(trackRiderInterval.value)
+      trackRiderInterval.value = null
+    }
+    function trackRider() {
+      stopTrackRider()
+      updateRiderLocation()
+      trackRiderInterval.value = setInterval(() => updateRiderLocation(), 5 * 1000)
+    }
+    async function updateRiderLocation() {
+      const riderId = delivery.value?.rider?.id
+      if (!riderId) return
+      const params = { ids: riderId }
+      const response = await backend.get(`connecta-express/riders/get_locations/`, { params })
+      const currentLocation = response?.data?.results?.[0]?.coordinates
+      if (isNaN(currentLocation?.[0]) || isNaN(currentLocation?.[1])) return
+      delivery.value.rider.currentLocation = [currentLocation[1], currentLocation[0]]
+      delivery.value.rider.currentLocationTimestamp = Date.now()
+    }
+    onUnmounted(() => stopTrackRider())
+
+    const showMap = ref(false)
+    watch(showMap, () => showMap.value ? trackRider() : stopTrackRider())
+    const mapLocations = computed(() => {
+      const data = []
+      if (storefront.value?.location?.validCoordinates) {
+        data.push({
+          popup: ['Pickup location', storefront.value?.location?.formatted].filter(Boolean).join(': '),
+          lat: storefront.value?.location?.latitude,
+          lon: storefront.value?.location?.longitude,
+          icon: { prefix: '', glyph: 'Store' },
+        })
+      }
+
+      const deliveryLoc = delivery.value?.deliveryLocation?.validCoordinates
+        ? delivery.value?.deliveryLocation
+        : order.value.deliveryAddress?.location
+
+      if (deliveryLoc?.validCoordinates) {
+        data.push({
+          lat: deliveryLoc?.latitude,
+          lon: deliveryLoc?.longitude,
+          popup: ['Delivery address', deliveryLoc?.formatted].filter(Boolean).join(': '),
+          icon: { prefix: '', glyph: 'Delivery' },
+        })
+      }
+
+      const rider = delivery.value?.rider
+      const riderLoc = rider?.currentLocation
+      const riderLocTimestamp = rider?.currentLocationTimestamp
+      if (!isNaN(riderLoc?.[0]) && !isNaN(riderLoc?.[1])) {
+        let timestampText = ''
+        if (!isNaN(riderLocTimestamp)) timestampText = `<br/>${formatDateRelative(riderLocTimestamp)}`
+        const riderName = [rider?.firstName, rider?.lastName].filter(Boolean).join(' ')
+        data.push({
+          popup: [`Rider`, riderName].filter(Boolean).join(': ') + timestampText,
+          lat: riderLoc[0],
+          lon: riderLoc[1],
+          icon: { prefix: '', glyph: 'Rider' },
+        })
+      }
+
+      return data
+    })
+
     const variantInfoDIalog = ref({ show: false, variant: Variant.parse() })
     function displayVariant(variant = Variant.parse()) {
       variantInfoDIalog.value.variant = variant
@@ -414,7 +484,7 @@ export default defineComponent({
       orderAmounts,
       displayBch,
       toggleAmountsDisplay,
-      displayDeliveryAddressLocation,
+      storefront,
       nextStatus,
       prevStatus,
 
@@ -425,6 +495,9 @@ export default defineComponent({
       fetchingDelivery,
       createDeliveryRequest,
       searchRiderForDelivery,
+
+      showMap,
+      mapLocations,
 
       variantInfoDIalog,
       displayVariant,

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { backend } from 'src/marketplace/backend'
-import { Shop, ROLES, User } from 'src/marketplace/objects';
+import { Shop, ROLES, User, Storefront } from 'src/marketplace/objects';
 import { useWalletStore } from './wallet';
 
 
@@ -83,6 +83,9 @@ export const useMarketplaceStore = defineStore('marketplace', {
     roles() {
       return ROLES
     },
+    storefront() {
+      return Storefront.parse(this.storefrontData)
+    }
   },
   actions: {
     clearShop() {
@@ -265,6 +268,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
      * @param {Number} data.shop_id
      * @param {String} data.name
      * @param {Boolean} data.auto_subscribe_products
+     * @param {Object} data.location
      */
     setStorefrontData(data) {
       this.storefrontData = {
@@ -273,6 +277,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
         shop_id: data?.shop_id,
         name: data?.name,
         auto_subscribe_products: data?.auto_subscribe_products,
+        location: data?.location,
       }
     }
   }
