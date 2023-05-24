@@ -83,11 +83,11 @@
         <template v-if="delivery?.id">
           <q-separator/>
           <q-card-section class="q-pt-sm">
-            <q-btn v-if="!delivery?.activeRiderId" flat icon="more_vert" padding="xs" class="float-right">
+            <q-btn v-if="!delivery?.activeRiderId && !delivery?.completedAt" flat icon="more_vert" padding="xs" class="float-right">
               <q-menu>
                 <q-list separator>
                   <q-item
-                    v-if="!delivery?.activeRiderId"
+                    v-if="!delivery?.activeRiderId && !delivery?.completedAt"
                     clickable v-close-popup
                     @click="() => searchRiderForDelivery()"
                   >
@@ -425,6 +425,8 @@ export default defineComponent({
     }
     async function updateRiderLocation() {
       const riderId = delivery.value?.rider?.id
+      const activeRiderId = delivery.value?.activeRiderId
+      if (activeRiderId != riderId) return
       if (!riderId) return
       const params = { ids: riderId }
       const response = await backend.get(`connecta-express/riders/get_locations/`, { params })
