@@ -93,6 +93,13 @@
                   >
                     <q-item-section>Search for rider</q-item-section>
                   </q-item>
+                  <q-item
+                    v-if="!delivery?.activeRiderId && delivery?.rider?.id"
+                    clickable v-close-popup
+                    @click="() => assignRider({id: null})"
+                  >
+                    <q-item-section>Unassign rider</q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-btn>
@@ -388,12 +395,12 @@ export default defineComponent({
     }
     function assignRider(rider=Rider.parse()) {
       const riderId = rider?.id
-      if (!riderId) return Promise.reject('Invalid rider ID')
+      if (!riderId && riderId !== null) return Promise.reject('Invalid rider ID')
       const data = { rider_id: riderId }
 
       const dialog = $q.dialog({
         title: 'Delivery request',
-        message: 'Assigning rider',
+        message: riderId ? 'Assigning rider' : 'Unassigning rider',
         progress: true, persistent: true,
         ok: false,
       })
@@ -404,9 +411,10 @@ export default defineComponent({
           return response
         })
         .catch(error => {
+          const defaultError = riderId ? 'Unable to assign rider' : 'Unable to unassign rider'
           const errorMessage = error?.response?.data?.detail ||
               errorParser.firstElementOrValue(error?.response?.data?.non_field_errors)
-          dialog.update({ message: errorMessage || 'Unable to assign rider' })
+          dialog.update({ message: errorMessage || defaultError })
         })
         .finally(() => {
           dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
@@ -515,6 +523,7 @@ export default defineComponent({
       fetchingDelivery,
       createDeliveryRequest,
       searchRiderForDelivery,
+      assignRider,
 
       showMap,
       mapLocations,
