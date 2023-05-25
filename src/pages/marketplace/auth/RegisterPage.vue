@@ -162,7 +162,7 @@ export default defineComponent({
     function register() {
       const data = {
         // roles: [],
-        shop_id: marketplaceStore.activeShopId,
+        shop_id: marketplaceStore.activeShopId || -1,
         username: formData.value.username,
         password: formData.value.password,
         email: formData.value.email,
