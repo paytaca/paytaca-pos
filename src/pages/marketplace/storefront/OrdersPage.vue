@@ -139,6 +139,7 @@ export default defineComponent({
     const ordersTableColumns = [
       { name: 'id', align: 'left', label: 'Order', field: 'id', format: val => val ? `#${val}` : '' },
       { name: 'status', align: 'left', label: 'Status', field: 'formattedStatus' },
+      { name: 'payment-status', align: 'left', label: 'Payment Status', field: 'formattedPaymentStatus' },
       { name: 'subtotal', align: 'left', label: 'Subtotal', field: obj => obj?.subtotal ? `${obj.subtotal} ${obj?.currency?.symbol}` : '' },
       { name: 'customer', align: 'left', label: 'Customer', field: obj => `${obj?.customer?.firstName} ${obj?.customer?.lastName}` },
     ]

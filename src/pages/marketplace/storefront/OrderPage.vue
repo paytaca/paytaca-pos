@@ -11,14 +11,49 @@
         </template>
       </MarketplaceHeader>
 
-      <div class="row items-center q-mb-md">
-        <div class="text-h5 q-space">Order #{{ order?.id }}</div>
+      <div class="row items-start no-wrap">
+        <div class="row items-center q-space">
+          <div class="text-h5 q-space">Order #{{ order?.id }}</div>
+          <div v-if="order?.id" style="margin-left:-4px;">
+            <q-chip
+              :color="parsePaymentStatusColor(order?.paymentStatus)"
+              class="text-weight-medium"
+              clickable
+              @click="() => showPaymentsDialog = true"
+            >
+              {{ formatOrderStatus(order?.paymentStatus) }}
+            </q-chip>
+            <q-chip :color="parseOrderStatusColor(order?.status)" class="text-weight-medium">
+              {{ formatOrderStatus(order?.status) }}
+            </q-chip>
+          </div>
+        </div>
         <div>
-          <q-chip :color="parseOrderStatusColor(order?.status)" class="text-weight-medium">
-            {{ formatOrderStatus(order?.status) }}
-          </q-chip>
           <q-btn flat icon="more_vert" padding="xs">
             <q-menu>
+              <q-item
+                v-if="payments?.length"
+                v-close-popup clickable
+                @click="() => showPaymentsDialog = true"
+              >
+                <q-item-section>
+                  <q-item-label>
+                    View Payments
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-else
+                v-close-popup clickable
+                @click="() => createPayment()"
+              >
+                <q-item-section>
+                  <q-item-label>
+                    Create Payment
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-separator/>
               <q-item
                 v-if="prevStatus"
                 v-close-popup clickable
@@ -44,11 +79,12 @@
             </q-menu>
           </q-btn>
         </div>
-        <div v-if="order?.createdAt" class="text-caption text-grey bottom col-12">
-          {{ formatTimestampToText(order?.createdAt) }}
-        </div>
       </div>
-      
+      <div v-if="order?.createdAt" class="text-caption text-grey col-12">
+        {{ formatTimestampToText(order?.createdAt) }}
+      </div>
+      <div class="q-mb-md"></div>
+
       <div class="row items-center q-gutter-sm q-mb-md">
         <q-btn
           v-if="nextStatus"
@@ -137,7 +173,7 @@
           </q-card-section>
         </template>
         <template v-else>
-          <q-card-section class="q-pt-sm">
+          <q-card-section v-if="order?.id" class="q-pt-sm">
             <q-btn
               no-caps
               label="Create delivery request"
@@ -204,13 +240,14 @@
         </div>
       </div>
     </q-pull-to-refresh>
+    <OrderPaymentsDialog v-model="showPaymentsDialog" :payments="payments"/>
     <VariantInfoDialog v-model="variantInfoDIalog.show" :variant="variantInfoDIalog.variant"/>
   </q-page>
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
-import { Delivery, Order, Rider, Storefront, Variant } from 'src/marketplace/objects'
-import { errorParser, formatOrderStatus, parseOrderStatusColor, formatTimestampToText, formatDateRelative } from 'src/marketplace/utils'
+import { Delivery, Order, Payment, Rider, Storefront, Variant } from 'src/marketplace/objects'
+import { errorParser, formatOrderStatus, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -219,6 +256,7 @@ import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoD
 import CancelReasonFormDailog from 'src/components/marketplace/storefront/CancelReasonFormDailog.vue'
 import SearchDeliveryRiderDialog from 'src/components/marketplace/storefront/SearchDeliveryRiderDialog.vue'
 import LeafletMapDialog from 'src/components/marketplace/LeafletMapDialog.vue'
+import OrderPaymentsDialog from 'src/components/marketplace/storefront/OrderPaymentsDialog.vue'
 
 export default defineComponent({
   name: 'OrderPage',
@@ -226,6 +264,7 @@ export default defineComponent({
     MarketplaceHeader,
     VariantInfoDialog,
     LeafletMapDialog,
+    OrderPaymentsDialog,
   },
   props: {
     orderId: [String, Number]
@@ -489,6 +528,53 @@ export default defineComponent({
       return data
     })
 
+    const showPaymentsDialog = ref(false)
+    const payments = ref([].map(Payment.parse))
+    const fetchingPayments = ref(false)
+    function fetchPayments() {
+      const params = {
+        order_id: props?.orderId || null,
+      }
+      fetchingPayments.value = true
+      return backend.get(`connecta/payments/`, { params })
+        .then(response => {
+          if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+          payments.value = response?.data?.results?.map?.(Payment.parse)
+          return response
+        })
+        .finally(() => {
+          fetchingPayments.value = false
+        })
+    }
+
+    function createPayment() {
+      const data = { order_id: order.value.id }
+      const dialog = $q.dialog({
+        title: 'Payment',
+        message: 'Creating payment request',
+        progress: true,
+        persistent: true,
+        ok: false,
+      })
+
+      return backend.post(`connecta/payments/`, data)
+        .then(response => {
+          payments.value.push(Payment.parse(response?.data))
+          dialog.hide()
+          showPaymentsDialog.value = true
+          return response
+        })
+        .catch(error => {
+          const errorMessage = error?.response?.data?.detail ||
+              errorParser.firstElementOrValue(error?.response?.data?.non_field_errors) ||
+              errorParser.firstElementOrValue(error?.response?.data?.order_id)
+          dialog.update({ message: errorMessage || 'Unable to create payment request' })
+        })
+        .finally(() => {
+          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+        })
+    }
+
     const variantInfoDIalog = ref({ show: false, variant: Variant.parse() })
     function displayVariant(variant = Variant.parse()) {
       variantInfoDIalog.value.variant = variant
@@ -500,6 +586,7 @@ export default defineComponent({
         await Promise.all([
           fetchOrder(),
           fetchDelivery(),
+          fetchPayments(),
         ])
       } finally {
         done()
@@ -528,6 +615,12 @@ export default defineComponent({
       showMap,
       mapLocations,
 
+      showPaymentsDialog,
+      payments,
+      fetchingPayments,
+      fetchPayments,
+      createPayment,
+
       variantInfoDIalog,
       displayVariant,
 
@@ -535,6 +628,7 @@ export default defineComponent({
 
       // utils funcs
       formatOrderStatus, parseOrderStatusColor,
+      parsePaymentStatusColor,
       formatTimestampToText,
       formatDateRelative,
     }

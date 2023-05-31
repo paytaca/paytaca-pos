@@ -1331,6 +1331,8 @@ export class Order {
    * @param {Object} data.delivery_address
    * @param {Object[]} data.items
    * @param {Number} data.subtotal
+   * @param {Number} data.total_paid
+   * @param {Number} data.total_pending_payment
    * @param {{ delivery_fee:Number }} data.payment
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
@@ -1347,6 +1349,8 @@ export class Order {
     this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
     this.items = data?.items?.map?.(OrderItem.parse)
     this.subtotal = data?.subtotal
+    this.totalPaid = data?.total_paid
+    this.totalPendingPayment = data?.total_pending_payment
     this.payment = {
       deliveryFee: data?.payment?.delivery_fee,
     }
@@ -1364,6 +1368,20 @@ export class Order {
 
   get statusColor() {
     return parseOrderStatusColor(this.status)
+  }
+
+  get total() {
+    return Number(this?.payment?.deliveryFee) + Number(this.subtotal)
+  }
+
+  get paymentStatus() {
+    if (this.totalPaid >= this.total) return 'paid'
+    if (this.totalPaid > 0) return 'partially_paid'
+    return 'payment_pending'
+  }
+
+  get formattedPaymentStatus() {
+    return formatOrderStatus(this.paymentStatus)
   }
 
   async fetchStorefront() {
@@ -1516,5 +1534,52 @@ export class Delivery {
     this.createdAt = new Date(data?.created_at)
     this.updatedAt = new Date(data?.updated_at)
     this.pickupDistance = data?.pickup_distance
+  }
+}
+
+export class Payment {
+  static parse(data) {
+    return new Payment(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Number} data.order_id
+   * @param {{ code:String, symbol:String }} data.currency
+   * @param {String} data.status
+   * @param {Object} data.bch_price
+   * @param {Number} data.amount
+   * @param {String} data.transaction_timestamp
+   * @param {String} data.created_at
+   * @param {String} data.escrow_contract_address
+  */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.orderId = data?.order_id
+    this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
+    this.status = data?.status
+    this.bchPrice = BchPrice.parse(data?.bch_price)
+    this.amount = data?.amount
+    if (data?.transaction_timestamp) this.transactionTimestamp = new Date(data?.transaction_timestamp)
+    else if (this.transactionTimestamp) delete this.transactionTimestamp
+    if (data?.created_at) this.createdAt = new Date(data?.created_at)
+    else if (this.createdAt) delete this.createdAt
+    this.escrowContractAddress = data?.escrow_contract_address
+  }
+
+  get bchAmount() {
+    const satsPerBch = 10 ** 8
+    const bch = this.amount / this.bchPrice.price
+    return Math.round(bch * satsPerBch) / satsPerBch
   }
 }

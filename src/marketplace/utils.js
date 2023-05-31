@@ -91,6 +91,19 @@ export function parseOrderStatusColor(value) {
   }
 }
 
+export function parsePaymentStatusColor(value) {
+  switch(value) {
+    case 'paid':
+      return 'green'
+    case 'partially_paid':
+      return 'cyan'
+    case 'payment_pending':
+      return 'amber'
+    default:
+      return undefined
+  }
+}
+
 export const errorParser = {
   toArray(value) {
     if (Array.isArray(value)) return value
