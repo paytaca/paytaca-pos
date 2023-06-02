@@ -38,6 +38,18 @@
             :error-message="formErrors?.name"
           />
         </div>
+        <div>
+          <div>Receiving address</div>
+          <q-input
+            dense outlined
+            :disable="loading"
+            autogrow
+            v-model="formData.receivingAddress"
+            :error="Boolean(formErrors?.receivingAddress)"
+            :error-message="formErrors?.receivingAddress"
+          >
+          </q-input>
+        </div>
 
         <q-checkbox
           dense
@@ -49,7 +61,7 @@
     </q-card>
     <q-slide-transition>
       <q-card v-if="!formData.autoSubscribeProducts" class="q-mb-md">
-        <q-card-section class="q-pb-sm">
+        <q-card-section>
           <div class="text-h6">
             Select products
             <template v-if="formData.subscribeProducts?.length">
@@ -59,51 +71,8 @@
           <q-banner v-if="formErrors?.subscribeProductIds" class="bg-red text-white rounded-borders q-mb-sm">
             {{ formErrors?.subscribeProductIds }}
           </q-banner>
-          <q-input
-            dense outlined
-            :disable="loading"
-            :loading="productSearch.loading"
-            v-model="productSearch.searchVal"
-            debounce="500"
-            @update:model-value="() => updateProductOpts()"
-          >
-            <template v-slot:append>
-              <q-icon name="search"/>
-            </template>
-          </q-input>
+          <ProductSearchPanel v-model="formData.subscribeProducts"/>
         </q-card-section>
-        <q-list class="q-pb-md">
-          <q-virtual-scroll
-            :items="productSearch.opts" style="max-height: 50vh;"
-            v-slot="{ item: product }"
-          >
-            <q-item clickable @click="() => toggleSubscribeProduct(product)">
-              <q-item-section side>
-                <q-checkbox
-                  :disable="loading"
-                  :model-value="formData.subscribeProducts.some(p => p?.id == product.id)"
-                  @update:model-value="() => toggleSubscribeProduct(product)"
-                />
-              </q-item-section>
-              <q-item-section v-if="product?.displayImageUrl" avatar class="q-pr-xs"> 
-                <img
-                  :src="product?.displayImageUrl"
-                  width="50"
-                  class="rounded-borders"
-                />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>{{ product.name }}</q-item-label>
-                <q-item-label class="text-caption">
-                  <template v-if="product.hasVariants">
-                    {{ product.variants.length || product.variantsCount }} variants
-                  </template>
-                  <template v-else>{{ product?.code }}</template>
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-virtual-scroll>
-        </q-list>
       </q-card>
     </q-slide-transition>
     <div>
@@ -122,17 +91,19 @@ import { Product } from 'src/marketplace/objects'
 import { backend } from 'src/marketplace/backend'
 import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
-import { debounce, useQuasar } from 'quasar'
+import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
-import { defineComponent, onMounted, ref, watch } from 'vue'
+import { defineComponent, ref } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import UploadImageField from 'src/components/marketplace/UploadImageField.vue'
+import ProductSearchPanel from 'src/components/marketplace/ProductSearchPanel.vue'
 
 export default defineComponent({
   name: 'SetupStorefronPage.vue',
   components: {
     MarketplaceHeader,
     UploadImageField,
+    ProductSearchPanel,
   },
   setup() {
     const $q = useQuasar()
@@ -143,58 +114,15 @@ export default defineComponent({
     const formData = ref({
       imageUrl: marketplaceStore?.storefrontData?.image_url,
       name: marketplaceStore?.storefrontData?.name,
+      receivingAddress: marketplaceStore?.storefrontData?.receiving_address,
       autoSubscribeProducts: Boolean(marketplaceStore?.storefrontData?.auto_subscribe_products),
       subscribeProducts: [].map(Product.parse)
     })
 
-    function toggleSubscribeProduct(product=Product.parse()) {
-      const exists = formData.value.subscribeProducts.some(_product => _product?.id === product?.id)
-      if (exists) {
-        formData.value.subscribeProducts = formData.value.subscribeProducts
-          .filter(_product => _product.id !== product.id)
-      } else {
-        formData.value.subscribeProducts.push(product)
-      }
-    }
-
-    const productSearch = ref({
-      searchVal: '',
-      opts: [].map(Product.parse),
-      loading: false,
-    })
-
-    watch(
-      () => [formData.value.autoSubscribeProducts],
-      () => !formData.value.autoSubscribeProducts ? updateProductOpts() : null,
-    )
-    onMounted(() => !formData.value.autoSubscribeProducts ? updateProductOpts() : null)
-    const updateProductOpts = debounce(function () {
-      const params = {
-        shop_id: marketplaceStore.activeShopId,
-        s: productSearch.value.searchVal,
-        limit: 15,
-        exclude_ids: formData.value.subscribeProducts.map(product => product?.id).join(',') || undefined,
-      }
-
-      productSearch.value.loading = true
-      return backend.get(`products/`, { params })
-        .then(response => {
-          if (!Array.isArray(response?.data?.results)) return Promise.reject(response)
-          productSearch.value.opts = response?.data?.results.map(Product.parse)
-          formData.value.subscribeProducts.forEach(product => {
-            if (productSearch.value.opts.find(_product => _product?.id == product?.id)) return
-            productSearch.value.opts.push(product)
-          })
-          return response
-        })
-        .finally(() => {
-          productSearch.value.loading = false
-        })
-    }, 500, false)
-
     const formErrors = ref({
       detail: [],
       name: '',
+      receivingAddress: '',
       subscribeProductIds: '',
     })
     function clearFormErrors() {
@@ -208,6 +136,7 @@ export default defineComponent({
         shop_id: marketplaceStore.activeShopId,
         image_url: formData.value.imageUrl,
         name: formData.value.name || undefined,
+        receiving_address: formData.value.receivingAddress,
         auto_subscribe_products: formData.value.autoSubscribeProducts,
         subscribe_product_ids: formData.value.subscribeProducts.map(product => product?.id),
       }
@@ -231,6 +160,7 @@ export default defineComponent({
           const data = error?.response?.data
           formErrors.value.detail = errorParser.toArray(data?.non_field_errors)
           formErrors.value.name = errorParser.firstElementOrValue(data?.name)
+          formErrors.value.receivingAddress = errorParser.firstElementOrValue(data?.receiving_address)
           formErrors.value.subscribeProductIds = errorParser.firstElementOrValue(data?.subscribe_product_ids)
           if (data?.detail) formErrors.value.detail.shift(data?.detail)
         })
@@ -243,10 +173,6 @@ export default defineComponent({
       marketplaceStore,
       loading,
       formData,
-      toggleSubscribeProduct,
-
-      productSearch,
-      updateProductOpts,
 
       formErrors,
       clearFormErrors,
