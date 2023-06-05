@@ -1333,6 +1333,7 @@ export class Order {
    * @param {Number} data.subtotal
    * @param {Number} data.total_paid
    * @param {Number} data.total_pending_payment
+   * @param {Number} data.total_payments
    * @param {{ delivery_fee:Number }} data.payment
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
@@ -1351,6 +1352,7 @@ export class Order {
     this.subtotal = data?.subtotal
     this.totalPaid = data?.total_paid
     this.totalPendingPayment = data?.total_pending_payment
+    this.totalPayments = data?.total_payments
     this.payment = {
       deliveryFee: data?.payment?.delivery_fee,
     }
@@ -1372,6 +1374,11 @@ export class Order {
 
   get total() {
     return Number(this?.payment?.deliveryFee) + Number(this.subtotal)
+  }
+
+  get totalPayable() {
+    const totalPayments = parseFloat(this.totalPayments) || 0
+    return this.total - totalPayments
   }
 
   get paymentStatus() {
@@ -1582,4 +1589,17 @@ export class Payment {
     const bch = this.amount / this.bchPrice.price
     return Math.round(bch * satsPerBch) / satsPerBch
   }
+
+  get isEscrow() {
+    return Boolean(this.escrowContractAddress)
+  }
+
+  get canRefund() {
+    return ['sent', 'received'].indexOf(this?.status) >= 0
+  }
+
+  get canReceive() {
+    return ['pending', 'sent'].indexOf(this?.status) >= 0
+  }
+
 }

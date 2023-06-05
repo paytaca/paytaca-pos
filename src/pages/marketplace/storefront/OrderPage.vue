@@ -43,9 +43,9 @@
                 </q-item-section>
               </q-item>
               <q-item
-                v-else
+                v-if="order?.totalPayable > 0"
                 v-close-popup clickable
-                @click="() => createPayment()"
+                @click="() => showPaymentFormDialog = true"
               >
                 <q-item-section>
                   <q-item-label>
@@ -53,7 +53,7 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
-              <q-separator/>
+              <q-separator class="menu-separator"/>
               <q-item
                 v-if="prevStatus"
                 v-close-popup clickable
@@ -238,10 +238,40 @@
           <div v-if="displayBch">{{ orderAmounts.total.bch }} BCH</div>
           <div v-else>{{ orderAmounts.total.currency }} {{ orderCurrency }}</div>
         </div>
+        <template v-if="orderAmounts.totalPaid.currency || orderAmounts.totalPendingPayment.currency">
+          <q-separator/>
+          <div class="row items-start text-body1">
+            <div class="q-space">Total Paid</div>
+            <div v-if="displayBch">{{ orderAmounts.totalPaid.bch || 0 }} BCH</div>
+            <div v-else>{{ orderAmounts.totalPaid.currency || 0 }} {{ orderCurrency }}</div>
+          </div>
+          <div
+            v-if="orderAmounts.totalPendingPayment.currency"
+            class="row items-start text-grey"
+            @click.stop
+          >
+            <div class="q-space">Pending amount</div>
+            <div v-if="displayBch">{{ orderAmounts.totalPendingPayment.bch }} BCH</div>
+            <div v-else>{{ orderAmounts.totalPendingPayment.currency }} {{ orderCurrency }}</div>
+            <q-menu class="q-pa-md">Amount sent by customer but not yet received</q-menu>
+          </div>
+        </template>
       </div>
     </q-pull-to-refresh>
-    <OrderPaymentsDialog v-model="showPaymentsDialog" :payments="payments"/>
+    <OrderPaymentsDialog v-model="showPaymentsDialog" :payments="payments" @updated="() => fetchOrder()">
+      <template v-slot:before>
+        <div class="row items-center justify-end">
+          <q-btn
+            flat
+            no-caps label="Add payment"
+            v-close-popup
+            @click="() => showPaymentFormDialog = true"
+          />
+        </div>
+      </template>
+    </OrderPaymentsDialog>
     <VariantInfoDialog v-model="variantInfoDIalog.show" :variant="variantInfoDIalog.variant"/>
+    <PaymentFormDialog v-model="showPaymentFormDialog" :order="order" @saved="() => onNewPayment()"/>
   </q-page>
 </template>
 <script>
@@ -257,6 +287,7 @@ import CancelReasonFormDailog from 'src/components/marketplace/storefront/Cancel
 import SearchDeliveryRiderDialog from 'src/components/marketplace/storefront/SearchDeliveryRiderDialog.vue'
 import LeafletMapDialog from 'src/components/marketplace/LeafletMapDialog.vue'
 import OrderPaymentsDialog from 'src/components/marketplace/storefront/OrderPaymentsDialog.vue'
+import PaymentFormDialog from 'src/components/marketplace/storefront/PaymentFormDialog.vue'
 
 export default defineComponent({
   name: 'OrderPage',
@@ -265,6 +296,7 @@ export default defineComponent({
     VariantInfoDialog,
     LeafletMapDialog,
     OrderPaymentsDialog,
+    PaymentFormDialog,
   },
   props: {
     orderId: [String, Number]
@@ -290,6 +322,8 @@ export default defineComponent({
         subtotal: { currency: order.value?.subtotal || 0, bch: 0 },
         deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
         total: { currency: 0, bch: 0 },
+        totalPaid: { currency: parseFloat(order.value?.totalPaid), bch: 0 },
+        totalPendingPayment: { currency: parseFloat(order.value?.totalPendingPayment), bch: 0 },
       }
       data.total.currency = Number(data.subtotal.currency) + Number(data.deliveryFee.currency)
       data.total.currency = Math.round(data.total.currency * 10 ** 3) / 10 ** 3
@@ -298,10 +332,14 @@ export default defineComponent({
         data.subtotal.bch = parseBch(data.subtotal.currency / orderBchPrice.value)
         data.deliveryFee.bch = parseBch(data.deliveryFee.currency / orderBchPrice.value)
         data.total.bch = parseBch(data.total.currency / orderBchPrice.value)
+        data.totalPaid.bch = parseBch(data.totalPaid.currency / orderBchPrice.value)
+        data.totalPendingPayment.bch = parseBch(data.totalPendingPayment.currency / orderBchPrice.value)
       } else {
         data.subtotal.bch = null
         data.deliveryFee.bch = null
         data.total.bch = null
+        data.totalPaid.bch = null
+        data.totalPendingPayment.bch = null
       }
 
       return data
@@ -529,6 +567,7 @@ export default defineComponent({
     })
 
     const showPaymentsDialog = ref(false)
+    const showPaymentFormDialog = ref(false)
     const payments = ref([].map(Payment.parse))
     const fetchingPayments = ref(false)
     function fetchPayments() {
@@ -575,6 +614,14 @@ export default defineComponent({
         })
     }
 
+    function onNewPayment() {
+      fetchOrder()
+      fetchPayments()
+
+      showPaymentFormDialog.value = false
+      showPaymentsDialog.value = true
+    }
+
     const variantInfoDIalog = ref({ show: false, variant: Variant.parse() })
     function displayVariant(variant = Variant.parse()) {
       variantInfoDIalog.value.variant = variant
@@ -594,6 +641,7 @@ export default defineComponent({
     }
     return {
       order,
+      fetchOrder,
       orderCurrency,
       orderBchPrice,
       orderAmounts,
@@ -616,10 +664,12 @@ export default defineComponent({
       mapLocations,
 
       showPaymentsDialog,
+      showPaymentFormDialog,
       payments,
       fetchingPayments,
       fetchPayments,
       createPayment,
+      onNewPayment,
 
       variantInfoDIalog,
       displayVariant,
@@ -635,3 +685,8 @@ export default defineComponent({
   },
 })
 </script>
+<style lang="scss" scoped>
+.menu-separator:first-child, .menu-separator:last-child {
+  display: none;
+}
+</style>
