@@ -48,6 +48,14 @@
             :error="Boolean(formErrors?.receivingAddress)"
             :error-message="formErrors?.receivingAddress"
           >
+            <template v-slot:append>
+              <q-btn
+                flat
+                icon="refresh"
+                padding="sm"
+                @click="() => updateReceivingAddress()"
+              />
+            </template>
           </q-input>
         </div>
 
@@ -91,6 +99,7 @@ import { Product } from 'src/marketplace/objects'
 import { backend } from 'src/marketplace/backend'
 import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useAddressesStore } from 'src/stores/addresses'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 import { defineComponent, ref } from 'vue'
@@ -108,6 +117,7 @@ export default defineComponent({
   setup() {
     const $q = useQuasar()
     const $router = useRouter()
+    const addressesStore = useAddressesStore()
     const marketplaceStore = useMarketplaceStore()
 
     const loading = ref(false)
@@ -118,6 +128,25 @@ export default defineComponent({
       autoSubscribeProducts: Boolean(marketplaceStore?.storefrontData?.auto_subscribe_products),
       subscribeProducts: [].map(Product.parse)
     })
+
+    function updateReceivingAddress() {
+      let address = formData.value.receivingAddress
+
+      const opts = addressesStore.addressSets
+        .map(addressSet => addressSet?.receiving)
+        .filter((e, i, s) => s.indexOf(e) === i)
+        .filter(Boolean)
+
+      if (opts?.length <= 0) return
+
+      const index = opts.indexOf(address)
+      // we want to change address like it's rotating around the address sets stored
+      const rotatedOpts = [
+        ...opts.slice(index+1),
+        ...opts.slice(0, index+1),
+      ]
+      formData.value.receivingAddress = rotatedOpts.find(addr => addr != address)
+    }
 
     const formErrors = ref({
       detail: [],
@@ -173,6 +202,7 @@ export default defineComponent({
       marketplaceStore,
       loading,
       formData,
+      updateReceivingAddress,
 
       formErrors,
       clearFormErrors,

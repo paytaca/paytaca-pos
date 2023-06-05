@@ -46,6 +46,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
         shop_id: 0,
         image_url: '',
         name: '',
+        receiving_address: '',
         auto_subscribe_products: false,
       },
     }
@@ -267,6 +268,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
      * @param {String} data.image_url
      * @param {Number} data.shop_id
      * @param {String} data.name
+     * @param {String} data.receiving_address
      * @param {Boolean} data.auto_subscribe_products
      * @param {Object} data.location
      */
@@ -276,6 +278,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
         image_url: data?.image_url,
         shop_id: data?.shop_id,
         name: data?.name,
+        receiving_address: data?.receiving_address,
         auto_subscribe_products: data?.auto_subscribe_products,
         location: data?.location,
       }
