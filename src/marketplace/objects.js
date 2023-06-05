@@ -1602,4 +1602,87 @@ export class Payment {
     return ['pending', 'sent'].indexOf(this?.status) >= 0
   }
 
+  async fetchEscrowContract() {
+    if (!this.escrowContractAddress) return Promise.reject()
+
+    return backend.get(`connecta/escrow/${this.escrowContractAddress}/`)
+      .then(response => {
+        this.escrowContract = EscrowContract.parse(response?.data)
+        return response
+      })
+  }
+}
+
+export class EscrowContract {
+  static parse(data) {
+    return new EscrowContract(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {String} data.address
+   * @param {String} data.buyer_address
+   * @param {String} data.seller_address
+   * @param {String} data.arbiter_address
+   * @param {String} data.servicer_address
+   * @param {String} data.delivery_service_address
+   * @param {Number} data.amount_sats
+   * @param {Number} data.service_fee_sats
+   * @param {Number} data.arbitration_fee_sats
+   * @param {Number} data.delivery_fee_sats
+   * @param {String} data.timestamp
+   * 
+   * @param {String} [data.funding_txid]
+   * @param {Number} [data.funding_vout]
+   * @param {Number} [data.funding_sats]
+   * 
+   * @param {String} [data.settlement_txid]
+   * @param {String} [data.settlement_type]
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+
+    this.address = data?.address
+    this.buyerAddress = data?.buyer_address
+    this.sellerAddress = data?.seller_address
+    this.arbiterAddress = data?.arbiter_address
+    this.servicerAddress = data?.servicer_address
+    this.deliveryServiceAddress = data?.delivery_service_address
+
+    this.amountSats = data?.amount_sats
+    this.serviceFeeSats = data?.service_fee_sats
+    this.arbitrationFeeSats = data?.arbitration_fee_sats
+    this.deliveryFeeSats = data?.delivery_fee_sats
+
+    if (data?.timestamp) this.timestamp = new Date(data?.timestamp) * 1
+    else if (this.timestamp) delete this.timestamp
+
+    this.fundingTxid = data?.funding_txid
+    this.fundingVout = data?.funding_vout
+    this.fundingSats = data?.funding_sats
+    this.settlementTxid = data?.settlement_txid
+    this.settlementType = data?.settlement_type
+  }
+
+  get bchAmounts() {
+    const SATS_PER_BCH = 10 ** 8
+    const toBch = val => Math.floor(val) / SATS_PER_BCH
+    const data = {
+      amount: toBch(this.amountSats),
+      serviceFee: toBch(this.serviceFeeSats),
+      arbitrationFee: toBch(this.arbitrationFeeSats),
+      deliveryFee: toBch(this.deliveryFeeSats),
+    }
+
+    data.total = data.amount + data.serviceFee + data.arbitrationFee + data.deliveryFee
+    return data
+  }
 }

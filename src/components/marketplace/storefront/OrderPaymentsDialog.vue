@@ -27,7 +27,7 @@
               </q-item-label>
             </q-item-section>
             <q-item-section side top style="padding-left:4px;">
-              <template v-if="!payment?.isEscrow && (payment?.canReceive || payment?.canRefund)">
+              <template v-if="payment?.isEscrow || payment?.canReceive || payment?.canRefund">
                 <q-icon name="more_vert"/>
                 <q-menu class="text-left">
                   <q-list separator>
@@ -51,6 +51,16 @@
                         <q-item-label>Mark refunded</q-item-label>
                       </q-item-section>
                     </q-item>
+                    <q-item
+                      v-if="payment.isEscrow"
+                      clickable v-ripple
+                      v-close-popup
+                      @click="() => displayPaymentEscrowContract(payment)"
+                    >
+                      <q-item-section>
+                        <q-item-label>View escrow</q-item-label>
+                      </q-item-section>
+                    </q-item>
                   </q-list>
                 </q-menu>
               </template>
@@ -62,18 +72,27 @@
           No payments
         </div>
       </q-card-section>
+      <EscrowContractDialog
+        v-model="escrowContractDialog.show"
+        :escrow-contract="escrowContractDialog.escrowContract"
+      />
+
     </q-card>
   </q-dialog>
 </template>
 <script>
-import { Payment } from 'src/marketplace/objects'
+import { EscrowContract, Payment } from 'src/marketplace/objects'
 import { errorParser, formatDateRelative } from 'src/marketplace/utils'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { capitalize, computed, defineComponent, ref, watch } from 'vue'
 import { backend } from 'src/marketplace/backend'
+import EscrowContractDialog from './EscrowContractDialog.vue'
 
 export default defineComponent({
   name: 'OrderPaymentsDialog',
+  components: {
+    EscrowContractDialog,
+  },
   props: {
     modelValue: Boolean,
     payments: Array,
@@ -134,12 +153,25 @@ export default defineComponent({
           dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
         })
     }
-    
+
+    const escrowContractDialog = ref({show: false, escrowContract: EscrowContract.parse() })
+    async function displayPaymentEscrowContract(payment=Payment.parse()) {
+      if (!payment.escrowContractAddress) return
+
+      if (!payment.escrowContract) await payment.fetchEscrowContract()
+
+      escrowContractDialog.value.escrowContract = payment.escrowContract
+      escrowContractDialog.value.show = true
+    }
+
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
 
       updatePaymentStatus,
+
+      escrowContractDialog,
+      displayPaymentEscrowContract,
 
       // utils funcs
       formatDateRelative, capitalize,
