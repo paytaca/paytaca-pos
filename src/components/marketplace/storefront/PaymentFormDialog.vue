@@ -18,7 +18,11 @@
 
           <div class="row items-center">
             <div class="q-space">Amount</div>
-            <q-btn flat no-caps padding="none" @click="() => formData.amount = order?.totalPayable">
+            <q-btn
+              v-if="order?.totalPayable"
+              flat no-caps padding="none"
+              @click="() => formData.amount = order?.totalPayable"
+            >
               Total {{ order?.totalPayable }} {{ order?.currency?.symbol }}
             </q-btn>
           </div>
@@ -56,12 +60,15 @@
             ]"
           />
           <q-checkbox
+            :disable="loading"
             v-model="formData.useEscrow"
             label="Escrow"
           />
           <div class="q-mt-md">
             <q-btn
               no-caps
+              :disable="loading"
+              :loading="loading"
               label="Add Payment"
               type="submit"
               color="brandblue"
@@ -148,6 +155,7 @@ export default defineComponent({
         order_id: props?.order?.id,
         amount: formData.value.amount || undefined,
         status: formData.value.status || undefined,
+        escrow: !formData.value.useEscrow ? undefined : {},
       }
 
       loading.value = true
