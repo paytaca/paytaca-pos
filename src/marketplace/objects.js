@@ -1355,6 +1355,7 @@ export class Order {
     this.totalPayments = data?.total_payments
     this.payment = {
       deliveryFee: data?.payment?.delivery_fee,
+      escrowRefundAddress: data?.payment?.escrow_refund_address,
     }
 
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
@@ -1680,6 +1681,7 @@ export class EscrowContract {
       serviceFee: toBch(this.serviceFeeSats),
       arbitrationFee: toBch(this.arbitrationFeeSats),
       deliveryFee: toBch(this.deliveryFeeSats),
+      total: 0,
     }
 
     data.total = data.amount + data.serviceFee + data.arbitrationFee + data.deliveryFee

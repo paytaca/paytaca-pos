@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
+  <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom" :persistent="loading">
     <q-card>
       <q-card-section>
         <div class="row items-center q-pb-sm">
@@ -7,7 +7,7 @@
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <q-form ref="form" @submit="() => savePayment()">
-          <q-banner v-if="formErrors?.detail?.length" class="bg-red text-white rounded-borders">
+          <q-banner v-if="formErrors?.detail?.length" class="bg-red text-white rounded-borders q-mb-md">
             <div v-if="formErrors?.detail?.length === 1">
               {{ formErrors.detail[0] }}
             </div>
@@ -59,7 +59,27 @@
               val => Boolean(val) || 'Required',
             ]"
           />
+
+          <q-slide-transition>
+            <div v-if="formData.useEscrow">
+              <div>Escrow refund address</div>
+              <q-input
+                dense
+                outlined
+                autogrow
+                :disable="loading"
+                v-model.number="formData.escrow.buyerAddress"
+                :error="Boolean(formErrors?.escrow?.buyerAddress)"
+                :error-message="formErrors?.escrow?.buyerAddress"
+                :rules="[
+                  val => Boolean(val) || 'Required',
+                ]"
+              />
+            </div>
+          </q-slide-transition>
+
           <q-checkbox
+            dense
             :disable="loading"
             v-model="formData.useEscrow"
             label="Escrow"
@@ -121,6 +141,9 @@ export default defineComponent({
       amount: 0,
       status: '',
       useEscrow: false,
+      escrow: {
+        buyerAddress: '',
+      },
     })
     watch(() => [formData.value.useEscrow], () => {
       if (!formData.value.useEscrow) return
@@ -129,12 +152,20 @@ export default defineComponent({
     })
 
     onMounted(() => resetForm())
-    watch(innerVal, () => resetForm())
+    watch(innerVal, () => {
+      resetForm()
+      resetFormErrors()
+    })
+
     function resetForm() {
       formData.value = {
         amount: props?.initial?.amount || null,
         status: props?.initial?.status,
         useEscrow: false,
+        escrow: {
+          buyerAddress: props?.initial?.buyerAddress ||
+                        props?.order?.payment?.escrowRefundAddress,
+        },
       }
       setTimeout(() => form.value?.resetValidation?.(), 10)
     }
@@ -143,11 +174,17 @@ export default defineComponent({
       detail: [],
       amount: '',
       status: '',
+      escrow: {
+        buyerAddress: '',
+      }
     })
     function resetFormErrors() {
       formErrors.value.detail = []
       formErrors.value.amount = ''
       formErrors.value.status = ''
+      formErrors.value.escrow = {
+        buyerAddress: '',
+      }
     }
 
     function savePayment() {
@@ -155,7 +192,9 @@ export default defineComponent({
         order_id: props?.order?.id,
         amount: formData.value.amount || undefined,
         status: formData.value.status || undefined,
-        escrow: !formData.value.useEscrow ? undefined : {},
+        escrow: !formData.value.useEscrow ? undefined : {
+          buyer_address: formData.value?.escrow?.buyerAddress,
+        },
       }
 
       loading.value = true
@@ -176,10 +215,11 @@ export default defineComponent({
           formErrors.value.detail = errorParser.toArray(data?.non_field_errors)
           formErrors.value.amount = errorParser.firstElementOrValue(data?.amount)
           formErrors.value.status = errorParser.firstElementOrValue(data?.status)
+          formErrors.value.escrow.buyerAddress = errorParser.firstElementOrValue(data?.escrow?.buyer_address)
 
           if (Array.isArray(data)) formErrors.value.detail = data
-          if (data?.detail) formErrors.value.detail = [data?.detail]
-          if (data?.detail) formErrors.value.detail = errorParser.toArray(data?.order_id)
+          if (typeof data?.detail === 'string') formErrors.value.detail = [data?.detail]
+          if (!formErrors.value.detail?.length) formErrors.value.detail = errorParser.toArray(data?.order_id)
 
           if (!formErrors.value.detail?.length) {
             formErrors.value.detail = ['Encountered errors in saving payment']
