@@ -6,7 +6,7 @@
           <div class="text-h5 q-space">Escrow</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
-        
+
         <div
           class="q-mb-sm rounded-borders"
           style="position:relative;" v-ripple
@@ -18,7 +18,7 @@
             <q-icon name="content_copy"/>
           </div>
         </div>
-        
+
         <div
           class="q-mb-sm rounded-borders"
           style="position:relative;" v-ripple
@@ -47,31 +47,36 @@
         </div>
 
         <q-separator spaced/>
-        <div class="q-mb-sm">
+        <div class="q-mb-sm" @click="() => toggleAmountsDisplay()">
           <div class="row items-start">
             <div class="text-grey q-space">Amount</div>
-            <div>{{ escrowContract?.bchAmounts?.amount }} BCH</div>
+            <div v-if="displayBch">{{ escrowContract?.bchAmounts?.amount }} BCH</div>
+            <div v-else>{{ fiatAmounts?.amount }} {{ currency }}</div>
           </div>
           <div class="q-pl-sm">
             <div class="row items-start">
               <div class="text-grey q-space">Delivery fee</div>
-              <div>{{ escrowContract?.bchAmounts?.deliveryFee }} BCH</div>
+              <div v-if="displayBch">{{ escrowContract?.bchAmounts?.deliveryFee }} BCH</div>
+              <div v-else>{{ fiatAmounts?.deliveryFee }} {{ currency }}</div>
             </div>
     
             <div class="row items-start">
               <div class="text-grey q-space">Service fee</div>
-              <div>{{ escrowContract?.bchAmounts?.serviceFee }} BCH</div>
+              <div v-if="displayBch">{{ escrowContract?.bchAmounts?.serviceFee }} BCH</div>
+              <div v-else>{{ fiatAmounts?.serviceFee }} {{ currency }}</div>
             </div>
     
             <div class="row items-start">
               <div class="text-grey q-space">Arbitration fee</div>
-              <div>{{ escrowContract?.bchAmounts?.arbitrationFee }} BCH</div>
+              <div v-if="displayBch">{{ escrowContract?.bchAmounts?.arbitrationFee }} BCH</div>
+              <div v-else>{{ fiatAmounts?.arbitrationFee }} {{ currency }}</div>
             </div>
           </div>
 
           <div class="row items-start">
             <div class="text-grey q-space">Total</div>
-            <div>{{ escrowContract?.bchAmounts?.total }} BCH</div>
+            <div v-if="displayBch">{{ escrowContract?.bchAmounts?.total }} BCH</div>
+            <div v-else>{{ fiatAmounts?.total }} {{ currency }}</div>
           </div>
         </div>
       </q-card-section>
@@ -79,15 +84,17 @@
   </q-dialog>
 </template>
 <script>
-import { EscrowContract } from 'src/marketplace/objects'
+import { BchPrice, EscrowContract } from 'src/marketplace/objects'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
-import { defineComponent, ref, watch } from 'vue'
+import { computed, defineComponent, ref, watch } from 'vue'
 
 export default defineComponent({
   name: 'EscrowContractDialog',
   props: {
     modelValue: Boolean,
     escrowContract: EscrowContract,
+    bchPrice: BchPrice,
+    currency: String,
   },
   emits: [
     'update:modelValue',
@@ -104,6 +111,35 @@ export default defineComponent({
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
+    const fiatAmounts = computed(() => {
+      const data = {
+        amount: null,
+        serviceFee: null,
+        arbitrationFee: null,
+        deliveryFee: null,
+        total: null,
+      }
+      if (!isFinite(props.bchPrice?.price)) return data
+      const rate = props.bchPrice?.price
+      const round = (amount, decimals) => Math.round(amount * 10 ** decimals) / 10 ** decimals
+      data.amount = round(props.escrowContract?.bchAmounts?.amount * rate, 3)
+      data.serviceFee = round(props.escrowContract?.bchAmounts?.serviceFee * rate, 3)
+      data.arbitrationFee = round(props.escrowContract?.bchAmounts?.arbitrationFee * rate, 3)
+      data.deliveryFee = round(props.escrowContract?.bchAmounts?.deliveryFee * rate, 3)
+      data.total = round(props.escrowContract?.bchAmounts?.total * rate, 3)
+
+      return data
+    })
+
+    const displayBch = ref(true)
+    function toggleAmountsDisplay() {
+      if (!isFinite(props.bchPrice?.price)) {
+        displayBch.value = true
+        return
+      }
+      displayBch.value = !displayBch.value
+    }
+
     function copyToClipboard(value, message='') {
       this.$copyText(value)
         .then(() => {
@@ -116,9 +152,14 @@ export default defineComponent({
         })
         .catch(() => {})
     }
+
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
+
+      fiatAmounts,
+      displayBch,
+      toggleAmountsDisplay,
 
       copyToClipboard,
     }

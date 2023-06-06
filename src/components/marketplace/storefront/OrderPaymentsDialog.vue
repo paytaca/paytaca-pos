@@ -8,7 +8,7 @@
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <slot name="before"></slot>
-        <q-list v-if="payments?.length" class="q-r-mx-md" separator>
+        <q-list v-if="payments?.length" class="q-r-mx-md" separator style="max-height:65vh;overflow:auto;">
           <q-item v-for="payment in payments" :key="payment?.id" clickable v-ripple>
             <q-item-section top>
               <q-item-label>
@@ -75,13 +75,15 @@
       <EscrowContractDialog
         v-model="escrowContractDialog.show"
         :escrow-contract="escrowContractDialog.escrowContract"
+        :bch-price="escrowContractDialog.bchPrice"
+        :currency="escrowContractDialog.currency"
       />
 
     </q-card>
   </q-dialog>
 </template>
 <script>
-import { EscrowContract, Payment } from 'src/marketplace/objects'
+import { BchPrice, EscrowContract, Payment } from 'src/marketplace/objects'
 import { errorParser, formatDateRelative } from 'src/marketplace/utils'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { capitalize, computed, defineComponent, ref, watch } from 'vue'
@@ -154,13 +156,20 @@ export default defineComponent({
         })
     }
 
-    const escrowContractDialog = ref({show: false, escrowContract: EscrowContract.parse() })
+    const escrowContractDialog = ref({
+      show: false,
+      escrowContract: EscrowContract.parse(),
+      bchPrice: BchPrice.parse(),
+      currency: '',
+    })
     async function displayPaymentEscrowContract(payment=Payment.parse()) {
       if (!payment.escrowContractAddress) return
 
       if (!payment.escrowContract) await payment.fetchEscrowContract()
 
       escrowContractDialog.value.escrowContract = payment.escrowContract
+      escrowContractDialog.value.bchPrice = payment.bchPrice
+      escrowContractDialog.value.currency = payment.currency.symbol
       escrowContractDialog.value.show = true
     }
 
