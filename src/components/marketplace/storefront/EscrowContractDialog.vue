@@ -71,6 +71,12 @@
               <div v-if="displayBch">{{ escrowContract?.bchAmounts?.arbitrationFee }} BCH</div>
               <div v-else>{{ fiatAmounts?.arbitrationFee }} {{ currency }}</div>
             </div>
+
+            <div class="row items-start">
+              <div class="text-grey q-space">Network fee</div>
+              <div v-if="displayBch">{{ escrowContract?.bchAmounts?.networkFee }} BCH</div>
+              <div v-else>{{ fiatAmounts?.networkFee }} {{ currency }}</div>
+            </div>
           </div>
 
           <div class="row items-start">
@@ -117,6 +123,7 @@ export default defineComponent({
         serviceFee: null,
         arbitrationFee: null,
         deliveryFee: null,
+        networkFee: null,
         total: null,
       }
       if (!isFinite(props.bchPrice?.price)) return data
@@ -126,6 +133,7 @@ export default defineComponent({
       data.serviceFee = round(props.escrowContract?.bchAmounts?.serviceFee * rate, 3)
       data.arbitrationFee = round(props.escrowContract?.bchAmounts?.arbitrationFee * rate, 3)
       data.deliveryFee = round(props.escrowContract?.bchAmounts?.deliveryFee * rate, 3)
+      data.networkFee = round(props.escrowContract?.bchAmounts?.networkFee * rate, 3)
       data.total = round(props.escrowContract?.bchAmounts?.total * rate, 3)
 
       return data
