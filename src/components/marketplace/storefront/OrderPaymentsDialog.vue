@@ -32,7 +32,7 @@
                 <q-menu class="text-left">
                   <q-list separator>
                     <q-item
-                      v-if="payment?.canReceive"
+                      v-if="!payment?.isEscrow && payment?.canReceive"
                       clickable v-ripple
                       v-close-popup
                       @click="() => updatePaymentStatus({ payment, status: 'received' })"
@@ -42,7 +42,7 @@
                       </q-item-section>
                     </q-item>
                     <q-item
-                      v-if="payment?.canRefund"
+                      v-if="!payment?.isEscrow && payment?.canRefund"
                       clickable v-ripple
                       v-close-popup
                       @click="() => updatePaymentStatus({ payment, status: 'refunded' })"
