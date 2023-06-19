@@ -7,84 +7,116 @@
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
 
-        <div
-          class="q-mb-sm rounded-borders"
-          style="position:relative;" v-ripple
-          @click="copyToClipboard(escrowContract?.address)"
-        >
-          <div class="text-caption text-grey top">Address</div>
-          <div style="word-break: break-all;">
-            {{ escrowContract?.address }}
-            <q-icon name="content_copy"/>
-          </div>
-        </div>
-
-        <div
-          class="q-mb-sm rounded-borders"
-          style="position:relative;" v-ripple
-          @click="copyToClipboard(escrowContract?.sellerAddress)"
-        >
-          <div class="text-caption text-grey top">Recipient</div>
-          <div style="word-break: break-all;">
-            {{ escrowContract?.sellerAddress }}
-            <q-icon name="content_copy"/>
-          </div>
-        </div>
-
-        <div
-          class="q-mb-sm rounded-borders"
-          style="position:relative;" v-ripple
-          @click="copyToClipboard(escrowContract?.deliveryServiceAddress)"
-        >
-          <div class="text-caption text-grey top">Delivery fee receipient</div>
-          <div v-if="escrowContract?.deliveryServiceAddress" style="word-break: break-all;">
-            {{ escrowContract?.deliveryServiceAddress }}
-            <q-icon name="content_copy"/>
-          </div>
-          <div v-else class="text-grey">
-            None
-          </div>
-        </div>
-
-        <q-separator spaced/>
-        <div class="q-mb-sm" @click="() => toggleAmountsDisplay()">
-          <div class="row items-start">
-            <div class="text-grey q-space">Amount</div>
-            <div v-if="displayBch">{{ escrowContract?.bchAmounts?.amount }} BCH</div>
-            <div v-else>{{ fiatAmounts?.amount }} {{ currency }}</div>
-          </div>
-          <div class="q-pl-sm">
-            <div class="row items-start">
-              <div class="text-grey q-space">Delivery fee</div>
-              <div v-if="displayBch">{{ escrowContract?.bchAmounts?.deliveryFee }} BCH</div>
-              <div v-else>{{ fiatAmounts?.deliveryFee }} {{ currency }}</div>
+        <q-tab-panels v-model="tab" style="background:none;" animated>
+          <q-tab-panel name="details" class="q-pa-none">
+            <div class="row no-wrap items-center">
+              <div
+                class="q-mb-sm rounded-borders q-space"
+                style="position:relative;" v-ripple
+                @click="copyToClipboard(escrowContract?.address)"
+              >
+                <div class="text-caption text-grey top">Address</div>
+                <div style="word-break: break-all;">
+                  {{ escrowContract?.address }}
+                  <q-icon name="content_copy"/>
+                </div>
+              </div>
+              <q-btn
+                flat
+                icon="qr_code"
+                size="1.5em"
+                padding="md"
+                @click="() => tab='qrcode'"
+              />
             </div>
     
-            <div class="row items-start">
-              <div class="text-grey q-space">Service fee</div>
-              <div v-if="displayBch">{{ escrowContract?.bchAmounts?.serviceFee }} BCH</div>
-              <div v-else>{{ fiatAmounts?.serviceFee }} {{ currency }}</div>
+            <div
+              class="q-mb-sm rounded-borders"
+              style="position:relative;" v-ripple
+              @click="copyToClipboard(escrowContract?.sellerAddress)"
+            >
+              <div class="text-caption text-grey top">Recipient</div>
+              <div style="word-break: break-all;">
+                {{ escrowContract?.sellerAddress }}
+                <q-icon name="content_copy"/>
+              </div>
             </div>
     
-            <div class="row items-start">
-              <div class="text-grey q-space">Arbitration fee</div>
-              <div v-if="displayBch">{{ escrowContract?.bchAmounts?.arbitrationFee }} BCH</div>
-              <div v-else>{{ fiatAmounts?.arbitrationFee }} {{ currency }}</div>
+            <div
+              class="q-mb-sm rounded-borders"
+              style="position:relative;" v-ripple
+              @click="copyToClipboard(escrowContract?.deliveryFeeKeyNft?.currentAddress)"
+            >
+              <div class="text-caption text-grey top">Delivery fee receipient</div>
+              <div v-if="escrowContract?.deliveryFeeKeyNft?.currentAddress" style="word-break: break-all;">
+                {{ escrowContract?.deliveryFeeKeyNft?.currentAddress }}
+                <q-icon name="content_copy"/>
+              </div>
+              <div v-else class="text-grey">
+                None
+              </div>
             </div>
-
-            <div class="row items-start">
-              <div class="text-grey q-space">Network fee</div>
-              <div v-if="displayBch">{{ escrowContract?.bchAmounts?.networkFee }} BCH</div>
-              <div v-else>{{ fiatAmounts?.networkFee }} {{ currency }}</div>
+    
+            <q-separator spaced/>
+            <div class="q-mb-sm" @click="() => toggleAmountsDisplay()">
+              <div class="row items-start">
+                <div class="text-grey q-space">Amount</div>
+                <div v-if="displayBch">{{ escrowContract?.bchAmounts?.amount }} BCH</div>
+                <div v-else>{{ fiatAmounts?.amount }} {{ currency }}</div>
+              </div>
+              <div class="q-pl-sm">
+                <div class="row items-start">
+                  <div class="text-grey q-space">Delivery fee</div>
+                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.deliveryFee }} BCH</div>
+                  <div v-else>{{ fiatAmounts?.deliveryFee }} {{ currency }}</div>
+                </div>
+        
+                <div class="row items-start">
+                  <div class="text-grey q-space">Service fee</div>
+                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.serviceFee }} BCH</div>
+                  <div v-else>{{ fiatAmounts?.serviceFee }} {{ currency }}</div>
+                </div>
+        
+                <div class="row items-start">
+                  <div class="text-grey q-space">Arbitration fee</div>
+                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.arbitrationFee }} BCH</div>
+                  <div v-else>{{ fiatAmounts?.arbitrationFee }} {{ currency }}</div>
+                </div>
+    
+                <div class="row items-start">
+                  <div class="text-grey q-space">Network fee</div>
+                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.networkFee }} BCH</div>
+                  <div v-else>{{ fiatAmounts?.networkFee }} {{ currency }}</div>
+                </div>
+              </div>
+    
+              <div class="row items-start">
+                <div class="text-grey q-space">Total</div>
+                <div v-if="displayBch">{{ escrowContract?.bchAmounts?.total }} BCH</div>
+                <div v-else>{{ fiatAmounts?.total }} {{ currency }}</div>
+              </div>
             </div>
-          </div>
-
-          <div class="row items-start">
-            <div class="text-grey q-space">Total</div>
-            <div v-if="displayBch">{{ escrowContract?.bchAmounts?.total }} BCH</div>
-            <div v-else>{{ fiatAmounts?.total }} {{ currency }}</div>
-          </div>
-        </div>
+          </q-tab-panel>
+          <q-tab-panel name="qrcode" class="q-pa-none">
+            <div class="row items-center no-wrap">
+              <q-btn flat round icon="arrow_back" @click="() => tab = 'details'"/>
+              <div class="q-space text-h5">Scan to pay</div>
+            </div>
+            <div class="row items-center justify-center">
+              <div class="col-qr-code">
+                <QRCode :text="qrCodeData"/>
+              </div>
+            </div>
+            <q-input
+              dense
+              outlined
+              readonly
+              autogrow
+              :model-value="qrCodeData"
+              class="q-pt-sm"
+            />
+          </q-tab-panel>
+        </q-tab-panels>
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -93,9 +125,13 @@
 import { BchPrice, EscrowContract } from 'src/marketplace/objects'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
+import QRCode from 'vue-qrcode-component'
 
 export default defineComponent({
   name: 'EscrowContractDialog',
+  components: {
+    QRCode,
+  },
   props: {
     modelValue: Boolean,
     escrowContract: EscrowContract,
@@ -116,6 +152,7 @@ export default defineComponent({
     const innerVal = ref(props.modelValue)
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
+    const tab = ref('details');
 
     const fiatAmounts = computed(() => {
       const data = {
@@ -148,6 +185,11 @@ export default defineComponent({
       displayBch.value = !displayBch.value
     }
 
+    const qrCodeData = computed(() => {
+      return `${props.escrowContract?.address}?a=${props.escrowContract?.bchAmounts?.total}`
+    })
+
+
     function copyToClipboard(value, message='') {
       this.$copyText(value)
         .then(() => {
@@ -164,13 +206,26 @@ export default defineComponent({
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
+      tab,
 
       fiatAmounts,
       displayBch,
       toggleAmountsDisplay,
+
+      qrCodeData,
 
       copyToClipboard,
     }
   },
 })
 </script>
+<style lang="scss" scoped>
+  .col-qr-code {
+    display: flex;
+    justify-content: center;
+    border-radius: 16px;
+    border: 4px solid #ed5f59;
+    background: white;
+    padding: 12px;
+  }
+</style>

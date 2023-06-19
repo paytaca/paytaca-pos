@@ -1641,6 +1641,9 @@ export class EscrowContract {
    * @param {Object} [data.delivery_fee_key_nft]
    * @param {Number} data.delivery_fee_key_nft.amount
    * @param {Number} data.delivery_fee_key_nft.nft_id
+   * @param {String} data.delivery_fee_key_nft.current_address
+   * @param {String} data.delivery_fee_key_nft.current_txid
+   * @param {Number} data.delivery_fee_key_nft.current_index
    * @param {Object} data.delivery_fee_key_nft.fee_pool_contract
    * @param {String} data.delivery_fee_key_nft.fee_pool_contract.address
    * @param {String} data.delivery_fee_key_nft.fee_pool_contract.key_nft_category
@@ -1670,11 +1673,14 @@ export class EscrowContract {
     this.deliveryFeeKeyNft = {
       amount: data?.delivery_fee_key_nft?.amount,
       nftId: data?.delivery_fee_key_nft?.nft_id,
+      currentAddress: data?.delivery_fee_key_nft?.current_address,
+      currentTxid: data?.delivery_fee_key_nft?.current_txid,
+      currentIndex: data?.delivery_fee_key_nft?.current_index,
       feePoolContract: {
         address: data?.delivery_fee_key_nft?.fee_pool_contract?.address,
         keyNftCategory: data?.delivery_fee_key_nft?.fee_pool_contract?.key_nft_category,
         ownerAddress: data?.delivery_fee_key_nft?.fee_pool_contract?.owner_address,
-      }
+      },
     }
 
     if (data?.timestamp) this.timestamp = new Date(data?.timestamp) * 1
