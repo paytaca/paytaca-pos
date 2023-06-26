@@ -1515,6 +1515,7 @@ export class Delivery {
    * @param {{ code:String, symbol:String }} data.currency
    * @param {Number} data.subtotal
    * @param {Number} data.fee
+   * @param {Boolean} data.is_public
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
    * @param {Number} [data.pickup_distance]
@@ -1539,6 +1540,7 @@ export class Delivery {
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.subtotal = data?.subtotal
     this.fee = data?.fee
+    this.isPublic = data?.is_public
     this.createdAt = new Date(data?.created_at)
     this.updatedAt = new Date(data?.updated_at)
     this.pickupDistance = data?.pickup_distance

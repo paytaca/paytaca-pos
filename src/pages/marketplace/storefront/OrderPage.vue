@@ -136,10 +136,18 @@
                   >
                     <q-item-section>Unassign rider</q-item-section>
                   </q-item>
+                  <q-item
+                    clickable v-close-popup
+                    @click="() => setDeliveryPublicity(!delivery.isPublic)"
+                  >
+                    <q-item-section>
+                      <q-item-label>Set {{ delivery?.isPublic ? 'Private' : 'Public' }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-btn>
-            <div class="float-right">
+            <div class="float-right q-my-xs">
               <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.5em" color="green">
                 <q-menu class="q-pa-sm">Rider has accepted delivery</q-menu>
               </q-icon>
@@ -161,7 +169,16 @@
               </q-icon>
             </div>
             <div class="text-subtitle1">Delivery status</div>
-            <div class="text-caption bottom">Delivery #{{ delivery?.id }}</div>
+            <div class="text-caption bottom">
+              Delivery #{{ delivery?.id }}
+              <template v-if="delivery.isPublic === false">
+                <span class="text-grey text-underline">(Private)</span>
+                <q-menu class="q-pa-sm">
+                  Delivery will not be visible to riders when searching deliveries.
+                  Assign a rider or set to public.
+                </q-menu>
+              </template>
+            </div>
             <div v-if="delivery?.rider?.id" class="q-mt-xs">
               <div class="text-subtitle2">Rider</div>
               <div class="row items-start q-gutter-x-xs">
@@ -498,6 +515,31 @@ export default defineComponent({
         })
     }
 
+    function setDeliveryPublicity(isPublic=false) {
+      const data = { is_public: isPublic }
+      const dialog = $q.dialog({
+        title: 'Updating delivery',
+        message: 'Updating delivery',
+        progress: true, persistent: true,
+        ok: false,
+      })
+      return backend.patch(`connecta-express/deliveries/${delivery.value?.id}/`, data)
+        .then(response => {
+          delivery.value = Delivery.parse(response?.data)
+          dialog.hide()
+          return response
+        })
+        .catch(error => {
+          const errorMessage = error?.response?.data?.detail ||
+              errorParser.firstElementOrValue(error?.response?.data?.non_field_errors) ||
+              errorParser.firstElementOrValue(error?.response?.data?.is_public)
+          dialog.update({ message: errorMessage || defaultError })
+        })
+        .finally(() => {
+          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+        })
+    }
+
     const trackRiderInterval = ref(null)
     function stopTrackRider () {
       clearInterval(trackRiderInterval.value)
@@ -659,6 +701,7 @@ export default defineComponent({
       createDeliveryRequest,
       searchRiderForDelivery,
       assignRider,
+      setDeliveryPublicity,
 
       showMap,
       mapLocations,
