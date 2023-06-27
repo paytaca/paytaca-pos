@@ -11,7 +11,7 @@
           <q-tab-panel name="details" class="q-pa-none">
             <div class="row items-center justify-end">
               <q-btn
-                v-if="escrowContract?.settlementTxid"
+                v-if="escrowContract?.isSettled"
                 flat
                 color="green"
                 no-caps
@@ -35,7 +35,7 @@
                 </q-menu>
               </q-btn>
               <q-btn
-                v-if="escrowContract?.fundingTxid && escrowContract?.fundingVout >= 0"
+                v-if="escrowContract?.isFunded"
                 flat
                 color="green"
                 no-caps
@@ -73,6 +73,7 @@
               </div>
               <q-btn
                 flat
+                :disable="escrowContract?.isFunded"
                 icon="qr_code"
                 size="1.5em"
                 padding="md"
