@@ -166,7 +166,7 @@ export default defineComponent({
         delivery_id: props?.delivery?.id,
         radius: searchOpts.value?.radius,
       }
-      const params = { is_handling_delivery: false }
+      const params = {}
       fetchingRiders.value = true
       return backend.post(`connecta-express/riders/search/`, data, { params })
         .then(response => {
