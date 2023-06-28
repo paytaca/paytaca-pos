@@ -149,7 +149,10 @@
             </q-btn>
             <div class="float-right q-my-xs">
               <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.5em" color="green">
-                <q-menu class="q-pa-sm">Rider has accepted delivery</q-menu>
+                <q-menu class="q-pa-sm">
+                  Rider has accepted delivery
+                  <span v-if="delivery?.acceptedAt">({{  formatDateRelative(delivery?.acceptedAt) }})</span>
+                </q-menu>
               </q-icon>
               <q-icon
                 v-if="delivery?.pickedUpAt || delivery?.deliveredAt"

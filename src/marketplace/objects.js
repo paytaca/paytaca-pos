@@ -1509,6 +1509,7 @@ export class Delivery {
    * @param {Object} data.pickup_location
    * @param {Object} data.delivery_location
    * @param {Number} data.distance
+   * @param {String | Number} [data.accepted_at]
    * @param {String | Number} [data.picked_up_at]
    * @param {String | Number} [data.delivered_at]
    * @param {String | Number} [data.completed_at]
@@ -1531,6 +1532,8 @@ export class Delivery {
     this.pickupLocation = Location.parse(data?.pickup_location)
     this.deliveryLocation = Location.parse(data?.delivery_location)
     this.distance = data?.distance
+    if (data?.accepted_at) this.acceptedAt = new Date(data?.accepted_at)
+    else if (this.acceptedAt) delete this.acceptedAt
     if (data?.picked_up_at) this.pickedUpAt = new Date(data?.picked_up_at)
     else if (this.pickedUpAt) delete this.pickedUpAt
     if (data?.delivered_at) this.deliveredAt = new Date(data?.delivered_at)
