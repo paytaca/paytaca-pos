@@ -119,8 +119,15 @@
         <div class="text-subtitle1 row items-start q-pr-md">
           <div class="text-grey q-space">Total</div>
           <div>
-            <div v-if="salesOrder?.paymentMode == 'bch' && salesOrder?.bchTotal">
-              <div>{{ salesOrder?.bchTotal }} BCH</div>
+            <div v-if="salesOrder?.paymentMode == 'bch' && salesOrder?.bchTotal" class="text-right">
+              <div class="row items-center">
+                <div>{{ salesOrder?.bchTotal }} BCH</div>
+                <q-icon v-if="salesOrder?.bchPrice?.timestamp" name="info" size="1em">
+                  <q-menu class="q-pa-sm">
+                    BCH price at {{ formatTimestampToText(salesOrder?.bchPrice?.timestamp) }}
+                  </q-menu>
+                </q-icon>
+              </div>
               <div class="text-grey text-caption bottom">
                 {{ salesOrder?.total }} {{ salesOrder?.currency?.symbol }}
               </div>

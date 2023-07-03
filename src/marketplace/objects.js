@@ -671,7 +671,7 @@ export class SalesOrder {
     this.paymentMode = data?.payment_mode
     this.bchPrice = BchPrice.parse(data?.bch_price)
     this.bchRecipientAddress = data?.bch_recipient_address
-    this.bchTxid = data?.bch_txid || '84c3d2b8276d9e958c3aea6dfc7a2001560b75f6ebefcd9869fa67d7493c2df4'
+    this.bchTxid = data?.bch_txid
     this.createdAt = new Date(data?.created_at)
     this.createdBy = {
       id: data?.created_by?.id,
