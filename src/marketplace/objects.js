@@ -646,6 +646,10 @@ export class SalesOrder {
    * @param {Number} [data.number]
    * @param {Number} data.total
    * @param {String} data.transaction_date
+   * @param {String} data.payment_mode
+   * @param {Object} data.bch_price
+   * @param {String} data.bch_recipient_address
+   * @param {String} data.bch_txid
    * @param {String} data.created_at
    * @param {{ id:Number, first_name:String, last_name:String }} data.created_by
    * @param {{ code:String, symbol:String }} data.currency
@@ -664,6 +668,10 @@ export class SalesOrder {
       symbol: data?.currency?.symbol,
     }
     this.shop = { id: data?.shop?.id, name: data?.shop?.name }
+    this.paymentMode = data?.payment_mode
+    this.bchPrice = BchPrice.parse(data?.bch_price)
+    this.bchRecipientAddress = data?.bch_recipient_address
+    this.bchTxid = data?.bch_txid || '84c3d2b8276d9e958c3aea6dfc7a2001560b75f6ebefcd9869fa67d7493c2df4'
     this.createdAt = new Date(data?.created_at)
     this.createdBy = {
       id: data?.created_by?.id,
@@ -673,6 +681,34 @@ export class SalesOrder {
 
     this.itemsCount = data?.items_count
     if (Array.isArray(data?.items)) this.items = data?.items.map(SalesOrderItem.parse)
+  }
+
+  get parsedPaymentMode() {
+    switch(this.paymentMode) {
+      case 'bch':
+        return 'BCH'
+      case 'other':
+        return 'Other'
+    }
+  }
+
+  get bchTotal() {
+    const bchValue = parseFloat(this.bchPrice?.price)
+    const total = parseFloat(this.total)
+    if (!bchValue || !total) return
+
+    const bchTotal = total / bchValue
+    return Math.floor(bchTotal * 10 ** 8) / 10 ** 8
+  }
+
+  get bchTxidLink() {
+    const txid = this?.bchTxid
+    const isTestnet = this?.bchRecipientAddress?.startsWith?.('bchtest:')
+
+    if (!txid) return ''
+
+    if (isTestnet) return `https://chipnet.imaginary.cash/tx/${txid}`
+    return `https://blockchair.com/bitcoin-cash/transaction/${txid}`
   }
 
   async fetchItems() {
