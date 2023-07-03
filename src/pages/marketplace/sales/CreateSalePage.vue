@@ -183,9 +183,63 @@
           />
         </div>
       </q-tab-panel>
+      <q-tab-panel name="payment" class="q-pa-none">
+        <q-select
+          dense
+          outlined
+          :options="['BCH', 'Other']"
+          v-model="formData.paymentMode"
+        />
+        <div v-if="formData.paymentMode == 'BCH'" class="q-px-md q-mt-md">
+          <div v-if="formData?.bchPayment?.price?.value" class="text-right">
+            <div>
+              {{ formData.bchPayment.price.value }}
+              {{ marketplaceStore?.merchant?.currency?.symbol }} / BCH
+            </div>
+            <div class="text-grey text-caption bottom">
+              {{ formatTimestampToText(formData.bchPayment?.price?.timestamp) }}
+            </div>
+          </div>
+          <div class="row justify-center items-center q-mt-sm">
+            <div class="qr-code-container row items-center">
+              <div v-if="loading"><q-skeleton height="200px" width="200px" /></div>
+              <template v-else>
+                <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
+                <QRCode
+                  :text="bchPaymentUrl"
+                  color="#253933"
+                  :size="200"
+                  error-level="H"
+                  :style="bchPaymentUrl ? '' : 'opacity:0;'"
+                />
+              </template>
+            </div>
+          </div>
+          <div v-if="formComputedData.bchSubtotal && formData.bchPayment.recipient" class="text-center">
+            <div class="text-h5">{{ formComputedData.bchSubtotal }} BCH</div>
+            <div class="text-caption bottom">
+              {{ formComputedData.subtotal }} {{ marketplaceStore?.merchant?.currency?.symbol }}
+            </div>
+            <div class="text-subtitle1 q-mt-sm" style="word-break: break-all;">
+              {{ formData.bchPayment.recipient }}
+            </div>
+          </div>
+        </div>
+
+        <div v-if="formComputedData.subtotal > 0" class="q-mt-md">
+          <q-btn
+            color="brandblue"
+            no-caps
+            label="Next"
+            class="full-width"
+            @click="() => nextTab()"
+          />
+        </div>
+      </q-tab-panel>
       <q-tab-panel name="review" class="q-pa-none">
-        <q-card>
+        <q-card class="q-mb-md">
           <q-card-section>
+            <div class="text-subtitle1">Items</div>
             <div v-for="(item) in formData.items" :key="item?.variant?.id">
               <div class="row items-center no-wrap q-gutter-x-sm q-mb-sm">
                 <div class="q-space row items-center no-wrap text-weight-medium" @click="() => viewItemVariant(item)">
@@ -201,12 +255,44 @@
                 <div class="col-2">x{{ item?.quantity }}</div>
               </div>
             </div>
-            <q-separator spaced/>
-            <div class="row items-center text-h5">
-              <div class="q-space">Subtotal</div>
-              <div>
-                {{ formComputedData.subtotal }}
-                {{ marketplaceStore.currency }}
+          </q-card-section>
+        </q-card>
+        <q-card class="q-mb-md">
+          <q-card-section>
+            <div class="text-subtitle1">Payment</div>
+            <div class="row no-wrap items-start">
+              <div class="q-space q-mr-sm text-grey">Payment method</div>
+              <div>{{ formData.paymentMode }}</div>
+            </div>
+            <template v-if="formData.paymentMode == 'BCH'">
+              <div class="row no-wrap items-start">
+                <div class="q-space q-mr-sm text-grey">Recipient</div>
+                <div style="word-break:break-all;" class="ellipsis">{{ formData?.bchPayment?.recipient }}</div>
+              </div>
+              <div class="row no-wrap items-start">
+                <div class="q-space q-mr-sm text-grey">BCH Price</div>
+                <div class="row items-center">
+                  <q-icon name="help" class="q-mr-xs"/>
+                  <div style="word-break:break-all;" class="ellipsis">
+                    {{ formData?.bchPayment?.price?.value }}
+                    {{ marketplaceStore.currency }} / BCH
+                  </div>
+                </div>
+                <q-menu class="q-pa-sm">
+                  BCH price as of {{ formatTimestampToText(formData?.bchPayment?.price?.timestamp) }}
+                </q-menu>
+              </div>
+            </template>
+            <div class="row items-start text-h5">
+              <div class="q-space">Total</div>
+              <div v-if="formData.paymentMode == 'BCH'" class="text-right">
+                <div>{{ formComputedData.bchSubtotal }} BCH</div>
+                <div class="text-grey text-caption bottom">
+                  {{ formComputedData.subtotal }} {{ marketplaceStore.currency }}
+                </div>
+              </div>
+              <div v-else>
+                {{ formComputedData.subtotal }} {{ marketplaceStore.currency }}
               </div>
             </div>
           </q-card-section>
@@ -259,6 +345,9 @@ import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoD
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import StockDetailDialog from 'src/components/marketplace/inventory/StockDetailDialog.vue'
 import StockSearchDialog from 'src/components/marketplace/inventory/StockSearchDialog.vue'
+import QRCode from 'vue-qrcode-component'
+import { useAddressesStore } from 'src/stores/addresses'
+import { formatTimestampToText } from 'src/marketplace/utils'
 
 export default defineComponent({
   name: 'CreateSalePage',
@@ -267,15 +356,18 @@ export default defineComponent({
     MarketplaceHeader,
     VariantInfoDialog,
     StockDetailDialog,
+    QRCode,
   },
   setup() {
     const $q = useQuasar()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
+    const addressesStore = useAddressesStore()
     const tab = ref('items')
     const tabs = ref([
       { name: 'items', label: 'Items', disable: false },
       { name: 'stocks', label: 'Stocks', disable: true },
+      { name: 'payment', label: 'Payment', disable: true },
       { name: 'review', label: 'Review', disable: true },
     ])
     watch(tab, () => {
@@ -309,10 +401,16 @@ export default defineComponent({
     const loading = ref(false)
     const formData = ref({
       items: [].map(createEmptyItem),
+      paymentMode: 'BCH', // BCH | Other
+      bchPayment: {
+        recipient: addressesStore.currentAddressSet?.receiving || '',
+        price: { timestamp: Date.now(), value: 16378.05 }, // for BCH
+        txid: '',
+      }
     })
 
     const formComputedData = computed(() => {
-      const data = { subtotal: 0 }
+      const data = { subtotal: 0, bchSubtotal: 0 }
       if (formData.value?.items?.length) {
         data.subtotal = formData.value?.items
           .reduce((subtotal, item) => {
@@ -321,8 +419,23 @@ export default defineComponent({
             return subtotal + (item?.variant?.price * item?.quantity)
           }, 0)
       }
+      if (formData.value.bchPayment?.price?.value) {
+        data.bchSubtotal = data.subtotal / formData.value.bchPayment.price.value
+        data.bchSubtotal = Math.floor(data.bchSubtotal * 10 ** 8) / 10 ** 8
+      }
       return data
     })
+
+    const bchPaymentUrl = computed(() => {
+      const recipient = formData.value.bchPayment?.recipient
+      const amount = formComputedData.value.bchSubtotal
+      if (!amount || !recipient) return ''
+
+      return `${recipient}?a=${amount}`
+    })
+
+    onMounted(() => updateBchPrice())
+    watch(() => [formData.value.paymentMode], () => updateBchPrice())
 
     function addItem(item) {
       const index = formData.value.items.findIndex(_item => _item?.variant?.id === item?.variant?.id)
@@ -365,9 +478,30 @@ export default defineComponent({
         })
     }
 
+    function updateBchPrice(opts={ checkPaymentMode: true }) {
+      if (opts?.checkPaymentMode && formData.value.paymentMode != 'BCH') return Promise.resolve()
+
+      const currencyCode = marketplaceStore.currency
+      return backend.get(`prices/bch/${currencyCode}/`)
+        .then(response => {
+          const value = parseFloat(response?.data?.price)
+          const timestamp = (response?.data?.timestamp ? new Date(response?.data?.timestamp) : null) * 1
+          if (!value || !timestamp) return Promise.reject({ response })
+          formData.value.bchPayment.price = { timestamp , value }
+          return response
+        })
+    }
+
     function createSale() {
       const data = {
         shop_id: marketplaceStore.activeShopId,
+        payment_mode: formData.value.paymentMode.toLowerCase() || undefined,
+        bch_price: {
+          price: formData.value.bchPayment.price.value,
+          timestamp: new Date(formData.value.bchPayment.price.timestamp),
+        },
+        bch_recipient_address: formData.value.bchPayment.recipient,
+        bch_txid: formData.value.bchPayment.txid,
         items: formData.value.items.map(item => {
           return {
             variant_id: item.variant.id,
@@ -432,6 +566,7 @@ export default defineComponent({
       loading,
       formData,
       formComputedData,
+      bchPaymentUrl,
 
       addItem,
       removeItem,
@@ -444,6 +579,8 @@ export default defineComponent({
 
       stockInfoDialog,
       viewStockDetail,
+
+      formatTimestampToText,
     }
   },
 })
@@ -501,4 +638,29 @@ export default defineComponent({
 /* .fade-leave-active {
   position: absolute;
 } */
+
+.qr-code-container {
+  position:relative;
+
+  display: flex;
+  justify-content: center;
+  align-content: center;
+
+  border-radius: 16px;
+  border: 4px solid #ed5f59;
+  background-color: white;
+
+  padding: 1.2rem 1.7rem;
+}
+
+.qr-code-container > .qr-code-icon {
+  background-color: white;
+  border-radius: 10000px;
+
+  /* absolute center */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
 </style>
