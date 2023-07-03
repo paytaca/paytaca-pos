@@ -35,10 +35,11 @@ export default defineComponent({
     })
 
     onMounted(async () => {
+      const silent = $route.query.silentSync == 'true'
       // marketplaceStore.refetchMerchant({ silent: false })
       // marketplaceStore.refetchShop({ silent: false })
-      await marketplaceStore.updateActiveShopId({ silent: false, forceSync: false }).catch(console.error)
-      await marketplaceStore.refreshUser({ silent: false }).catch(console.error)
+      await marketplaceStore.updateActiveShopId({ silent: silent, forceSync: false }).catch(console.error)
+      await marketplaceStore.refreshUser({ silent: silent }).catch(console.error)
 
       if (!marketplaceStore.user.id && $route?.meta?.requireAuth) {
         $router.replace({ name: 'marketplace-login', query: { redirectTo: $route.fullPath } })
