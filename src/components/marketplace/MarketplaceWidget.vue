@@ -2,7 +2,10 @@
   <q-card v-if="pages?.length || marketplaceStore.shop?.id" class="q-mx-md" style="border-radius: 10px;">
     <q-card-section class="q-py-sm">
       <div class="row items-center">
-        <div class="text-h6 q-space">Marketplace</div>
+        <div class="text-h6 q-space">
+          Marketplace
+          <q-spinner v-if="loading" size="0.75em"/>
+        </div>
         <q-btn
           flat
           no-caps
@@ -21,6 +24,7 @@
             outline
             color="brandblue"
             no-caps
+            :disable="loading"
             :to="page.route"
             class="full-width"
             style="min-height: 80px;"
@@ -37,20 +41,26 @@
 </template>
 <script>
 import { useMarketplaceStore } from 'src/stores/marketplace'
-import { computed, defineComponent, onMounted } from 'vue'
+import { computed, defineComponent, onMounted, ref } from 'vue'
 
 export default defineComponent({
   name: 'MarketplaceWidget',
   setup() {
     const marketplaceStore = useMarketplaceStore()
 
+    const loading = ref(false)
+    onMounted(async () => {
+      try {
+        loading.value = true
+        await marketplaceStore.updateActiveShopId({ silent: true }).catch(console.error)
+        await marketplaceStore.refreshUser({ silent: true }).catch(console.error)
+      } finally {
+        loading.value = false
+      }
+    })
+
     const hasCashierRole = computed(() => marketplaceStore.userRoles.indexOf(marketplaceStore.roles.cashier) >= 0)
     const hasStorefrontRole = computed(() => marketplaceStore.userRoles.indexOf(marketplaceStore.roles.storefront) >= 0)
-
-    onMounted(async () => {
-      await marketplaceStore.updateActiveShopId({ silent: true }).catch(console.error)
-      await marketplaceStore.refreshUser({ silent: true }).catch(console.error)
-    })
 
     const pages = computed(() => {
       const data = []
@@ -65,6 +75,7 @@ export default defineComponent({
 
     return {
       marketplaceStore,
+      loading,
 
       hasCashierRole,
       hasStorefrontRole,
