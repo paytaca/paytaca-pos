@@ -643,6 +643,7 @@ export class SalesOrder {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {Boolean} data.draft
    * @param {Number} [data.number]
    * @param {Number} data.total
    * @param {String} data.transaction_date
@@ -660,6 +661,7 @@ export class SalesOrder {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
+    this.draft = data?.draft
     this.number = data?.number
     if (data?.transaction_date) this.transactionDate = new Date(data?.transaction_date)
     this.total = data?.total

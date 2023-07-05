@@ -9,6 +9,52 @@
         </div>
       </template>
     </MarketplaceHeader>
+    <div class="row items-start q-mt-sm q-px-sm">
+      <div>
+        <q-btn-dropdown
+          v-if="draftSalesOrders?.length"
+          no-caps
+          flat
+          label="Drafts"
+          padding="xs sm"
+          menu-self="top start"
+          menu-anchor="bottom start"
+          class="q-r-ml-md"
+        >
+          <q-list>
+            <q-item
+              v-for="salesOrder in draftSalesOrders" :key="salesOrder?.id"
+              :selected="salesOrder?.id == formData?.salesOrder?.id"
+              clickable v-close-popup
+              @click="() => viewSalesOrder(salesOrder)"
+            >
+              <q-item-section>
+                <q-item-label>
+                  {{ salesOrder?.total }} {{ salesOrder?.currency?.symbol }}
+                  <span class="text-grey">
+                    ({{ salesOrder?.itemsCount || salesOrder?.items?.length }}
+                    {{ (salesOrder?.itemsCount || salesOrder?.items?.length) > 1 ? 'items' : 'item' }})
+                  </span>
+                </q-item-label>
+                <q-item-label caption >Created {{ formatDateRelative(salesOrder.createdAt) }} </q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+        <div v-if="formData?.salesOrder?.id" class="text-subtitle1">
+          Draft sales order #{{ formData?.salesOrder?.id }}
+        </div>
+      </div>
+      <q-space/>
+      <div v-if="formComputedData.subtotal > 0">
+        <q-btn
+          outline
+          no-caps label="Save draft"
+          padding="xs md"
+          @click="() => createSale({ draft: true, silent: false })"
+        />
+      </div>
+    </div>
     <q-tabs v-model="tab" >
       <q-tab v-for="(tabOpt, index) in tabs" :key="index" v-bind="tabOpt"/>
     </q-tabs>
@@ -30,6 +76,7 @@
                     <div class="text-grey q-space">Item {{ index+1 }}</div> 
                     <q-btn
                       flat
+                      :disable="loading"
                       icon="close"
                       color="red"
                       padding="xs"
@@ -54,12 +101,14 @@
                         <span class="text-underline">x{{ item.quantity }}</span>
                         <q-popup-edit
                           v-model="item.quantity" v-slot="props"
+                          :disable="loading"
                           :cover="false"
                           @update:model-value="val => val ? null: removeItem(item)"
                         >
                           <q-input
                             flat
                             dense
+                            :disable="loading"
                             type="number"
                             v-model.number="props.value"
                             @keypress.enter="() => props.set()"
@@ -89,6 +138,7 @@
             <q-card-section>
               <div class="text-h6">Add Item</div>
               <AddItemForm
+                :disable="loading"
                 :exludeVariantIds="formData?.items?.map(item => item?.variant?.id)"
                 inline-scanner
                 hide-cancel
@@ -114,6 +164,7 @@
           <q-btn
             color="brandblue"
             no-caps
+            :disable="loading"
             label="Next"
             class="full-width"
             @click="() => nextTab()"
@@ -136,7 +187,7 @@
             <div class="text-body1">x{{ item?.quantity }}</div>
           </div>
           <div class="row items-center">
-            <q-checkbox dense v-model="item.requireStocks" label="Require stocks"/>
+            <q-checkbox :disable="loading" dense v-model="item.requireStocks" label="Require stocks"/>
             <q-space/>
             <q-btn
               flat
@@ -144,6 +195,7 @@
               padding="none"
               label="Select stocks"
               class="text-underline"
+              :disable="loading"
               @click="() => selectStocks(item)"
             />
           </div>
@@ -164,6 +216,7 @@
                 <q-input
                   outlined
                   dense
+                  :disable="loading"
                   type="number"
                   v-model.number="consumption.quantity"
                   width="5em"
@@ -177,6 +230,7 @@
           <q-btn
             color="brandblue"
             no-caps
+            :disable="loading"
             label="Next"
             class="full-width"
             @click="() => nextTab()"
@@ -305,7 +359,7 @@
             label="Create Sale"
             color="brandblue"
             class="full-width"
-            @click="() => createSale()"
+            @click="() => createSale({ draft: false, silent: false })"
           />
         </div>
       </q-tab-panel>
@@ -318,26 +372,44 @@
         <q-input
           dense
           outlined
+          :disable="loading"
           label="Quantity"
           v-model="variantInfoDialog.item.quantity"
         >
           <template v-slot:prepend>
-            <q-btn flat padding="sm" icon="remove" @mousedown="() => variantInfoDialog.item.quantity--"/>
+            <q-btn :disable="loading" flat padding="sm" icon="remove" @mousedown="() => variantInfoDialog.item.quantity--"/>
           </template>
           <template v-slot:append>
-            <q-btn flat padding="sm" icon="add" @mousedown="() => variantInfoDialog.item.quantity++"/>
+            <q-btn :disable="loading" flat padding="sm" icon="add" @mousedown="() => variantInfoDialog.item.quantity++"/>
           </template>
         </q-input>
       </template>
     </VariantInfoDialog>
     <StockDetailDialog v-model="stockInfoDialog.show" :stock="stockInfoDialog.stock"/>
+    <SalesOrderDetailDialog
+      v-model="salesOrderDetailDialog.show"
+      :sales-order="salesOrderDetailDialog.salesOrder"
+    >
+      <template v-slot:bottom>
+        <q-btn
+          no-caps
+          :disable="loading"
+          label="Load"
+          color="brandblue"
+          class="full-width q-mt-md"
+          v-close-popup
+          @click="() => loadDraftSalesOrder({ salesOrder: salesOrderDetailDialog.salesOrder })"
+        />
+      </template>
+    </SalesOrderDetailDialog>
   </q-page>
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
-import { Stock, Variant } from 'src/marketplace/objects'
+import { SalesOrder, Stock, Variant } from 'src/marketplace/objects'
+import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
-import { useQuasar } from 'quasar'
+import { debounce, useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import AddItemForm from 'src/components/marketplace/sales/AddItemForm.vue'
@@ -346,8 +418,8 @@ import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import StockDetailDialog from 'src/components/marketplace/inventory/StockDetailDialog.vue'
 import StockSearchDialog from 'src/components/marketplace/inventory/StockSearchDialog.vue'
 import QRCode from 'vue-qrcode-component'
+import SalesOrderDetailDialog from 'src/components/marketplace/sales/SalesOrderDetailDialog.vue'
 import { useAddressesStore } from 'src/stores/addresses'
-import { formatTimestampToText } from 'src/marketplace/utils'
 
 export default defineComponent({
   name: 'CreateSalePage',
@@ -357,12 +429,64 @@ export default defineComponent({
     VariantInfoDialog,
     StockDetailDialog,
     QRCode,
+    SalesOrderDetailDialog,
   },
   setup() {
     const $q = useQuasar()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
     const addressesStore = useAddressesStore()
+
+    const draftSalesOrders = ref([].map(SalesOrder.parse))
+    onMounted(() => fetchDraftSalesOrders())
+    function fetchDraftSalesOrders() {
+      const params = {
+        shop_id: marketplaceStore.activeShopId,
+        draft: true,
+        created_by_id: marketplaceStore.user.id,
+      }
+      return backend.get(`sales-orders/`, { params })
+        .then(response => {
+          const results = response.data?.results
+          if (Array.isArray(results)) draftSalesOrders.value = results.map(SalesOrder.parse)
+          return response
+        })
+    }
+
+    async function loadDraftSalesOrder(opts={ salesOrder: SalesOrder.parse(), salesOrderId: 0 }) {
+      let salesOrder = opts?.salesOrder
+      if (!salesOrder && opts?.salesOrderId) {
+        salesOrder = SalesOrder.parse({ id: opts?.salesOrderId })
+        await salesOrder.refetch()
+      }
+      if (!salesOrder?.items?.length) await salesOrder.fetchItems()
+
+      const items = salesOrder.items.map(item => {
+        const _item = createEmptyItem()
+        _item.variant = item.variant
+        _item.quantity = item.quantity
+        return _item
+      })
+
+      const paymentMode = salesOrder?.parsedPaymentMode
+      const bchPayment = {
+        recipient: salesOrder.bchRecipientAddress,
+        txid: salesOrder.bchTxid,
+        price: {
+          timestamp: salesOrder?.bchPrice?.timestamp * 1,
+          value: parseFloat(salesOrder?.bchPrice?.price),
+        }
+      }
+
+      clearFormData()
+      formData.value.items = items
+      formData.value.paymentMode = paymentMode
+      formData.value.bchPayment = bchPayment
+      formData.value.salesOrder = salesOrder
+      tabs.value.forEach(tab => tab.disable = true)
+      tab.value = tabs.value[0]?.name
+    }
+
     const tab = ref('items')
     const tabs = ref([
       { name: 'items', label: 'Items', disable: false },
@@ -384,6 +508,22 @@ export default defineComponent({
       tab.value = _tabs.at(nextIndex).name
     }
 
+    // onMounted(() => {
+    //   const params = {
+    //     offset: 2,
+    //     limit: 2,
+    //     shop_id: marketplaceStore.activeShopId,
+    //   }
+    //   backend.get('variants/', { params })
+    //     .then(response => {
+    //       response?.data?.results.map(Variant.parse).forEach(variant => {
+    //         addItem({variant, quantity: 1 })
+    //       })
+    //     })
+    //   setTimeout(() => nextTab(), 10)
+    //   setTimeout(() => nextTab(), 10)
+    //   setTimeout(() => nextTab(), 10)
+    // })
 
     function createEmptyItem() {
       return {
@@ -400,6 +540,7 @@ export default defineComponent({
     }
     const loading = ref(false)
     const formData = ref({
+      salesOrder: [].map(SalesOrder.parse)[0],
       items: [].map(createEmptyItem),
       paymentMode: 'BCH', // BCH | Other
       bchPayment: {
@@ -436,6 +577,17 @@ export default defineComponent({
 
     onMounted(() => updateBchPrice())
     watch(() => [formData.value.paymentMode], () => updateBchPrice())
+
+    function clearFormData() {
+      formData.value.salesOrder = null
+      formData.value.items = []
+      formData.value.bchPayment = {
+        recipient: '',
+        price: { timestamp: 0, value: 0 },
+        txid: '',
+      }
+      formData.value.paymentMode = 'BCH'
+    }
 
     function addItem(item) {
       const index = formData.value.items.findIndex(_item => _item?.variant?.id === item?.variant?.id)
@@ -480,6 +632,7 @@ export default defineComponent({
 
     function updateBchPrice(opts={ checkPaymentMode: true }) {
       if (opts?.checkPaymentMode && formData.value.paymentMode != 'BCH') return Promise.resolve()
+      if (formData.value?.bchPayment?.txid) return Promise.reject('Payment already sent')
 
       const currencyCode = marketplaceStore.currency
       return backend.get(`prices/bch/${currencyCode}/`)
@@ -492,7 +645,7 @@ export default defineComponent({
         })
     }
 
-    function createSale() {
+    const serializedFormData = computed(() => {
       const data = {
         shop_id: marketplaceStore.activeShopId,
         payment_mode: formData.value.paymentMode.toLowerCase() || undefined,
@@ -516,24 +669,47 @@ export default defineComponent({
           }
         }),
       }
+      return data
+    })
+
+    watch(tab, () => saveSale())
+    const saveSale = debounce(function() {
+      if (!formData.value.salesOrder?.id) return
+      return createSale({ draft: true, silent: true })
+    }, 500, true)
+    
+
+    function createSale(opts = { draft: undefined, silent: false }) {
+      const salesOrderId = formData.value?.salesOrder?.id
+      const data = serializedFormData.value
+      data.draft = typeof opts?.draft === 'boolean' ? opts?.draft : undefined
+
+      let request
+      if (salesOrderId) request = backend.patch(`sales-orders/${salesOrderId}/`, data)
+      else request = backend.post('sales-orders/', data)
 
       loading.value = true
-      backend.post('sales-orders/', data)
+      return request
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
-          $q.dialog({
-            title: 'Success',
-            message: 'Sale created',
-          }).onDismiss(() => $router.go(-1))
+          formData.value.salesOrder = SalesOrder.parse(response?.data)
+          if (!opts?.silent) {
+            $q.dialog({
+              title: 'Success',
+              message: data.draft ? 'Draft saved' : 'Sale Created',
+            }).onDismiss(() => $router.go(-1))
+          }
           return response
         })
         .catch(error => {
           let errorMsg = error?.response?.data?.detail
-          $q.notify({
-            message: 'Failed to create sale',
-            caption: errorMsg || 'Encountered error',
-            type: 'negative',
-          })
+          if (!opts?.silent) {
+            $q.notify({
+              message: data.draft ? 'Failed to save draft' : 'Failed to create sale',
+              caption: errorMsg || 'Encountered error',
+              type: 'negative',
+            })
+          }
           return Promise.reject(error)
         })
         .finally(() => {
@@ -556,8 +732,19 @@ export default defineComponent({
       stockInfoDialog.value.show = true
     }
 
+    const salesOrderDetailDialog = ref({ show: false, salesOrder: SalesOrder.parse() })
+    function viewSalesOrder(salesOrder=SalesOrder.parse()) {
+      if (!Array.isArray(salesOrder.items)) salesOrder.fetchItems()
+      salesOrderDetailDialog.value.salesOrder = salesOrder
+      salesOrderDetailDialog.value.show = true
+    }
+
     return {
       marketplaceStore,
+
+      draftSalesOrders,
+      fetchDraftSalesOrders,
+      loadDraftSalesOrder,
 
       tab,
       tabs,
@@ -580,7 +767,11 @@ export default defineComponent({
       stockInfoDialog,
       viewStockDetail,
 
+      salesOrderDetailDialog,
+      viewSalesOrder,
+
       formatTimestampToText,
+      formatDateRelative,
     }
   },
 })
@@ -618,7 +809,7 @@ export default defineComponent({
 }
 
 </style>
-<style scoped>
+<style scoped lang="scss">
 /* 1. declare transition */
 .fade-move,
 .fade-enter-active,
@@ -662,5 +853,9 @@ export default defineComponent({
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+}
+
+.q-r-ml-md {
+  margin-left: -(map-get($space-md, 'x'))/2;
 }
 </style>

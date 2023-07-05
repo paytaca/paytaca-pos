@@ -3,6 +3,7 @@
     <q-select
       dense
       outlined
+      :disable="disable"
       :loading="scanner.loading"
       label="Item"
       use-input
@@ -20,6 +21,7 @@
       <template v-slot:after>
         <q-btn
           flat
+          :disable="disable"
           :loading="scanner.loading"
           padding="sm"
           :text-color="$q.dark.isActive ? 'white' : 'black'"
@@ -33,6 +35,7 @@
       <template v-slot:option="{ opt, toggleOption }">
         <q-item
           clickable
+          :disable="disable"
           @click="() => toggleOption(opt)"
         >
           <q-item-section v-if="opt?.imageUrl || opt?.product?.imageUrl" side>
@@ -72,6 +75,7 @@
       v-if="withCostPrice"
       dense
       outlined
+      :disable="disable"
       label="Cost price"
       :suffix="marketplaceStore?.currency"
       type="number"
@@ -85,6 +89,7 @@
     <q-input
       dense
       outlined
+      :disable="disable"
       label="Quantity"
       type="number"
       v-model.number="formData.quantity"
@@ -95,6 +100,7 @@
     />
     <div class="q-gutter-y-sm">
       <q-btn
+        :disable="disable"
         color="brandblue"
         no-caps
         label="Add Item"
@@ -103,6 +109,7 @@
       />
       <q-btn
         v-if="!hideCancel"
+        :disable="disable"
         outline
         color="grey"
         no-caps
@@ -146,6 +153,7 @@ export default defineComponent({
     exludeVariantIds: Array,
     withCostPrice: Boolean,
     hideCancel: Boolean,
+    disable: Boolean,
   },
   setup(props, { emit: $emit, attrs: $attrs }) {
     const marketplaceStore = useMarketplaceStore()

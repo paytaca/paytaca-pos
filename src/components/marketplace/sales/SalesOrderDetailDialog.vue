@@ -2,10 +2,14 @@
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card style="width: max(90vw, 500px)">
       <q-card-section class="row no-wrap items-start q-pb-sm">
-        <div class="q-space row items-center q-gutter-x-xs">
+        <div class="row items-center q-gutter-x-xs">
           <div class="text-h5">Sale</div>
           <div class="text-grey">#{{ salesOrder?.id }}</div>
         </div>
+        <div v-if="salesOrder?.draft">
+          <q-chip class="text-weight-medium">Draft</q-chip>
+        </div>
+        <q-space/>
         <slot name="menu" v-bind="{ salesOrder }"></slot>
       </q-card-section>
       <q-card-section class="q-pt-none">
@@ -70,8 +74,8 @@
           </template>
         </div>
         <div class="row items-center">
-          <div v-if="!isNaN(salesOrder.createdAt)" class="q-pa-xs q-space">
-            <div>{{ formatTimestampToText(salesOrder.createdAt) }}</div>
+          <div v-if="!isNaN(salesOrder?.createdAt)" class="q-pa-xs q-space">
+            <div>{{ formatTimestampToText(salesOrder?.createdAt) }}</div>
             <div class="text-caption bottom text-grey">Created at</div>
           </div>
           <div v-if="salesOrder?.createdBy?.id" class="q-pa-xs q-space">
@@ -137,6 +141,7 @@
             </template>
           </div>
         </div>
+        <slot name="bottom"></slot>
       </q-card-section>
       <!-- {{ salesOrder }} -->
     </q-card>
