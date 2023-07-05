@@ -198,6 +198,7 @@ export default defineComponent({
         shop_id: marketplaceStore.activeShopId,
         limit: opts?.limit || 10,
         offset: opts?.offset || undefined,
+        draft: false,
         s: filterOpts.value.search || undefined,
       }
 
