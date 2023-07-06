@@ -850,6 +850,12 @@ export default defineComponent({
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
           formData.value.salesOrder = SalesOrder.parse(response?.data)
+          if (formData.value.salesOrder?.draft) {
+            const index = draftSalesOrders.value.findIndex(so => so?.id == formData.value.salesOrder?.id)
+            if (index < 0) draftSalesOrders.value.push(formData.value.salesOrder)
+            else draftSalesOrders.value[index] = formData.value.salesOrder
+          }
+
           if (!opts?.silent) {
             $q.dialog({
               title: 'Success',
