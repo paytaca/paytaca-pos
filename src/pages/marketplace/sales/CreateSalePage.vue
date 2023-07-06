@@ -245,39 +245,95 @@
           v-model="formData.paymentMode"
         />
         <div v-if="formData.paymentMode == 'BCH'" class="q-px-md q-mt-md">
-          <div v-if="formData?.bchPayment?.price?.value" class="text-right">
-            <div>
-              {{ formData.bchPayment.price.value }}
-              {{ marketplaceStore?.merchant?.currency?.symbol }} / BCH
+          <div class="row items-start">
+            <div v-if="transactionsReceived?.length">
+              <q-btn
+                v-if="!displayReceivedTransactions"
+                flat
+                no-caps :label="`Transactions (${transactionsReceived.length})`"
+                padding="xs sm"
+                class="q-r-ml-md"
+                @click="() => displayReceivedTransactions = true"
+              />
+              <q-btn
+                v-else
+                flat
+                no-caps label="Payment link"
+                padding="xs sm"
+                class="q-r-ml-md"
+                @click="() => displayReceivedTransactions = false"
+              />
             </div>
-            <div class="text-grey text-caption bottom">
-              {{ formatTimestampToText(formData.bchPayment?.price?.timestamp) }}
+            <q-space/>
+            <div v-if="formData?.bchPayment?.price?.value" class="text-right">
+              <div>
+                {{ formData.bchPayment.price.value }}
+                {{ marketplaceStore?.merchant?.currency?.symbol }} / BCH
+              </div>
+              <div class="text-grey text-caption bottom">
+                {{ formatTimestampToText(formData.bchPayment?.price?.timestamp) }}
+              </div>
             </div>
           </div>
-          <div class="row justify-center items-center q-mt-sm">
-            <div class="qr-code-container row items-center">
-              <div v-if="loading"><q-skeleton height="200px" width="200px" /></div>
-              <template v-else>
-                <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
-                <QRCode
-                  :text="bchPaymentUrl"
-                  color="#253933"
-                  :size="200"
-                  error-level="H"
-                  :style="bchPaymentUrl ? '' : 'opacity:0;'"
+          <template v-if="displayReceivedTransactions && transactionsReceived?.length">
+            <q-item
+              v-for="(txReceived, index) in transactionsReceived" :key="index"
+              clickable
+              v-ripple
+              @click="displayReceivedTransaction(txReceived)"
+            >
+              <q-item-section v-if="txReceived?.logo" side>
+                <img :src="txReceived?.logo" height="25"/>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="ellipsis">
+                  {{ txReceived?.txid }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section class="text-right">
+                <q-item-label caption>
+                  {{ txReceived?.amount }} {{ txReceived?.tokenSymbol }}
+                </q-item-label>
+                <q-item-label v-if="txReceived?.marketValue?.amount && txReceived?.marketValue?.currency" caption>
+                  {{ txReceived?.marketValue?.value }} {{ txReceived?.marketValue?.currency }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </template>
+          <template v-else>
+            <div class="row justify-center items-center q-mt-sm">
+              <div class="qr-code-container row items-center">
+                <div v-if="loading"><q-skeleton height="200px" width="200px" /></div>
+                <template v-else>
+                  <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
+                  <QRCode
+                    :text="bchPaymentUrl"
+                    color="#253933"
+                    :size="200"
+                    error-level="H"
+                    :style="bchPaymentUrl ? '' : 'opacity:0;'"
+                  />
+                </template>
+              </div>
+            </div>
+            <div v-if="formComputedData.bchSubtotal && formData.bchPayment.recipient" class="text-center">
+              <div class="text-h5">{{ formComputedData.bchSubtotal }} BCH</div>
+              <div class="text-caption bottom">
+                {{ formComputedData.subtotal }} {{ marketplaceStore?.merchant?.currency?.symbol }}
+              </div>
+              <div class="text-subtitle1 q-mt-sm" style="word-break: break-all;">
+                {{ formData.bchPayment.recipient }}
+                <q-btn
+                  flat
+                  size="0.75em"
+                  padding="none"
+                  class="text-underline"
+                  no-caps label="Change address"
+                  @click="() => updateRecipient()"
                 />
-              </template>
+              </div>
             </div>
-          </div>
-          <div v-if="formComputedData.bchSubtotal && formData.bchPayment.recipient" class="text-center">
-            <div class="text-h5">{{ formComputedData.bchSubtotal }} BCH</div>
-            <div class="text-caption bottom">
-              {{ formComputedData.subtotal }} {{ marketplaceStore?.merchant?.currency?.symbol }}
-            </div>
-            <div class="text-subtitle1 q-mt-sm" style="word-break: break-all;">
-              {{ formData.bchPayment.recipient }}
-            </div>
-          </div>
+          </template>
         </div>
 
         <div v-if="formComputedData.subtotal > 0" class="q-mt-md">
@@ -335,6 +391,16 @@
                 <q-menu class="q-pa-sm">
                   BCH price as of {{ formatTimestampToText(formData?.bchPayment?.price?.timestamp) }}
                 </q-menu>
+              </div>
+              <div v-if="formData?.bchPayment?.txid" class="row no-wrap items-start">
+                <div class="q-space q-mr-sm text-grey">Transaction</div>
+                <div style="word-break:break-all;" class="ellipsis">{{ formData?.bchPayment?.txid }}</div>
+                <q-btn
+                  flat round
+                  icon="open_in_new" size="0.5em"
+                  target="_blank"
+                  :href="formComputedData?.bchTxidUrl"
+                />
               </div>
             </template>
             <div class="row items-start text-h5">
@@ -411,7 +477,7 @@ import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { debounce, useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
-import { computed, defineComponent, onMounted, ref, watch } from 'vue'
+import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import AddItemForm from 'src/components/marketplace/sales/AddItemForm.vue'
 import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoDialog.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
@@ -419,7 +485,9 @@ import StockDetailDialog from 'src/components/marketplace/inventory/StockDetailD
 import StockSearchDialog from 'src/components/marketplace/inventory/StockSearchDialog.vue'
 import QRCode from 'vue-qrcode-component'
 import SalesOrderDetailDialog from 'src/components/marketplace/sales/SalesOrderDetailDialog.vue'
+import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
 import { useAddressesStore } from 'src/stores/addresses'
+import { TransactionListener } from 'src/wallet/utils'
 
 export default defineComponent({
   name: 'CreateSalePage',
@@ -449,6 +517,12 @@ export default defineComponent({
         .then(response => {
           const results = response.data?.results
           if (Array.isArray(results)) draftSalesOrders.value = results.map(SalesOrder.parse)
+          loadDraftSalesOrder({salesOrder: draftSalesOrders.value?.[1]})
+            .then(() => {
+              setTimeout(() => nextTab(), 100)
+              setTimeout(() => nextTab(), 100)
+              setTimeout(() => nextTab(), 100)
+            })
           return response
         })
     }
@@ -485,6 +559,7 @@ export default defineComponent({
       formData.value.salesOrder = salesOrder
       tabs.value.forEach(tab => tab.disable = true)
       tab.value = tabs.value[0]?.name
+      tabs.value[0].disable = false
     }
 
     const tab = ref('items')
@@ -551,7 +626,7 @@ export default defineComponent({
     })
 
     const formComputedData = computed(() => {
-      const data = { subtotal: 0, bchSubtotal: 0 }
+      const data = { subtotal: 0, bchSubtotal: 0, bchTxidUrl: '' }
       if (formData.value?.items?.length) {
         data.subtotal = formData.value?.items
           .reduce((subtotal, item) => {
@@ -563,6 +638,13 @@ export default defineComponent({
       if (formData.value.bchPayment?.price?.value) {
         data.bchSubtotal = data.subtotal / formData.value.bchPayment.price.value
         data.bchSubtotal = Math.floor(data.bchSubtotal * 10 ** 8) / 10 ** 8
+      }
+
+      if (formData.value.bchPayment?.txid) {
+        const txid = formData.value.bchPayment?.txid
+        const isTestnet = formData.value?.bchPayment?.recipient?.startsWith?.('bchtest:')
+        if (isTestnet) data.bchTxidUrl = `https://chipnet.imaginary.cash/tx/${txid}`
+        else data.bchTxidUrl = `https://blockchair.com/bitcoin-cash/transaction/${txid}`
       }
       return data
     })
@@ -642,6 +724,87 @@ export default defineComponent({
           if (!value || !timestamp) return Promise.reject({ response })
           formData.value.bchPayment.price = { timestamp , value }
           return response
+        })
+    }
+
+    function updateRecipient() {
+      if (formData.value.bchPayment.txid) return Promise.reject('Has existing transaction')
+      // const addresses = addressesStore.addressSets
+      //   .map(addressSet => addressSet?.receiving)
+      //   .filter(Boolean)
+      const addresses = [
+        'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5',
+        'bchtest:qzyrw008v4rnxvzuzauetf4z8s3rqyljw5jqddgug8',
+        'bchtest:qrmrn0um32u752k2v3a3y4h6a7nhth249q8g33smvf',
+        'bchtest:qzdlrh9ntufqsm6slcls02dp0c2859srkywkvd2c4e',
+        'bchtest:qq20wfjhv53u3cm0k5w0rstt7y7rrckequas8t40qf',
+      ]
+      const currentAddress = formData.value.bchPayment.recipient
+      const index = addresses.indexOf(currentAddress)
+      const nextIndex = (index+1) % addresses.length
+      formData.value.bchPayment.recipient = addresses[nextIndex]
+    }
+
+    const txListener = ref(new TransactionListener())
+    onUnmounted(() => txListener.value?.disconnect?.())
+    onMounted(() => updateTxListenerState())
+    watch(tab, ()=> updateTxListenerState())
+    watch(() => [formData.value.bchPayment.recipient], () => updateTxListenerState())
+    function updateTxListenerState() {
+      if (tab.value != 'payment') return Promise.resolve('Not in payment tab')
+      return runListener()
+    }
+    function runListener() {
+      txListener.value.disconnect()
+      txListener.value.address = formData.value.bchPayment.recipient
+      txListener.value.addListener(txListenerCallback)
+      return txListener.value.connect()
+    }
+
+    const displayReceivedTransactions = ref(false)
+    const transactionsReceived = ref([].map(() => {
+      const data = txListener.value.parseWebsocketDataReceived()
+      return Object.assign({ marketValue: { symbol: '', price: 0, amount: 0 } }, data)
+    }))
+
+    const txListenerCallback = (msg, parsedData) => {
+      const price = parseFloat(formData.value.bchPayment.price.value)
+      const marketValue = {
+        symbol: formData.value?.salesOrder?.currency?.symbol || marketplaceStore?.currency,
+        price: price,
+        amount: (Math.floor(parsedData?.value * price) / 10 ** 8),
+      }
+      marketValue.amount = Number(marketValue.amount.toPrecision(3))
+
+      parsedData.marketValue = marketValue
+
+      const index = transactionsReceived.value.findIndex(data => data?.txid == parsedData?.txid)
+      if (index >= 0) {
+        transactionsReceived.value[index] = parsedData
+      } else {
+        transactionsReceived.value.push(parsedData)
+        displayReceivedTransaction(parsedData)
+        displayReceivedTransactions.value = true
+      }
+    }
+
+    function displayReceivedTransaction (data) {
+      $q.dialog({
+        component: ReceiveUpdateDialog,
+        componentProps: {
+          txid: data?.txid,
+          address: data?.address,
+          amount: data?.amount,
+          tokenCurrency: data?.tokenSymbol,
+          marketValue: data?.marketValue.amount,
+          marketValueCurrency: data?.marketValue.currency,
+          logo: data?.logo,
+        }
+      })
+        .onOk(() => {
+          formData.value.bchPayment.txid = data?.txid
+          saveSale({ draft: true, silent: true })
+          if (tab.value == 'payment') nextTab()
         })
     }
 
@@ -758,6 +921,13 @@ export default defineComponent({
       addItem,
       removeItem,
       selectStocks,
+
+      updateRecipient,
+      txListener,
+      runListener,
+      displayReceivedTransactions,
+      transactionsReceived,
+      displayReceivedTransaction,
 
       createSale,
 
