@@ -792,6 +792,7 @@ export default defineComponent({
           marketValue: data?.marketValue.amount,
           marketValueCurrency: data?.marketValue.currency,
           logo: data?.logo,
+          expectedAmount: formComputedData.value.bchSubtotal,
         }
       })
         .onOk(() => {
