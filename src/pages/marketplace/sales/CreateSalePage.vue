@@ -572,7 +572,7 @@ export default defineComponent({
       const amount = formComputedData.value.bchSubtotal
       if (!amount || !recipient) return ''
 
-      return `${recipient}?a=${amount}`
+      return `${recipient}?amount=${amount}`
     })
 
     onMounted(() => updateBchPrice())
