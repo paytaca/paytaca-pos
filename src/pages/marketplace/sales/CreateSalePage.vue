@@ -729,16 +729,9 @@ export default defineComponent({
 
     function updateRecipient() {
       if (formData.value.bchPayment.txid) return Promise.reject('Has existing transaction')
-      // const addresses = addressesStore.addressSets
-      //   .map(addressSet => addressSet?.receiving)
-      //   .filter(Boolean)
-      const addresses = [
-        'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5',
-        'bchtest:qzyrw008v4rnxvzuzauetf4z8s3rqyljw5jqddgug8',
-        'bchtest:qrmrn0um32u752k2v3a3y4h6a7nhth249q8g33smvf',
-        'bchtest:qzdlrh9ntufqsm6slcls02dp0c2859srkywkvd2c4e',
-        'bchtest:qq20wfjhv53u3cm0k5w0rstt7y7rrckequas8t40qf',
-      ]
+      const addresses = addressesStore.addressSets
+        .map(addressSet => addressSet?.receiving)
+        .filter(Boolean)
       const currentAddress = formData.value.bchPayment.recipient
       const index = addresses.indexOf(currentAddress)
       const nextIndex = (index+1) % addresses.length
