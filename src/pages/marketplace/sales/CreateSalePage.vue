@@ -796,7 +796,7 @@ export default defineComponent({
       })
         .onOk(() => {
           formData.value.bchPayment.txid = data?.txid
-          saveSale({ draft: true, silent: true })
+          createSale({ draft: true, silent: true })
           if (tab.value == 'payment') nextTab()
         })
     }
