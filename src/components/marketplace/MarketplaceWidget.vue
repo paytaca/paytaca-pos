@@ -52,7 +52,7 @@ export default defineComponent({
     onMounted(async () => {
       try {
         loading.value = true
-        await marketplaceStore.updateActiveShopId({ silent: true }).catch(console.error)
+        await marketplaceStore.updateActiveShopId({ silent: true, getOnly: true }).catch(console.error)
         await marketplaceStore.refreshUser({ silent: true }).catch(console.error)
       } finally {
         loading.value = false

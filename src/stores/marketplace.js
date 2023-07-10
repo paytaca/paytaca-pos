@@ -122,23 +122,30 @@ export const useMarketplaceStore = defineStore('marketplace', {
       }
     },
     /**
-     * 
      * @param {Object} opts 
      * @param {Boolean} opts.silent will set loading state if true
+     * @param {Boolean} opts.getOnly will only get the shop details instead of a `get or create` action if true
      * @param {Boolean} opts.forceSync will attempt to sync shop details with branch details in server instead of a `get or create` action if true
      * @param {Number} opts.forceSyncAge if forceSync is true, it will abort if the last forceSync timestamp is less than this age
      */
-    updateActiveShopId(opts={silent: true, forceSync: false, forceSyncAge: 60 * 1000}) {
+    updateActiveShopId(opts={silent: true, getOnly: false, forceSync: false, forceSyncAge: 60 * 1000}) {
       const walletStore = useWalletStore()
-      if (!walletStore.deviceInfo.branchId) return Promise.reject(this.clearShop())
+      const branchId = walletStore.deviceInfo.branchId
+      if (!branchId) return Promise.reject(this.clearShop())
       if (!opts?.silent) this.fetchingShop = true
 
-      let path = `shops/resolve-watchtower-branch/${walletStore.deviceInfo.branchId}/`
-      if (opts?.forceSync) path = `shops/sync-watchtower-branch/${walletStore.deviceInfo.branchId}/`
+      let request
+      if (opts?.getOnly) {
+        request = backend.get(`shops/watchtower-branch/${branchId}/`)
+      } else {
+        let path = `shops/resolve-watchtower-branch/${branchId}/`
+        if (opts?.forceSync) path = `shops/sync-watchtower-branch/${branchId}/`
+  
+        if (opts?.forceSync && (this.lastShopSync + opts?.forceSyncAge > Date.now())) return Promise.reject('last force sync is less than age')
+        request = backend.post(path)
+      }
 
-      if (opts?.forceSync && (this.lastShopSync + opts?.forceSyncAge > Date.now())) return Promise.reject('last force sync is less than age')
-      
-      return backend.post(path)
+      return request
         .finally(() => {
           if (!opts?.silent) this.fetchingShop = false
         })
