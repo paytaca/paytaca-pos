@@ -11,7 +11,7 @@
         </template>
       </MarketplaceHeader>
       <div class="full-width q-px-sm q-mb-sm">
-        <div class="row items-end q-mb-md">
+        <div class="row items-end q-mb-sm">
           <q-input
             dense
             v-model="filterOpts.search"
@@ -32,6 +32,7 @@
         <div class="row items-center">
           <q-btn-dropdown
             no-caps
+            :flat="!$q.dark.isActive"
             :outline="$q.dark.isActive"
           >
             <template v-slot:label>

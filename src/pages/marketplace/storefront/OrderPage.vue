@@ -17,13 +17,13 @@
           <div v-if="order?.id" style="margin-left:-4px;">
             <q-chip
               :color="parsePaymentStatusColor(order?.paymentStatus)"
-              class="text-weight-medium"
+              class="text-weight-medium text-white"
               clickable
               @click="() => showPaymentsDialog = true"
             >
               {{ formatOrderStatus(order?.paymentStatus) }}
             </q-chip>
-            <q-chip :color="parseOrderStatusColor(order?.status)" class="text-weight-medium">
+            <q-chip :color="parseOrderStatusColor(order?.status)" class="text-weight-medium text-white">
               {{ formatOrderStatus(order?.status) }}
             </q-chip>
           </div>
@@ -211,11 +211,11 @@
             <div class="text-h6 q-space">Items</div>
           </div>
         </q-card-section>
-        <q-markup-table>
+        <q-markup-table dense>
           <thead>
             <tr>
               <th>Item</th>
-              <th>Quantity</th>
+              <th>Qty</th>
               <th>Price</th>
               <th>Subtotal</th>
             </tr>

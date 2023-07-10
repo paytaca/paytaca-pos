@@ -1,5 +1,5 @@
 <template>
-  <div class="row q-mt-sm q-mb-md">
+  <div class="row q-mt-sm q-mb-md q-r-ml-lg">
     <slot name="title">
       <div class="q-space">
         <div class="text-h4">{{ title }}</div>
@@ -95,11 +95,14 @@ export default defineComponent({
   },
 })
 </script>
-<style scoped>
+<style scoped lang="scss">
 .user-icon {
   height: 45px;
   width: 45px;
   border-radius: 999px;
   overflow:hidden;
+}
+.q-r-ml-lg {
+  margin-left: -(map-get($space-lg, 'x'))/2;
 }
 </style>

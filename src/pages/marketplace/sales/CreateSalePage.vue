@@ -15,25 +15,38 @@
           v-if="draftSalesOrders?.length"
           no-caps
           flat
-          label="Drafts"
+          :label="formData?.salesOrder?.id ? `Draft sales order #${formData?.salesOrder?.id}` : 'Drafts'"
           padding="xs sm"
           menu-self="top start"
           menu-anchor="bottom start"
           class="q-r-ml-md"
         >
-          <q-list>
+          <q-list separator>
+            <q-item
+              v-if="formData?.salesOrder?.id"
+              clickable v-close-popup
+              @click="() => clearFormData({ delay: 100 })"
+            >
+              <q-item-section>
+                <q-item-label>
+                  New Empty
+                </q-item-label>
+              </q-item-section>
+            </q-item>
             <q-item
               v-for="salesOrder in draftSalesOrders" :key="salesOrder?.id"
-              :selected="salesOrder?.id == formData?.salesOrder?.id"
               clickable v-close-popup
+              :class="[
+                salesOrder?.id == formData?.salesOrder?.id ? 'text-weight-medium' : '',
+              ]"
               @click="() => viewSalesOrder(salesOrder)"
             >
               <q-item-section>
                 <q-item-label>
                   {{ salesOrder?.total }} {{ salesOrder?.currency?.symbol }}
                   <span class="text-grey">
-                    ({{ salesOrder?.itemsCount || salesOrder?.items?.length }}
-                    {{ (salesOrder?.itemsCount || salesOrder?.items?.length) > 1 ? 'items' : 'item' }})
+                    ({{ salesOrder?.items?.length || salesOrder?.itemsCount }}
+                    {{ (salesOrder?.items?.length || salesOrder?.itemsCount ) > 1 ? 'items' : 'item' }})
                   </span>
                 </q-item-label>
                 <q-item-label caption >Created {{ formatDateRelative(salesOrder.createdAt) }} </q-item-label>
@@ -41,15 +54,13 @@
             </q-item>
           </q-list>
         </q-btn-dropdown>
-        <div v-if="formData?.salesOrder?.id" class="text-subtitle1">
-          Draft sales order #{{ formData?.salesOrder?.id }}
-        </div>
       </div>
       <q-space/>
       <div v-if="formComputedData.subtotal > 0">
         <q-btn
           outline
-          no-caps label="Save draft"
+          no-caps
+          :label="formData?.salesOrder?.id ? 'Save draft' : 'Save as draft'"
           padding="xs md"
           @click="() => createSale({ draft: true, silent: false })"
         />
@@ -517,12 +528,6 @@ export default defineComponent({
         .then(response => {
           const results = response.data?.results
           if (Array.isArray(results)) draftSalesOrders.value = results.map(SalesOrder.parse)
-          loadDraftSalesOrder({salesOrder: draftSalesOrders.value?.[1]})
-            .then(() => {
-              setTimeout(() => nextTab(), 100)
-              setTimeout(() => nextTab(), 100)
-              setTimeout(() => nextTab(), 100)
-            })
           return response
         })
     }
@@ -560,6 +565,12 @@ export default defineComponent({
       tabs.value.forEach(tab => tab.disable = true)
       tab.value = tabs.value[0]?.name
       tabs.value[0].disable = false
+      console.log(bchPayment?.txid, paymentMode)
+      if (bchPayment?.txid && paymentMode == 'BCH') {
+        setTimeout(nextTab(), 100)
+        setTimeout(nextTab(), 100)
+        setTimeout(nextTab(), 100)
+      }
     }
 
     const tab = ref('items')
@@ -660,7 +671,15 @@ export default defineComponent({
     onMounted(() => updateBchPrice())
     watch(() => [formData.value.paymentMode], () => updateBchPrice())
 
-    function clearFormData() {
+    function clearFormData(opts={delay: 0}) {
+      if (opts?.delay && !isNaN(opts?.delay)) {
+        setTimeout(() => _clearFormData(), opts?.delay)
+        return
+      }
+      _clearFormData()
+    }
+
+    function _clearFormData() {
       formData.value.salesOrder = null
       formData.value.items = []
       formData.value.bchPayment = {
@@ -669,6 +688,9 @@ export default defineComponent({
         txid: '',
       }
       formData.value.paymentMode = 'BCH'
+      tabs.value.forEach(tab => tab.disable = true)
+      tabs.value[0].disable = false
+      tab.value = tabs.value[0].name
     }
 
     function addItem(item) {
@@ -917,6 +939,7 @@ export default defineComponent({
       formData,
       formComputedData,
       bchPaymentUrl,
+      clearFormData,
 
       addItem,
       removeItem,

@@ -121,16 +121,6 @@
             icon="edit"
             :to="{ name: 'marketplace-stocks-update', query: { stockIds: selectedStocks.map(stock => stock?.id).filter(Boolean).join(',') }}"
           />
-          <q-btn
-            rounded
-            :outline="$q.dark.isActive"
-            color="red"
-            padding="2px 0.75em"
-            no-caps
-            label="Delete"
-            icon="delete"
-            @click="() => confirmDeleteStocks(selectedStocks)"
-          />
         </div>
       </q-slide-transition>
       <q-table

@@ -1,6 +1,6 @@
 <template>
   <q-page class="q-pa-md" style="padding-bottom: 4.5rem;">
-    <MarketplaceHeader/>
+    <MarketplaceHeader class="q-pl-md"/>
     <!-- <q-item
       dense
       v-if="marketplaceStore?.shop?.id"

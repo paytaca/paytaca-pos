@@ -170,10 +170,9 @@
             </q-form>
             <q-separator/>
           </div>
-          <div class="row items-center q-my-sm q-gutter-sm">
+          <div v-if="editable" class="row items-center q-my-sm q-gutter-sm">
             <div class="q-space">
               <q-checkbox
-                v-if="editable"
                 :model-value="selectedItemIds.length === purchaseOrder?.items?.length"
                 @update:model-value="val => {
                   selectedItemIds = val ? purchaseOrder?.items?.map(item => item?.id) : []
