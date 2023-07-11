@@ -59,13 +59,12 @@
 
     <q-slide-transition>
       <div v-if="inlineScanner && scanner.show" class="q-mb-sm">
-        <div style="position:relative;padding-bottom:75%;" class="full-width">
+        <div class="full-width">
           <StreamBarcodeReader
             @decode="onScannerDecode"
             @error="onScannerError"
-            style="position:absolute;inset:0;"
           />
-          <div style="position:absolute;bottom:0;left:0;right:0" class="text-center text-caption">
+          <div style="position:absolute;bottom:0;left:0;right:0" class="text-center text-caption text-white">
             Scan barcode
           </div>
         </div>
