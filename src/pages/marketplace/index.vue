@@ -139,7 +139,9 @@ export default defineComponent({
         )
       }
       data.shop.pages.push({ name: 'Shop info', icon: 'store', route: { name: 'marketplace-settings' } })
-      data.shop.pages.push({ name: 'Storefront', icon: 'storefront', route: { name: 'marketplace-storefront' } })
+      if (marketplaceStore.userPermissions.storefront) {
+        data.shop.pages.push({ name: 'Storefront', icon: 'storefront', route: { name: 'marketplace-storefront' } })
+      }
       return data
     })
 

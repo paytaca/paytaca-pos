@@ -79,6 +79,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
         admin: this.userRoles?.indexOf?.(this.roles.admin) >= 0,
         inventory: this.userRoles?.indexOf?.(this.roles.inventory) >= 0,
         cashier: this.userRoles?.indexOf?.(this.roles.cashier) >= 0,
+        storefront: this.userRoles?.indexOf?.(this.roles.storefront) >= 0,
       }  
     },
     roles() {
