@@ -147,12 +147,10 @@
           </q-card>
           <q-card class="add-item-card col-12 col-sm-4 q-mb-md">
             <q-card-section>
-              <div class="text-h6">Add Item</div>
-              <AddItemForm
+              <AddItemPanel
                 :disable="loading"
-                :exludeVariantIds="formData?.items?.map(item => item?.variant?.id)"
-                inline-scanner
-                hide-cancel
+                :excludeVariantIds="formData?.items?.map(item => item?.variant?.id)"
+                persist-scanner
                 @submit="addItem"
               />
             </q-card-section>
@@ -489,7 +487,7 @@ import { useMarketplaceStore } from 'src/stores/marketplace'
 import { debounce, useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
-import AddItemForm from 'src/components/marketplace/sales/AddItemForm.vue'
+import AddItemPanel from 'src/components/marketplace/sales/AddItemPanel.vue'
 import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoDialog.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import StockDetailDialog from 'src/components/marketplace/inventory/StockDetailDialog.vue'
@@ -503,7 +501,7 @@ import { TransactionListener } from 'src/wallet/utils'
 export default defineComponent({
   name: 'CreateSalePage',
   components: {
-    AddItemForm,
+    AddItemPanel,
     MarketplaceHeader,
     VariantInfoDialog,
     StockDetailDialog,
@@ -567,9 +565,8 @@ export default defineComponent({
       tabs.value[0].disable = false
       console.log(bchPayment?.txid, paymentMode)
       if (bchPayment?.txid && paymentMode == 'BCH') {
-        setTimeout(nextTab(), 100)
-        setTimeout(nextTab(), 100)
-        setTimeout(nextTab(), 100)
+        tab.value = tabs.value.at(-1).name
+        tabs.value.forEach(tab => tab.disable = false)
       }
     }
 
