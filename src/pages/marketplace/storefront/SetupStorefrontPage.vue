@@ -191,7 +191,19 @@ export default defineComponent({
           formErrors.value.name = errorParser.firstElementOrValue(data?.name)
           formErrors.value.receivingAddress = errorParser.firstElementOrValue(data?.receiving_address)
           formErrors.value.subscribeProductIds = errorParser.firstElementOrValue(data?.subscribe_product_ids)
-          if (data?.detail) formErrors.value.detail.shift(data?.detail)
+          if (data?.detail) formErrors.value.detail.unshift(data?.detail)
+          if (Array.isArray(data) && !formErrors.value.detail?.length) formErrors.value.detail = data
+
+          if (!formErrors.value.detail?.length &&
+              !formErrors.value.name &&
+              !formErrors.value.receivingAddress && 
+              !formErrors.value.subscribeProductIds
+          ) formErrors.value.detail = [
+            marketplaceStore?.storefrontData?.id
+              ? 'Failed to update storefront'
+              : 'Failed to setup storefront',
+          ]
+
         })
         .finally(() => {
           loading.value = false
