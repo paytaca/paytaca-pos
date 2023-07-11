@@ -248,12 +248,14 @@
       </q-tab-panel>
       <q-tab-panel name="payment" class="q-pa-none">
         <q-select
+          label="Payment mode"
           dense
           outlined
           :options="['BCH', 'Other']"
           v-model="formData.paymentMode"
+          bottom-slots
         />
-        <div v-if="formData.paymentMode == 'BCH'" class="q-px-md q-mt-md">
+        <div v-if="formData.paymentMode == 'BCH'" class="q-px-md">
           <div class="row items-start">
             <div v-if="transactionsReceived?.length">
               <q-btn
@@ -344,6 +346,16 @@
             </div>
           </template>
         </div>
+        <div v-else>
+          <q-input
+            dense
+            outlined
+            label="Received Amount"
+            type="number"
+            v-model.number="formData.receivedAmount"
+            :suffix="marketplaceStore?.currency"
+          />
+        </div>
 
         <div v-if="formComputedData.subtotal > 0" class="q-mt-md">
           <q-btn
@@ -424,6 +436,16 @@
                 {{ formComputedData.subtotal }} {{ marketplaceStore.currency }}
               </div>
             </div>
+            <template v-if="formData.paymentMode == 'Other' && formData.receivedAmount">
+              <div class="row no-wrap items-start q-mt-md">
+                <div class="q-space q-mr-sm text-grey">Amount Received</div>
+                <div>{{ formData.receivedAmount }} {{ marketplaceStore?.currency }}</div>
+              </div>
+              <div v-if="formComputedData.changeAmount" class="row no-wrap items-start text-h6">
+                <div class="q-space q-mr-sm">Change</div>
+                <div>{{ formComputedData.changeAmount }} {{ marketplaceStore?.currency }}</div>
+              </div>
+            </template>
           </q-card-section>
         </q-card>
         <div class="q-mt-sm">
@@ -554,16 +576,17 @@ export default defineComponent({
           value: parseFloat(salesOrder?.bchPrice?.price),
         }
       }
+      const receivedAmount = parseFloat(salesOrder?.receivedAmount) || null
 
       clearFormData()
       formData.value.items = items
       formData.value.paymentMode = paymentMode
+      formData.value.receivedAmount = receivedAmount
       formData.value.bchPayment = bchPayment
       formData.value.salesOrder = salesOrder
       tabs.value.forEach(tab => tab.disable = true)
       tab.value = tabs.value[0]?.name
       tabs.value[0].disable = false
-      console.log(bchPayment?.txid, paymentMode)
       if (bchPayment?.txid && paymentMode == 'BCH') {
         tab.value = tabs.value.at(-1).name
         tabs.value.forEach(tab => tab.disable = false)
@@ -626,15 +649,16 @@ export default defineComponent({
       salesOrder: [].map(SalesOrder.parse)[0],
       items: [].map(createEmptyItem),
       paymentMode: 'BCH', // BCH | Other
+      receivedAmount: null,
       bchPayment: {
         recipient: addressesStore.currentAddressSet?.receiving || '',
         price: { timestamp: Date.now(), value: 16378.05 }, // for BCH
         txid: '',
-      }
+      },
     })
 
     const formComputedData = computed(() => {
-      const data = { subtotal: 0, bchSubtotal: 0, bchTxidUrl: '' }
+      const data = { subtotal: 0, bchSubtotal: 0, bchTxidUrl: '', changeAmount: 0 }
       if (formData.value?.items?.length) {
         data.subtotal = formData.value?.items
           .reduce((subtotal, item) => {
@@ -654,6 +678,9 @@ export default defineComponent({
         if (isTestnet) data.bchTxidUrl = `https://chipnet.imaginary.cash/tx/${txid}`
         else data.bchTxidUrl = `https://blockchair.com/bitcoin-cash/transaction/${txid}`
       }
+
+      const change = formData.value?.receivedAmount - data.subtotal
+      if (!isNaN(change) && change >= 0) data.changeAmount = Math.round(change * 10 ** 3) / 10 ** 3
       return data
     })
 
@@ -679,6 +706,7 @@ export default defineComponent({
     function _clearFormData() {
       formData.value.salesOrder = null
       formData.value.items = []
+      formData.value.receivedAmount = null
       formData.value.bchPayment = {
         recipient: '',
         price: { timestamp: 0, value: 0 },
@@ -825,6 +853,7 @@ export default defineComponent({
       const data = {
         shop_id: marketplaceStore.activeShopId,
         payment_mode: formData.value.paymentMode.toLowerCase() || undefined,
+        received_amount: formData.value.receivedAmount,
         bch_price: {
           price: formData.value.bchPayment.price.value,
           timestamp: new Date(formData.value.bchPayment.price.timestamp),
