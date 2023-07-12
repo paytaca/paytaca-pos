@@ -21,49 +21,47 @@
         <!-- <q-separator/> -->
         <q-card-section>
           <template v-if="formData.items?.length">
-            <div
-              v-for="item in formData.items" :key="item?.variant?.id"
-              class="row items-center no-wrap q-gutter-x-sm q-mb-sm"
-            >
-              <div class="q-space row items-center no-wrap text-weight-medium" @click="viewItemVariant(item)">
-                <img
-                  v-if="item?.variant?.imageUrl || item?.variant?.product?.imageUrl"
-                  :src="item?.variant?.imageUrl || item?.variant?.product?.imageUrl"
-                  style="width:50px;"
-                  class="rounded-borders q-mr-sm"
-                />
-                <div>
-                  {{ item?.variant?.product?.name }}
-                  <template v-if="item?.variant?.name">
-                    - {{ item?.variant?.name }}
+            <table class="items-table full-width">
+              <tr v-for="item in formData.items" :key="item?.variant?.id">
+                <td class="full-width">
+                  <div class="row items-start no-wrap text-weight-medium">
+                    <img
+                      v-if="item?.variant?.imageUrl || item?.variant?.product?.imageUrl"
+                      :src="item?.variant?.imageUrl || item?.variant?.product?.imageUrl"
+                      style="width:50px;"
+                      class="rounded-borders q-mr-sm"
+                    />
+                    <div>
+                      {{ item?.variant?.product?.name }}
+                      <template v-if="item?.variant?.name">
+                        - {{ item?.variant?.name }}
+                      </template>
+                    </div>
+                  </div>
+                </td>
+                <td class="full-width" style="text-wrap:nowrap;">
+                  <template v-if="item.costPrice">
+                    {{ item.costPrice }} {{ marketplaceStore?.currency }}
                   </template>
-                </div>
-              </div>
-              <div class="col-3 col-sm-2">
-                <template v-if="item.costPrice">
-                  {{ item.costPrice }} {{ marketplaceStore?.currency }}
-                </template>
-                <span v-else class="text-grey">
-                  Set cost price
-                </span>
-
-                <q-popup-edit
-                  v-model="item.costPrice" v-slot="props"
-                  :cover="false"
-                >
-                  <q-input
-                    flat
-                    dense
-                    :suffix="marketplaceStore?.currency"
-                    type="number"
-                    v-model.number="props.value"
-                    @keypress.enter="props.set"
-                  />
-                </q-popup-edit>
-              </div>
-              <div class="col-2 col-sm-1">
-                <div class="row no-wrap items-center">
-                  <span>x{{ item.quantity }}</span>
+                  <span v-else class="text-grey">
+                    Set cost price
+                  </span>
+                  <q-popup-edit
+                    v-model="item.costPrice" v-slot="props"
+                    :cover="false"
+                  >
+                    <q-input
+                      flat
+                      dense
+                      :suffix="marketplaceStore?.currency"
+                      type="number"
+                      v-model.number="props.value"
+                      @keypress.enter="props.set"
+                    />
+                  </q-popup-edit>
+                </td>
+                <td class="text-right" style="text-wrap:nowrap">
+                  x{{ item.quantity }}
                   <q-popup-edit
                     v-model="item.quantity" v-slot="props"
                     :cover="false"
@@ -77,9 +75,9 @@
                       @keypress.enter="props.set"
                     />
                   </q-popup-edit>
-                </div>
-              </div>
-            </div>
+                </td>
+              </tr>
+            </table>
           </template>
           <div v-else class="text-center text-grey">
             No items
@@ -139,51 +137,67 @@
             label="Name"
             v-model="formData.vendor.name"
             bottom-slots
+            debounce="500"
+            @update:model-value="val => {
+              vendorSearch.search = val
+              filterVendorOpts()
+            }"
+            @focus.stop.once="() => filterVendorOpts()"
           >
             <template v-slot:append>
-              <q-btn flat icon="search" padding="xs">
-                <q-menu
-                  v-model="vendorSearch.show"
-                  no-focus fit
-                  @hide="() => vendorSearch.search = ''"
-                  @show="() => filterVendorOpts()"
-                >
-                  <q-input
-                    dense
-                    outlined
-                    class="q-mt-sm q-mx-md"
-                    placeholder="Search ..."
-                    v-model="vendorSearch.search"
-                    :loading="vendorSearch.loading"
-                    debounce="500"
-                    @update:model-value="() => filterVendorOpts()"
-                  />
-                  <q-list v-if="vendorSearch?.opts?.length" separator class="q-mt-sm">
-                    <q-item
-                      v-for="vendor in vendorSearch?.opts" :key="vendor?.id"
-                      :active="formData.vendor?.id === vendor?.id"
-                      clickable
-                      @click="formData.vendor = vendor"
-                      v-close-popup
-                    >
-                      <q-item-section>
-                        <q-item-label>{{ vendor?.name }}</q-item-label>
-                        <q-item-label v-if="vendor?.location?.formatted" class="text-caption">
-                          {{ vendor?.location?.formatted }}
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                  <q-item v-else>
-                    <q-item-section>
-                      <q-item-label>
-                        No data
-                      </q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-menu>
+              <q-btn
+                flat
+                icon="search"
+                padding="xs"
+                :loading="vendorSearch.loading"
+                @click="() => vendorSearch.show = !vendorSearch.show"
+              >
+                <q-badge v-if="vendorSearch?.opts?.length" class="brandblue">
+                  {{ vendorSearch?.opts?.length }}
+                </q-badge>
               </q-btn>
             </template>
+            <q-menu
+              v-model="vendorSearch.show"
+              no-focus fit
+              no-parent-event
+              @hide="() => vendorSearch.search = ''"
+              @vnode-updated="onVendorSearchMenuUpdate"
+            >
+              <q-input
+                dense
+                outlined
+                class="q-mt-sm q-mx-md"
+                placeholder="Search ..."
+                v-model="vendorSearch.search"
+                :loading="vendorSearch.loading"
+                debounce="500"
+                @update:model-value="() => filterVendorOpts()"
+              />
+              <q-list v-if="vendorSearch?.opts?.length" separator class="q-mt-sm">
+                <q-item
+                  v-for="vendor in vendorSearch?.opts" :key="vendor?.id"
+                  :active="formData.vendor?.id === vendor?.id"
+                  clickable
+                  @click="formData.vendor = vendor"
+                  v-close-popup
+                >
+                  <q-item-section>
+                    <q-item-label>{{ vendor?.name }}</q-item-label>
+                    <q-item-label v-if="vendor?.location?.formatted" class="text-caption">
+                      {{ vendor?.location?.formatted }}
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+              <q-item v-else>
+                <q-item-section>
+                  <q-item-label>
+                    No data
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-menu>
           </q-input>
           <q-input
             dense
@@ -285,41 +299,39 @@
         <q-card-section>
           <div class="text-subtitle1">Items</div>
           <q-separator class="q-mb-sm"/>
-          <div
-            v-for="item in formData.items" :key="item?.variant?.id"
-            class="row items-center no-wrap q-gutter-x-sm q-mb-sm"
-          >
-            <div class="q-space row items-center no-wrap text-weight-medium" @click="viewItemVariant(item)">
-              <img
-                v-if="item?.variant?.imageUrl || item?.variant?.product?.imageUrl"
-                :src="item?.variant?.imageUrl || item?.variant?.product?.imageUrl"
-                style="width:50px;"
-                class="rounded-borders q-mr-sm"
-              />
-              <div>
-                {{ item?.variant?.product?.name }}
-                <template v-if="item?.variant?.name">
-                  - {{ item?.variant?.name }}
+          <table class="items-table full-width">
+            <tr v-for="item in formData.items" :key="item?.variant?.id">
+              <td class="full-width">
+                <div class="row items-start no-wrap text-weight-medium">
+                  <img
+                    v-if="item?.variant?.imageUrl || item?.variant?.product?.imageUrl"
+                    :src="item?.variant?.imageUrl || item?.variant?.product?.imageUrl"
+                    style="width:50px;"
+                    class="rounded-borders q-mr-sm"
+                  />
+                  <div>
+                    {{ item?.variant?.product?.name }}
+                    <template v-if="item?.variant?.name">
+                      - {{ item?.variant?.name }}
+                    </template>
+                  </div>
+                </div>
+              </td>
+              <td class="full-width" style="text-wrap:nowrap;">
+                <template v-if="item.costPrice">
+                  {{ item.costPrice }} {{ marketplaceStore?.currency }}
                 </template>
-              </div>
-            </div>
-            <div class="col-3 col-sm-2">
-              <template v-if="item.costPrice">
-                {{ item.costPrice }} {{ marketplaceStore?.currency }}
-              </template>
-              <span v-else class="text-grey">
-                No cost price
-              </span>
-            </div>
-            <div class="col-2 col-sm-1">
-              <div class="row no-wrap items-center">
-                <span>x{{ item.quantity }}</span>
-              </div>
-            </div>
-          </div>
-        </q-card-section>
-        <q-card-section class="q-pt-none">
-          <div class="row">
+                <span v-else class="text-grey">
+                  No cost price
+                </span>
+              </td>
+              <td class="text-right" style="text-wrap:nowrap">
+                x{{ item.quantity }}
+              </td>
+            </tr>
+          </table>
+          <q-separator/>
+          <div class="row q-px-sm text-subtitle1 q-pt-sm">
             <div class="q-space">Subtotal</div>
             <div>
               {{ formComputedData.subtotal }}
@@ -376,7 +388,7 @@ import AddItemForm from 'src/components/marketplace/sales/AddItemForm.vue'
 import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoDialog.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import { backend } from 'src/marketplace/backend'
-import { useQuasar } from 'quasar'
+import { debounce, useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 
 export default defineComponent({
@@ -393,15 +405,15 @@ export default defineComponent({
     const marketplaceStore = useMarketplaceStore()
 
     onMounted(() => {
-      // const params = {shop_id: marketplaceStore.activeShopId, limit: 2, offset: 4 }
-      // backend.get(`variants/`, { params })
-      //   .then(response => {
-      //     if (!response?.data?.results?.length) return
-      //     response?.data?.results
-      //       .slice(0, 2)
-      //       .map(variant => Object({ variant, costPrice: variant?.price, quantity: 10 }))
-      //       .forEach(addItem)
-      //   })
+      const params = {shop_id: marketplaceStore.activeShopId, limit: 2, offset: 4 }
+      backend.get(`variants/`, { params })
+        .then(response => {
+          if (!response?.data?.results?.length) return
+          response?.data?.results
+            .slice(0, 2)
+            .map(variant => Object({ variant, costPrice: variant?.price, quantity: 10 }))
+            .forEach(addItem)
+        })
       // backend.get('vendors/').then(response => {
       //   if (!response?.data?.results?.length) return
       //   formData.value.vendor = Vendor.parse(response.data.results[0])
@@ -482,7 +494,8 @@ export default defineComponent({
     function resetVendor() {
       formData.value.vendor = Vendor.parse(null)
     }
-    function filterVendorOpts() {
+    
+    const filterVendorOpts = debounce(() => {
       const searchVal = vendorSearch.value.search || ''
       const params = {
         s: vendorSearch.value.search,
@@ -500,7 +513,7 @@ export default defineComponent({
         .finally(() => {
           vendorSearch.value.loading = false
         })
-    }
+    }, 500, false)
 
     function addItem(item) {
       formData.value.items.push({
@@ -585,6 +598,16 @@ export default defineComponent({
       variantInfoDialog.value.show = true
     }
 
+    function onVendorSearchMenuUpdate(ctx) {
+      // for q-menu components with `fit` prop set
+      // this will fix the width to be the same as the parent component
+      const element = ctx?.component?.ctx?.contentEl
+      if (!element) return
+      const minWidth = element?.style?.minWidth
+      if (!minWidth) return
+      element.style.setProperty('max-width', minWidth)
+    }
+
     return {
       marketplaceStore,
       tab,
@@ -603,8 +626,15 @@ export default defineComponent({
       createPurchaseOrder,
       variantInfoDialog,
       viewItemVariant,
+
+      onVendorSearchMenuUpdate,
     }
   },
 })
 </script>
+<style lang="scss" scoped>
+table.items-table {
+  border-spacing: (map-get($space-md, 'x'))/2;
+}
+</style>
 
