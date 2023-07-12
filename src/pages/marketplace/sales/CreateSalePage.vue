@@ -589,7 +589,25 @@ export default defineComponent({
       tabs.value[0].disable = false
       if (bchPayment?.txid && paymentMode == 'BCH') {
         tab.value = tabs.value.at(-1).name
-        tabs.value.forEach(tab => tab.disable = false)
+        tabs.value.forEach(tab => tab.disable = false)        
+      }
+
+      if (bchPayment?.txid) {
+        const satoshis = Math.floor((receivedAmount / bchPayment?.price?.value) * 10 ** 8)
+        const txData = txListener.value.parseWebsocketDataReceived({
+          txid: bchPayment?.txid,
+          amount: satoshis / 10 ** 8,
+          value: satoshis,
+          token_symbol: 'BCH',
+        })
+
+        txData.marketValue = {
+          symbol: salesOrder?.currency?.symbol || marketplaceStore?.currency,
+          price: bchPayment?.price?.value,
+          amount: receivedAmount,
+        }
+
+        transactionsReceived.value.push(txData)
       }
     }
 
@@ -836,14 +854,15 @@ export default defineComponent({
           address: data?.address,
           amount: data?.amount,
           tokenCurrency: data?.tokenSymbol,
-          marketValue: data?.marketValue.amount,
-          marketValueCurrency: data?.marketValue.currency,
+          marketValue: data?.marketValue?.amount,
+          marketValueCurrency: data?.marketValue?.currency,
           logo: data?.logo,
           expectedAmount: formComputedData.value.bchSubtotal,
         }
       })
         .onOk(() => {
           formData.value.bchPayment.txid = data?.txid
+          formData.value.receivedAmount = data?.marketValue?.amount
           createSale({ draft: true, silent: true })
           if (tab.value == 'payment') nextTab()
         })
