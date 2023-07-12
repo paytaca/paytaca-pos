@@ -998,7 +998,6 @@ export default defineComponent({
 <style scoped>
 .items-container {
   display: flex;
-  flex-wrap: wrap;
   flex-direction: column-reverse;
 }
 
