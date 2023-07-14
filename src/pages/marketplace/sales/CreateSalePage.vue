@@ -60,9 +60,10 @@
         <q-btn
           outline
           no-caps
+          :loading="loading"
           :label="formData?.salesOrder?.id ? 'Save draft' : 'Save as draft'"
           padding="xs md"
-          @click="() => createSale({ draft: true, silent: false })"
+          @click="() => createSale({ draft: true, silent: true })"
         />
       </div>
     </div>
@@ -927,7 +928,12 @@ export default defineComponent({
             $q.dialog({
               title: 'Success',
               message: data.draft ? 'Draft saved' : 'Sale Created',
-            }).onDismiss(() => $router.go(-1))
+            }).onDismiss(() => {
+              $router.replace({
+                  name: 'marketplace-sales-order',
+                  params: { salesOrderId: response?.data?.id }
+              })
+            })
           }
           return response
         })
