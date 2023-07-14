@@ -187,6 +187,7 @@ import { backend } from 'src/marketplace/backend'
 import { SalesOrder } from 'src/marketplace/objects'
 import { formatTimestampToText } from 'src/marketplace/utils'
 import { TransactionListener } from 'src/wallet/utils'
+import { useAddressesStore } from 'src/stores/addresses'
 import { useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import QRCode from 'vue-qrcode-component'
@@ -204,6 +205,7 @@ export default defineComponent({
   },
   setup(props) {
     const $q = useQuasar()
+    const addressesStore = useAddressesStore()
     const initialized = ref(false)
     function resetPage() {
       initialized.value = false
@@ -245,10 +247,45 @@ export default defineComponent({
     watch(() => [bchPayment.value.show], () => {
       if (!bchPayment.value.show) return txListener.value.disconnect()
 
+      if (!salesOrder.value?.bchRecipientAddress) updateRecipient()
       txListener.value.address = salesOrder.value?.bchRecipientAddress
       txListener.value.addListener(txListenerCallback)
       txListener.value.connect()
+
+      const currentPrice = parseFloat(salesOrder.value.bchPrice?.price)
+      if (!currentPrice) updateBchPrice()
     })
+
+    function updateBchPrice() {
+      const currentPrice = parseFloat(salesOrder.value.bchPrice?.price)
+      if (currentPrice) return Promise.reject('Sales order has existing bch price')
+
+      const currency = salesOrder.value.currency?.code || salesOrder.value.currency?.symbol
+      return backend.get(`prices/bch/${currency}/`)
+        .then(response => {
+          salesOrder.value.bchPrice.price = parseFloat(response?.data?.price)
+          salesOrder.value.bchPrice.timestamp = new Date(response?.data?.timestamp || undefined)
+          return response
+        })
+    }
+
+    function updateRecipient() {
+      if (salesOrder.value?.bchTxid) return Promise.reject('Has existing transaction')
+      const addresses = addressesStore.addressSets
+        .map(addressSet => addressSet?.receiving)
+        .filter(Boolean)
+      // const addresses = [
+      //   'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5',
+      //   'bchtest:qzyrw008v4rnxvzuzauetf4z8s3rqyljw5jqddgug8',
+      //   'bchtest:qrmrn0um32u752k2v3a3y4h6a7nhth249q8g33smvf',
+      //   'bchtest:qzdlrh9ntufqsm6slcls02dp0c2859srkywkvd2c4e',
+      //   'bchtest:qq20wfjhv53u3cm0k5w0rstt7y7rrckequas8t40qf',
+      // ]
+      const currentAddress = salesOrder.value.bchRecipientAddress
+      const index = addresses.indexOf(currentAddress)
+      const nextIndex = (index+1) % addresses.length
+      salesOrder.value.bchRecipientAddress = addresses[nextIndex]
+    }
 
     // window.t = () => {
     //   const data = {"token_name": "bch", "token_id": "slp/bch", "token_symbol": "bch", "token_decimals": 8, "amount": null, "value": 3280456, "address": "bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5", "source": "WatchTower", "txid": "6414eab1068fa86aaff06860ea23169037287fd0d3d009474519c3ad27420a92", "block": null, "index": 0, "address_path": "0/0", "senders": ["bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5", "bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5"]}
@@ -275,6 +312,7 @@ export default defineComponent({
         displayReceivedTransaction(parsedData)
       }
     }
+
     function displayReceivedTransaction (data=txListener?.value?.parseWebsocketDataReceived?.()) {
       $q.dialog({
         component: ReceiveUpdateDialog,
