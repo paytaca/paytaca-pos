@@ -40,6 +40,7 @@ const routes = [
           { path: 'inventory/purchase-orders/:purchaseOrderId', component: () => import('src/pages/marketplace/inventory/PurchaseOrderDetail.vue'), name: 'marketplace-purchase-order', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'staff', component: () => import('src/pages/marketplace/StaffPage.vue'), name: 'marketplace-staff', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'sales', component: () => import('src/pages/marketplace/sales/SalesPage.vue'), name: 'marketplace-sales', props: route => Object.assign({}, route?.query, route?.params)},
+          { path: 'sales/:salesOrderId', component: () => import('src/pages/marketplace/sales/SalesOrderDetail.vue'), name: 'marketplace-sales-order', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'sales/reports', component: () => import('src/pages/marketplace/sales/SalesReportPage.vue'), name: 'marketplace-sales-reports', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'sales/create', component: () => import('src/pages/marketplace/sales/CreateSalePage.vue'), name: 'marketplace-sale', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'user', component: () => import('src/pages/marketplace/UserPage.vue'), name: 'marketplace-user', props: route => Object.assign({}, route?.query, route?.params)},

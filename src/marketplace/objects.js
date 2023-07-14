@@ -622,6 +622,13 @@ export class SalesOrderItem {
     this.quantity = data?.quantity
     this.itemName = data?.item_name
   }
+
+  get subtotal() {
+    const price = parseFloat(this.price)
+    const quantity = parseInt(this.quantity)
+    const subtotal = price * quantity
+    return Number(subtotal.toFixed(3))
+  }
 }
 
 export class SalesOrder {
@@ -676,12 +683,9 @@ export class SalesOrder {
     this.bchRecipientAddress = data?.bch_recipient_address
     this.bchTxid = data?.bch_txid
     this.receivedAmount = parseFloat(data?.received_amount)
-    this.createdAt = new Date(data?.created_at)
-    this.createdBy = {
-      id: data?.created_by?.id,
-      firstName: data?.created_by?.first_name,
-      lastName: data?.created_by?.last_name,
-    }
+    if(data?.created_at) this.createdAt = new Date(data?.created_at)
+    else if (this.createdAt) delete this.createdAt
+    this.createdBy = User.parse(data?.created_by)
 
     this.itemsCount = data?.items_count
     if (Array.isArray(data?.items)) this.items = data?.items.map(SalesOrderItem.parse)
@@ -696,6 +700,12 @@ export class SalesOrder {
     }
   }
 
+  get calculatedTotal() {
+    if (!Array.isArray(this.items)) return NaN
+
+    return this.items?.reduce((subtotal, item) => subtotal + item.subtotal, 0)
+  }
+
   get bchTotal() {
     const bchValue = parseFloat(this.bchPrice?.price)
     const total = parseFloat(this.total)
@@ -703,6 +713,12 @@ export class SalesOrder {
 
     const bchTotal = total / bchValue
     return Math.floor(bchTotal * 10 ** 8) / 10 ** 8
+  }
+
+  get changeAmount() {
+    const total = parseFloat(this.total) || this.calculatedTotal
+    const receivedAmount = parseFloat(this.receivedAmount)
+    return receivedAmount - total
   }
 
   get bchTxidLink() {
