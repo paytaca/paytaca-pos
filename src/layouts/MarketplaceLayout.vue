@@ -19,6 +19,7 @@
 
 <script>
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useWalletStore } from 'src/stores/wallet'
 import { computed, defineComponent, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -28,6 +29,7 @@ export default defineComponent({
     const $router = useRouter()
     const $route = useRoute()
     const marketplaceStore = useMarketplaceStore()
+    const walletStore = useWalletStore()
     const updatingScope = computed(() => {
       return marketplaceStore.fetchingMerchant ||
              marketplaceStore.fetchingShop ||
@@ -38,7 +40,9 @@ export default defineComponent({
       const silent = $route.query.silentSync == 'true'
       // marketplaceStore.refetchMerchant({ silent: false })
       // marketplaceStore.refetchShop({ silent: false })
-      await marketplaceStore.updateActiveShopId({ silent: silent, forceSync: false }).catch(console.error)
+      const branchChanged = marketplaceStore.shop?.watchtowerBranchId == walletStore.deviceInfo?.branchId
+      const updateShopPromise = marketplaceStore.updateActiveShopId({ silent: branchChanged, forceSync: false }).catch(console.error)
+      if (branchChanged) await updateShopPromise
       await marketplaceStore.refreshUser({ silent: silent }).catch(console.error)
 
       if (!marketplaceStore.user.id && $route?.meta?.requireAuth) {

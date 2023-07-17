@@ -41,18 +41,23 @@
 </template>
 <script>
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useWalletStore } from 'src/stores/wallet'
 import { computed, defineComponent, onMounted, ref } from 'vue'
 
 export default defineComponent({
   name: 'MarketplaceWidget',
   setup() {
     const marketplaceStore = useMarketplaceStore()
+    const walletStore = useWalletStore()
 
     const loading = ref(false)
     onMounted(async () => {
       try {
         loading.value = true
-        await marketplaceStore.updateActiveShopId({ silent: true, getOnly: true }).catch(console.error)
+
+        const branchChanged = marketplaceStore.shop?.watchtowerBranchId == walletStore.deviceInfo?.branchId
+        const updateShopPromise = marketplaceStore.updateActiveShopId({ silent: true, getOnly: true }).catch(console.error)
+        if (branchChanged) await updateShopPromise
         await marketplaceStore.refreshUser({ silent: true }).catch(console.error)
       } finally {
         loading.value = false
