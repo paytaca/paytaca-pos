@@ -102,7 +102,4 @@ export default defineComponent({
   border-radius: 999px;
   overflow:hidden;
 }
-.q-r-ml-lg {
-  margin-left: -(map-get($space-lg, 'x'))/2;
-}
 </style>

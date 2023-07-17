@@ -188,9 +188,3 @@ export default defineComponent({
   },
 })
 </script>
-<style lang="scss" scoped>
-.q-r-mx-md {
-  margin-left: -(map-get($space-md, 'x'))/2;
-  margin-right: -(map-get($space-md, 'x'))/2;
-}
-</style>
