@@ -131,12 +131,13 @@
       v-model="salesOrderDetailDialog.show"
       :salesOrder="salesOrderDetailDialog.salesOrder"
     >
-      <template v-slot:bottom>
+      <template v-slot:menu>
         <q-btn
+          flat
           no-caps
-          label="View More"
-          color="brandblue"
-          class="full-width"
+          padding="xs none"
+          label="Go to page"
+          class="text-underline"
           :to="{ name: 'marketplace-sales-order', params: { salesOrderId: salesOrderDetailDialog.salesOrder?.id } }"
         />
       </template>

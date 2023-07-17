@@ -1,5 +1,5 @@
 import { backend } from "./backend"
-import { formatOrderStatus, parseOrderStatusColor } from './utils'
+import { formatOrderStatus, formatPurchaseOrderStatus, parseOrderStatusColor, parsePurchaseOrderStatusColor } from './utils'
 
 export const ROLES = Object.freeze({
   admin: 'shop_admin',
@@ -918,6 +918,14 @@ export class PurchaseOrder {
     if (data?.updated_at) this.updatedAt = new Date(data.updated_at)
     this.createdBy = User.parse(data?.created_by)
     this.updatedBy = User.parse(data?.updated_by)
+  }
+
+  get formattedStatus() {
+    return formatPurchaseOrderStatus(this.status)
+  }
+
+  get statusColor() {
+    return parsePurchaseOrderStatusColor(this.status)
   }
 
   get calculatedSubtotal() {

@@ -10,12 +10,16 @@
           </div>
         </template>
       </MarketplaceHeader>
+      <div v-if="!initialized && loading" class="row items-center justify-center">
+        <q-spinner size="3em"/>
+      </div>
       <q-card v-if="initialized">
         <q-card-section>
           <div class="text-h5">
             <template v-if="salesOrder?.draft">Draft</template>
             Sale
             <template v-if="salesOrder?.number">#{{ salesOrder?.number }}</template>
+            <q-spinner v-if="loading" class="on-right"/>
           </div>
           <div class="row items-center text-caption text-grey">
             <template v-if="salesOrder?.createdAt">
@@ -67,7 +71,7 @@
                 </div>
               </div>
               <template v-else>
-                {{ salesOrder?.total }} {{ salesOrder?.currency?.symbol }}
+                {{ salesOrder?.total || 0 }} {{ salesOrder?.currency?.symbol }}
               </template>
             </div>
           </div>
@@ -93,13 +97,14 @@
               />
             </div>
           </template>
-          <div class="row no-wrap items-start text-subtitle1">
+          <div v-if="salesOrder?.receivedAmount || salesOrder?.paymentMode != 'bch'" class="row no-wrap items-start text-subtitle1">
             <div class="q-space q-mr-sm">Amount Received</div>
             <div v-if="salesOrder?.receivedAmount">
               {{ salesOrder.receivedAmount }} {{ salesOrder?.currency?.symbol }}
             </div>
             <div v-else-if="salesOrder?.paymentMode != 'bch'" class="text-grey text-underline">Set</div>
             <q-popup-edit
+              v-if="salesOrder?.id"
               :cover="false"
               anchor="bottom right"
               self="top right"
@@ -119,7 +124,7 @@
               />
             </q-popup-edit>
           </div>
-          <div v-if="salesOrder?.changeAmount" class="row no-wrap items-start text-h6">
+          <div v-if="salesOrder?.changeAmount > 0" class="row no-wrap items-start text-h6">
             <div class="q-space q-mr-sm">Change</div>
             <div>{{ salesOrder?.changeAmount }} {{ salesOrder?.currency?.symbol }}</div>
           </div>
@@ -148,8 +153,20 @@
                     />
                   </div>
                 </div>
-                <div>
-                  <div class="q-mx-md" style="word-break: break-all;">{{ bchPaymentUrl }}</div>
+                <div class="q-mx-md">
+                  <div class="text-h5 text-center">
+                    {{ salesOrder?.bchTotal }} BCH
+                  </div>
+                  <q-input
+                    dense
+                    outlined
+                    readonly
+                    :model-value="bchPaymentUrl"
+                  >
+                    <template v-slot:append>
+                      <q-btn flat padding="xs" icon="content_copy" @click="() => copyToClipboard(bchPaymentUrl)"/>
+                    </template>
+                  </q-input>
                 </div>
                 <q-item
                   v-for="(txReceived, index) in bchPayment.transactionsReceived" :key="index"
@@ -185,10 +202,10 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { SalesOrder } from 'src/marketplace/objects'
-import { formatTimestampToText } from 'src/marketplace/utils'
+import { errorParser, formatTimestampToText } from 'src/marketplace/utils'
 import { TransactionListener } from 'src/wallet/utils'
 import { useAddressesStore } from 'src/stores/addresses'
-import { useQuasar } from 'quasar'
+import { copyToClipboard, useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import QRCode from 'vue-qrcode-component'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
@@ -217,6 +234,7 @@ export default defineComponent({
       refreshPage()
     })
 
+    const loading = ref(false)
     const salesOrder = ref(SalesOrder.parse())
     function fetchSalesOrder() {
       if (!props?.salesOrderId) {
@@ -224,10 +242,14 @@ export default defineComponent({
         return Promise.resolve()
       }
 
+      loading.value = true
       return backend.get(`sales-orders/${props?.salesOrderId}/`)
         .then(response => {
           salesOrder.value = SalesOrder.parse(response?.data)
           return response
+        })
+        .finally(() => {
+          loading.value = false
         })
     }
 
@@ -340,22 +362,67 @@ export default defineComponent({
           timestamp: salesOrder.value.bchPrice.timestamp,
         },
       }
+
+      loading.value = true
       return backend.patch(`sales-orders/${salesOrder.value?.id}/`, data)
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
           salesOrder.value.raw = response?.data
           return response
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          const errorMsg = data?.detail ||
+                         errorParser.firstElementOrValue(data) ||
+                         errorParser.firstElementOrValue(data?.non_field_errors)
+          $q.notify({
+            type: 'negative',
+            message: errorMsg || 'Unable to save payment',
+            multiLine: true,
+          })
+        })
+        .finally(() => {
+          loading.value = false
         })
     }
 
     function setAmountReceived(value) {
       const data = { received_amount: value || null }
+      loading.value = true
       return backend.patch(`sales-orders/${salesOrder.value?.id}/`, data)
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
           salesOrder.value.raw = response?.data
           return response
         })
+        .catch(error => {
+          const data = error?.response?.data
+          const errorMsg = data?.detail ||
+                         errorParser.firstElementOrValue(data) ||
+                         errorParser.firstElementOrValue(data?.non_field_errors) ||
+                         errorParser.firstElementOrValue(data?.received_amount)
+          $q.notify({
+            type: 'negative',
+            message: errorMsg || 'Unable to set received amount',
+            multiLine: true,
+          })
+        })
+        .finally(() => {
+          loading.value = false
+        })
+    }
+
+    function copyToClipboard(value, message='') {
+      this.$copyText(value)
+        .then(() => {
+          $q.notify({
+            message: message || 'Copied to clipboard',
+            timeout: 800,
+            icon: 'mdi-clipboard-check',
+            color: 'blue-9'
+          })
+        })
+        .catch(() => {})
     }
 
     async function refreshPage(done=() => {}) {
@@ -369,6 +436,7 @@ export default defineComponent({
 
     return {
       initialized,
+      loading,
       resetPage,
       salesOrder,
       setAmountReceived,
@@ -376,6 +444,8 @@ export default defineComponent({
       bchPaymentUrl,
       bchPayment,
       displayReceivedTransaction,
+
+      copyToClipboard,
 
       refreshPage,
 

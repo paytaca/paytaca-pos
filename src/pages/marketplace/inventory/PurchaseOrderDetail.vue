@@ -11,27 +11,41 @@
         </template>
       </MarketplaceHeader>
       <q-card class="q-mb-md">
-        <q-card-section class="row">
-          <div class="col-6 col-sm-4 q-pa-sm">
-            <div class="text-caption top text-grey">Purchase Order #</div>
-            <div>PO#{{ purchaseOrder?.number }}</div>
-          </div>
-          <div class="col-6 col-sm-4 q-pa-sm">
-            <div class="text-caption top text-grey">Status</div>
-            <div>{{ formatPurchaseOrderStatus(purchaseOrder?.status) }}</div>
-          </div>
-          <div v-if="purchaseOrder.reviewedAt" class="q-space q-pa-sm">
-            <div class="text-caption top text-grey">Reviewed</div>
-            <div v-if="purchaseOrder?.reviewedBy?.id">{{ purchaseOrder?.reviewedBy?.fullName }}</div>
-            <div>{{ formatTimestampToText(purchaseOrder.reviewedAt) }}</div>
-          </div>
-          <div v-if="purchaseOrder.createdAt || purchaseOrder?.createdBy?.id" class="q-space q-pa-sm">
-            <div class="text-caption top text-grey">Created</div>
-            <div>
-              {{ purchaseOrder?.createdBy?.fullName }}
+        <q-card-section>
+          <div class="row items-center">
+            <div v-if="purchaseOrder?.number" class="row items-center text-h5">
+              <div>PO#{{ purchaseOrder?.number }}</div>
             </div>
-            <div v-if="purchaseOrder.createdAt">
-              {{ formatTimestampToText(purchaseOrder.createdAt) }}
+            <q-icon v-if="purchaseOrder?.reviewedAt" name="check_circle" color="green" size="1.5rem" class="q-mx-xs">
+              <q-menu class="q-pa-sm">
+                Reviewed
+                <template v-if="purchaseOrder?.reviewedBy?.fullName">
+                  by {{ purchaseOrder?.reviewedBy?.fullName }}
+                  <span v-if="purchaseOrder?.reviewedBy?.id == marketplaceStore?.user?.id">
+                    (you)
+                  </span>
+                </template>
+                at {{ formatTimestampToText(purchaseOrder?.reviewedAt) }}
+              </q-menu>
+            </q-icon>
+            <q-space/>
+            <q-chip :color="purchaseOrder?.statusColor" class="q-mx-none q-mb-sm text-weight-medium">
+              {{ purchaseOrder?.formattedStatus }}
+            </q-chip>
+          </div>
+          <div class="row items-center">
+            <div v-if="purchaseOrder?.createdAt" class="text-caption bottom text-grey">
+              {{ formatTimestampToText(purchaseOrder?.createdAt) }}
+              <q-menu class="q-pa-sm">
+                Created at {{ formatTimestampToText(purchaseOrder?.createdAt) }}
+              </q-menu>
+            </div>
+            <q-space/>
+            <div v-if="purchaseOrder?.createdBy?.id" class="text-caption bottom text-grey">
+              {{ purchaseOrder?.createdBy?.fullName }}
+              <q-menu class="q-pa-sm">
+                Created by {{ purchaseOrder?.createdBy?.fullName }}
+              </q-menu>
             </div>
           </div>
         </q-card-section>
@@ -234,7 +248,7 @@
                   </q-menu>
                 </div>
                 <div v-else class="text-grey" @click="() => showReceiveItemsDialog = !allItemsReceived">
-                  Undelivered
+                  Not yet delivered
                 </div>
               </div>
             </template>
@@ -244,7 +258,7 @@
                 class="text-weight-medium text-underline"
                 @click="() => displayItemStock(item)" 
               >
-                Stock #{{ item?.stockId }}
+                View stocks
               </div>
               <div v-else-if="item?.deliveredAt">
                 <span v-if="!item?.expiresAt" class="text-grey text-underline">
@@ -725,6 +739,8 @@ export default defineComponent({
     }
 
     return {
+      marketplaceStore,
+
       purchaseOrder,
       editable,
       itemsViewMode,

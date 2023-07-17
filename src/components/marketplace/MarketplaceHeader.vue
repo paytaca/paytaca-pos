@@ -13,12 +13,13 @@
     <q-dialog v-model="openUserMenu" position="bottom">
       <q-card>
         <q-card-section>
-          <div class="row items-center">
+          <div class="row items-start">
             <img
               :src="userImage" style="width:50px"
               class="rounded-borders q-mr-sm"
+              @click="$router.push({ name: 'marketplace-user' })"
             />
-            <div>
+            <div @click="$router.push({ name: 'marketplace-user' })">
               <div>
                 {{ marketplaceStore.user.firstName }}
                 {{ marketplaceStore.user.lastName }}

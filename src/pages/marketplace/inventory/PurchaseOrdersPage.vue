@@ -203,46 +203,61 @@
     <q-dialog v-model="purchaseOrderItemsDialog.show" position="bottom">
       <q-card>
         <q-card-section>
-          <div class="text-h5">
-            PO#{{ purchaseOrderItemsDialog.purchaseOrder?.number }} Items
+          <div class="row items-center">
+            <div class="text-h5">
+              PO#{{ purchaseOrderItemsDialog.purchaseOrder?.number }} Items
+            </div>
+            <q-space/>
+            <q-btn
+              flat
+              padding="sm"
+              no-caps label="Go to page"
+              class="text-underline"
+              :to="{
+                name: 'marketplace-purchase-order',
+                params: { purchaseOrderId: purchaseOrderItemsDialog.purchaseOrder?.id }
+              }"
+            />
           </div>
         </q-card-section>
         <div v-if="purchaseOrderItemsDialog.purchaseOrder?.$state?.loading" class="row items-center justify-center q-pa-md">
           <q-spinner size="4em"/>
         </div>
-        <div v-else>
-          <q-item
-            v-for="item in purchaseOrderItemsDialog.purchaseOrder.items"
-            :key="item?.id"
-          >
-            <q-item-section v-if="item?.variant?.imageUrl || item?.variant?.product?.imageUrl" side>
+        <q-list v-else separator class="q-px-sm q-mb-md">
+          <q-item v-for="item in purchaseOrderItemsDialog.purchaseOrder.items" :key="item?.id">
+            <q-item-section v-if="item?.variant?.imageUrl || item?.variant?.product?.imageUrl" side top>
               <img
                 :src="item?.variant?.imageUrl || item?.variant?.product?.imageUrl"
                 style="width:50px;"
                 class="rounded-borders"
               />
             </q-item-section>
-            <q-item-section>
+            <q-item-section top>
+              <q-item-label>{{ item?.variant?.itemName || item?.itemName }}</q-item-label>
               <q-item-label>
-                {{ item?.variant?.product?.name }}
-                <template v-if="item?.variant?.name">
-                  - {{ item?.variant?.name }}
-                </template>
-                <q-icon v-if="item?.deliveredAt" name="local_shipping" size="1.5em" class="q-ml-sm">
-                  <q-menu class="q-pa-sm">
-                    Delivered at
-                    {{ formatTimestampToText(item?.deliveredAt) }}
-                    <span class="text-grey">({{ formatDateRelative(item?.deliveredAt) }})</span>
-                  </q-menu>
-                </q-icon>
-              </q-item-label>
-              <q-item-label class="text-caption">
                 {{ item?.quantity }} x
                 {{ item?.costPrice }} {{ purchaseOrderItemsDialog.purchaseOrder?.currency?.symbol }}
               </q-item-label>
             </q-item-section>
+            <q-item-section avatar top>
+              <q-item-label v-if="item?.deliveredAt">
+                Delivered {{ formatDateRelative(item?.deliveredAt) }}
+                <q-menu class="q-pa-sm">{{ formatTimestampToText(item?.deliveredAt) }}</q-menu>
+              </q-item-label>
+              <q-item-label v-else class="text-grey">
+                Not yet delivered
+              </q-item-label>
+              <q-item-label v-if="item?.stockId">
+                <q-btn
+                  flat padding="2px none"
+                  no-caps label="View stocks"
+                  class="text-underline"
+                  @click="() => displayItemStock(item)"
+                />
+              </q-item-label>
+            </q-item-section>
           </q-item>
-        </div>
+        </q-list>
       </q-card>
     </q-dialog>
   </q-page>
@@ -250,12 +265,14 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { formatDateRelative, formatPurchaseOrderStatus, formatTimestampToText } from 'src/marketplace/utils'
-import { PurchaseOrder, Vendor } from 'src/marketplace/objects'
+import { PurchaseOrder, PurchaseOrderItem, Stock, Vendor } from 'src/marketplace/objects'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useQuasar } from 'quasar'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import VendorInfoDialog from 'src/components/marketplace/inventory/VendorInfoDialog.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
+import StockDetailDialog from 'src/components/marketplace/inventory/StockDetailDialog.vue'
 
 export default defineComponent({
   name: 'PurchaseOrdersPage',
@@ -265,6 +282,7 @@ export default defineComponent({
     LimitOffsetPagination,
   },
   setup() {
+    const $q = useQuasar()
     const marketplaceStore = useMarketplaceStore()
 
     const statusOpts = ['pending', 'partial', 'received', 'complete']
@@ -353,6 +371,22 @@ export default defineComponent({
       purchaseOrderItemsDialog.value.show = true
     }
 
+
+    function displayItemStock(item=PurchaseOrderItem.parse()) {
+      if (!item.stockId) return
+
+      if (!item.stock) {
+        item.stock = Stock.parse({ id: item.stockId })
+        // item.stock.$state.updating = true
+        item.stock.refetch()
+      }
+
+      $q.dialog({
+        component: StockDetailDialog,
+        componentProps: { stock: item.stock },
+      })
+    }
+
     async function refreshPage(done) {
       try {
         await Promise.all([
@@ -384,6 +418,7 @@ export default defineComponent({
 
       purchaseOrderItemsDialog,
       showPurchaseOrderItems,
+      displayItemStock,
 
       refreshPage,
 

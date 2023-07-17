@@ -1,58 +1,60 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card style="width: max(90vw, 500px)">
-      <q-card-section class="row no-wrap items-start q-pb-sm">
-        <div class="q-space row items-center q-gutter-x-xs">
-          <div class="text-h5">Purchase Order</div>
-          <div v-if="purchaseOrder?.id" class="text-grey">#{{ purchaseOrder?.id }}</div>
+      <q-card-section class="q-pb-sm">
+        <div class="row no-wrap items-start">
+          <div class="q-space row items-center q-gutter-x-xs">
+            <div class="text-h5">
+              Purchase Order
+              <template v-if="purchaseOrder?.number">#{{ purchaseOrder?.number }}</template>
+            </div>
+          </div>
+          <slot name="menu" v-bind="{ purchaseOrder }"></slot>
         </div>
-        <slot name="menu" v-bind="{ purchaseOrder }"></slot>
+        <div class="row items-center">
+          <div v-if="purchaseOrder?.createdAt" class="text-caption bottom text-grey">
+            {{ formatTimestampToText(purchaseOrder?.createdAt) }}
+            <q-menu class="q-pa-sm">
+              Created at {{ formatTimestampToText(purchaseOrder?.createdAt) }}
+            </q-menu>
+          </div>
+          <q-space/>
+          <div v-if="purchaseOrder?.createdBy?.id" class="text-caption bottom text-grey">
+            {{ purchaseOrder?.createdBy?.fullName }}
+            <q-menu class="q-pa-sm">
+              Created by {{ purchaseOrder?.createdBy?.fullName }}
+            </q-menu>
+          </div>
+        </div>
       </q-card-section>
       <q-card-section v-if="purchaseOrder?.$state?.loading" class="row items-center justify-center">
         <q-spinner size="2.5em"/>
       </q-card-section>
       <template v-else>
-        <q-card-section class="q-pb-none row">
-          <div class="col-6 col-sm-4 q-pa-sm">
-            <div class="text-caption top text-grey">Purchase Order #</div>
-            <div>PO#{{ purchaseOrder?.number }}</div>
-          </div>
-          <div class="col-6 col-sm-4 q-pa-sm">
+        <q-card-section class="q-py-none row q-px-sm">
+          <div class="col-6 col-sm-4 q-px-sm q-pb-xs">
             <div class="text-caption top text-grey">Status</div>
             <div>{{ formatPurchaseOrderStatus(purchaseOrder?.status) }}</div>
           </div>
-          <div class="q-space q-pa-sm">
+          <div class="q-space q-px-sm q-pb-xs">
             <div class="text-caption top text-grey">Vendor</div>
             <div>{{ purchaseOrder.vendor.name }}</div>
-            <div v-if="purchaseOrder.vendor?.location?.formatted" class="text-caption bottom">
+            <div v-if="purchaseOrder.vendor?.location?.formatted" class="text-caption bottom" style="line-height:1.5em;">
               {{ purchaseOrder.vendor?.location?.formatted }}
             </div>
           </div>
-          <div v-if="purchaseOrder.reviewedAt" class="q-space q-pa-sm">
+          <div v-if="purchaseOrder.reviewedAt" class="q-space q-px-sm q-pb-xs">
             <div class="text-caption top text-grey">Reviewed</div>
-            <div>
-              {{ purchaseOrder?.reviewedBy?.firstName }}
-              {{ purchaseOrder?.reviewedBy?.lastName }}
-            </div>
-            <div v-if="purchaseOrder.reviewedAt">
+            <div>{{ purchaseOrder?.reviewedBy?.fullName }}</div>
+            <div v-if="purchaseOrder.reviewedAt" class="text-caption bottom">
               {{ formatTimestampToText(purchaseOrder.reviewedAt) }}
-            </div>
-          </div>
-          <div v-if="purchaseOrder.createdAt || purchaseOrder?.createdBy?.id" class="q-space q-pa-sm">
-            <div class="text-caption top text-grey">Created</div>
-            <div>
-              {{ purchaseOrder?.createdBy?.firstName }}
-              {{ purchaseOrder?.createdBy?.lastName }}
-            </div>
-            <div v-if="purchaseOrder.createdAt">
-              {{ formatTimestampToText(purchaseOrder.createdAt) }}
             </div>
           </div>
         </q-card-section>
         <q-card-section class="q-pb-none">
           <div class="text-h6">Items</div>
         </q-card-section>
-        <q-list>
+        <q-list class="q-mb-md">
           <q-item
             v-for="item in purchaseOrder.items"
             :key="item?.id"
@@ -78,6 +80,7 @@
             </q-item-section>
           </q-item>
         </q-list>
+        <slot name="bottom"></slot>
       </template>
     </q-card>
   </q-dialog>

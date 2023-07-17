@@ -9,31 +9,31 @@
         </div>
       </template>
     </MarketplaceHeader>
-    <q-card class="q-mb-sm">
+    <q-card class="q-mb-md">
       <q-card-section class="q-pb-none">
         <div class="text-h6">Profile</div>
       </q-card-section>
-      <q-card-section class="row">
-        <div class="col-6 q-pa-xs">
+      <q-card-section class="row q-r-mx-md q-pt-none">
+        <div class="col-6 q-py-xs q-px-sm">
           <div>{{ marketplaceStore?.user?.firstName }}</div>
           <div class="text-caption bottom">First name</div>
         </div>
-        <div class="col-6 q-pa-xs">
+        <div class="col-6 q-py-xs q-px-sm">
           <div>{{ marketplaceStore?.user?.lastName }}</div>
           <div class="text-caption bottom">Last name</div>
         </div>
-        <div class="col-6 q-pa-xs">
+        <div class="col-6 q-py-xs q-px-sm">
           <div>{{ marketplaceStore?.user?.email }}</div>
           <div class="text-caption bottom">Email</div>
         </div>
 
-        <div class="col-6 q-pa-xs">
+        <div class="col-6 q-py-xs q-px-sm">
           <div>{{ marketplaceStore?.user?.username }}</div>
           <div class="text-caption bottom">Username</div>
         </div>
       </q-card-section>
     </q-card>
-    <q-card>
+    <q-card class="q-mb-md">
       <q-card-section>
         <div class="text-subtitle1">Change Password</div>
         <q-form ref="form" @submit="() => changePassword()">

@@ -1,23 +1,39 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card style="width: max(90vw, 500px)">
-      <q-card-section class="row no-wrap items-start q-pb-sm">
-        <div class="row items-center q-gutter-x-xs">
-          <div class="text-h5">Sale</div>
-          <div class="text-grey">#{{ salesOrder?.id }}</div>
-        </div>
-        <div v-if="salesOrder?.draft">
-          <q-chip class="text-weight-medium">Draft</q-chip>
-        </div>
-        <q-space/>
-        <slot name="menu" v-bind="{ salesOrder }"></slot>
-      </q-card-section>
-      <q-card-section class="q-pt-none">
-        <div v-if="salesOrder?.number" class="q-pa-xs">
-          <div>SO#{{ salesOrder?.number }}</div>
-          <div class="text-caption bottom text-grey">Sales Order</div>
+      <q-card-section class="q-pb-sm">
+        <div class="row no-wrap items-start">
+          <div class="row items-center q-gutter-x-xs">
+            <div class="text-h5">
+              <template v-if="salesOrder?.draft">Draft</template>
+              Sale
+              <template v-if="salesOrder?.number">#{{ salesOrder?.number }}</template>
+            </div>
+          </div>
+          <div v-if="salesOrder?.draft">
+            <q-chip class="text-weight-medium">Draft</q-chip>
+          </div>
+          <q-space/>
+          <slot name="menu" v-bind="{ salesOrder }"></slot>
         </div>
         <div class="row items-center">
+          <div v-if="salesOrder?.createdAt" class="text-caption bottom text-grey">
+            {{ formatTimestampToText(salesOrder?.createdAt) }}
+            <q-menu class="q-pa-sm">
+              Created at {{ formatTimestampToText(salesOrder?.createdAt) }}
+            </q-menu>
+          </div>
+          <q-space/>
+          <div v-if="salesOrder?.createdBy?.id" class="text-caption bottom text-grey">
+            {{ salesOrder?.createdBy?.fullName }}
+            <q-menu class="q-pa-sm">
+              Created by {{ salesOrder?.createdBy?.fullName }}
+            </q-menu>
+          </div>
+        </div>
+      </q-card-section>
+      <q-card-section class="q-pt-none">
+        <div class="row items-center q-r-mx-xs">
           <div v-if="salesOrder?.paymentMode" class="q-pa-xs q-space">
             <div>{{ salesOrder?.parsedPaymentMode || salesOrder?.paymentMode }}</div>
             <div class="text-caption bottom text-grey">Payment mode</div>
@@ -72,16 +88,6 @@
               </q-menu>
             </div>
           </template>
-        </div>
-        <div class="row items-center">
-          <div v-if="!isNaN(salesOrder?.createdAt)" class="q-pa-xs q-space">
-            <div>{{ formatTimestampToText(salesOrder?.createdAt) }}</div>
-            <div class="text-caption bottom text-grey">Created at</div>
-          </div>
-          <div v-if="salesOrder?.createdBy?.id" class="q-pa-xs q-space">
-            <div>{{ salesOrder?.createdBy?.firstName }} {{ salesOrder?.createdBy?.lastName }}</div>
-            <div class="text-caption bottom text-grey">Created by</div>
-          </div>
         </div>
         <div v-if="salesOrder?.$state?.updating" class="row items-center justify-center">
           <q-spinner size="3em"/>

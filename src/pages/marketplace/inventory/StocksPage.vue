@@ -531,7 +531,7 @@ export default defineComponent({
               fetchStocks()
             })
             .catch(error => {
-              let errorMsg = ''
+              let errorMsg = error?.response?.data?.detail
               if (error?.response?.status === 403 && !errorMsg) {
                 errorMsg = 'Sorry, you do not have sufficient permissions to access the inventory.'
               }

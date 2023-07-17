@@ -52,6 +52,26 @@ export function formatPurchaseOrderStatus(value) {
 }
 
 /**
+ * @param { 'draft' | 'pending' | 'partial' | 'received' | 'complete' } value
+ */
+export function parsePurchaseOrderStatusColor(value) {
+  switch(value) {
+    case 'partial':
+      return 'cyan'
+    case 'draft':
+      return 'grey'
+    case 'pending':
+      return 'amber'
+    case 'received':
+      return 'teal'
+    case 'complete':
+      return 'green'
+    default:
+      return undefined
+  }
+}
+
+/**
  * @typedef {'pending' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'on_delivery' | 'delivered' | 'completed' | 'cancelled'} OrderStatus
  */
 

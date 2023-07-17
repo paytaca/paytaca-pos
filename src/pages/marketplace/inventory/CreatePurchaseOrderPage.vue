@@ -405,15 +405,15 @@ export default defineComponent({
     const marketplaceStore = useMarketplaceStore()
 
     onMounted(() => {
-      const params = {shop_id: marketplaceStore.activeShopId, limit: 2, offset: 4 }
-      backend.get(`variants/`, { params })
-        .then(response => {
-          if (!response?.data?.results?.length) return
-          response?.data?.results
-            .slice(0, 2)
-            .map(variant => Object({ variant, costPrice: variant?.price, quantity: 10 }))
-            .forEach(addItem)
-        })
+      // const params = {shop_id: marketplaceStore.activeShopId, limit: 2, offset: 4 }
+      // backend.get(`variants/`, { params })
+      //   .then(response => {
+      //     if (!response?.data?.results?.length) return
+      //     response?.data?.results
+      //       .slice(0, 2)
+      //       .map(variant => Object({ variant, costPrice: variant?.price, quantity: 10 }))
+      //       .forEach(addItem)
+      //   })
       // backend.get('vendors/').then(response => {
       //   if (!response?.data?.results?.length) return
       //   formData.value.vendor = Vendor.parse(response.data.results[0])
