@@ -22,7 +22,8 @@
     </div>
     <q-slide-transition>
       <div v-if="scanner.show" class="q-mb-sm">
-        <div class="full-width" style="position:relative;">
+        <q-checkbox dense label="Auto add items" v-model="submitOnScan" class="q-mb-sm"/>
+        <div class="full-width" style="position:relative;min-height:1rem;">
           <StreamBarcodeReader
             @decode="onScannerDecode"
             @error="onScannerError"
@@ -34,17 +35,19 @@
       </div>
     </q-slide-transition>
 
-    <div class="row items-center">
-      <q-checkbox
-        v-if="!disableCustomItem || formData.customItem"
-        dense
-        color="brandblue"
-        v-model="formData.customItem"
-        label="Custom Item"
-        class="q-mb-sm"
-      />
-    </div>
-    <div v-if="!formData.customItem" @click="() => selectVariant()">
+    <q-slide-transition>
+      <div v-if="!hideFieldsForScan" class="row items-center">
+        <q-checkbox
+          v-if="!disableCustomItem || formData.customItem"
+          dense
+          color="brandblue"
+          v-model="formData.customItem"
+          label="Custom Item"
+          class="q-mb-sm"
+        />
+      </div>
+    </q-slide-transition>
+    <div v-if="!formData.customItem || hideFieldsForScan" @click="() => selectVariant()">
       <q-field
         :dense="!formData.variant?.id"
         outlined
@@ -111,39 +114,43 @@
       />
     </template>
 
-    <q-input
-      v-if="withCostPrice"
-      dense
-      outlined
-      :disable="disable"
-      label="Cost price"
-      :suffix="marketplaceStore?.currency"
-      type="number"
-      step="0.001"
-      v-model.number="formData.costPrice"
-      :placeholder="formData?.variant?.price ? `Price: ${formData?.variant?.price}`: ''"
-      bottom-slots
-    />
-    <q-input
-      dense
-      outlined
-      :disable="disable"
-      label="Quantity"
-      type="number"
-      v-model.number="formData.quantity"
-      bottom-slots
-    />
-
-    <div class="q-gutter-y-sm">
-      <q-btn
-        :disable="disable"
-        color="brandblue"
-        no-caps
-        :label="formData.customItem ? 'Add custom item': 'Add Item'"
-        class="full-width"
-        type="submit"
-      />
-    </div>
+    <q-slide-transition>
+      <div v-if="!hideFieldsForScan">
+        <q-input
+          v-if="withCostPrice"
+          dense
+          outlined
+          :disable="disable"
+          label="Cost price"
+          :suffix="marketplaceStore?.currency"
+          type="number"
+          step="0.001"
+          v-model.number="formData.costPrice"
+          :placeholder="formData?.variant?.price ? `Price: ${formData?.variant?.price}`: ''"
+          bottom-slots
+        />
+        <q-input
+          dense
+          outlined
+          :disable="disable"
+          label="Quantity"
+          type="number"
+          v-model.number="formData.quantity"
+          bottom-slots
+        />
+    
+        <div class="q-gutter-y-sm">
+          <q-btn
+            :disable="disable"
+            color="brandblue"
+            no-caps
+            :label="formData.customItem ? 'Add custom item': 'Add Item'"
+            class="full-width"
+            type="submit"
+          />
+        </div>
+      </div>
+    </q-slide-transition>
     <VariantSearchDialog
       v-model="showVariantSearchDialog"
       @ok="onVariantSelected"
@@ -156,8 +163,8 @@
 import { backend } from 'src/marketplace/backend'
 import { Variant } from 'src/marketplace/objects'
 import { useMarketplaceStore } from 'src/stores/marketplace'
-import { useQuasar } from 'quasar'
-import { defineComponent, ref, watch } from 'vue'
+import { debounce, useQuasar } from 'quasar'
+import { computed, defineComponent, ref, watch } from 'vue'
 import { StreamBarcodeReader } from "vue-barcode-reader";
 import VariantSearchDialog from './VariantSearchDialog.vue'
 
@@ -181,6 +188,8 @@ export default defineComponent({
     const $q = useQuasar()
     const marketplaceStore = useMarketplaceStore()
 
+    const submitOnScan = ref(true)
+    const hideFieldsForScan = computed(() => submitOnScan.value && scanner.value.show)
     const formData = ref({
       customItem: false,
       variant: [].map(Variant.parse)[0],
@@ -211,7 +220,8 @@ export default defineComponent({
       if (!scanner.value.show) return
       scanner.value.error = ''
     })
-    function onScannerDecode(content='') {
+    
+    const onScannerDecode = debounce((content='') => {
       if (!props.persistScanner) scanner.value.show = false
       scanner.value.loading = true
       const params = {
@@ -232,7 +242,7 @@ export default defineComponent({
 
           formData.value.customItem = false
           formData.value.variant = Variant.parse(response?.data?.results[0])
-          if (props.autoSubmitOnScan) {
+          if (submitOnScan.value) {
             if (!formData.value.quantity) formData.value.quantity = 1
             submit()
           }
@@ -245,7 +255,7 @@ export default defineComponent({
         .finally(() => {
           scanner.value.loading = false
         })
-    }
+    }, 1000)
     function onScannerError(...args) {
       console.error(...args)
     }
@@ -257,6 +267,7 @@ export default defineComponent({
     function onVariantSelected(variant) {
       formData.value.customItem = false
       formData.value.variant = variant
+      if (hideFieldsForScan.value) scanner.value.show = false
     }
 
     function submit() {
@@ -289,8 +300,10 @@ export default defineComponent({
   
     return {
       marketplaceStore,
-      form,
+      submitOnScan,
+      hideFieldsForScan,
       formData,
+      form,
 
       scanner,
       onScannerDecode,
