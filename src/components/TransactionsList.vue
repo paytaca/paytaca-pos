@@ -17,6 +17,9 @@
               class="q-ml-xs"
               :class="$q.dark.isActive ? '': 'text-grey'"
             />
+            <q-chip v-if="resolveTransactionSalesOrderId(tx)" color="brandblue" dense class="q-my-none">
+              Sale
+            </q-chip>
           </div>
           <div class="text-subtitle text-grey">
             <template v-if="tx.tx_timestamp">{{ formatDate(tx.tx_timestamp) }}</template>
@@ -45,6 +48,7 @@
   </div>
 </template>
 <script>
+import { resolveTransactionSalesOrderId } from 'src/marketplace/utils'
 import ago from 's-ago'
 import { defineComponent, computed, ref } from 'vue'
 import TransactionDetailDialog from 'src/components/TransactionDetailDialog.vue'
@@ -142,6 +146,8 @@ export default defineComponent({
     return {
       offlineTransactionsToShow,
       transactionsList,
+
+      resolveTransactionSalesOrderId,
     }
   }
 })

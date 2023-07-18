@@ -87,6 +87,12 @@
             <q-item-label >{{ transaction?.tx_fee / (10**8) }} BCH</q-item-label>
           </q-item-section>
         </q-item>
+        <q-item v-if="commerceHubSalesOrderId" v-ripple clickable @click="() => displayCommerceHubSalesOrder()">
+          <q-item-section>
+            <q-item-label caption class="text-grey">Sale</q-item-label>
+            <q-item-label>View Info</q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item v-if="transaction?.txid" clickable>
           <q-item-section>
             <q-item-label class="text-gray" caption>Explorer Link</q-item-label>
@@ -106,9 +112,12 @@
   </q-dialog>
 </template>
 <script>
-import { useDialogPluginComponent } from 'quasar'
-import { defineComponent, ref } from 'vue'
+import { SalesOrder } from 'src/marketplace/objects'
+import { resolveTransactionSalesOrderId } from 'src/marketplace/utils'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { computed, defineComponent, ref } from 'vue'
 import { useWalletStore } from 'src/stores/wallet'
+import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
 
 const walletStore = useWalletStore()
 
@@ -177,13 +186,35 @@ export default defineComponent({
   setup(props, ctx, ) {
     // dialog plugins requirement
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+    const $q = useQuasar()
 
     const actionMap = ref({ incoming: 'RECEIVED', outgoing: 'SENT'})
     const iconMap = ref({ incoming: 'arrow_downward', outgoing: 'arrow_upward'})
+
+    const salesOrder = ref(SalesOrder.parse())
+    const commerceHubSalesOrderId = computed(() => resolveTransactionSalesOrderId(props.transaction))
+    function displayCommerceHubSalesOrder() {
+      if (salesOrder.value.id != commerceHubSalesOrderId.value) {
+        const _salesOrder = SalesOrder.parse({ id: commerceHubSalesOrderId.value })
+        _salesOrder.refetch()
+          .then(() => {
+            salesOrder.value.raw = _salesOrder.raw
+          })
+      }
+
+      $q.dialog({
+        component: SalesOrderDetailDialog,
+        componentProps: { salesOrder: salesOrder.value },
+      })
+    }
+
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       actionMap,
       iconMap,
+
+      commerceHubSalesOrderId,
+      displayCommerceHubSalesOrder,
     }
   },
 })
