@@ -33,7 +33,18 @@
         </div>
       </div>
     </q-slide-transition>
-    <div @click="() => selectVariant()">
+
+    <div class="row items-center">
+      <q-checkbox
+        v-if="!disableCustomItem || formData.customItem"
+        dense
+        color="brandblue"
+        v-model="formData.customItem"
+        label="Custom Item"
+        class="q-mb-sm"
+      />
+    </div>
+    <div v-if="!formData.customItem" @click="() => selectVariant()">
       <q-field
         :dense="!formData.variant?.id"
         outlined
@@ -73,6 +84,32 @@
         </template>
       </q-field>
     </div>
+    <template v-else>
+      <q-input
+        dense
+        outlined
+        :disable="disable"
+        label="Item name"
+        v-model="formData.itemName"
+        :rules="[
+          val => Boolean(val) || 'Required',
+        ]"
+      />
+      <q-input
+        dense
+        outlined
+        :disable="disable"
+        label="Price"
+        :suffix="marketplaceStore?.currency"
+        type="number"
+        step="0.001"
+        v-model.number="formData.price"
+        :rules="[
+          val => Boolean(val) || 'Required',
+          val => parseFloat(val) > 0 || 'Invalid',
+        ]"
+      />
+    </template>
 
     <q-input
       v-if="withCostPrice"
@@ -82,8 +119,9 @@
       label="Cost price"
       :suffix="marketplaceStore?.currency"
       type="number"
-      :placeholder="formData?.variant?.price ? `Price: ${formData?.variant?.price}`: ''"
+      step="0.001"
       v-model.number="formData.costPrice"
+      :placeholder="formData?.variant?.price ? `Price: ${formData?.variant?.price}`: ''"
       bottom-slots
     />
     <q-input
@@ -101,7 +139,7 @@
         :disable="disable"
         color="brandblue"
         no-caps
-        label="Add Item"
+        :label="formData.customItem ? 'Add custom item': 'Add Item'"
         class="full-width"
         type="submit"
       />
@@ -137,20 +175,27 @@ export default defineComponent({
     excludeVariantIds: Array,
     withCostPrice: Boolean,
     persistScanner: Boolean,
+    disableCustomItem: Boolean,
   },
   setup(props, { emit: $emit }) {
     const $q = useQuasar()
     const marketplaceStore = useMarketplaceStore()
 
     const formData = ref({
+      customItem: false,
       variant: [].map(Variant.parse)[0],
+      itemName: '',
+      price: null,
       quantity: null,
       costPrice: null,
     })
 
     const form = ref()
     function clearForm() {
+      formData.value.customItem = false
       formData.value.variant = null
+      formData.value.itemName = ''
+      formData.value.price = null
       formData.value.quantity = null
       formData.value.costPrice = null
       setTimeout(() => form.value?.resetValidation?.(), 10)
@@ -185,6 +230,7 @@ export default defineComponent({
             return response
           }
 
+          formData.value.customItem = false
           formData.value.variant = Variant.parse(response?.data?.results[0])
           if (props.autoSubmitOnScan) {
             if (!formData.value.quantity) formData.value.quantity = 1
@@ -209,18 +255,30 @@ export default defineComponent({
       showVariantSearchDialog.value = true
     }
     function onVariantSelected(variant) {
+      formData.value.customItem = false
       formData.value.variant = variant
     }
 
     function submit() {
       const data = {
+        customItem: formData.value.customItem,
         variant: formData.value.variant,
+        itemName: formData.value.itemName || undefined,
+        price: formData.value.price || undefined,
         quantity: formData.value.quantity,
+        costPrice: formData.value.costPrice,
       }
-      if (props.withCostPrice) data.costPrice = formData.value.costPrice
+      if (!props.withCostPrice) delete data.costPrice
+      if (data.customItem) {
+        delete data.variant
+      } else {
+        delete data.itemName
+        delete data.price
+      }
 
+      const isValidcustomItemItem = Boolean(data.customItem && data.itemName && data.price)
       if (
-        data?.variant?.id &&
+        (data?.variant?.id || isValidcustomItemItem) &&
         data?.quantity > 0 &&
         (!props.withCostPrice || data?.costPrice > 0)
       ) {

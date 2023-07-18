@@ -83,7 +83,7 @@
             <q-card-section>
               <div class="text-h5">Items</div>
               <TransitionGroup name="fade">
-                <div v-for="(item, index) in formData.items" :key="item?.variant?.id">
+                <div v-for="(item, index) in formData.items" :key="item._index || `item-${index}`">
                   <div class="row items-center justify-end">
                     <div class="text-grey q-space">Item {{ index+1 }}</div> 
                     <q-btn
@@ -96,7 +96,26 @@
                     />
                   </div>
                   <div class="row items-center no-wrap q-gutter-x-sm q-mb-sm">
-                    <div class="q-space row items-center no-wrap text-weight-medium" @click="() => viewItemVariant(item)">
+                    <div v-if="item?.customItem" class="q-space">
+                      {{ item?.itemName }}
+                      <q-icon name="edit" color="grey" size="0.9em"/>
+                      <q-popup-edit
+                        v-if="item?.customItem"
+                        v-model="item.itemName"
+                        :cover="false"
+                        :validate="val => Boolean(val)"
+                        v-slot="scope"
+                      >
+                        <q-input
+                          dense
+                          borderless
+                          label="Item name"
+                          v-model="scope.value"
+                          @keypress.enter="() => !scope.validate() ? scope.set() : scope.cancel()"
+                        />
+                      </q-popup-edit>
+                    </div>
+                    <div v-else class="q-space row items-center no-wrap text-weight-medium" @click="() => viewItemVariant(item)">
                       <img
                         v-if="item?.variant?.itemImage"
                         :src="item?.variant?.itemImage"
@@ -106,11 +125,38 @@
                       <div>{{ item?.variant?.itemName }}</div>
                     </div>
                     <div class="col-3 col-sm-2">
-                      {{ item.variant?.price }} {{ marketplaceStore?.currency }}
+                      <template v-if="item?.customItem">
+                        <div class="row items-center no-wrap">
+                          {{ item.price }} {{ marketplaceStore?.currency }}
+                          <q-icon name="edit" color="grey" size="0.9em"/>
+                        </div>
+                        <q-popup-edit
+                          v-if="item?.customItem"
+                          v-model="item.price"
+                          :cover="false"
+                          :validate="val => parseFloat(val) > 0"
+                          v-slot="scope"
+                        >
+                          <q-input
+                            dense
+                            outlined
+                            label="Price"
+                            :suffix="marketplaceStore?.currency"
+                            type="number"
+                            step="0.001"
+                            v-model.number="scope.value"
+                            @keypress.enter="() => !scope.validate() ? scope.set() : scope.cancel()"
+                          />
+                        </q-popup-edit>
+                      </template>
+                      <template v-else>
+                        {{ item.variant?.price }} {{ marketplaceStore?.currency }}
+                      </template>
                     </div>
                     <div class="col-2 col-sm-1">
                       <div class="row no-wrap items-center justify-center">
-                        <span class="text-underline">x{{ item.quantity }}</span>
+                        <span>x{{ item.quantity }}</span>
+                        <q-icon name="edit" color="grey" size="0.9em"/>
                         <q-popup-edit
                           v-model="item.quantity" v-slot="props"
                           :disable="loading"
@@ -185,19 +231,19 @@
         <q-card v-for="(item, index) in formData.items" :key="item?.variant?.id" class="q-pa-sm q-mb-sm">
           <div>Item {{ index+1 }}</div>
           <div class="q-space row items-center no-wrap q-gutter-x-sm q-mb-sm">
-            <div class="row items-center no-wrap text-weight-medium" @click="() => viewItemVariant(item)">
+            <div class="row items-center no-wrap text-weight-medium" @click="() => item?.customItem ? null : viewItemVariant(item)">
               <img
                 v-if="item?.variant?.itemImage"
                 :src="item?.variant?.itemImage"
                 style="width:30px;"
                 class="rounded-borders q-mr-xs"
               />
-              <div>{{ item?.variant?.itemName }}</div>
+              <div>{{ item?.variant?.itemName || item?.itemName }}</div>
             </div>
             <div class="text-body1">x{{ item?.quantity }}</div>
           </div>
           <div class="row items-center">
-            <q-checkbox :disable="loading" dense v-model="item.requireStocks" label="Require stocks"/>
+            <q-checkbox :disable="loading || item?.customItem" dense v-model="item.requireStocks" label="Require stocks"/>
             <q-space/>
             <q-btn
               flat
@@ -205,7 +251,7 @@
               padding="none"
               label="Select stocks"
               class="text-underline"
-              :disable="loading"
+              :disable="loading || item?.customItem"
               @click="() => selectStocks(item)"
             />
           </div>
@@ -314,7 +360,11 @@
           </template>
           <template v-else>
             <div class="row justify-center items-center q-mt-sm">
-              <div class="qr-code-container row items-center">
+              <div
+                class="qr-code-container row items-center"
+                v-ripple
+                @click="copyToClipboard(bchPaymentUrl)"
+              >
                 <div v-if="loading"><q-skeleton height="200px" width="200px" /></div>
                 <template v-else>
                   <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
@@ -372,9 +422,12 @@
         <q-card class="q-mb-md">
           <q-card-section>
             <div class="text-subtitle1">Items</div>
-            <div v-for="(item) in formData.items" :key="item?.variant?.id">
+            <div v-for="(item, index) in formData.items" :key="item._index || `item-${index}`">
               <div class="row items-center no-wrap q-gutter-x-sm q-mb-sm">
-                <div class="q-space row items-center no-wrap text-weight-medium" @click="() => viewItemVariant(item)">
+                <div v-if="item.customItem" class="q-space">
+                  {{ item?.itemName }}
+                </div>
+                <div v-else class="q-space row items-center no-wrap text-weight-medium" @click="() => viewItemVariant(item)">
                   <img
                     v-if="item?.variant?.itemImage"
                     :src="item?.variant?.itemImage"
@@ -383,7 +436,7 @@
                   />
                   <div>{{ item?.variant?.itemName }}</div>
                 </div>
-                <div class="col-3">{{ item?.variant?.price }} {{ marketplaceStore.currency }}</div>
+                <div class="col-3">{{ item?.price || item?.variant?.price }} {{ marketplaceStore.currency }}</div>
                 <div class="col-2">x{{ item?.quantity }}</div>
               </div>
             </div>
@@ -563,7 +616,10 @@ export default defineComponent({
 
       const items = salesOrder.items.map(item => {
         const _item = createEmptyItem()
+        _item.customItem = !Boolean(item.variant?.id)
         _item.variant = item.variant
+        _item.itemName = item.itemName
+        _item.price = item.price
         _item.quantity = item.quantity
         return _item
       })
@@ -648,11 +704,17 @@ export default defineComponent({
     //   setTimeout(() => nextTab(), 10)
     //   setTimeout(() => nextTab(), 10)
     //   setTimeout(() => nextTab(), 10)
+    // addItem({ customItem: true, itemName: 'Something', price: 10.75, quantity: 5 })
     // })
 
+    let itemCtr = 0
     function createEmptyItem() {
       return {
+        _index: ++itemCtr,
+        customItem: false,
         variant: Variant.parse(),
+        itemName: '',
+        price: 0,
         quantity: 0,
         requireStocks: true,
         consumptions: [].map(() => {
@@ -681,9 +743,10 @@ export default defineComponent({
       if (formData.value?.items?.length) {
         data.subtotal = formData.value?.items
           .reduce((subtotal, item) => {
-            if (isNaN(item?.variant?.price)) return subtotal
+            const price = item?.price || item?.variant?.price
+            if (isNaN(price)) return subtotal
             if (isNaN(item?.quantity)) return subtotal
-            return subtotal + (item?.variant?.price * item?.quantity)
+            return subtotal + (price * item?.quantity)
           }, 0)
       }
       if (formData.value.bchPayment?.price?.value) {
@@ -739,10 +802,7 @@ export default defineComponent({
 
     function addItem(item) {
       const index = formData.value.items.findIndex(_item => _item?.variant?.id === item?.variant?.id)
-      const itemData = Object.assign(createEmptyItem(), {
-        variant: item?.variant,
-        quantity: item?.quantity,
-      })
+      const itemData = Object.assign(createEmptyItem(), item)
       if (index >= 0) formData.value.items[index] = itemData
       else  formData.value.items.push(itemData)
     }
@@ -798,6 +858,13 @@ export default defineComponent({
       const addresses = addressesStore.addressSets
         .map(addressSet => addressSet?.receiving)
         .filter(Boolean)
+      // const addresses = [
+      //   'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5',
+      //   'bchtest:qzyrw008v4rnxvzuzauetf4z8s3rqyljw5jqddgug8',
+      //   'bchtest:qrmrn0um32u752k2v3a3y4h6a7nhth249q8g33smvf',
+      //   'bchtest:qzdlrh9ntufqsm6slcls02dp0c2859srkywkvd2c4e',
+      //   'bchtest:qq20wfjhv53u3cm0k5w0rstt7y7rrckequas8t40qf',
+      // ]
       const currentAddress = formData.value.bchPayment.recipient
       const index = addresses.indexOf(currentAddress)
       const nextIndex = (index+1) % addresses.length
@@ -882,7 +949,9 @@ export default defineComponent({
         bch_txid: formData.value.bchPayment.txid,
         items: formData.value.items.map(item => {
           return {
-            variant_id: item.variant.id,
+            variant_id: item.customItem ? undefined : item.variant.id,
+            item_name: item.customItem ? item.itemName : undefined,
+            price: item.customItem ? item.price : undefined,
             quantity: item.quantity,
             require_stocks: item.requireStocks,
             consumptions: item.consumptions.map(consumption => {
@@ -902,7 +971,6 @@ export default defineComponent({
       if (!formData.value.salesOrder?.id) return
       return createSale({ draft: true, silent: true })
     }, 500, true)
-    
 
     function createSale(opts = { draft: undefined, silent: false }) {
       const salesOrderId = formData.value?.salesOrder?.id
@@ -975,6 +1043,19 @@ export default defineComponent({
       salesOrderDetailDialog.value.show = true
     }
 
+    function copyToClipboard(value, message='') {
+      this.$copyText(value)
+        .then(() => {
+          this.$q.notify({
+            message: message || 'Copied to clipboard',
+            timeout: 800,
+            icon: 'mdi-clipboard-check',
+            color: 'blue-9'
+          })
+        })
+        .catch(() => {})
+    }
+
     return {
       marketplaceStore,
 
@@ -1013,6 +1094,8 @@ export default defineComponent({
 
       salesOrderDetailDialog,
       viewSalesOrder,
+
+      copyToClipboard,
 
       formatTimestampToText,
       formatDateRelative,
