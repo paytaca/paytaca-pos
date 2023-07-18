@@ -813,8 +813,15 @@ export default defineComponent({
     function addItem(item) {
       const index = formData.value.items.findIndex(_item => _item?.variant?.id === item?.variant?.id)
       const itemData = Object.assign(createEmptyItem(), item)
-      if (index >= 0) formData.value.items[index] = itemData
-      else  formData.value.items.push(itemData)
+      if (isNaN(itemData?.quantity)) return
+
+      if (index >= 0) {
+        const addedQuantity = parseInt(itemData.quantity)
+        formData.value.items[index].variant = itemData.variant
+        if (!isNaN(addedQuantity)) formData.value.items[index].quantity += addedQuantity
+      } else {
+        formData.value.items.push(itemData)
+      }
     }
 
     function removeItem(item) {
