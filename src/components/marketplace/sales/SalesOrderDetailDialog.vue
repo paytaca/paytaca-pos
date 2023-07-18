@@ -2,16 +2,16 @@
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card style="width: max(90vw, 500px)">
       <q-card-section class="q-pb-sm">
-        <div class="row no-wrap items-start">
+        <div class="row no-wrap items-center">
           <div class="row items-center q-gutter-x-xs">
             <div class="text-h5">
-              <template v-if="salesOrder?.draft">Draft</template>
+              <!-- <template v-if="salesOrder?.draft">Draft</template> -->
               Sale
               <template v-if="salesOrder?.number">#{{ salesOrder?.number }}</template>
             </div>
           </div>
           <div v-if="salesOrder?.draft">
-            <q-chip class="text-weight-medium">Draft</q-chip>
+            <q-chip class="text-weight-medium" color="grey" dense>Draft</q-chip>
           </div>
           <q-space/>
           <slot name="menu" v-bind="{ salesOrder }"></slot>
@@ -126,7 +126,7 @@
             </td>
           </tr>
         </table>
-        <div class="text-subtitle1 row items-start q-pr-md">
+        <div v-if="salesOrder?.total || salesOrder?.bchTotal" class="text-subtitle1 row items-start q-pr-md">
           <div class="text-grey q-space">Total</div>
           <div>
             <div v-if="salesOrder?.paymentMode == 'bch' && salesOrder?.bchTotal" class="text-right">

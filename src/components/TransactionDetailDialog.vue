@@ -195,11 +195,8 @@ export default defineComponent({
     const commerceHubSalesOrderId = computed(() => resolveTransactionSalesOrderId(props.transaction))
     function displayCommerceHubSalesOrder() {
       if (salesOrder.value.id != commerceHubSalesOrderId.value) {
-        const _salesOrder = SalesOrder.parse({ id: commerceHubSalesOrderId.value })
-        _salesOrder.refetch()
-          .then(() => {
-            salesOrder.value.raw = _salesOrder.raw
-          })
+        salesOrder.value = SalesOrder.parse({ id: commerceHubSalesOrderId.value })
+        salesOrder.value.refetch()
       }
 
       $q.dialog({

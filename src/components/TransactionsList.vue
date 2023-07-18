@@ -6,7 +6,7 @@
       style="position:relative" v-ripple
       @click="displayTransaction(tx)"
     >
-      <div class="row items-center">
+      <div class="row items-start">
         <div class="q-space">
           <div class="text-weight-medium">
             {{ recordTypeMap[tx.record_type] }}

@@ -15,7 +15,7 @@
           v-if="draftSalesOrders?.length"
           no-caps
           flat
-          :label="formData?.salesOrder?.id ? `Draft sales order #${formData?.salesOrder?.id}` : 'Drafts'"
+          label="Drafts"
           padding="xs sm"
           menu-self="top start"
           menu-anchor="bottom start"
@@ -64,6 +64,15 @@
           :label="formData?.salesOrder?.id ? 'Save draft' : 'Save as draft'"
           padding="xs md"
           @click="() => createSale({ draft: true, silent: true })"
+        />
+        <q-btn
+          v-if="formData?.salesOrder?.id"
+          flat
+          color="red"
+          icon="delete"
+          padding="xs sm"
+          class="q-ml-sm"
+          @click="() => deleteDraftSalesOrderConfirm()"
         />
       </div>
     </div>
@@ -602,6 +611,7 @@ export default defineComponent({
         .then(response => {
           const results = response.data?.results
           if (Array.isArray(results)) draftSalesOrders.value = results.map(SalesOrder.parse)
+          // loadDraftSalesOrder({ salesOrder: draftSalesOrders.value[0] })
           return response
         })
     }
@@ -1021,6 +1031,39 @@ export default defineComponent({
         })
     }
 
+    function deleteDraftSalesOrderConfirm() {
+      const salesOrder = formData.value.salesOrder
+      if (!salesOrder?.id) return
+      $q.dialog({
+        title: 'Delete draft',
+        message: salesOrder?.bchTxid
+          ? 'Draft sales order has payment received. Continue?'
+          : 'Removing draft sales order. Are you sure?',
+        ok: { color: 'red', noCaps: true, label: 'Delete' },
+        cancel: { color: 'grey', noCaps: true, label: 'Cancel', flat: true },
+      })
+        .onOk(() => deleteDraftSalesOrder(salesOrder))
+    }
+
+    function deleteDraftSalesOrder(salesOrder = SalesOrder.parse()) {
+      if (!salesOrder.id) return Promise.resolve()
+
+      loading.value = true
+      return backend.delete(`sales-orders/${salesOrder.id}/`)
+        .catch(error => {
+          if (error?.response?.status == 400) return Promise.resolve()
+          return Promise.reject(error)
+        })
+        .then(() => {
+          if (formData.value.salesOrder?.id == salesOrder?.id) clearFormData()
+          draftSalesOrders.value = draftSalesOrders.value
+            .filter(_salesOrder => _salesOrder?.id != salesOrder?.id)
+        })
+        .finally(() => {
+          loading.value = false
+        })
+    }
+
     const variantInfoDialog = ref({
       show: false,
       item: { variant: Variant.parse(), quantity: 0 },
@@ -1085,6 +1128,7 @@ export default defineComponent({
       displayReceivedTransaction,
 
       createSale,
+      deleteDraftSalesOrderConfirm,
 
       variantInfoDialog,
       viewItemVariant,

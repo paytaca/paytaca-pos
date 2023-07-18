@@ -137,3 +137,12 @@ export const errorParser = {
     return data
   },
 }
+
+/**
+ * @param {Object} transaction tx data from watchtower, only attributes needed in this object is documented 
+ * @param {{ key: String, value: any }[]} transaction.attributes
+ * @returns {String | Number | undefined}
+ */
+export function resolveTransactionSalesOrderId(transaction) {
+  return transaction?.attributes?.find?.(attr => attr?.key == 'commerce_hub_sales_order_id')?.value
+}
