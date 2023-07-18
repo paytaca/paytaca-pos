@@ -90,7 +90,7 @@
         <q-item v-if="commerceHubSalesOrderId" v-ripple clickable @click="() => displayCommerceHubSalesOrder()">
           <q-item-section>
             <q-item-label caption class="text-grey">Sale</q-item-label>
-            <q-item-label>View Info</q-item-label>
+            <q-item-label class="text-underline">View Info</q-item-label>
           </q-item-section>
         </q-item>
         <q-item v-if="transaction?.txid" clickable>

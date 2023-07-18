@@ -17,7 +17,7 @@
               class="q-ml-xs"
               :class="$q.dark.isActive ? '': 'text-grey'"
             />
-            <q-chip v-if="resolveTransactionSalesOrderId(tx)" color="brandblue" dense class="q-my-none">
+            <q-chip v-if="resolveTransactionSalesOrderId(tx)" color="brandblue" dense class="q-my-none text-white">
               Sale
             </q-chip>
           </div>
