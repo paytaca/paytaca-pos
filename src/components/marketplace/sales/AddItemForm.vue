@@ -129,12 +129,22 @@
   </q-form>
 </template>
 <script>
+import { setup } from 'axios-cache-adapter';
 import { backend } from 'src/marketplace/backend'
 import { debounce } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { StreamBarcodeReader } from "vue-barcode-reader";
 import { Variant } from 'src/marketplace/objects';
+
+const cachedBackend = setup(Object.assign({}, backend.defaults,
+  {
+    cache: {
+      maxAge: 15 * 60 * 1000,
+      exclude: { query: false },
+    }
+  },
+))
 
 
 export default defineComponent({
@@ -179,7 +189,7 @@ export default defineComponent({
         shop_id: marketplaceStore.activeShopId,
       }
 
-      backend.get('variants/', { params })
+      cachedBackend.get('variants/', { params })
         .finally(() => {
           scanner.value.error = ''
         })

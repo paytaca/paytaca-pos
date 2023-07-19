@@ -1,11 +1,14 @@
 <template>
   <q-page class="q-pa-md">
-    <div class="row items-center q-mt-lg q-mb-md">
-      <div class="q-space">
-        <div class="text-h4">Edit Product</div>
-        <div class="text-grey">Marketplace</div>
-      </div>
-    </div>
+    <MarketplaceHeader>
+      <template v-slot:title>
+        <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
+        <div class="q-space">
+          <div class="text-h5">Edit Product</div>
+          <div class="text-grey">Marketplace</div>
+        </div>
+      </template>
+    </MarketplaceHeader>
     <div v-if="fetchingProduct" class="row justify-center items-center q-py-lg">
       <q-spinner size="5em"/>
     </div>
@@ -293,6 +296,7 @@ import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 import { computed, defineComponent, onMounted, ref } from 'vue'
 import UploadImageField from 'src/components/marketplace/UploadImageField.vue'
+import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 
 /**
  * For constructing update payload.
@@ -304,6 +308,7 @@ function undefinedOrUpdated(newVal, oldVal) {
 
 export default defineComponent({
   components: {
+    MarketplaceHeader,
     UploadImageField,
   },
   props: {

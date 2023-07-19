@@ -8,33 +8,34 @@
       <q-card-section v-if="stock?.$state?.updating" class="row items-center justify-center">
         <q-spinner size="2.5em"/>
       </q-card-section>
-      <q-card-section v-else class="q-pt-sm">
-        <div class="row items-start q-gutter-x-md q-gutter-y-sm">
+      <q-card-section v-else class="q-pt-none">
+        <div class="row items-start q-r-mx-md">
           <div
             v-if="stock.purchaseOrderNumber"
             :class="{ 'text-weight-medium': stock.purchaseOrderId }"
+            class="col-6 col-sm-4 q-pa-sm"
             @click="() => showStockPurchaseOrder()"
           >
-            <q-item-label class="text-caption top">Purchase Order</q-item-label>
+            <q-item-label class="text-caption top text-grey">Purchase Order</q-item-label>
             <q-item-label>
               {{ stock.purchaseOrderNumber }}
             </q-item-label>
           </div>
 
-          <div>
-            <q-item-label class="text-caption top">Quantity</q-item-label>
+          <div class="col-6 col-sm-4 q-pa-sm">
+            <q-item-label class="text-caption top text-grey">Quantity</q-item-label>
             <q-item-label>{{ stock.quantity || 0 }}</q-item-label>
           </div>
-          <div v-if="stock.costPrice">
-            <q-item-label class="text-caption top">Cost Price</q-item-label>
+          <div v-if="stock.costPrice" class="col-6 col-sm-4 q-pa-sm">
+            <q-item-label class="text-caption top text-grey">Cost Price</q-item-label>
             <q-item-label>{{ stock.costPrice }} {{ marketplaceStore?.currency }}</q-item-label>
           </div>
-          <div v-if="stock.shop?.name">
-            <q-item-label class="text-caption top">Shop</q-item-label>
+          <div v-if="stock.shop?.name && displayShop" class="col-6 col-sm-4 q-pa-sm">
+            <q-item-label class="text-caption top text-grey">Shop</q-item-label>
             <q-item-label>{{ stock.shop?.name }}</q-item-label>
           </div>
-          <div v-if="stock.expiresAt">
-            <q-item-label class="text-caption top">Expires</q-item-label>
+          <div v-if="stock.expiresAt" class="col-6 col-sm-4 q-pa-sm">
+            <q-item-label class="text-caption top text-grey">Expires</q-item-label>
             <q-item-label>{{ formatDateRelative(stock.expiresAt) }}</q-item-label>
             <q-menu class="q-pa-sm">
               {{ formatTimestampToText(stock.expiresAt) }}
@@ -42,7 +43,7 @@
           </div>
         </div>
 
-        <div class="row items-center q-mt-md">
+        <div class="row items-center">
           <div class="text-subtitle1 q-space">
             Stock changes
             <q-spinner v-if="stock?.$state?.fetchingAdjustments" size="1.25em"/>
@@ -145,6 +146,10 @@
       v-model="stockRecountDetailDialog.show"
       :stockRecount="stockRecountDetailDialog.stockRecount"
     />
+    <VariantInfoDialog
+      v-model="showVariantDialog"
+      :variant="stock?.variant"
+    />
   </q-dialog>
 </template>
 <script>
@@ -157,6 +162,7 @@ import { useMarketplaceStore } from 'src/stores/marketplace'
 import SalesOrderDetailDialog from 'src/components/marketplace/sales/SalesOrderDetailDialog.vue'
 import PurchaseOrderDetailDialog from './PurchaseOrderDetailDialog.vue'
 import StockRecountDetailDialog from './StockRecountDetailDialog.vue'
+import VariantInfoDialog from './VariantInfoDialog.vue'
 
 export default defineComponent({
   name: "StockDetailDialog",
@@ -164,9 +170,11 @@ export default defineComponent({
     SalesOrderDetailDialog,
     PurchaseOrderDetailDialog,
     StockRecountDetailDialog,
+    VariantInfoDialog,
   },
   props: {
     stock: Stock,
+    displayShop: Boolean,
   },
   emits: [
     // REQUIRED; need to specify some events that your
@@ -190,6 +198,8 @@ export default defineComponent({
         appending.value = false;
       }
     }
+
+    const showVariantDialog = ref(false)
 
     const salesOrderDetailDialog = ref({ show: false, salesOrder: SalesOrder.parse() })
     function showStockAdjustmentSalesOrder(stockAdjustment = StockAdjustment.parse()) {
@@ -246,6 +256,8 @@ export default defineComponent({
         marketplaceStore,
         appending,
         viewMoreAdjustments,
+
+        showVariantDialog,
 
         salesOrderDetailDialog,
         showStockAdjustmentSalesOrder,

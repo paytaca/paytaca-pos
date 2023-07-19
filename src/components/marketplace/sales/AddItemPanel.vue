@@ -31,6 +31,7 @@
           <div style="position:absolute;bottom:0;left:0;right:0" class="text-center text-caption text-white">
             Scan barcode
           </div>
+          <q-inner-loading :showing="scanner.loading" color="brandblue" dark/>
         </div>
       </div>
     </q-slide-transition>
@@ -160,6 +161,7 @@
   </q-form>
 </template>
 <script>
+import { setup } from 'axios-cache-adapter';
 import { backend } from 'src/marketplace/backend'
 import { Variant } from 'src/marketplace/objects'
 import { useMarketplaceStore } from 'src/stores/marketplace'
@@ -167,6 +169,16 @@ import { debounce, useQuasar } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import { StreamBarcodeReader } from "vue-barcode-reader";
 import VariantSearchDialog from './VariantSearchDialog.vue'
+
+
+const cachedBackend = setup(Object.assign({}, backend.defaults,
+  {
+    cache: {
+      maxAge: 15 * 60 * 1000,
+      exclude: { query: false },
+    }
+  },
+))
 
 export default defineComponent({
   name: 'AddItemPanel',
@@ -230,7 +242,7 @@ export default defineComponent({
         shop_id: marketplaceStore.activeShopId,
       }
 
-      backend.get('variants/', { params })
+      cachedBackend.get('variants/', { params })
         .finally(() => {
           scanner.value.error = ''
         })
@@ -255,7 +267,7 @@ export default defineComponent({
         .finally(() => {
           scanner.value.loading = false
         })
-    }, 1000)
+    }, 1000, true)
     function onScannerError(...args) {
       console.error(...args)
     }
