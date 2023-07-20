@@ -72,7 +72,7 @@ export default defineComponent({
       if (hasCashierRole.value) {
         data.push({ name: 'Sale', icon: 'point_of_sale', route: { name: 'marketplace-sale', query: { silentSync: true } } })
       }
-      if (hasStorefrontRole.value) {
+      if (hasStorefrontRole.value && marketplaceStore.storefront?.id) {
         data.push({ name: 'Orders', icon: 'pending_actions', route: { name: 'marketplace-storefront-orders', query: { silentSync: true } } })
       }
       return data

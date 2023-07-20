@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide">
+  <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide">
     <q-card style="min-width:300px;">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm"> Transaction </div>
@@ -115,7 +115,7 @@
 import { SalesOrder } from 'src/marketplace/objects'
 import { resolveTransactionSalesOrderId } from 'src/marketplace/utils'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
-import { computed, defineComponent, ref } from 'vue'
+import { computed, defineComponent, ref, watch } from 'vue'
 import { useWalletStore } from 'src/stores/wallet'
 import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
 
@@ -124,11 +124,14 @@ const walletStore = useWalletStore()
 export default defineComponent({
   name: 'TransactionDetailDialog',
   emits: [
+    'update:model-value',
+
     // REQUIRED; need to specify some events that your
     // component will emit through useDialogPluginComponent()
     ...useDialogPluginComponent.emits
   ],
   props: {
+    modelValue: Boolean,
     transaction: Object,
   },
   computed: {
@@ -188,6 +191,10 @@ export default defineComponent({
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
     const $q = useQuasar()
 
+    const innerVal = ref(props.modelValue)
+    watch(innerVal, () => ctx.emit('update:model-value', innerVal.value))
+    watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
+
     const actionMap = ref({ incoming: 'RECEIVED', outgoing: 'SENT'})
     const iconMap = ref({ incoming: 'arrow_downward', outgoing: 'arrow_upward'})
 
@@ -207,6 +214,7 @@ export default defineComponent({
 
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
+      innerVal,
       actionMap,
       iconMap,
 

@@ -5,6 +5,7 @@
       <div class="text-h6 q-mb-sm">Search Variant</div>
       <template v-if="mode === 'search'">
         <q-input
+          ref="searchInput"
           dense outlined
           :loading="loading"
           v-model="searchVal"
@@ -109,6 +110,15 @@ export default defineComponent({
     watch(innerVal, () => $emit('update:model-value', innerVal.value))
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
 
+    const searchInput = ref()
+    watch(innerVal, () => {
+      if (!innerVal.value) return
+      setTimeout(() => {
+        console.log(searchInput.value)
+        searchInput.value?.focus?.()
+      }, 100)
+    })
+
     const mode = ref('search') // search | scan
 
     const loading = ref(false)
@@ -186,6 +196,8 @@ export default defineComponent({
       marketplaceStore,
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
+
+      searchInput,
 
       mode,
       
