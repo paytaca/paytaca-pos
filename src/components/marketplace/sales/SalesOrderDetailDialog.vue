@@ -34,6 +34,10 @@
       </q-card-section>
       <q-card-section class="q-pt-none">
         <div class="row items-center q-r-mx-xs">
+          <div v-if="salesOrder?.parsedStatus" class="q-pa-xs q-space">
+            <div>{{ salesOrder?.parsedStatus }}</div>
+            <div class="text-caption bottom text-grey">Status</div>
+          </div>
           <div v-if="salesOrder?.paymentMode" class="q-pa-xs q-space">
             <div>{{ salesOrder?.parsedPaymentMode || salesOrder?.paymentMode }}</div>
             <div class="text-caption bottom text-grey">Payment mode</div>

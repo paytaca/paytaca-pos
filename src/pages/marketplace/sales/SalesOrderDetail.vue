@@ -15,11 +15,38 @@
       </div>
       <q-card v-if="initialized">
         <q-card-section>
-          <div class="text-h5">
-            <template v-if="salesOrder?.draft">Draft</template>
-            Sale
-            <template v-if="salesOrder?.number">#{{ salesOrder?.number }}</template>
-            <q-spinner v-if="loading" class="on-right"/>
+          <div class="row items-center">
+            <div class="text-h5">
+              <template v-if="salesOrder?.draft">Draft</template>
+              Sale
+              <template v-if="salesOrder?.number">#{{ salesOrder?.number }}</template>
+              <q-spinner v-if="loading" class="on-right"/>
+            </div>
+            <q-chip
+              v-if="salesOrder?.parsedStatus"
+              dense
+              :color="salesOrder?.statusColor"
+              class="text-weight-medium text-white q-ml-sm q-my-none q-mr-none"
+            >
+              {{ salesOrder?.parsedStatus }}
+            </q-chip>
+            <q-space/>
+            <q-btn
+              v-if="!salesOrder?.isVoid || true"
+              flat
+              padding="xs"
+              icon="more_vert"
+            >
+              <q-menu>
+                <q-item clickable v-ripple v-close-popup @click="() => confirmVoidSale()">
+                  <q-item-section>
+                    <q-item-label>
+                      Void Sale
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-menu>
+            </q-btn>
           </div>
           <div class="row items-center text-caption text-grey">
             <template v-if="salesOrder?.createdAt">
@@ -102,9 +129,9 @@
             <div v-if="salesOrder?.receivedAmount">
               {{ salesOrder.receivedAmount }} {{ salesOrder?.currency?.symbol }}
             </div>
-            <div v-else-if="salesOrder?.paymentMode != 'bch'" class="text-grey text-underline">Set</div>
+            <div v-else-if="salesOrder?.paymentMode != 'bch' && !salesOrder?.isVoid" class="text-grey text-underline">Set</div>
             <q-popup-edit
-              v-if="salesOrder?.id"
+              v-if="salesOrder?.id && !salesOrder?.isVoid"
               :cover="false"
               anchor="bottom right"
               self="top right"
@@ -128,7 +155,7 @@
             <div class="q-space q-mr-sm">Change</div>
             <div>{{ salesOrder?.changeAmount }} {{ salesOrder?.currency?.symbol }}</div>
           </div>
-          <template v-if="salesOrder?.paymentMode == 'bch'">
+          <template v-if="salesOrder?.paymentMode == 'bch' && !salesOrder?.isVoid">
             <div class="row no-wrap items-start justify-center q-mt-md">
               <!-- <div class="q-space q-mr-sm">Payment</div> -->
               <q-btn
@@ -140,7 +167,7 @@
               />
             </div>
             <q-slide-transition>
-              <div v-if="bchPayment.show" class="q-mt-md">
+              <div v-if="bchPayment.show && !salesOrder?.isVoid" class="q-mt-md">
                 <div class="row justify-center items-center q-mt-sm">
                   <div class="qr-code-container row items-center">
                     <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
@@ -416,6 +443,48 @@ export default defineComponent({
         })
     }
 
+    function confirmVoidSale() {
+      $q.dialog({
+        title: 'Void Sales Order',
+        message: 'Void sales order. Are you sure?',
+        ok: { color: 'red', noCaps: true, label: 'Void sale' },
+        cancel: { flat: true, color: 'grey', noCaps: true, label: 'Cancel' },
+      }).onOk(() => voidSale())
+    }
+
+    function voidSale() {
+      const dialog = $q.dialog({
+        title: 'Voiding Sale',
+        progress: true,
+        persistent: true,
+        ok: false,
+      })
+
+      return backend.post(`sales-orders/${salesOrder?.value?.id}/void/`)
+        .then(response => {
+          if (!response?.data?.id) fetchSalesOrder()
+          else salesOrder.value.raw = response?.data
+
+          dialog.hide()
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          const errorMessage = data?.detail || (Array.isArray(data) ? data?.[0] : null)
+          dialog.update({
+            title: errorMessage ? 'Error' : '',
+            message: errorMessage || 'Failed to void sale',
+          })
+        })
+        .finally(() => {
+          dialog.update({
+              progress: false,
+              persistent: false,
+              ok: false,
+              cancel: { flat: true, noCaps: true, label: 'Close', color: 'grey' },
+            })
+        })
+    }
+
     function copyToClipboard(value, message='') {
       this.$copyText(value)
         .then(() => {
@@ -448,6 +517,9 @@ export default defineComponent({
       bchPaymentUrl,
       bchPayment,
       displayReceivedTransaction,
+
+      confirmVoidSale,
+      voidSale,
 
       copyToClipboard,
 

@@ -1,3 +1,4 @@
+import { capitalize } from "vue"
 import { backend } from "./backend"
 import { formatOrderStatus, formatPurchaseOrderStatus, parseOrderStatusColor, parsePurchaseOrderStatusColor } from './utils'
 
@@ -650,6 +651,7 @@ export class SalesOrder {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {String} data.status
    * @param {Boolean} data.draft
    * @param {Number} [data.number]
    * @param {Number} data.total
@@ -669,6 +671,7 @@ export class SalesOrder {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
+    this.status = data?.status
     this.draft = data?.draft
     this.number = data?.number
     if (data?.transaction_date) this.transactionDate = new Date(data?.transaction_date)
@@ -691,12 +694,35 @@ export class SalesOrder {
     if (Array.isArray(data?.items)) this.items = data?.items.map(SalesOrderItem.parse)
   }
 
+  get isVoid() {
+    return this.status == 'void'
+  }
+
   get parsedPaymentMode() {
     switch(this.paymentMode) {
       case 'bch':
         return 'BCH'
       case 'other':
         return 'Other'
+    }
+  }
+
+  get parsedStatus() {
+    switch(this.status) {
+      case 'completed':
+      case 'void':
+        return capitalize(this.status)
+    }
+  }
+
+  get statusColor() {
+    switch(this.status) {
+      case 'completed':
+        return 'green'
+      case 'void':
+        return 'grey'
+      default:
+        return 
     }
   }
 

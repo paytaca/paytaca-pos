@@ -237,10 +237,10 @@ export default defineComponent({
 
     const salesOrdersTableColumns = [
       { name: 'number', align: 'center', label: 'Number', field: 'number', format: val => `SO#${val}` },
+      { name: 'status', align: 'center', label: 'Status', field: 'parsedStatus' },
       { name: 'total', align: 'center', label: 'Total', field: obj => obj?.total ? `${obj?.total} ${obj?.currency?.symbol}` : '' },
       { name: 'items', align: 'center', label: 'Items', field: obj => obj?.items?.length || obj?.itemsCount, format: val => val === 1 ? `${val} item` : `${val} items` },
       { name: 'payment-mode', align: 'center', label: 'Payment mode', field: obj => obj?.parsedPaymentMode || obj?.paymentMode },
-
     ]
 
     const salesOrderDetailDialog = ref({
