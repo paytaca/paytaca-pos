@@ -384,6 +384,10 @@ export default defineComponent({
         .finally(() => {
           loading.value = false
         })
+        .then(() => {
+          addressesStore.removeAddressSet(data.bch_recipient_address)
+          addressesStore.fillAddressSets()
+        })
     }
 
     function setAmountReceived(value) {

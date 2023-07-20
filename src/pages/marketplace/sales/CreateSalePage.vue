@@ -949,6 +949,10 @@ export default defineComponent({
           formData.value.bchPayment.txid = data?.txid
           formData.value.receivedAmount = data?.marketValue?.amount
           createSale({ draft: true, silent: true })
+            .then(() => {
+              addressesStore.removeAddressSet(formData.value.bchPayment.recipient)
+              addressesStore.fillAddressSets()
+            })
           if (tab.value == 'payment') nextTab()
         })
     }
