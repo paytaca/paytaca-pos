@@ -1708,6 +1708,16 @@ export class Payment {
         return response
       })
   }
+  async refetch() {
+    if (!this.id) return Promise.resolve()
+
+    return backend.get(`connecta/payments/${this.id}/`)
+      .then(response => {
+        if (!response?.data?.id) return Promise.reject({ response })
+        this.raw = response.data
+        return response
+      })
+  }
 }
 
 export class EscrowContract {

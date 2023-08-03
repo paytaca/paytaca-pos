@@ -61,6 +61,16 @@
                         <q-item-label>View escrow</q-item-label>
                       </q-item-section>
                     </q-item>
+                    <q-item
+                      v-if="payment.isEscrow && payment.status === 'pending'"
+                      clickable v-ripple
+                      v-close-popup
+                      @click="() => updateEscrowFundingPrompt(payment)"
+                    >
+                      <q-item-section>
+                        <q-item-label>Update escrow payment</q-item-label>
+                      </q-item-section>
+                    </q-item>
                   </q-list>
                 </q-menu>
               </template>
@@ -156,6 +166,59 @@ export default defineComponent({
         })
     }
 
+    function updateEscrowFundingPrompt(payment=Payment.parse(), ) {
+      $q.dialog({
+        title: 'Escrow payment transaction',
+        message: 'Enter Transaction ID',
+        prompt: {
+          placeholder: '84c3d..2df4',
+          color: 'brandblue',
+        },
+        position: 'bottom',
+        cancel: { flat: true, color: 'grey', noCaps: true },
+        ok: { color: 'brandblue' },
+      }).onOk(txid => updateEscrowFunding(payment, txid))
+    }
+
+    function updateEscrowFunding(payment=Payment.parse(), txid='') {
+      if (!payment?.escrowContractAddress) return
+      const data = { funding_txid: txid }
+      const path = `connecta/escrow/${payment?.escrowContractAddress}/` +
+                    (txid ? 'set_funding_transaction/' : 'resolve_funding_transaction/')
+
+      const dialog = $q.dialog({
+        title: 'Updating payment',
+        progress: true,
+        persistent: true,
+        ok: false,
+        cancel: false,
+      })
+
+      return backend.post(path, data)
+        .then(response => {
+          payment.refetch()
+          if (!payment.escrowContract) payment.escrowContract = EscrowContract.parse(response?.data)
+          else payment.escrowContract.raw = response?.data
+
+          $emit('updated', payment)
+          dialog.hide()
+          return response
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          let errorMessage = errorParser.firstElementOrValue(data?.non_field_errors) ||
+                            errorParser.firstElementOrValue(data?.status) ||
+                            data?.detail
+          if (!errorMessage && Array.isArray(data)) errorMessage = data[0]
+          if (!errorMessage && typeof error === 'string') errorMessage = error
+          if (!errorMessage) errorMessage = 'Unable to update payment transaction'
+          dialog.update({ title: 'Error', message: errorMessage })
+        })
+        .finally(() => {
+          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+        })
+    }
+
     const escrowContractDialog = ref({
       show: false,
       escrowContract: EscrowContract.parse(),
@@ -178,6 +241,7 @@ export default defineComponent({
       innerVal,
 
       updatePaymentStatus,
+      updateEscrowFundingPrompt,
 
       escrowContractDialog,
       displayPaymentEscrowContract,
