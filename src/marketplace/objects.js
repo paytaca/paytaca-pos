@@ -744,7 +744,8 @@ export class SalesOrder {
   get changeAmount() {
     const total = parseFloat(this.total) || this.calculatedTotal
     const receivedAmount = parseFloat(this.receivedAmount)
-    return receivedAmount - total
+    const change = receivedAmount - total
+    return Math.round(change * 10 ** 3) / 10 ** 3
   }
 
   get bchTxidLink() {

@@ -193,7 +193,7 @@ export default defineComponent({
         amount: formData.value.amount || undefined,
         status: formData.value.status || undefined,
         escrow: !formData.value.useEscrow ? undefined : {
-          buyer_address: formData.value?.escrow?.buyerAddress,
+          buyer_address: formData.value?.escrow?.buyerAddress || undefined,
         },
       }
 
