@@ -326,6 +326,7 @@ export class Variant {
    * @param {String} data.image_url
    * @param {String} data.name
    * @param {Number} data.price
+   * @param {Number} data.markup_price
    * @param {Number} data.total_stocks
    * @param {Number} data.expired_stocks
    * @param {{ id:Number, name:String, image_url:String }} [data.product]
@@ -339,6 +340,7 @@ export class Variant {
     this.imageUrl = data?.image_url
     this.name = data?.name
     this.price = data?.price
+    this.markupPrice = data?.markup_price
     this.totalStocks = data?.total_stocks
     this.expiredStocks = data?.expired_stocks
 
@@ -401,6 +403,8 @@ export class Product {
    * @param {Number} data.total_stocks
    * @param {Number} data.expired_stocks
    * @param {Number} data.variants_count
+   * @param {Number} data.min_markup_price
+   * @param {Number} data.max_markup_price
    * @param {String} [data.created_at]
    * @param {Number[]} data.shop_ids
    * @param {Object[]} [data.variants]
@@ -417,6 +421,8 @@ export class Product {
     this.totalStocks = data?.total_stocks
     this.expiredStocks = data?.expired_stocks
     this.variantsCount = data?.variants_count
+    this.minMarkupPrice = data?.min_markup_price
+    this.maxMarkupPrice = data?.max_markup_price
     this.shopIds = data?.shop_ids
     if(data?.created_at) this.createdAt = new Date(data?.created_at)
 
@@ -425,6 +431,12 @@ export class Product {
 
   get hasVariants() {
     return (this.variantsCount || this.variants?.length) > 1
+  }
+
+  get markupPriceRangeText() {
+    let text = `${this.minMarkupPrice}`
+    if (this.minMarkupPrice != this.maxMarkupPrice) text += ` - ${this.maxMarkupPrice}`
+    return text
   }
 
   get displayImageUrl() {

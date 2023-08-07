@@ -210,10 +210,11 @@ export default defineComponent({
           fetchingProducts.value = false
         })
     }
-        
+
     const productsTableColumns = [
       { name: 'product', align: 'left', label: 'Product', field: 'name' },
-      { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks' },
+      // { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks' },
+      { name: 'markup-price', align: 'left', label: 'Markup Price', field: 'markupPriceRangeText', format: val => `${val} ${marketplaceStore?.currency}` },
       { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText },
       // { name: 'actions', align: 'center', label: '' },
     ]
@@ -327,6 +328,7 @@ export default defineComponent({
     }
 
     return {
+      marketplaceStore,
       filterOpts,
 
       categoriesFilter,

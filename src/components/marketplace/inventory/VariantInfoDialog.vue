@@ -31,6 +31,10 @@
               <div class="text-body1">{{ variant?.price }} {{ marketplaceStore?.currency }}</div>
               <div class="text-caption bottom">Price</div>
             </div>
+            <div v-if="variant?.markupPrice">
+              <div class="text-body1">{{ variant?.markupPrice }} {{ marketplaceStore?.currency }}</div>
+              <div class="text-caption bottom">Markup Price</div>
+            </div>
             <div>
               <div class="text-body1">
                 <template v-if="variant?.totalStocks">{{ variant?.totalStocks }}</template>
