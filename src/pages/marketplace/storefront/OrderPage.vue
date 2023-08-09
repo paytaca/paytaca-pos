@@ -209,6 +209,13 @@
         <q-card-section class="q-pb-none q-pt-sm">
           <div class="row items-center">
             <div class="text-h6 q-space">Items</div>
+            <q-btn
+              v-if="order?.id && !['on_delivery', 'delivered', 'completed', 'cancelled'].includes(order.status)"
+              flat
+              icon="edit"
+              padding="xs"
+              @click="() => openUpdateItemsDialog = true"
+            />
           </div>
         </q-card-section>
         <q-markup-table dense>
@@ -298,6 +305,11 @@
     </OrderPaymentsDialog>
     <VariantInfoDialog v-model="variantInfoDIalog.show" :variant="variantInfoDIalog.variant"/>
     <PaymentFormDialog v-model="showPaymentFormDialog" :order="order" @saved="() => onNewPayment()"/>
+    <UpdateOrderItemsFormDialog
+      v-model="openUpdateItemsDialog"
+      :order="order"
+      @updated-items="onUpdatedItems"
+    />
   </q-page>
 </template>
 <script>
@@ -314,6 +326,7 @@ import SearchDeliveryRiderDialog from 'src/components/marketplace/storefront/Sea
 import LeafletMapDialog from 'src/components/marketplace/LeafletMapDialog.vue'
 import OrderPaymentsDialog from 'src/components/marketplace/storefront/OrderPaymentsDialog.vue'
 import PaymentFormDialog from 'src/components/marketplace/storefront/PaymentFormDialog.vue'
+import UpdateOrderItemsFormDialog from 'src/components/marketplace/storefront/UpdateOrderItemsFormDialog.vue'
 
 export default defineComponent({
   name: 'OrderPage',
@@ -323,6 +336,7 @@ export default defineComponent({
     LeafletMapDialog,
     OrderPaymentsDialog,
     PaymentFormDialog,
+    UpdateOrderItemsFormDialog,
   },
   props: {
     orderId: [String, Number]
@@ -394,6 +408,12 @@ export default defineComponent({
           storefront.value = Storefront.parse(response?.data)
           return response
         })
+    }
+
+    const openUpdateItemsDialog = ref(false)
+    function onUpdatedItems(orderData) {
+      order.value.raw = orderData
+      openUpdateItemsDialog.value = false
     }
 
     const orderStatusSequence = [
@@ -700,6 +720,10 @@ export default defineComponent({
       displayBch,
       toggleAmountsDisplay,
       storefront,
+
+      openUpdateItemsDialog,
+      onUpdatedItems,
+
       nextStatus,
       prevStatus,
 

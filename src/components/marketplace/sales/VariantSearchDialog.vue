@@ -101,6 +101,7 @@ export default defineComponent({
     modelValue: Boolean,
     excludeVariantIds: Array,
     hideScanner: Boolean,
+    extraFilterArgs: Object,
   },
   setup(props, { emit: $emit }) {
     const marketplaceStore = useMarketplaceStore()
@@ -114,7 +115,6 @@ export default defineComponent({
     watch(innerVal, () => {
       if (!innerVal.value) return
       setTimeout(() => {
-        console.log(searchInput.value)
         searchInput.value?.focus?.()
       }, 100)
     })
@@ -126,6 +126,7 @@ export default defineComponent({
     const variantOpts = ref([].map(Variant.parse))
     function filterVariantOpts() {
       const params = {
+        ...props.extraFilterArgs,
         s: searchVal.value,
         shop_id: marketplaceStore.activeShopId,
         exclude_ids: props.excludeVariantIds?.join?.(',') || undefined,
@@ -139,7 +140,7 @@ export default defineComponent({
           variantOpts.value = response.data?.results?.map(Variant.parse)
           if (Array.isArray(props.excludeVariantIds) && props.excludeVariantIds.length) {
             variantOpts.value = variantOpts.value.filter(variant => {
-              return props.exludeVariantIds.indexOf(variant?.id) < 0
+              return props.excludeVariantIds.indexOf(variant?.id) < 0
             })
           }
           return response

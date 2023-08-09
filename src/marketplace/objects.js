@@ -1397,6 +1397,7 @@ export class OrderItem {
    * @param {Number} data.item_name
    * @param {Number} data.quantity
    * @param {Number} data.price
+   * @param {Number} data.markup_price
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -1405,6 +1406,7 @@ export class OrderItem {
     this.itemName = data?.item_name
     this.quantity = data?.quantity
     this.price = data?.price
+    this.markupPrice = data?.markup_price
   }
 }
 
