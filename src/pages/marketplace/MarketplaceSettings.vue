@@ -57,6 +57,24 @@
         Settings
       </q-card-section>
       <q-list>
+        <q-item v-if="formattedMarkupSaleRate">
+          <q-item-section class="text-grey" top>
+            <q-item-label>
+              Markup price rate
+            </q-item-label>
+          </q-item-section>
+          <q-item-section top>
+            <q-item-label>
+              {{ formattedMarkupSaleRate }}
+              <q-icon name="info"/>
+              <q-menu class="q-pa-sm">
+                Items are sold with
+                {{ formattedMarkupSaleRate }}
+                change from their original price
+              </q-menu>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item
           :disable="defaultPOReviewerForm.loading"
           clickable
@@ -193,7 +211,7 @@ import { backend } from 'src/marketplace/backend'
 import { User } from 'src/marketplace/objects'
 import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
-import { defineComponent, onMounted, ref } from 'vue'
+import { computed, defineComponent, onMounted, ref } from 'vue'
 
 export default defineComponent({
   name: 'MarketplaceSettings',
@@ -207,6 +225,13 @@ export default defineComponent({
     onMounted(() => {
       marketplaceStore.updateActiveShopId({ silent: true, forceSync: true, forceSyncAge: 5 * 60 * 1000 })
       marketplaceStore.refetchShopSettings()
+    })
+
+    const formattedMarkupSaleRate = computed(() => {
+      const rate = marketplaceStore.shopSettings.markupSaleRate - 1
+      const ratePctg = Math.round(rate * 10 ** 4) / 10 ** 2
+      if (!ratePctg) return ''
+      return (ratePctg > 0 ? '+' : '') + ratePctg + '%'
     })
 
     const defaultPOReviewerForm = ref({
@@ -346,6 +371,8 @@ export default defineComponent({
     }
     return {
       marketplaceStore,
+
+      formattedMarkupSaleRate,
 
       defaultPOReviewerForm,
       filterAssignDefaultReviewerOpts,

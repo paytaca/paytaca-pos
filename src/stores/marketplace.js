@@ -38,6 +38,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
         defaultPurchaseOrderReviewer: {
           id: 0, first_name: '', last_name: '',
         },
+        markupSaleRate: 0,
         startingPurchaseOrderNumber: 0,
         startingSalesOrderNumber: 0,
       },
@@ -107,6 +108,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
      * @param {Object} data 
      * @param {Number} data.id
      * @param {{id:Number, first_name:String, last_name:String}} [data.default_purchase_order_reviewer] 
+     * @param {Number} data.markup_sale_rate
      * @param {Number} data.starting_purchase_order_number
      * @param {Number} data.starting_sales_order_number
      */
@@ -118,6 +120,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
           first_name: data?.default_purchase_order_reviewer?.first_name,
           last_name: data?.default_purchase_order_reviewer?.last_name,
         },
+        markupSaleRate: data?.markup_sale_rate,
         startingPurchaseOrderNumber: data?.starting_purchase_order_number,
         startingSalesOrderNumber: data?.starting_sales_order_number,
       }
