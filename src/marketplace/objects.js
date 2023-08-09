@@ -1434,6 +1434,7 @@ export class Order {
    * @param {Object} data.delivery_address
    * @param {Object[]} data.items
    * @param {Number} data.subtotal
+   * @param {Number} data.markup_subtotal
    * @param {Number} data.total_paid
    * @param {Number} data.total_pending_payment
    * @param {Number} data.total_payments
@@ -1453,6 +1454,7 @@ export class Order {
     this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
     this.items = data?.items?.map?.(OrderItem.parse)
     this.subtotal = data?.subtotal
+    this.markupSubtotal = data?.markup_subtotal
     this.totalPaid = data?.total_paid
     this.totalPendingPayment = data?.total_pending_payment
     this.totalPayments = data?.total_payments
@@ -1476,8 +1478,14 @@ export class Order {
     return parseOrderStatusColor(this.status)
   }
 
+  get markupAmount() {
+    const markupAmount = parseFloat(this.markupSubtotal - this.subtotal)
+    return Math.round(markupAmount * 10 ** 3) / 10 ** 3
+  }
+
   get total() {
-    return Number(this?.payment?.deliveryFee) + Number(this.subtotal)
+    const total = Number(this?.payment?.deliveryFee) + Number(this.markupSubtotal)
+    return Math.round(total * 10 ** 3) / 10 ** 3
   }
 
   get totalPayable() {

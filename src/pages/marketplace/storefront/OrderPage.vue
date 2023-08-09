@@ -248,6 +248,12 @@
           <div v-if="displayBch">{{ orderAmounts.subtotal.bch }} BCH</div>
           <div v-else>{{ orderAmounts.subtotal.currency }} {{ orderCurrency }}</div>
         </div>
+
+        <div class="row items-start text-subtitle2">
+          <div class="q-space">Markup</div>
+          <div v-if="displayBch">{{ orderAmounts.markupAmount.bch }} BCH</div>
+          <div v-else>{{ orderAmounts.markupAmount.currency }} {{ orderCurrency }}</div>
+        </div>
         <div class="row items-start text-subtitle2">
           <div class="q-space">Delivery fee</div>
           <div v-if="displayBch">{{ orderAmounts.deliveryFee.bch }} BCH</div>
@@ -340,22 +346,23 @@ export default defineComponent({
       const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
       const data = {
         subtotal: { currency: order.value?.subtotal || 0, bch: 0 },
+        markupAmount: { currency: order.value?.markupAmount || 0, bch: 0 },
         deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
-        total: { currency: 0, bch: 0 },
+        total: { currency: order.value.total, bch: 0 },
         totalPaid: { currency: parseFloat(order.value?.totalPaid), bch: 0 },
         totalPendingPayment: { currency: parseFloat(order.value?.totalPendingPayment), bch: 0 },
       }
-      data.total.currency = Number(data.subtotal.currency) + Number(data.deliveryFee.currency)
-      data.total.currency = Math.round(data.total.currency * 10 ** 3) / 10 ** 3
 
       if(!isNaN(orderBchPrice.value)) {
         data.subtotal.bch = parseBch(data.subtotal.currency / orderBchPrice.value)
+        data.markupAmount.bch = parseBch(data.markupAmount.currency / orderBchPrice.value)
         data.deliveryFee.bch = parseBch(data.deliveryFee.currency / orderBchPrice.value)
         data.total.bch = parseBch(data.total.currency / orderBchPrice.value)
         data.totalPaid.bch = parseBch(data.totalPaid.currency / orderBchPrice.value)
         data.totalPendingPayment.bch = parseBch(data.totalPendingPayment.currency / orderBchPrice.value)
       } else {
         data.subtotal.bch = null
+        data.markupAmount.bch = null
         data.deliveryFee.bch = null
         data.total.bch = null
         data.totalPaid.bch = null
