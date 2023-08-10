@@ -1,9 +1,9 @@
 <template>
   <q-page padding>
-    <MainHeader title="Payment"/>
+    <MainHeader :title="title"/>
     <div class="text-center text-h4 q-mb-lg">
       <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
-      <div v-else class="text-h6">#{{ addressSet?.index }}</div>
+      <div v-if="!loading && !voucher" class="text-h6">#{{ addressSet?.index }}</div>
     </div>
     <q-banner v-if="paymentFrom !== 'paytaca' && !isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-md rounded-borders">
       <q-icon name="info" class="" size="1.5em">
@@ -34,11 +34,11 @@
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
         <div>{{ receiveAmount }} {{ currency }}</div>
-        <div v-if="currency !== 'BCH'" class="text-caption text-grey">
+        <div v-if="currency !== 'BCH' && !isNaN(bchValue)" class="text-caption text-grey">
           {{ bchValue }} BCH
         </div>
       </div>
-      <div v-else class="text-red">Set amount</div>
+      <div v-else class="text-red">{{ altAmountText }}</div>
       <!-- <q-popup-edit v-model="receiveAmount" v-slot="scope">
         <q-input
           label="Amount"
@@ -53,11 +53,11 @@
     </div>
     <div class="text-center text-h6 text-weight-light q-mt-lg q-mx-md q-px-lg" style="word-break:break-all;">
       <q-skeleton v-if="loading" height="3rem"/>
-      <div v-else style="position:relative;" v-ripple @click="copyText(addressSet?.receiving)">
-        {{ addressSet?.receiving }}
+      <div v-else style="position:relative;" v-ripple @click="copyText(receivingAddress)">
+        {{ receivingAddress }}
       </div>
     </div>
-    <div v-if="canViewTransactionsReceived && !showOtpInput" class="q-px-md q-mt-md">
+    <div v-if="canViewTransactionsReceived && !showOtpInput && !voucher" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
           Transactions Received
@@ -109,7 +109,7 @@
         No transactions received
       </div>
     </div>
-    <div v-if="!canViewTransactionsReceived || showOtpInput" class="q-mt-lg q-px-md">
+    <div v-if="(!canViewTransactionsReceived || showOtpInput) && !voucher" class="q-mt-lg q-px-md">
       <div v-if="canViewTransactionsReceived" class="row justify-end q-mb-sm">
         <q-btn flat no-caps padding="xs-sm" @click="showOtpInput = false">
             <q-icon name="arrow_back" size="1.25em" class="q-mr-sm"/>
@@ -166,6 +166,7 @@ export default defineComponent({
     setAmount: Number,
     setCurrency: String,
     lockAmount: Boolean, // should only work if setAmount is given
+    voucher: Boolean,
   },
   methods: {
     copyText(value, message='Copied address') {
@@ -190,7 +191,19 @@ export default defineComponent({
     const txCacheStore = useTxCacheStore();
     const marketStore = useMarketStore()
 
+    const title = computed(() => props.voucher ? 'Claim Voucher' : 'Payment')
     const requireOtp = computed(() => props.paymentFrom === 'paytaca')
+    const altAmountText = computed(() => {
+      return props.voucher ? '' : 'Set Amount'
+    })
+    const vaultTokenAddress = ref(walletStore.merchantInfo?.vault?.tokenAddress)
+    const receivingAddress = computed(() => {
+      return (
+        props.voucher ?
+        vaultTokenAddress.value :
+        addressSet.value?.receiving
+      )
+    })
 
     const addressesStore = useAddressesStore()
     const generatingAddress = ref(false)
@@ -223,7 +236,7 @@ export default defineComponent({
     const currencyBchRate = computed(() => {
       if (!currency.value) return
       if (currency.value === 'BCH') return { currency: 'BCH', rate: 1, timestamp: Date.now() }
-      return marketStore.bchRates.find(rate => rate.currency === currency.value)
+      return marketStore.getRate(currency.value)
     })
     const currencyBchRateUpdateInterval = ref(null)
     // 0.02ms - 0.026ms
@@ -242,7 +255,7 @@ export default defineComponent({
 
     const bchValue = computed(() => {
       if (!currency.value || currency.value === 'BCH') return receiveAmount.value
-      const rateValue = currencyBchRate.value?.rate || 1
+      const rateValue = currencyBchRate.value?.rate
       return Number((receiveAmount.value / rateValue).toFixed(8))
     })
     // 0.015ms - 0.031ms
@@ -270,7 +283,7 @@ export default defineComponent({
     }
 
     const qrData = computed(() => {
-      if (!receiveAmount.value) return ''
+      if (!receiveAmount.value && !props.voucher) return ''
       if (props.paymentFrom === 'paytaca') return qrDataforPaytaca.value
       return qrDataForOtherWallets.value
     })
@@ -278,14 +291,22 @@ export default defineComponent({
     const qrDataForOtherWallets = computed(() => {
       // QR data is a BIP0021 compliant
       // BIP0021 is a URI scheme for bitcoin payments
+
+      if (props.voucher) {
+        let paymentUri = vaultTokenAddress.value
+        paymentUri += `?POS=${paymentUriLabel.value}`
+        paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
+        return paymentUri
+      }
+
       if (!addressSet.value?.receiving) return ''
       if (!paymentUriLabel.value) return ''
 
       let paymentUri = addressSet.value?.receiving
-
       paymentUri += `?POS=${paymentUriLabel.value}`
 
-      if (bchValue.value) paymentUri += `&amount=${bchValue.value}`
+      if (!bchValue.value) return ''
+      paymentUri += `&amount=${bchValue.value}`
 
       paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
       return paymentUri
@@ -370,7 +391,7 @@ export default defineComponent({
     function setupListener(opts) {
       receiveWebsocket.value?.close?.()
       receiveWebsocket.value = null // for reactivity
-      const address = addressSet.value?.receiving
+      const address = props.voucher ? vaultTokenAddress.value : addressSet.value?.receiving
       if (!address) return
       // const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
       const url = `wss://watchtower.cash/ws/watch/bch/${address}/`
@@ -543,6 +564,9 @@ export default defineComponent({
       transactionsReceived,
       canViewTransactionsReceived,
       displayReceivedTransaction,
+      title,
+      altAmountText,
+      receivingAddress,
     }
   },
 })

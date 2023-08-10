@@ -46,6 +46,13 @@ export const useWalletStore = defineStore('wallet', {
         longitude: null,
         latitude: null,
       },
+      vault: {
+        address: '',
+        tokenAddress: '',
+        merchantReceivingAddress: '',
+        receivingPubkey: '',
+        receivingPubkeyHash: ''
+      }
     },
 
     branchInfo: {
@@ -209,6 +216,12 @@ export const useWalletStore = defineStore('wallet', {
      * @param {String} data.location.country
      * @param {String} data.location.longitude
      * @param {String} data.location.latitude
+     * @param {Object} [data.vault]
+     * @param {String} data.vault.address
+     * @param {String} data.vault.token_address
+     * @param {String} data.vault.merchant_receiving_address
+     * @param {String} data.vault.receiving_pubkey
+     * @param {String} data.vault.receiving_pubkey_hash
      */
     setMerchantInfo(data) {
       const merchantInfo = {
@@ -225,6 +238,13 @@ export const useWalletStore = defineStore('wallet', {
           longitude: data?.location?.longitude,
           latitude: data?.location?.latitude,
         },
+        vault: {
+          address: data?.vault?.address,
+          tokenAddress: data?.vault?.token_address,
+          merchantReceivingAddress: data?.vault?.merchant_receiving_address,
+          receivingPubkey: data?.vault?.receiving_pubkey,
+          receivingPubkeyHash: data?.vault?.receiving_pubkey_hash
+        }
       }
 
       this.merchantInfo = merchantInfo
