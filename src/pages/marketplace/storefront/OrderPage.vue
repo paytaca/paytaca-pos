@@ -29,7 +29,7 @@
           </div>
         </div>
         <div>
-          <q-btn flat icon="more_vert" padding="xs">
+          <q-btn flat icon="more_vert" padding="xs" class="q-r-mr-md">
             <q-menu>
               <q-item
                 v-if="payments?.length"
