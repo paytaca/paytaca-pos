@@ -97,14 +97,27 @@
       </div>
       <q-card class="q-mb-md">
         <q-card-section class="q-pt-sm">
-          <q-btn
-            flat
-            padding="none"
-            no-caps
-            label="Open Map"
-            class="float-right q-mt-sm text-underline"
-            @click="() => showMap = true"
-          />
+          <div class="column items-end float-right q-r-mt-sm">
+            <div>
+              <q-btn
+                flat
+                padding="none"
+                no-caps
+                label="Open Map"
+                class="q-mt-sm text-underline"
+                @click="() => showMap = true"
+              />
+            </div>
+            <div class="q-mt-xs">
+              <q-btn
+                v-if="order?.id && !['on_delivery', 'delivered', 'completed', 'cancelled'].includes(order.status)"
+                flat
+                icon="edit"
+                padding="xs"
+                @click="() => openUpdateDeliveryAddressDialog = true"
+              />
+            </div>
+          </div>
           <LeafletMapDialog v-model="showMap" :locations="mapLocations"/>
           <div class="row items-center">
             <div class="text-h6 q-space">Delivery</div>
@@ -305,10 +318,15 @@
     </OrderPaymentsDialog>
     <VariantInfoDialog v-model="variantInfoDIalog.show" :variant="variantInfoDIalog.variant"/>
     <PaymentFormDialog v-model="showPaymentFormDialog" :order="order" @saved="() => onNewPayment()"/>
+    <UpdateOrderDeliveryAddressFormDialog
+      v-model="openUpdateDeliveryAddressDialog"
+      :order="order"
+      @updated="onUpdateOrderData"
+    />
     <UpdateOrderItemsFormDialog
       v-model="openUpdateItemsDialog"
       :order="order"
-      @updated-items="onUpdatedItems"
+      @updated-items="onUpdateOrderData"
     />
   </q-page>
 </template>
@@ -327,6 +345,7 @@ import LeafletMapDialog from 'src/components/marketplace/LeafletMapDialog.vue'
 import OrderPaymentsDialog from 'src/components/marketplace/storefront/OrderPaymentsDialog.vue'
 import PaymentFormDialog from 'src/components/marketplace/storefront/PaymentFormDialog.vue'
 import UpdateOrderItemsFormDialog from 'src/components/marketplace/storefront/UpdateOrderItemsFormDialog.vue'
+import UpdateOrderDeliveryAddressFormDialog from 'src/components/marketplace/storefront/UpdateOrderDeliveryAddressFormDialog.vue'
 
 export default defineComponent({
   name: 'OrderPage',
@@ -337,6 +356,7 @@ export default defineComponent({
     OrderPaymentsDialog,
     PaymentFormDialog,
     UpdateOrderItemsFormDialog,
+    UpdateOrderDeliveryAddressFormDialog,
   },
   props: {
     orderId: [String, Number]
@@ -410,10 +430,12 @@ export default defineComponent({
         })
     }
 
+    const openUpdateDeliveryAddressDialog = ref(false)
     const openUpdateItemsDialog = ref(false)
-    function onUpdatedItems(orderData) {
+    function onUpdateOrderData(orderData) {
       order.value.raw = orderData
       openUpdateItemsDialog.value = false
+      openUpdateDeliveryAddressDialog.value = false
     }
 
     const orderStatusSequence = [
@@ -721,8 +743,9 @@ export default defineComponent({
       toggleAmountsDisplay,
       storefront,
 
+      openUpdateDeliveryAddressDialog,
       openUpdateItemsDialog,
-      onUpdatedItems,
+      onUpdateOrderData,
 
       nextStatus,
       prevStatus,
