@@ -6,7 +6,7 @@
           <div class="text-h5 q-space">Update Items</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
-        <q-form @submit="() => submit()">
+        <q-form ref="form" @submit="() => submit()">
           <q-btn
             flat padding="none md"
             no-caps label="Reset"
@@ -173,11 +173,16 @@ export default defineComponent({
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
     onMounted(() => resetFormData())
-    watch(innerVal, () => innerVal.value ? resetFormData() : null)
+    watch(innerVal, () => {
+      if (!innerVal.value) return
+      resetFormErrors()
+      resetFormData()
+    })
 
     const orderCurrency = computed(() => props?.order?.currency?.symbol)
 
     const loading = ref(false)
+    const form = ref()
     const formData = ref({
       items: [].map(() => {
         return {
@@ -198,6 +203,8 @@ export default defineComponent({
           markupPrice: item.markupPrice,
         }
       }) || []
+
+      setTimeout(() => form.value?.resetValidation(), 10)
     }
 
     const displayBch = ref(false)
@@ -329,6 +336,7 @@ export default defineComponent({
 
       orderCurrency,
       loading,
+      form,
       formData,
       resetFormData,
 
