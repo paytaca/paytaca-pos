@@ -1440,6 +1440,7 @@ export class Order {
    * @param {Number} data.total_paid
    * @param {Number} data.total_pending_payment
    * @param {Number} data.total_payments
+   * @param {Number} data.total_refunded
    * @param {{ delivery_fee:Number }} data.payment
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
@@ -1460,6 +1461,7 @@ export class Order {
     this.totalPaid = data?.total_paid
     this.totalPendingPayment = data?.total_pending_payment
     this.totalPayments = data?.total_payments
+    this.totalRefunded = data?.total_refunded
     this.payment = {
       deliveryFee: data?.payment?.delivery_fee,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
@@ -1492,12 +1494,17 @@ export class Order {
 
   get totalPayable() {
     const totalPayments = parseFloat(this.totalPayments) || 0
-    return this.total - totalPayments
+    const totalRefunded = parseFloat(this.totalRefunded) || 0
+    return this.total - totalPayments + totalRefunded
   }
 
   get totalUnpaid() {
     const totalPaid = parseFloat(this.totalPaid || 0)
     return Math.max(this.total - totalPaid, 0)
+  }
+
+  get netPaid() {
+    return this.totalPaid - this.totalRefunded
   }
 
   get paymentStatus() {
@@ -1694,6 +1701,9 @@ export class Payment {
    * @param {Number} data.delivery_fee
    * @param {Number} data.markup_amount
    * @param {Number} data.total_amount
+   * @param {Number} data.total_refunded_amount
+   * @param {Number} data.total_refunded_delivery_fee
+   * @param {Number} data.total_refunded_markup_amount
    * @param {String} data.transaction_timestamp
    * @param {String} data.created_at
    * @param {String} data.escrow_contract_address
@@ -1709,6 +1719,10 @@ export class Payment {
     this.deliveryFee = data?.delivery_fee
     this.markupAmount = data?.markup_amount
     this.totalAmount = data?.total_amount
+    this.totalRefundedAmount = data?.total_refunded_amount
+    this.totalRefundedDeliveryFee = data?.total_refunded_delivery_fee
+    this.totalRefundedMarkupAmount = data?.total_refunded_markup_amount
+
     if (data?.transaction_timestamp) this.transactionTimestamp = new Date(data?.transaction_timestamp)
     else if (this.transactionTimestamp) delete this.transactionTimestamp
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
@@ -1734,6 +1748,26 @@ export class Payment {
     return ['pending', 'sent'].indexOf(this?.status) >= 0
   }
 
+  get refundableAmount() {
+    return this.amount - (parseFloat(this.totalRefundedAmount) || 0)
+  }
+
+  get refundableDeliveryFee() {
+    return this.deliveryFee - (parseFloat(this.totalRefundedDeliveryFee) || 0)
+  }
+
+  get refundableMarkupAmount() {
+    return this.markupAmount - (parseFloat(this.totalRefundedMarkupAmount) || 0)
+  }
+
+  get totalRefunded() {
+    return this.refundableAmount + this.refundableDeliveryFee + this.refundableMarkupAmount
+  }
+
+  get hasRefundableAmount() {
+    return this.totalRefunded > 0
+  }
+
   async fetchEscrowContract() {
     if (!this.escrowContractAddress) return Promise.reject()
 
@@ -1743,6 +1777,15 @@ export class Payment {
         return response
       })
   }
+
+  async fetchRefunds() {
+    const params = { order_id: this?.id }
+    return backend.get(`connecta/refunds/`, { params })
+      .then(response => {
+        this.refunds = response?.data?.results?.map(Refund.parse)
+      })
+  }
+
   async refetch() {
     if (!this.id) return Promise.resolve()
 
@@ -1752,6 +1795,43 @@ export class Payment {
         this.raw = response.data
         return response
       })
+  }
+}
+
+export class Refund {
+  static parse(data) {
+    return new Refund(data) 
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Number} data.payment_id
+   * @param {Number} data.amount
+   * @param {Number} data.delivery_fee
+   * @param {Number} data.markup_amount
+   * @param {String} [data.transaction_date]
+   * @param {String} data.created_at
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.paymentId = data?.payment_id
+    this.deliveryFee = data?.delivery_fee
+    this.markupAmount = data?.markup_amount
+    if (data?.transaction_date) this.transactionDate = new Date(data?.transaction_date)
+    else delete this.transactionDate
+
+    if (data?.created_at) this.createdAt = new Date(data?.created_at)
+    else delete this.createdAt
   }
 }
 

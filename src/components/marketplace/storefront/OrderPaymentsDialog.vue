@@ -42,13 +42,13 @@
                       </q-item-section>
                     </q-item>
                     <q-item
-                      v-if="!payment?.isEscrow && payment?.canRefund"
+                      v-if="payment?.canRefund && payment?.hasRefundableAmount"
                       clickable v-ripple
                       v-close-popup
-                      @click="() => updatePaymentStatus({ payment, status: 'refunded' })"
+                      @click="() => openRefundFormDialog(payment)"
                     >
                       <q-item-section>
-                        <q-item-label>Mark refunded</q-item-label>
+                        <q-item-label>Refund</q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -89,6 +89,11 @@
         :currency="escrowContractDialog.currency"
       />
 
+      <RefundFormDialog
+        v-model="refundFormDialog.show"
+        :payment="refundFormDialog.payment"
+        @created="() => refundFormDialog.show = false"
+      />
     </q-card>
   </q-dialog>
 </template>
@@ -99,11 +104,13 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { capitalize, computed, defineComponent, ref, watch } from 'vue'
 import { backend } from 'src/marketplace/backend'
 import EscrowContractDialog from './EscrowContractDialog.vue'
+import RefundFormDialog from './RefundFormDialog.vue'
 
 export default defineComponent({
   name: 'OrderPaymentsDialog',
   components: {
     EscrowContractDialog,
+    RefundFormDialog,
   },
   props: {
     modelValue: Boolean,
@@ -236,6 +243,12 @@ export default defineComponent({
       escrowContractDialog.value.show = true
     }
 
+    const refundFormDialog = ref({ show: false, payment: Payment.parse() })
+    function openRefundFormDialog(payment=Payment.parse()) {
+      refundFormDialog.value.payment = payment
+      refundFormDialog.value.show = true
+    }
+
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
@@ -245,6 +258,9 @@ export default defineComponent({
 
       escrowContractDialog,
       displayPaymentEscrowContract,
+
+      refundFormDialog,
+      openRefundFormDialog,
 
       // utils funcs
       formatDateRelative, capitalize,
