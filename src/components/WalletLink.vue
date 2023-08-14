@@ -50,6 +50,7 @@ import QRCodeReader from 'src/components/QRCodeReader.vue';
 import { Device } from '@capacitor/device'
 import { defineComponent, onMounted, ref } from 'vue'
 import { useQuasar } from 'quasar' 
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
 export default defineComponent({
   components: {
@@ -144,11 +145,12 @@ export default defineComponent({
           dialog.update({ title: 'Link device error', message: 'Unable to decode QR data' })
           return { skip: true }
         })
+        // encryptedData = xpubkey + @ + ppvsPrivKey
         .then(async (qrCodeData) => {
           if (qrCodeData?.skip) return { skip: true }
           dialog.update({ message: 'Retrieving link code data' })
           const response = await watchtower.BCH._api.get(`paytacapos/devices/link_code_data/`, { params: { code: qrCodeData.code } })
-          return { qrCodeData, encryptedXpubkey: response?.data }
+          return { qrCodeData, encryptedData: response?.data }
         })
         .catch(error => {
           console.error(error)
@@ -157,13 +159,23 @@ export default defineComponent({
           dialog.update({ title: 'Link device error', message: message })
           return { skip: true }
         })
-        .then(({ skip, qrCodeData, encryptedXpubkey }) => {
+        .then(({ skip, qrCodeData, encryptedData }) => {
           if (skip) return { skip }
           dialog.update({ message: 'Decrypting xpubkey' })
-          const xpubkey = aes.decrypt(
-            encryptedXpubkey, qrCodeData.decryptKey.password, qrCodeData.decryptKey.iv)
 
-          return { qrCodeData, encryptedXpubkey, xpubkey }
+          let decryptedData = aes.decrypt(
+            encryptedData, qrCodeData.decryptKey.password, qrCodeData.decryptKey.iv)
+          
+          decryptedData = decryptedData.split('@')
+          const xpubkey = decryptedData[0]
+          const ppvsPrivKey = decryptedData[1]
+          
+          SecureStoragePlugin.set({
+            key: 'purelypeerVaultSignerPrivKey',
+            value: ppvsPrivKey
+          })
+
+          return { qrCodeData, encryptedData, xpubkey, ppvsPrivKey }
         })
         .catch(error => {
           console.error(error)

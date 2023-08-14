@@ -196,11 +196,11 @@ export default defineComponent({
     const altAmountText = computed(() => {
       return props.voucher ? '' : 'Set Amount'
     })
-    const vaultTokenAddress = ref(walletStore.merchantInfo?.vault?.tokenAddress)
+    const vault = ref(walletStore.merchantInfo?.vault)
     const receivingAddress = computed(() => {
       return (
         props.voucher ?
-        vaultTokenAddress.value :
+        vault.value?.tokenAddress :
         addressSet.value?.receiving
       )
     })
@@ -293,7 +293,7 @@ export default defineComponent({
       // BIP0021 is a URI scheme for bitcoin payments
 
       if (props.voucher) {
-        let paymentUri = vaultTokenAddress.value
+        let paymentUri = vault.value?.tokenAddress
         paymentUri += `?POS=${paymentUriLabel.value}`
         paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
         return paymentUri
@@ -391,7 +391,7 @@ export default defineComponent({
     function setupListener(opts) {
       receiveWebsocket.value?.close?.()
       receiveWebsocket.value = null // for reactivity
-      const address = props.voucher ? vaultTokenAddress.value : addressSet.value?.receiving
+      const address = props.voucher ? vault.value?.tokenAddress : addressSet.value?.receiving
       if (!address) return
       // const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
       const url = `wss://watchtower.cash/ws/watch/bch/${address}/`
@@ -426,7 +426,7 @@ export default defineComponent({
     }
     function onWebsocketReceive(data) {
       console.log(data)
-      if (!data?.amount) return
+      if (!data?.value) return
       const parsedData = parseWebsocketDataReceived(data)
       transactionsReceived.value.push(parsedData)
       displayReceivedTransaction(parsedData)
@@ -450,12 +450,12 @@ export default defineComponent({
       const marketValue = { amount: 0, currency: '' }
       if (data?.tokenSymbol === 'BCH' && currencyBchRate.value.rate) {
         marketValue.amount = Number(
-          (Number(data?.amount) * currencyBchRate.value.rate).toFixed(3)
+          (Number(data?.value) * currencyBchRate.value.rate).toFixed(3)
         )
         marketValue.currency = currencyBchRate.value.currency
       }
       const response = {
-        amount: data?.amount,
+        amount: data?.value,
         marketValue: marketValue,
         txid: data?.txid,
         index: data?.index,
@@ -480,7 +480,7 @@ export default defineComponent({
       if (!marketValue?.amount || !marketValue?.currency) {
         if (data?.tokenSymbol === 'BCH' && currencyBchRate.value.rate) {
           marketValue.amount = Number(
-            (Number(data?.amount) * currencyBchRate.value.rate).toFixed(3)
+            (Number(data?.value) * currencyBchRate.value.rate).toFixed(3)
           )
           marketValue.currency = currencyBchRate.value.currency
         }
@@ -490,7 +490,7 @@ export default defineComponent({
         componentProps: {
           txid: data?.txid,
           address: data?.address,
-          amount: data?.amount,
+          amount: data?.value,
           tokenCurrency: data?.tokenSymbol,
           marketValue: marketValue.amount,
           marketValueCurrency: marketValue.currency,

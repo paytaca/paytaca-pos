@@ -87,6 +87,12 @@ module.exports = configure(function (ctx) {
           // reserved: ['Array','BigInteger','Boolean','Buffer','ECPair','Function','Number','Point'],
         },
       },
+
+      extendWebpack (cfg) {
+        cfg.experiments = {
+          topLevelAwait: true
+        }
+      },
       
       chainWebpack (chain) {
         chain.plugin('eslint-webpack-plugin')

@@ -11,12 +11,15 @@
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
+    "@bitauth/libauth": "^2.0.0-alpha.8",
     "@capacitor/app": "^1.1.1",
     "@capacitor/cli": "^3.9.0",
     "@capacitor/core": "^3.9.0",
     "@capacitor/device": "^1.1.2",
     "@psf/bch-js": "^6.2.11",
     "@quasar/extras": "^1.0.0",
+    "capacitor-secure-storage-plugin": "^0.5.1",
+    "cashscript": "^0.8.0-next.3",
     "core-js": "^3.6.5",
     "ping.js": "^0.3.0",
     "pinia": "^2.0.22",
