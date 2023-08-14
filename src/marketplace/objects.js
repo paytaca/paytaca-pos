@@ -1779,10 +1779,12 @@ export class Payment {
   }
 
   async fetchRefunds() {
-    const params = { order_id: this?.id }
+    const params = { payment_id: this?.id || null }
     return backend.get(`connecta/refunds/`, { params })
       .then(response => {
-        this.refunds = response?.data?.results?.map(Refund.parse)
+        let results = response?.data?.results
+        if (!Array.isArray(results)) results = []
+        this.refunds = results.map(Refund.parse)
       })
   }
 
@@ -1825,6 +1827,7 @@ export class Refund {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
     this.paymentId = data?.payment_id
+    this.amount = data?.amount
     this.deliveryFee = data?.delivery_fee
     this.markupAmount = data?.markup_amount
     if (data?.transaction_date) this.transactionDate = new Date(data?.transaction_date)
@@ -1832,6 +1835,14 @@ export class Refund {
 
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else delete this.createdAt
+  }
+
+  get totalAmount() {
+    const amount = parseFloat(this.amount) || 0
+    const deliveryFee = parseFloat(this.deliveryFee) || 0
+    const markupAmount = parseFloat(this.markupAmount) || 0
+    const totalAmount = amount + deliveryFee + markupAmount
+    return Math.round(totalAmount * 10 ** 3) / 10 ** 3
   }
 }
 

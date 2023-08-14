@@ -29,7 +29,7 @@
             <q-item-section side top style="padding-left:4px;">
               <template v-if="payment?.isEscrow || payment?.canReceive || payment?.canRefund">
                 <q-icon name="more_vert"/>
-                <q-menu class="text-left">
+                <q-menu class="text-left q-py-xs">
                   <q-list separator>
                     <q-item
                       v-if="!payment?.isEscrow && payment?.canReceive"
@@ -48,7 +48,17 @@
                       @click="() => openRefundFormDialog(payment)"
                     >
                       <q-item-section>
-                        <q-item-label>Refund</q-item-label>
+                        <q-item-label>Add Refund</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item
+                      v-if="payment?.totalRefunded"
+                      clickable v-ripple
+                      v-close-popup
+                      @click="() => displayPaymentRefunds(payment)"
+                    >
+                      <q-item-section>
+                        <q-item-label>Refunds</q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -58,7 +68,7 @@
                       @click="() => displayPaymentEscrowContract(payment)"
                     >
                       <q-item-section>
-                        <q-item-label>View escrow</q-item-label>
+                        <q-item-label style="white-space: nowrap;">View escrow</q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -92,7 +102,15 @@
       <RefundFormDialog
         v-model="refundFormDialog.show"
         :payment="refundFormDialog.payment"
-        @created="() => refundFormDialog.show = false"
+        @created="() => {
+          refundFormDialog.show = false
+          $emit('updated')
+        }"
+      />
+      <PaymentRefundsDialog
+        v-model="paymentRefundsDialog.show"
+        :payment="paymentRefundsDialog.payment"
+        @updated="() => $emit('updated')"
       />
     </q-card>
   </q-dialog>
@@ -105,12 +123,14 @@ import { capitalize, computed, defineComponent, ref, watch } from 'vue'
 import { backend } from 'src/marketplace/backend'
 import EscrowContractDialog from './EscrowContractDialog.vue'
 import RefundFormDialog from './RefundFormDialog.vue'
+import PaymentRefundsDialog from './PaymentRefundsDialog.vue'
 
 export default defineComponent({
   name: 'OrderPaymentsDialog',
   components: {
     EscrowContractDialog,
     RefundFormDialog,
+    PaymentRefundsDialog,
   },
   props: {
     modelValue: Boolean,
@@ -249,6 +269,12 @@ export default defineComponent({
       refundFormDialog.value.show = true
     }
 
+    const paymentRefundsDialog = ref({ show: false, payment: Payment.parse() })
+    function displayPaymentRefunds(payment=Payment.parse()) {
+      paymentRefundsDialog.value.payment = payment
+      paymentRefundsDialog.value.show = true
+    }
+
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
@@ -261,6 +287,9 @@ export default defineComponent({
 
       refundFormDialog,
       openRefundFormDialog,
+
+      paymentRefundsDialog,
+      displayPaymentRefunds,
 
       // utils funcs
       formatDateRelative, capitalize,
