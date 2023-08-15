@@ -1474,6 +1474,16 @@ export class Order {
     else if (this.updatedAt) delete this.updatedAt
   }
 
+  get isCancelled() {
+    return this.status == 'cancelled'
+  }
+
+  get editable() {
+    return this.id &&
+          !['on_delivery', 'delivered', 'completed', 'cancelled'].includes(this.status)
+          && !this.isCancelled
+  }
+
   get formattedStatus() {
     return formatOrderStatus(this.status)
   }

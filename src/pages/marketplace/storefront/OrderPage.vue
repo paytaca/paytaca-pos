@@ -16,6 +16,7 @@
           <div class="text-h5 q-space">Order #{{ order?.id }}</div>
           <div v-if="order?.id" style="margin-left:-4px;">
             <q-chip
+              v-if="!order?.isCancelled"
               :color="parsePaymentStatusColor(order?.paymentStatus)"
               class="text-weight-medium text-white"
               clickable
@@ -69,6 +70,7 @@
                 </q-item-section>
               </q-item>
               <q-item
+                v-if="!order?.isCancelled"
                 v-close-popup clickable
                 @click="() => confirmCancelOrder()"
               >
@@ -110,7 +112,7 @@
             </div>
             <div class="q-mt-xs">
               <q-btn
-                v-if="order?.id && !['on_delivery', 'delivered', 'completed', 'cancelled'].includes(order.status)"
+                v-if="order?.editable"
                 flat
                 icon="edit"
                 padding="xs"
@@ -132,7 +134,7 @@
         <template v-if="delivery?.id">
           <q-separator/>
           <q-card-section class="q-pt-sm">
-            <q-btn v-if="!delivery?.activeRiderId && !delivery?.completedAt" flat icon="more_vert" padding="xs" class="float-right">
+            <q-btn v-if="!delivery?.activeRiderId && !delivery?.completedAt && !order?.isCancelled" flat icon="more_vert" padding="xs" class="float-right">
               <q-menu>
                 <q-list separator>
                   <q-item
@@ -206,7 +208,7 @@
           </q-card-section>
         </template>
         <template v-else>
-          <q-card-section v-if="order?.id" class="q-pt-sm">
+          <q-card-section v-if="order?.id && !order?.isCancelled" class="q-pt-sm">
             <q-btn
               no-caps
               label="Create delivery request"
@@ -223,7 +225,7 @@
           <div class="row items-center">
             <div class="text-h6 q-space">Items</div>
             <q-btn
-              v-if="order?.id && !['on_delivery', 'delivered', 'completed', 'cancelled'].includes(order.status)"
+              v-if="order?.editable"
               flat
               icon="edit"
               padding="xs"
