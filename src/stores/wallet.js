@@ -47,11 +47,18 @@ export const useWalletStore = defineStore('wallet', {
         latitude: null,
       },
       vault: {
+        receiving: {
+          address: '',
+          pubkey: '',
+          pubkeyHash: '',
+        },
+        signer: {
+          address: '',
+          pubkey: '',
+          pubkeyHash: '',
+        },
         address: '',
         tokenAddress: '',
-        merchantReceivingAddress: '',
-        receivingPubkey: '',
-        receivingPubkeyHash: ''
       }
     },
 
@@ -199,7 +206,7 @@ export const useWalletStore = defineStore('wallet', {
       })
     }
   },
-
+  
   actions: {
     /**
      * @param {Object} state 
@@ -208,6 +215,15 @@ export const useWalletStore = defineStore('wallet', {
      * @param {String} data.name
      * @param {String} data.wallet_hash
      * @param {String} data.primary_contact_number
+     * 
+     * @param {String} data.signer_address
+     * @param {String} data.signer_pubkey
+     * @param {String} data.signer_pubkey_hash
+     * 
+     * @param {String} data.receiving_address
+     * @param {String} data.receiving_pubkey
+     * @param {String} data.receiving_pubkey_hash
+     * 
      * @param {Object} [data.location]
      * @param {String} data.location.landmark
      * @param {String} data.location.location
@@ -219,10 +235,7 @@ export const useWalletStore = defineStore('wallet', {
      * @param {Object} [data.vault]
      * @param {String} data.vault.address
      * @param {String} data.vault.token_address
-     * @param {String} data.vault.merchant_receiving_address
-     * @param {String} data.vault.receiving_pubkey
-     * @param {String} data.vault.receiving_pubkey_hash
-     */
+    */
     setMerchantInfo(data) {
       const merchantInfo = {
         id: data?.id,
@@ -239,11 +252,18 @@ export const useWalletStore = defineStore('wallet', {
           latitude: data?.location?.latitude,
         },
         vault: {
+          receiving: {
+            address: data?.receiving_address,
+            pubkey: data?.receiving_pubkey,
+            pubkeyHash: data?.receiving_pubkey_hash,
+          },
+          signer: {
+            address: data?.signer_address,
+            pubkey: data?.signer_pubkey,
+            pubkeyHash: data?.signer_pubkey_hash,
+          },
           address: data?.vault?.address,
           tokenAddress: data?.vault?.token_address,
-          merchantReceivingAddress: data?.vault?.merchant_receiving_address,
-          receivingPubkey: data?.vault?.receiving_pubkey,
-          receivingPubkeyHash: data?.vault?.receiving_pubkey_hash
         }
       }
 

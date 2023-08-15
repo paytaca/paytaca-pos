@@ -154,6 +154,7 @@ import { decodePaymentUri, sha256 } from 'src/wallet/utils'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
+import { Vault } from 'src/contract/vault'
 
 export default defineComponent({
   name: "ReceivePage",
@@ -424,10 +425,46 @@ export default defineComponent({
         showOtpInput.value = false
       })
     }
+    function checkPurelyPeerClaim (data) {
+      if (!data?.purelypeer?.isKeyNft) return
+
+      const merchantVault = walletStore.merchantInfo?.vault
+      const merchantReceiverPk = merchantVault?.receiving?.pubkey
+      const merchantReceivingAddress = merchantVault?.receiving?.address
+      const merchantSignerPk = merchantVault?.signer?.pubkey
+
+      const vaultParams = {
+        params: {
+          merchantReceiverPk,
+          merchantSignerPk,
+        },
+        options: {
+          network: 'mainnet'
+        }
+      }
+
+      const vault = new Vault(vaultParams)
+      const contract = vault.getContract()
+
+      const keyNftCategory = data?.tokenId
+      const lockNftCategory = data?.purelypeer?.lockNftCategory
+
+      vault.claim({
+        keyNftCategory,
+        lockNftCategory,
+        merchantReceivingAddress
+      })
+      .then(transaction => {
+        // TODO: dispatch to purelypeer to flag that key nft is already claimed
+      })
+    }
     function onWebsocketReceive(data) {
       console.log(data)
       if (!data?.value) return
+
       const parsedData = parseWebsocketDataReceived(data)
+      checkPurelyPeerClaim(parsedData)
+
       transactionsReceived.value.push(parsedData)
       displayReceivedTransaction(parsedData)
       showOtpInput.value = false
@@ -445,6 +482,11 @@ export default defineComponent({
      * @param {Number} data.index
      * @param {String} data.address_path
      * @param {String[]} data.senders
+     * 
+     * @param {Object} data.purelypeer
+     * @param {Boolean} data.purelypeer.is_key_nft
+     * @param {String} data.purelypeer.lock_nft_category -- only present when is_key_nft = true
+     *
      */
     function parseWebsocketDataReceived(data) {
       const marketValue = { amount: 0, currency: '' }
@@ -467,6 +509,10 @@ export default defineComponent({
         senders: Array.isArray(data?.senders) ? data?.senders : [],
         source: data?.source,
         logo: null,
+        purelypeer: {
+          isKeyNft: data?.is_key_nft,
+          lockNftCategory: data?.purelypeer?.lock_nft_category,
+        },
       }
 
       if (typeof response.tokenSymbol === 'string') response.tokenSymbol = response.tokenSymbol.toUpperCase()
@@ -564,6 +610,7 @@ export default defineComponent({
       transactionsReceived,
       canViewTransactionsReceived,
       displayReceivedTransaction,
+      checkPurelyPeerClaim,
       title,
       altAmountText,
       receivingAddress,

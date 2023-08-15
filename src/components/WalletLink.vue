@@ -145,7 +145,7 @@ export default defineComponent({
           dialog.update({ title: 'Link device error', message: 'Unable to decode QR data' })
           return { skip: true }
         })
-        // encryptedData = xpubkey + @ + ppvsPrivKey
+        // encryptedData = xpubkey + @ + ppvsWif
         .then(async (qrCodeData) => {
           if (qrCodeData?.skip) return { skip: true }
           dialog.update({ message: 'Retrieving link code data' })
@@ -168,14 +168,14 @@ export default defineComponent({
           
           decryptedData = decryptedData.split('@')
           const xpubkey = decryptedData[0]
-          const ppvsPrivKey = decryptedData[1]
+          const ppvsWif = decryptedData[1]
           
           SecureStoragePlugin.set({
-            key: 'purelypeerVaultSignerPrivKey',
-            value: ppvsPrivKey
+            key: 'purelypeerVaultSignerWif',
+            value: ppvsWif
           })
 
-          return { qrCodeData, encryptedData, xpubkey, ppvsPrivKey }
+          return { qrCodeData, encryptedData, xpubkey, ppvsWif }
         })
         .catch(error => {
           console.error(error)
