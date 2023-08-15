@@ -118,9 +118,12 @@ export function parsePaymentStatusColor(value) {
     case 'partially_paid':
     case 'payment_in_escrow':
     case 'partial_payment_in_escrow':
+    case 'partially_refunded':
       return 'cyan'
     case 'payment_pending':
       return 'amber'
+    case 'refunded':
+      return 'grey'
     default:
       return undefined
   }

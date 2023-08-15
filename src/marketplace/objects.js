@@ -1503,12 +1503,20 @@ export class Order {
     return Math.max(this.total - totalPaid, 0)
   }
 
+  get totalPaymentsSent() {
+    return (parseFloat(this.totalPaid) || 0) + (parseFloat(this.totalPendingPayment) || 0)
+  }
+
   get netPaid() {
-    return this.totalPaid - this.totalRefunded
+    return this.totalPaymentsSent - this.totalRefunded
   }
 
   get paymentStatus() {
-    if (this.totalPaid >= this.total) return 'paid'
+    if (this.totalPaid >= this.total) {
+      if (this.netPaid <= 0) return 'refunded'
+      if (this.netPaid < this.total) return 'partially_refunded'
+      return 'paid'
+    }
     if (this.totalPendingPayment >= this.totalUnpaid) return 'payment_in_escrow'
     if (this.totalPaid > 0) return 'partially_paid'
     if (this.totalPendingPayment > 0) return 'partial_payment_in_escrow'
