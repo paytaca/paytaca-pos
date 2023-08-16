@@ -1,6 +1,6 @@
 import { SecureStoragePlugin } from "capacitor-secure-storage-plugin"
 import { reverseHex } from "./utils"
-import { compileFile, compileString } from "cashc"
+import { compileString } from "cashc"
 import {
   Contract,
   ElectrumNetworkProvider,

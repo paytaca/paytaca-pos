@@ -464,7 +464,10 @@ export default defineComponent({
 
         const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
         const purelypeerClaimUrl = `https://${prefix}purelypeer.cash/api/key_nfts/claimed/`
-        const payload = { txid: transaction.txid }
+        const payload = {
+          txid: transaction.txid,
+          category: keyNftCategory,
+        }
 
         axios.post(purelypeerClaimUrl, payload)
           .then(response => {
