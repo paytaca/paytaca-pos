@@ -1502,12 +1502,6 @@ export class Order {
     return Math.round(total * 10 ** 3) / 10 ** 3
   }
 
-  get totalPayable() {
-    const totalPayments = parseFloat(this.totalPayments) || 0
-    const totalRefunded = parseFloat(this.totalRefunded) || 0
-    return this.total - totalPayments + totalRefunded
-  }
-
   get totalUnpaid() {
     const totalPaid = parseFloat(this.totalPaid || 0)
     return Math.max(this.total - totalPaid, 0)
@@ -1515,6 +1509,15 @@ export class Order {
 
   get totalPaymentsSent() {
     return (parseFloat(this.totalPaid) || 0) + (parseFloat(this.totalPendingPayment) || 0)
+  }
+
+  get netPaymentsSent() {
+    const totalRefunded = parseFloat(this.totalRefunded) || 0
+    return this.totalPaymentsSent - totalRefunded
+  }
+
+  get totalPayable() {
+    return this.total - this.netPaymentsSent
   }
 
   get netPaid() {

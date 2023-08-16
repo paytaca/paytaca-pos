@@ -46,7 +46,7 @@
               <q-item
                 v-if="order?.totalPayable > 0"
                 v-close-popup clickable
-                @click="() => showPaymentFormDialog = true"
+                @click="() => createPayment()"
               >
                 <q-item-section>
                   <q-item-label>
@@ -319,20 +319,19 @@
         </template>
       </div>
     </q-pull-to-refresh>
-    <OrderPaymentsDialog v-model="showPaymentsDialog" :payments="payments" @updated="() => fetchOrder()">
+    <OrderPaymentsDialog ref="paymentsDialog" v-model="showPaymentsDialog" :payments="payments" @updated="() => fetchOrder()">
       <template v-slot:before>
         <div class="row items-center justify-end">
           <q-btn
             flat
             no-caps label="Add payment"
             v-close-popup
-            @click="() => showPaymentFormDialog = true"
+            @click="() => createPayment()"
           />
         </div>
       </template>
     </OrderPaymentsDialog>
     <VariantInfoDialog v-model="variantInfoDIalog.show" :variant="variantInfoDIalog.variant"/>
-    <PaymentFormDialog v-model="showPaymentFormDialog" :order="order" @saved="() => onNewPayment()"/>
     <UpdateOrderDeliveryAddressFormDialog
       v-model="openUpdateDeliveryAddressDialog"
       :order="order"
@@ -358,7 +357,6 @@ import CancelReasonFormDailog from 'src/components/marketplace/storefront/Cancel
 import SearchDeliveryRiderDialog from 'src/components/marketplace/storefront/SearchDeliveryRiderDialog.vue'
 import LeafletMapDialog from 'src/components/marketplace/LeafletMapDialog.vue'
 import OrderPaymentsDialog from 'src/components/marketplace/storefront/OrderPaymentsDialog.vue'
-import PaymentFormDialog from 'src/components/marketplace/storefront/PaymentFormDialog.vue'
 import UpdateOrderItemsFormDialog from 'src/components/marketplace/storefront/UpdateOrderItemsFormDialog.vue'
 import UpdateOrderDeliveryAddressFormDialog from 'src/components/marketplace/storefront/UpdateOrderDeliveryAddressFormDialog.vue'
 
@@ -369,7 +367,6 @@ export default defineComponent({
     VariantInfoDialog,
     LeafletMapDialog,
     OrderPaymentsDialog,
-    PaymentFormDialog,
     UpdateOrderItemsFormDialog,
     UpdateOrderDeliveryAddressFormDialog,
   },
@@ -681,9 +678,14 @@ export default defineComponent({
       return data
     })
 
+    const paymentsDialog = ref()
     const showPaymentsDialog = ref(false)
-    const showPaymentFormDialog = ref(false)
     const payments = ref([].map(Payment.parse))
+    const payment = computed(() => {
+      return payments.value.find(payment => {
+        return payment.status == 'pending' && payment.totalAmount == order.value.totalPayable
+      })
+    })
     const fetchingPayments = ref(false)
     function fetchPayments() {
       const params = {
@@ -702,7 +704,8 @@ export default defineComponent({
     }
 
     function createPayment() {
-      const data = { order_id: order.value.id }
+      const orderId = order.value.id
+      const data = { order_id: orderId }
       const dialog = $q.dialog({
         title: 'Payment',
         message: 'Creating payment request',
@@ -711,18 +714,31 @@ export default defineComponent({
         ok: false,
       })
 
-      return backend.post(`connecta/payments/`, data)
-        .then(response => {
-          payments.value.push(Payment.parse(response?.data))
+      return backend.post(`connecta/orders/${orderId}/payment/`, data)
+        .then(async (response) => {
+          const payment = Payment.parse(response?.data)
+          const index = payments.value.findIndex(_payment => _payment?.id == payment?.id)
+          if (index >= 0) payments.value[index] = payment
+          else payments.value.unshift(payment)
+          await Promise.allSettled([
+            fetchOrder(),
+            fetchPayments(),
+            payment.fetchEscrowContract(),
+          ])
           dialog.hide()
           showPaymentsDialog.value = true
+          paymentsDialog.value?.displayPaymentEscrowContract?.(payment)
           return response
         })
         .catch(error => {
           const errorMessage = error?.response?.data?.detail ||
               errorParser.firstElementOrValue(error?.response?.data?.non_field_errors) ||
-              errorParser.firstElementOrValue(error?.response?.data?.order_id)
-          dialog.update({ message: errorMessage || 'Unable to create payment request' })
+              errorParser.firstElementOrValue(error?.response?.data?.order_id) ||
+              errorParser.firstElementOrValue(error?.response?.data)
+          dialog.update({
+            title: 'Error',
+            message: errorMessage || 'Unable to create payment request',
+          })
         })
         .finally(() => {
           dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
@@ -733,7 +749,6 @@ export default defineComponent({
       fetchOrder()
       fetchPayments()
 
-      showPaymentFormDialog.value = false
       showPaymentsDialog.value = true
     }
 
@@ -784,9 +799,10 @@ export default defineComponent({
       showMap,
       mapLocations,
 
+      paymentsDialog,
       showPaymentsDialog,
-      showPaymentFormDialog,
       payments,
+      payment,
       fetchingPayments,
       fetchPayments,
       createPayment,
