@@ -87,12 +87,6 @@ module.exports = configure(function (ctx) {
           // reserved: ['Array','BigInteger','Boolean','Buffer','ECPair','Function','Number','Point'],
         },
       },
-
-      extendWebpack (cfg) {
-        cfg.experiments = {
-          topLevelAwait: true
-        }
-      },
       
       chainWebpack (chain) {
         chain.plugin('eslint-webpack-plugin')
@@ -101,6 +95,13 @@ module.exports = configure(function (ctx) {
         const nodePolyfillWebpackPlugin = require('node-polyfill-webpack-plugin')
           chain.plugin('node-polyfill').use(nodePolyfillWebpackPlugin)
           chain.resolve.alias.set('fs', require.resolve('browserfs'))
+        
+        chain.module
+          .rule('raw')
+          .test(/\.cash$/)
+          .use('raw-loader')
+          .loader('raw-loader')
+          .end()
       }
       
     },

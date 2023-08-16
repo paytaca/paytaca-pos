@@ -7,54 +7,8 @@ import {
   SignatureTemplate,
 } from "cashscript"
 
+import vaultContractSource from './vault.cash'
 
-// TODO: find a way to read vault.cash file (fs.readFileSync currently not working)
-const string = `
-pragma cashscript ^0.8.0;
-
-
-contract Vault(
-    pubkey merchantReceiverPK,
-    pubkey merchantSignerPK
-) {
-
-    function claim(
-        bytes32 keyNftCategory,
-        sig merchantSignerSig
-    ) {
-        require(checkSig(merchantSignerSig, merchantSignerPK));
-
-        // 2 outputs: lock & key nft
-        // 1 output: recipient of BCH stored in lock NFT
-        require(tx.inputs.length >= 2);
-        require(tx.outputs.length >= 1);
-
-        // key NFT must be an immutable NFT
-        require(tx.inputs[1].tokenCategory == keyNftCategory);
-
-        // lock & key nft must have the same commitment
-        // 20 bytes - questOwnerPubkeyHash
-        // 10 bytes - collection timestamp
-        // 10 bytes - claim amount
-        require(tx.inputs[0].nftCommitment == tx.inputs[1].nftCommitment);
-
-        // sent amount must be equal to the commitment data
-        bytes amountAndTimestampBytes = tx.inputs[1].nftCommitment.split(20)[1];
-        bytes feeAmountBytes = amountAndTimestampBytes.split(10)[1];
-        int feeAmount = int(feeAmountBytes);
-        require(tx.outputs[0].value == feeAmount);
-
-        // the amount sent must be from lock nft's output
-        require(tx.inputs[this.activeInputIndex].value == feeAmount);
-
-        // the funds must be sent to the merchant receiving address
-        bytes20 merchantPKH = hash160(merchantReceiverPK);
-        bytes25 merchant = new LockingBytecodeP2PKH(merchantPKH);
-        require(tx.outputs[0].lockingBytecode == merchant);
-    }
-
-}
-`
 
 export class Vault {
 
@@ -73,7 +27,7 @@ export class Vault {
 
   getProviderAndArtifact () {
     const provider = new ElectrumNetworkProvider(this.network)
-    const artifact = compileString(string)
+    const artifact = compileString(vaultContractSource)
     return { provider, artifact }
   }
 
