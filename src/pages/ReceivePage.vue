@@ -455,7 +455,24 @@ export default defineComponent({
         merchantReceivingAddress
       })
       .then(transaction => {
-        // TODO: dispatch to purelypeer to flag that key nft is already claimed
+        $q.notify({
+          message: 'Voucher claimed!',
+          timeout: 1500,
+          icon: 'mdi-check-circle',
+          color: 'green-6'
+        })
+
+        const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
+        const purelypeerClaimUrl = `https://${prefix}purelypeer.cash/api/key_nfts/claimed/`
+        const payload = { txid: transaction.txid }
+
+        axios.post(purelypeerClaimUrl, payload)
+          .then(response => {
+            console.log('Updated purelypeer backend regarding claim: ', response)
+          })
+          .catch(err => {
+            console.error('Error on updating purelypeer backend regarding claim: ', err)
+          })
       })
     }
     function onWebsocketReceive(data) {
