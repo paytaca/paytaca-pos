@@ -154,7 +154,7 @@ import { decodePaymentUri, sha256 } from 'src/wallet/utils'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
-import { Vault } from 'src/contract/vault'
+import { Vault } from 'src/contracts/purelypeer/vault'
 
 export default defineComponent({
   name: "ReceivePage",
