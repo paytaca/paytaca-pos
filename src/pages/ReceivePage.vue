@@ -407,7 +407,7 @@ export default defineComponent({
     }
     function onWebsocketReceive(data) {
       console.log(data)
-      if (!data?.amount) return
+      if (!data?.amount && !data?.value) return
       const parsedData = parseWebsocketDataReceived(data)
       transactionsReceived.value.push(parsedData)
       displayReceivedTransaction(parsedData)
@@ -420,6 +420,7 @@ export default defineComponent({
      * @param {String} data.token_id
      * @param {String} data.token_symbol
      * @param {Number} data.amount
+     * @param {Number} data.value
      * @param {String} data.address
      * @param {String} data.source
      * @param {String} data.txid
@@ -437,6 +438,7 @@ export default defineComponent({
       }
       const response = {
         amount: data?.amount,
+        value: data?.value,
         marketValue: marketValue,
         txid: data?.txid,
         index: data?.index,
@@ -450,6 +452,7 @@ export default defineComponent({
         logo: null,
       }
 
+      if (!response?.amount && response?.value) response.amount = Math.round(response?.value) / 10 ** 8
       if (typeof response.tokenSymbol === 'string') response.tokenSymbol = response.tokenSymbol.toUpperCase()
       if (response.tokenSymbol === 'BCH') response.logo = 'bch-logo.png'
       return response
