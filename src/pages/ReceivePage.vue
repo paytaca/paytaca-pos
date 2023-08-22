@@ -31,6 +31,12 @@
         </template>
       </div>
     </div>
+    <div class="text-center text-weight-light q-mt-lg q-mx-md q-px-lg" style="word-break:break-all;">
+      <q-skeleton v-if="loading" height="3rem"/>
+      <div v-else style="position:relative;" v-ripple @click="copyText(addressSet?.receiving)">
+        {{ addressSet?.receiving }}
+      </div>
+    </div>
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
         <div>{{ receiveAmount }} {{ currency }}</div>
@@ -51,19 +57,13 @@
         />
       </q-popup-edit> -->
     </div>
-    <div class="text-center text-h6 text-weight-light q-mt-lg q-mx-md q-px-lg" style="word-break:break-all;">
-      <q-skeleton v-if="loading" height="3rem"/>
-      <div v-else style="position:relative;" v-ripple @click="copyText(addressSet?.receiving)">
-        {{ addressSet?.receiving }}
-      </div>
-    </div>
     <div v-if="canViewTransactionsReceived && !showOtpInput" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
           Payment Transactions
         </div>
         <q-btn
-          v-if="props.paymentFrom === 'paytaca'"
+          v-if="paymentFrom === 'paytaca'"
           flat
           no-caps
           label="Input OTP"
@@ -118,6 +118,7 @@
         </q-btn>
       </div>
       <q-input
+        v-if="paymentFrom === 'paytaca'"
         outlined
         label="Confirmation OTP"
         inputmode="numeric"
