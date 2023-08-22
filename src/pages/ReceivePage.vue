@@ -60,7 +60,7 @@
     <div v-if="canViewTransactionsReceived && !showOtpInput" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
-          Transactions Received
+          Payment Transactions
         </div>
         <q-btn
           flat
@@ -102,7 +102,7 @@
       <div v-else-if="receiveWebsocket?.readyState === 1" class="row items-center justify-center">
         <div class="text-grey text-center q-mt-xs">
           <q-spinner size="2rem"/>
-          <div>Waiting payment ... </div>
+          <div>Waiting for payment ... </div>
         </div>
       </div>
       <div v-else>
