@@ -1,7 +1,9 @@
 import { SecureStoragePlugin } from "capacitor-secure-storage-plugin"
 import vaultContractSource from "./contracts/vault.cash"
+import Watchtower from 'watchtower-cash-js'
 import { reverseHex } from "../utils"
 import { compileString } from "cashc"
+import axios from "axios"
 import BCHJS from "@psf/bch-js"
 import {
   Contract,
@@ -91,16 +93,18 @@ export class Vault {
 
     if (!lockNftUtxo) throw new Error(`No lock NFT of category ${lockNftCategory} utxos found`)
 
-    const now = Math.floor(Date.now() / 1000)
+    // get latest MTP (median timestamp) from latest block
+    const { mediantime } = await axios.get('https://watchtower.cash/api/blockchain/info/')
+    const latestBlockTimestamp = mediantime
 
     let transaction = contract.functions
       .refund(merchantSignerSig)
       .from(lockNftUtxo)
       .to(merchantReceivingAddress, lockNftUtxo.satoshis)
       .withoutTokenChange()
-      .withTime(now)
-    
-    // TODO: bad-txns-nonfinal, non-final-transaction error here
+      .withHardcodedFee(1000n)
+      .withTime(latestBlockTimestamp)
+
     transaction = await this.fundTransaction(transaction)
     transaction = await transaction.send()
     return transaction

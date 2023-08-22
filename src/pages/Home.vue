@@ -62,7 +62,6 @@ import { paymentUriHasMatch, findMatchingPaymentLink } from 'src/wallet/utils'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
-import { Vault } from 'src/contracts/purelypeer/vault'
 
 // import historyData from 'src/wallet/mockers/history.json'
 

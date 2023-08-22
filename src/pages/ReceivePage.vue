@@ -443,13 +443,13 @@ export default defineComponent({
         }
       }
 
-      const vault = new Vault(vaultParams)
-      const contract = vault.getContract()
+      const __vault = new Vault(vaultParams)
+      const contract = __vault.getContract()
 
       const keyNftCategory = data?.tokenId
       const lockNftCategory = data?.purelypeer?.lockNftCategory
 
-      vault.claim({
+      __vault.claim({
         keyNftCategory,
         lockNftCategory,
         merchantReceivingAddress
