@@ -63,6 +63,7 @@
           Payment Transactions
         </div>
         <q-btn
+          v-if="props.paymentFrom === 'paytaca'"
           flat
           no-caps
           label="Input OTP"
