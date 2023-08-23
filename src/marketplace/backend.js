@@ -4,7 +4,7 @@ import axios from 'axios'
 const AUTH_TOKEN_STORAGE_KEY = 'marketplace-api-auth-token'
 
 export const backend = axios.create({
-  baseURL: process.env.MARKETPLACE_BASE_URL || 'https://marketplace.paytaca.com/api',
+  baseURL: process.env.MARKETPLACE_BASE_URL || 'https://commercehub.paytaca.com/api',
 })
 backend.interceptors.request.use(async (config) => {
   const { value: token } = await getAuthToken()
