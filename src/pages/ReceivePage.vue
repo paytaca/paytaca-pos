@@ -392,9 +392,10 @@ export default defineComponent({
     function setupListener(opts) {
       receiveWebsocket.value?.close?.()
       receiveWebsocket.value = null // for reactivity
+
       const address = props.voucher ? vault.value?.tokenAddress : addressSet.value?.receiving
       if (!address) return
-      // const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
+
       const url = `wss://watchtower.cash/ws/watch/bch/${address}/`
 
       console.log('Connecting ws:', url)
@@ -480,6 +481,7 @@ export default defineComponent({
     }
     function onWebsocketReceive(data) {
       console.log(data)
+      
       if (!data?.value) return
 
       const parsedData = parseWebsocketDataReceived(data)
@@ -530,7 +532,7 @@ export default defineComponent({
         source: data?.source,
         logo: null,
         purelypeer: {
-          isKeyNft: data?.is_key_nft,
+          isKeyNft: data?.purelypeer?.is_key_nft,
           lockNftCategory: data?.purelypeer?.lock_nft_category,
         },
       }

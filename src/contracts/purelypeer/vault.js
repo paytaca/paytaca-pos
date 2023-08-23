@@ -85,8 +85,7 @@ export class Vault {
 
   async refund ({ lockNftCategory, merchantReceivingAddress }) {
     const contract = this.getContract()
-    // const merchantSignerSig = new SignatureTemplate(this.signerWif)
-    const merchantSignerSig = new SignatureTemplate('L1FQver4iis4L3Q6V2HZAwPA2atSHjjWLEPi8YSEekfMT3uij771')
+    const merchantSignerSig = new SignatureTemplate(this.signerWif)
 
     const utxos = await this.provider.getUtxos(contract.address)
     const lockNftUtxo = utxos.find(utxo => utxo?.token?.category === lockNftCategory)
