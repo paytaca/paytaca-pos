@@ -101,8 +101,8 @@
         </q-item>
       </template>
       <div v-else-if="receiveWebsocket?.readyState === 1" class="row items-center justify-center">
-        <div class="text-grey text-center q-mt-xs">
-          <q-spinner size="2rem"/>
+        <div class="text-grey text-center q-mt-xs q-pt-xs">
+          <q-spinner size="30px"/>
           <div>Waiting for payment ... </div>
         </div>
       </div>
