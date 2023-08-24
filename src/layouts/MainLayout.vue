@@ -30,7 +30,7 @@ export default defineComponent({
     const reconnectAttempts = ref(5)
     const reconnectTimeout = ref(null)
 
-    onMounted(() => setupListener())
+    // onMounted(() => setupListener())
 
     watch(isOnline, () => {
       if (isOnline.value) {
@@ -46,11 +46,12 @@ export default defineComponent({
       receiveWebsocket.value = null // for reactivity
 
       const merchantReceivingAddress = vault.value?.receiving?.address
-      const url = `wss://purelypeer.cash/ws/paytacapos/${merchantReceivingAddress}/`
+      const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
+      const url = `wss://${prefix}purelypeer.cash/ws/paytacapos/${merchantReceivingAddress}/`
 
       console.log('Connecting ws:', url)
       const websocket = new WebSocket(url)
-      if (opts?.resetAttempts) reconnectAttempts.value = 5
+      if (opts?.resetAttempts) reconnectAttempts.value = 1000
 
       websocket.addEventListener('close', () => {
         console.log('setupListener:', 'Listener closed')
