@@ -398,17 +398,14 @@ export default defineComponent({
 
       const url = `wss://watchtower.cash/ws/watch/bch/${address}/`
 
-      console.log('Connecting ws:', url)
       const websocket = new WebSocket(url)
       if (opts?.resetAttempts) reconnectAttempts.value = 5
 
       websocket.addEventListener('close', () => {
-        console.log('setupListener:', 'Listener closed')
         if (!enableReconnect.value) return console.log('setupListener:', 'Skipping reconnection')
         if (reconnectAttempts.value <= 0) return console.log('setupListener:', 'Reached reconnection attempts limit')
         reconnectAttempts.value--;
         const reconnectInterval = 5000
-        console.log('setupListener:', 'Attempting reconnection after', reconnectInterval / 1000, 'seconds. retries left:', reconnectAttempts.value)
         clearTimeout(reconnectTimeout.value)
         reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
       })
@@ -598,7 +595,6 @@ export default defineComponent({
       if (!isOnline.value && props.paymentFrom !== 'paytaca') {
         $networkDetect.check()
           .then(_isOnline => {
-            console.log('Detected isOnline:', _isOnline)
             if (!_isOnline) {
               $q.dialog({
                 title: 'Detected offline',

@@ -114,8 +114,6 @@ export default defineComponent({
     watch(() => [walletStore.walletHash, walletStore.posId], () => fetchTransactions())
 
     async function searchUnconfirmedPaymentsTransaction() {
-      console.log("Finding transaction of unconfirmed payments")
-      console.log(txCacheStore.unconfirmedTxsFromQrData)
       txCacheStore.unconfirmedTxsFromQrData.forEach(async (qrData) => {
           let hasMatch = false
 

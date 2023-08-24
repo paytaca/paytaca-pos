@@ -104,7 +104,6 @@ export default defineComponent({
     }
 
     function onQrError (error) {
-      console.log(error)
       toggleQrScanner()
       $q.notify({
         message: 'QR Scanner error',
@@ -216,7 +215,6 @@ export default defineComponent({
             os: deviceInfo?.operatingSystem,
             device_id: deviceInfo?.uuid,
           }
-          console.log(data)
           const response = await watchtower.BCH._api.post('paytacapos/devices/redeem_link_device_code/', data)
           walletStore.$patch((walletStoreState) => {
             if (response?.data?.wallet_hash) {

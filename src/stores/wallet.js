@@ -527,7 +527,6 @@ export const useWalletStore = defineStore('wallet', {
       this.clearSalesReport()
       const addressesStore = useAddressesStore()
       addressesStore.addressSets = []
-      console.log(addressesStore.addressSets)
     }
   }
 })
