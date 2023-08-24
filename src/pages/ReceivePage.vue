@@ -281,11 +281,9 @@ export default defineComponent({
       // QR data is a BIP0021 compliant
       // BIP0021 is a URI scheme for bitcoin payments
       if (!addressSet.value?.receiving) return ''
-      if (!paymentUriLabel.value) return ''
-
       let paymentUri = addressSet.value?.receiving
 
-      paymentUri += `?POS=${paymentUriLabel.value}`
+      if (paymentUriLabel.value) paymentUri += `?POS=${paymentUriLabel.value}`
 
       if (!bchValue.value) return ''
       paymentUri += `&amount=${bchValue.value}`
