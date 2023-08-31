@@ -426,6 +426,33 @@ export default defineComponent({
         showOtpInput.value = false
       })
     }
+    function flagPurelyPeerKeyNft (txid, category) {
+      const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
+      const purelypeerClaimUrl = `https://${prefix}purelypeer.cash/api/key_nfts/claimed/`
+      const payload = { txid, category }
+      const headers = {
+        headers: {
+          'purelypeer-proof-auth-header': process.env.PURELYPEER_HEADER_VALUE
+        }
+      }
+
+      axios.post(purelypeerClaimUrl, payload, headers)
+        .then(response => console.log('Updated purelypeer backend regarding claim: ', response))
+        .catch(err => console.error('Error on updating purelypeer backend regarding claim: ', err))
+    }
+    function updatePurelyPeerTxnAttr (txid) {
+      const payload = {
+        txid,
+        wallet_hash: walletStore.merchantInfo?.walletHash,
+        key: "voucher_claim",
+        value: "Voucher Claim",
+        remove: false
+      }
+      const watchtowerTxnAttrUrl = 'https://watchtower.cash/api/transactions/attributes/'
+      axios.post(watchtowerTxnAttrUrl, payload)
+        .then(response => console.log('Added transaction attribute as voucher claim: ', response))
+        .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
+    }
     function checkPurelyPeerClaim (data) {
       if (!data?.purelypeer?.isKeyNft) return
 
@@ -463,20 +490,9 @@ export default defineComponent({
           color: 'green-6'
         })
 
-        const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
-        const purelypeerClaimUrl = `https://${prefix}purelypeer.cash/api/key_nfts/claimed/`
-        const payload = {
-          txid: transaction.txid,
-          category: keyNftCategory,
-        }
-
-        axios.post(purelypeerClaimUrl, payload)
-          .then(response => {
-            console.log('Updated purelypeer backend regarding claim: ', response)
-          })
-          .catch(err => {
-            console.error('Error on updating purelypeer backend regarding claim: ', err)
-          })
+        const txid = transaction.txid
+        flagPurelyPeerKeyNft(txid, keyNftCategory)
+        updatePurelyPeerTxnAttr(txid)
       })
     }
     function onWebsocketReceive(data) {
@@ -631,7 +647,6 @@ export default defineComponent({
       transactionsReceived,
       canViewTransactionsReceived,
       displayReceivedTransaction,
-      checkPurelyPeerClaim,
       title,
       altAmountText,
       receivingAddress,
