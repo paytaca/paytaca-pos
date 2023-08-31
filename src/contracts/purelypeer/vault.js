@@ -31,16 +31,19 @@ export class Vault {
     ]
   }
 
-  get signerWif () {
-    return SecureStoragePlugin.get({ key: 'purelypeerVaultSignerWif' })
-  }
-
   get provider () {
     return new ElectrumNetworkProvider(this.network)
   }
 
   get artifact () {
     return compileString(vaultContractSource)
+  }
+
+  async getSignerWif () {
+    const wif = await SecureStoragePlugin.get({
+      key: 'purelypeerVaultSignerWif'
+    })
+    return wif.value
   }
 
   getContract () {
@@ -61,7 +64,8 @@ export class Vault {
 
   async claim ({ keyNftCategory, lockNftCategory, merchantReceivingAddress }) {
     const contract = this.getContract()
-    const merchantSignerSig = new SignatureTemplate(this.signerWif)
+    const signerWif = await this.getSignerWif()
+    const merchantSignerSig = new SignatureTemplate(signerWif)
     
     const utxos = await this.provider.getUtxos(contract.address)
     const keyNftUtxo = utxos.find(utxo => utxo?.token?.category === keyNftCategory)
@@ -85,7 +89,8 @@ export class Vault {
 
   async refund ({ lockNftCategory, merchantReceivingAddress }) {
     const contract = this.getContract()
-    const merchantSignerSig = new SignatureTemplate(this.signerWif)
+    const signerWif = await this.getSignerWif()
+    const merchantSignerSig = new SignatureTemplate(signerWif)
 
     const utxos = await this.provider.getUtxos(contract.address)
     const lockNftUtxo = utxos.find(utxo => utxo?.token?.category === lockNftCategory)

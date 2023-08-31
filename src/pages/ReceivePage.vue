@@ -155,6 +155,7 @@ import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
 import { Vault } from 'src/contracts/purelypeer/vault'
+import axios from 'axios'
 
 export default defineComponent({
   name: "ReceivePage",
@@ -392,20 +393,22 @@ export default defineComponent({
     function setupListener(opts) {
       receiveWebsocket.value?.close?.()
       receiveWebsocket.value = null // for reactivity
-
-      const address = props.voucher ? vault.value?.tokenAddress : addressSet.value?.receiving
+      const address = props.voucher ? vault.value?.address : addressSet.value?.receiving
       if (!address) return
 
       const url = `wss://watchtower.cash/ws/watch/bch/${address}/`
 
       const websocket = new WebSocket(url)
+      console.log(`Connecting ws: ${url}`)
       if (opts?.resetAttempts) reconnectAttempts.value = 5
 
       websocket.addEventListener('close', () => {
+        console.log('setupListener:', 'Listener closed')
         if (!enableReconnect.value) return console.log('setupListener:', 'Skipping reconnection')
         if (reconnectAttempts.value <= 0) return console.log('setupListener:', 'Reached reconnection attempts limit')
         reconnectAttempts.value--;
         const reconnectInterval = 5000
+        console.log('setupListener:', 'Attempting reconnection after', reconnectInterval / 1000, 'seconds. retries left:', reconnectAttempts.value)
         clearTimeout(reconnectTimeout.value)
         reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
       })
@@ -444,7 +447,7 @@ export default defineComponent({
       const __vault = new Vault(vaultParams)
       const contract = __vault.getContract()
 
-      const keyNftCategory = data?.tokenId
+      const keyNftCategory = data?.tokenId.split('/')[1]
       const lockNftCategory = data?.purelypeer?.lockNftCategory
 
       __vault.claim({
