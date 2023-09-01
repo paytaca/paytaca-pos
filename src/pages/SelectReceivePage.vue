@@ -88,19 +88,23 @@ export default defineComponent({
      */
     function promptAmount(paymentFrom) {
       let currencies = ['BCH']
+      const voucherSupportingWallets = [
+        'purelypeer',
+      ]
       if (paymentFrom === 'paytaca') currencies = ['BCH', 'PHP']
+
       $q.dialog({
         component: SetAmountFormDialog,
         componentProps: {
           currencies: currencies,
           initialValue: { currency: selectedCurrency.value },
-          isPurelyPeer: paymentFrom === 'purelypeer'
+          supportsVoucher: voucherSupportingWallets.includes(paymentFrom)
         },
       }).onOk(data => {
         const voucher = data?.voucher
         const amount = data?.amount
 
-        if (!amount?.value && !voucher) return
+        if (!amount?.value) return
 
         const name = 'receive-page'
         const query = {

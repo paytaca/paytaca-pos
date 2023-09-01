@@ -88,6 +88,12 @@ export function parsePaytacaPaymentUri(paymentUri = '', opts) {
     response.timestamp = Number(searchParams?.ts)
     if (!opts?.keepParsedParams) delete searchParams?.ts
   }
+
+  if (searchParams?.merchantAddress) {
+    response.merchantAddress = searchParams.merchantAddress
+    if (!opts?.keepParsedParams) delete searchParams.merchantAddress
+  }
+
   response.otherParams = searchParams
 
   response.outputs = urlObject.pathname.split("&").map(output => {

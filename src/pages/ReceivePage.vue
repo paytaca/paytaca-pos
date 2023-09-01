@@ -164,7 +164,7 @@ export default defineComponent({
     MainHeader
   },
   props: {
-    paymentFrom: String, // paytaca | other
+    paymentFrom: String, // paytaca | purelypeer | other
     setAmount: Number,
     setCurrency: String,
     lockAmount: Boolean, // should only work if setAmount is given
@@ -285,52 +285,33 @@ export default defineComponent({
     }
 
     const qrData = computed(() => {
-      if (!receiveAmount.value && !props.voucher) return ''
-      if (props.paymentFrom === 'paytaca') return qrDataforPaytaca.value
-      return qrDataForOtherWallets.value
-    })
+      if (!receiveAmount.value) return ''
 
-    const qrDataForOtherWallets = computed(() => {
-      // QR data is a BIP0021 compliant
-      // BIP0021 is a URI scheme for bitcoin payments
-
-      if (props.voucher) {
-        let paymentUri = vault.value?.tokenAddress
-        paymentUri += `?POS=${paymentUriLabel.value}`
-        paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
-        return paymentUri
-      }
-
-      if (!addressSet.value?.receiving) return ''
-      if (!paymentUriLabel.value) return ''
-
-      let paymentUri = addressSet.value?.receiving
+      const timestamp = Math.floor(Date.now() / 1000)
+      let paymentUri = receivingAddress.value
       paymentUri += `?POS=${paymentUriLabel.value}`
-
-      if (!bchValue.value) return ''
-      paymentUri += `&amount=${bchValue.value}`
-
-      paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
-      return paymentUri
-    })
-
-    const qrDataforPaytaca = computed(() => {
-      if (!addressSet.value?.receiving) return ''
-      if (!paymentUriLabel.value) return ''
-      let paymentUri = `paytaca:`
-      paymentUri += addressSet.value?.receiving.replace('bitcoincash:', '')
-
-      if (receiveAmount.value) {
+      
+      // amount
+      if (props.paymentFrom === 'paytaca') {
         let amount = receiveAmount.value
         if (currency.value && currency.value != 'BCH') {
           amount = `${currency.value}:${amount}`
         }
         paymentUri += `@${amount}`
+      } else {
+        paymentUri += `&amount=${bchValue.value}`
+      }
+      
+      // merchant address for vouchers
+      if (props.voucher) {
+        const merchantReceivingAddress = vault.value?.receiving?.address
+        paymentUri += `&merchantAddress=${merchantReceivingAddress}`
       }
 
-      paymentUri += `?POS=${paymentUriLabel.value}&ts=${Math.floor(Date.now()/1000)}`
+      paymentUri += `&ts=${timestamp}`
       return paymentUri
     })
+
     function cacheQrData() {
       // walletStore.cacheQrData(qrData.value)
       walletStore.removeOldQrDataCache(86400*2) // remove qr data older than 2 days
@@ -457,13 +438,13 @@ export default defineComponent({
       if (!data?.purelypeer?.isKeyNft) return
 
       const merchantVault = walletStore.merchantInfo?.vault
-      const merchantReceiverPk = merchantVault?.receiving?.pubkey
+      const merchantReceivingPk = merchantVault?.receiving?.pubkey
       const merchantReceivingAddress = merchantVault?.receiving?.address
       const merchantSignerPk = merchantVault?.signer?.pubkey
 
       const vaultParams = {
         params: {
-          merchantReceiverPk,
+          merchantReceivingPk,
           merchantSignerPk,
         },
         options: {

@@ -19,10 +19,12 @@
         </div>
       </div>
       <div class="q-px-md row q-gutter-sm">
+      <!--
         <SalesReportCard title="Today" :sales-report="walletStore.salesReportSummary.today" class="col-5"/>
         <SalesReportCard title="Yesterday" :sales-report="walletStore.salesReportSummary.yesterday" class="col-5"/>
         <SalesReportCard title="Last 7 days" :sales-report="walletStore.salesReportSummary.last7Days" class="col-5"/>
         <SalesReportCard title="This month" :sales-report="walletStore.salesReportSummary.lastMonth" class="col-5"/>
+      -->
       </div>
       <q-card class="q-mx-md q-mt-md home-transactions-list-container" style="border-radius:25px;">
         <q-card-section class="text-h6">
@@ -68,7 +70,7 @@ import { useRouter } from 'vue-router'
 export default defineComponent({
   name: 'HomePage',
   components: {
-    SalesReportCard: defineAsyncComponent(() => import('src/components/SalesReportCard.vue')),
+    // SalesReportCard: defineAsyncComponent(() => import('src/components/SalesReportCard.vue')),
     TransactionsList: defineAsyncComponent(() => import('src/components/TransactionsList.vue')),
     WalletLink: defineAsyncComponent(() => import('src/components/WalletLink.vue')),
     MainFooter,

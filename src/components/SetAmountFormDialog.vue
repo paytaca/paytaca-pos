@@ -34,15 +34,13 @@
             color="brandblue"
             size="1rem"
             padding="sm md"
-            label="Set amount"
+            label="Receive Payment"
             class="q-space"
             type="submit"
           />
         </q-card-actions>
 
-        <div v-if="isPurelyPeer">
-          <q-separator class="q-my-md" />
-
+        <div v-if="supportsVoucher">
           <div class="flex row q-ma-sm">
             <q-btn
               no-caps
@@ -72,7 +70,7 @@ export default defineComponent({
     currencies: Array,
     title: String,
     message: String,
-    isPurelyPeer: Boolean,
+    supportsVoucher: Boolean,
   },
   emits: [
     // REQUIRED; need to specify some events that your
@@ -98,7 +96,7 @@ export default defineComponent({
     })
 
     const finalTitle = computed(() => {
-      if (props?.isPurelyPeer) return 'Pay or Claim Voucher'
+      if (props?.supportsVoucher) return 'Pay or Claim Voucher'
       return props?.title || 'Set Amount'
     })
     
