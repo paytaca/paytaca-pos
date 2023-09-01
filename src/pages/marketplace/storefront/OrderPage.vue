@@ -782,6 +782,7 @@ export default defineComponent({
     }
 
     async function unsubscribeUpdatesToRpc() {
+      if (!marketplaceRpc.isConnected()) return
       marketplaceRpc.client.call('unsubscribe', [orderUpdateEventName])
       marketplaceRpc.client.onNotification = marketplaceRpc.client.onNotification
         .filter(handler => handler !== onNotificationHandler)
