@@ -18,9 +18,10 @@
 </template>
 
 <script>
+import { marketplaceRpc } from 'src/marketplace/rpc'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useWalletStore } from 'src/stores/wallet'
-import { computed, defineComponent, onMounted, watch } from 'vue'
+import { computed, defineComponent, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 export default defineComponent({
@@ -36,6 +37,7 @@ export default defineComponent({
              marketplaceStore.fetchingUser
     })
 
+    onUnmounted(() => marketplaceRpc.disconnect())
     onMounted(async () => {
       const silent = $route.query.silentSync == 'true'
       // marketplaceStore.refetchMerchant({ silent: false })

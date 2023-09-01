@@ -350,7 +350,7 @@ import { Delivery, Order, Payment, Rider, Storefront, Variant } from 'src/market
 import { errorParser, formatOrderStatus, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
-import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, defineComponent, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoDialog.vue'
 import CancelReasonFormDailog from 'src/components/marketplace/storefront/CancelReasonFormDailog.vue'
@@ -359,6 +359,7 @@ import LeafletMapDialog from 'src/components/marketplace/LeafletMapDialog.vue'
 import OrderPaymentsDialog from 'src/components/marketplace/storefront/OrderPaymentsDialog.vue'
 import UpdateOrderItemsFormDialog from 'src/components/marketplace/storefront/UpdateOrderItemsFormDialog.vue'
 import UpdateOrderDeliveryAddressFormDialog from 'src/components/marketplace/storefront/UpdateOrderDeliveryAddressFormDialog.vue'
+import { marketplaceRpc } from 'src/marketplace/rpc'
 
 export default defineComponent({
   name: 'OrderPage',
@@ -748,7 +749,6 @@ export default defineComponent({
     function onNewPayment() {
       fetchOrder()
       fetchPayments()
-
       showPaymentsDialog.value = true
     }
 
@@ -756,6 +756,35 @@ export default defineComponent({
     function displayVariant(variant = Variant.parse()) {
       variantInfoDIalog.value.variant = variant
       variantInfoDIalog.value.show = true
+    }
+
+    const orderUpdateEventName = 'order_updates'
+    const onNotificationHandler = notification  => {
+      if (notification?.event != orderUpdateEventName) return
+      if (notification?.data?.id != props.orderId) return
+      fetchOrder()
+    }
+   
+    watch(() => [props.orderId], () => {
+      unsubscribeUpdatesToRpc().finally(() => subscribeUpdatesToRpc())
+    })
+    onMounted(() => subscribeUpdatesToRpc())
+    onUnmounted(() => unsubscribeUpdatesToRpc())
+    onActivated(() => subscribeUpdatesToRpc())
+    onDeactivated(() => unsubscribeUpdatesToRpc())
+    async function subscribeUpdatesToRpc() {
+      if (!marketplaceRpc.isConnected()) await marketplaceRpc.connect()
+      marketplaceRpc.client.call('subscribe', [orderUpdateEventName, { id: parseInt(props.orderId) }])
+
+      if (!marketplaceRpc.client.onNotification.includes(onNotificationHandler)) {
+        marketplaceRpc.client.onNotification.push(onNotificationHandler)
+      }
+    }
+
+    async function unsubscribeUpdatesToRpc() {
+      marketplaceRpc.client.call('unsubscribe', [orderUpdateEventName])
+      marketplaceRpc.client.onNotification = marketplaceRpc.client.onNotification
+        .filter(handler => handler !== onNotificationHandler)
     }
 
     async function refreshPage(done=() => {}) {
