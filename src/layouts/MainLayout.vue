@@ -47,7 +47,7 @@ export default defineComponent({
 
       const merchantReceivingAddress = vault.value?.receiving?.address
       const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
-      const url = `wss://${prefix}purelypeer.cash/ws/paytacapos/${merchantReceivingAddress}/`
+      const url = `wss://${prefix}watchtower.cash/ws/vouchers/${merchantReceivingAddress}/`
 
       console.log('Connecting ws:', url)
       const websocket = new WebSocket(url)

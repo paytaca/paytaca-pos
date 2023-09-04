@@ -435,7 +435,7 @@ export default defineComponent({
         .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
     }
     function checkPurelyPeerClaim (data) {
-      if (!data?.purelypeer?.isKeyNft) return
+      if (!data?.voucher?.isKeyNft) return
 
       const merchantVault = walletStore.merchantInfo?.vault
       const merchantReceivingPk = merchantVault?.receiving?.pubkey
@@ -456,7 +456,7 @@ export default defineComponent({
       const contract = __vault.getContract()
 
       const keyNftCategory = data?.tokenId.split('/')[1]
-      const lockNftCategory = data?.purelypeer?.lockNftCategory
+      const lockNftCategory = data?.voucher?.lockNftCategory
 
       __vault.claim({
         keyNftCategory,
@@ -502,9 +502,9 @@ export default defineComponent({
      * @param {String} data.address_path
      * @param {String[]} data.senders
      * 
-     * @param {Object} data.purelypeer
-     * @param {Boolean} data.purelypeer.is_key_nft
-     * @param {String} data.purelypeer.lock_nft_category -- only present when is_key_nft = true
+     * @param {Object} data.voucher
+     * @param {Boolean} data.voucher.is_key_nft
+     * @param {String} data.voucher.lock_nft_category -- only present when is_key_nft = true
      *
      */
     function parseWebsocketDataReceived(data) {
@@ -528,9 +528,9 @@ export default defineComponent({
         senders: Array.isArray(data?.senders) ? data?.senders : [],
         source: data?.source,
         logo: null,
-        purelypeer: {
-          isKeyNft: data?.purelypeer?.is_key_nft,
-          lockNftCategory: data?.purelypeer?.lock_nft_category,
+        voucher: {
+          isKeyNft: data?.voucher?.is_key_nft,
+          lockNftCategory: data?.voucher?.lock_nft_category,
         },
       }
 
