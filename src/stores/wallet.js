@@ -1,8 +1,14 @@
 import Watchtower from 'watchtower-cash-js';
 import { defineStore } from 'pinia';
 import { Wallet } from 'src/wallet';
-import { sha256, decodePaymentUri, getPubkeyAt } from 'src/wallet/utils';
 import { useAddressesStore } from './addresses';
+import {
+  sha256,
+  decodePaymentUri,
+  getPubkeyAt,
+  pubkeyToCashAddress,
+} from 'src/wallet/utils';
+
 
 export const useWalletStore = defineStore('wallet', {
   state: () => ({
@@ -50,12 +56,10 @@ export const useWalletStore = defineStore('wallet', {
         receiving: {
           address: '',
           pubkey: '',
-          pubkeyHash: '',
         },
         signer: {
           address: '',
           pubkey: '',
-          pubkeyHash: '',
         },
         address: '',
         tokenAddress: '',
@@ -216,13 +220,8 @@ export const useWalletStore = defineStore('wallet', {
      * @param {String} data.wallet_hash
      * @param {String} data.primary_contact_number
      * 
-     * @param {String} data.signer_address
      * @param {String} data.signer_pubkey
-     * @param {String} data.signer_pubkey_hash
-     * 
-     * @param {String} data.receiving_address
      * @param {String} data.receiving_pubkey
-     * @param {String} data.receiving_pubkey_hash
      * 
      * @param {Object} [data.location]
      * @param {String} data.location.landmark
@@ -253,14 +252,12 @@ export const useWalletStore = defineStore('wallet', {
         },
         vault: {
           receiving: {
-            address: data?.receiving_address,
+            address: pubkeyToCashAddress(data?.receiving_pubkey),
             pubkey: data?.receiving_pubkey,
-            pubkeyHash: data?.receiving_pubkey_hash,
           },
           signer: {
-            address: data?.signer_address,
+            address: pubkeyToCashAddress(data?.signer_pubkey),
             pubkey: data?.signer_pubkey,
-            pubkeyHash: data?.signer_pubkey_hash,
           },
           address: data?.vault?.address,
           tokenAddress: data?.vault?.token_address,

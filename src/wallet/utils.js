@@ -324,3 +324,14 @@ export function getPubkeyAt(xpubkey, path) {
   const childNode = mainNode.derivePath(String(path))
   return bchjs.HDNode.toPublicKey(childNode).toString('hex')
 }
+
+/**
+ * 
+ * @param {String} pubkey 
+ */
+export function pubkeyToCashAddress (pubkey) {
+  if (pubkey === undefined || pubkey === null) return ''
+  const pubkeyBuffer = Buffer.from(pubkey, 'hex')
+  const ecpair = bchjs.ECPair.fromPublicKey(pubkeyBuffer)
+  return bchjs.ECPair.toCashAddress(ecpair)
+}

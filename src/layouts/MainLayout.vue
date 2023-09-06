@@ -16,6 +16,7 @@ import {
   watch,
   inject,
   markRaw,
+  computed,
 } from 'vue'
 
 
@@ -24,13 +25,13 @@ export default defineComponent({
     const isOnline = inject('$isOnline')
     const walletStore = useWalletStore()
 
-    const vault = ref(walletStore.merchantInfo?.vault)
+    let vault = ref(walletStore.merchantInfo?.vault)
     const receiveWebsocket = ref({ readyState: 0 })
     const enableReconnect = ref(true)
-    const reconnectAttempts = ref(5)
+    const reconnectAttempts = ref(20)
     const reconnectTimeout = ref(null)
 
-    // onMounted(() => setupListener())
+    onMounted(() => setupListener())
 
     watch(isOnline, () => {
       if (isOnline.value) {
@@ -41,17 +42,21 @@ export default defineComponent({
       }
     })
 
+    const receivingAddress = computed(() => walletStore.merchantInfo?.vault?.receiving?.address)
+    watch(receivingAddress, () => setupListener({ resetAttempts: true }))
+
     function setupListener(opts) {
+      vault = ref(walletStore.merchantInfo?.vault)
+
       receiveWebsocket.value?.close?.()
       receiveWebsocket.value = null // for reactivity
 
       const merchantReceivingAddress = vault.value?.receiving?.address
-      const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
-      const url = `wss://${prefix}watchtower.cash/ws/vouchers/${merchantReceivingAddress}/`
+      const url = `wss://watchtower.cash/ws/vouchers/${merchantReceivingAddress}/`
 
       console.log('Connecting ws:', url)
       const websocket = new WebSocket(url)
-      if (opts?.resetAttempts) reconnectAttempts.value = 1000
+      if (opts?.resetAttempts) reconnectAttempts.value = 20
 
       websocket.addEventListener('close', () => {
         console.log('setupListener:', 'Listener closed')
