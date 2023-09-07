@@ -59,6 +59,23 @@
             label="Remove"
             @click="() => confirmRemoveSelectedProducts()"
           />
+          <q-btn
+            rounded
+            :outline="$q.dark.isActive"
+            padding="2px 0.75em"
+            no-caps
+            label="Mark available"
+            @click="() => updateSelectedProductsAvailability(true)"
+          />
+
+          <q-btn
+            rounded
+            :outline="$q.dark.isActive"
+            padding="2px 0.75em"
+            no-caps
+            label="Mark unavailable"
+            @click="() => updateSelectedProductsAvailability(false)"
+          />
         </div>
       </q-slide-transition>
 
@@ -108,7 +125,14 @@
                 </div>
                 <div class="text-caption bottom text-grey">#{{ props.row.id }}</div>
               </div>
+              <q-spinner v-if="props.row?.$state?.updating" size="1.5em" class="q-ml-sm"/>
             </div>
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-available="props">
+          <q-td :props="props" @click="() => toggleProductSelection(props.row)">
+            {{ props?.row?.availableAtStorefrontText?.(marketplaceStore.storefrontData.id) }}
           </q-td>
         </template>
       </q-table>
@@ -214,6 +238,7 @@ export default defineComponent({
     const productsTableColumns = [
       { name: 'product', align: 'left', label: 'Product', field: 'name' },
       // { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks' },
+      { name: 'available', align: 'left', label: 'Available' },
       { name: 'markup-price', align: 'left', label: 'Markup Price', field: 'markupPriceRangeText', format: val => `${val} ${marketplaceStore?.currency}` },
       { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText },
       // { name: 'actions', align: 'center', label: '' },
@@ -222,6 +247,16 @@ export default defineComponent({
     const productsTableState = ref({
       selected: [].map(Product.parse),
     })
+    function toggleProductSelection(product = Product.parse()) {
+      if (!product?.id) return
+      
+      if (productsTableState.value.selected.includes(product)) {
+        productsTableState.value.selected = productsTableState.value.selected
+          .filter(_product => _product !== product)
+      } else {
+        productsTableState.value.selected.push(product)
+      }
+    }
 
     watch(products, () => {
       productsTableState.value.selected = productsTableState.value.selected
@@ -265,6 +300,29 @@ export default defineComponent({
         .finally(() => {
           dialog.update({ ok: { color: 'brandblue' }, progress: false, persistent: false })
         })
+    }
+
+    /**
+     * @param {Bool} available 
+     */
+    function updateSelectedProductsAvailability(available) {
+      if (typeof available !== 'boolean') return
+
+      const promises = productsTableState.value.selected.map(product => {
+        const handle = `${marketplaceStore.storefrontData?.id}-${product?.id}`
+        const data = { available: available }
+        product.$state.updating = true
+        return backend.patch(`connecta/storefront-products/${handle}/`, data)
+          .then(response => {
+            product.addStorefrontProductData(response?.data)
+            return response
+          })
+          .finally(() => {
+            product.$state.updating = false
+          })
+      })
+
+      return Promise.all(promises)
     }
 
     function openAddProductsDialog() {
@@ -342,7 +400,9 @@ export default defineComponent({
 
       productsTableColumns,
       productsTableState,
+      toggleProductSelection,
       confirmRemoveSelectedProducts,
+      updateSelectedProductsAvailability,
       openAddProductsDialog,
 
       productDetailDialog,
