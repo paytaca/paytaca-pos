@@ -407,19 +407,38 @@ export default defineComponent({
         showOtpInput.value = false
       })
     }
-    function flagPurelyPeerKeyNft (txid, category) {
-      const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
-      const purelypeerClaimUrl = `https://${prefix}purelypeer.cash/api/key_nfts/claimed/`
-      const payload = { txid, category }
-      const headers = {
-        headers: {
-          'purelypeer-proof-auth-header': process.env.PURELYPEER_HEADER_VALUE
+    function flagVoucher (txid, lockCategory) {
+      const payload = { txid, lock_category: lockCategory }
+
+      if (props.paymentFrom === 'purelypeer') {
+        const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
+        const purelypeerClaimUrl = `https://${prefix}purelypeer.cash/api/key_nfts/claimed/`
+        const headers = {
+          headers: {
+            'purelypeer-proof-auth-header': process.env.PURELYPEER_HEADER_VALUE
+          }
         }
+
+        axios.post(
+          purelypeerClaimUrl,
+          payload,
+          headers
+        ).then(
+          response => console.log('Updated purelypeer backend regarding claim: ', response)
+        ).catch(
+          err => console.error('Error on updating purelypeer backend regarding claim: ', err)
+        )
       }
 
-      axios.post(purelypeerClaimUrl, payload, headers)
-        .then(response => console.log('Updated purelypeer backend regarding claim: ', response))
-        .catch(err => console.error('Error on updating purelypeer backend regarding claim: ', err))
+      const watchtowerVoucherFlagUrl = 'https://watchtower.cash/api/vouchers/claimed/'
+      axios.post(
+        watchtowerVoucherFlagUrl,
+        payload
+      ).then(
+        response => console.log('Updated watchtower regarding claim: ', response)
+      ).catch(
+        err => console.error('Error on updating watchtower regarding claim: ', err)
+      )
     }
     function updatePurelyPeerTxnAttr (txid) {
       const payload = {
@@ -434,7 +453,7 @@ export default defineComponent({
         .then(response => console.log('Added transaction attribute as voucher claim: ', response))
         .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
     }
-    function checkPurelyPeerClaim (data) {
+    function checkVoucherClaim (data) {
       if (!data?.voucher?.isKeyNft) return
 
       const merchantVault = walletStore.merchantInfo?.vault
@@ -472,7 +491,7 @@ export default defineComponent({
         })
 
         const txid = transaction.txid
-        flagPurelyPeerKeyNft(txid, keyNftCategory)
+        flagVoucher(txid, keyNftCategory)
         updatePurelyPeerTxnAttr(txid)
       })
     }
@@ -482,7 +501,7 @@ export default defineComponent({
       if (!data?.value) return
 
       const parsedData = parseWebsocketDataReceived(data)
-      checkPurelyPeerClaim(parsedData)
+      if (props.voucher) checkVoucherClaim(parsedData)
 
       transactionsReceived.value.push(parsedData)
       displayReceivedTransaction(parsedData)

@@ -31,7 +31,7 @@ export default defineComponent({
     const reconnectAttempts = ref(20)
     const reconnectTimeout = ref(null)
 
-    onMounted(() => setupListener())
+    // onMounted(() => setupListener())
 
     watch(isOnline, () => {
       if (isOnline.value) {
