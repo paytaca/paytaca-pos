@@ -19,6 +19,7 @@
 
 <script>
 import { marketplaceRpc } from 'src/marketplace/rpc'
+import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useWalletStore } from 'src/stores/wallet'
 import { computed, defineComponent, onMounted, onUnmounted, watch } from 'vue'
@@ -36,6 +37,7 @@ export default defineComponent({
              marketplaceStore.fetchingShop ||
              marketplaceStore.fetchingUser
     })
+    const userId = computed(() => marketplaceStore.user.id)
 
     onUnmounted(() => marketplaceRpc.disconnect())
     onMounted(async () => {
@@ -47,18 +49,23 @@ export default defineComponent({
       if (branchChanged) await updateShopPromise
       await marketplaceStore.refreshUser({ silent: silent }).catch(console.error)
 
-      if (!marketplaceStore.user.id && $route?.meta?.requireAuth) {
+      if (!userId.value && $route?.meta?.requireAuth) {
         $router.replace({ name: 'marketplace-login', query: { redirectTo: $route.fullPath } })
       }
     })
-    watch(
-      () => [marketplaceStore.user?.id],
-      () => {
-        if (!marketplaceStore.user.id && $route?.meta?.requireAuth) {
-          $router.replace({ name: 'marketplace-login', query: { redirectTo: $route.fullPath } })
-        }
+    watch(userId, () => {
+      if (!userId.value && $route?.meta?.requireAuth) {
+        $router.replace({ name: 'marketplace-login', query: { redirectTo: $route.fullPath } })
       }
-    )
+      if (userId.value) {
+        marketplacePushNotificationsManager.subscribe(userId.value)
+          .then(response => {
+            console.log('Subscribed push notifications for marketplace', response)
+            return response
+          })
+      }
+    })
+
     return {
       marketplaceStore,
       updatingScope,

@@ -29,6 +29,7 @@ module.exports = configure(function (ctx) {
       'clipboard',
       'leaflet',
       'network-detect',
+      'push-notifications',
       'qrcodereader',
       'websocket'
     ],
