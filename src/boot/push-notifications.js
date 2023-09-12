@@ -1,5 +1,6 @@
 import { boot } from 'quasar/wrappers'
 import { PushNotifications } from '@capacitor/push-notifications';
+import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core';
 import { Device } from '@capacitor/device';
 import { Platform } from 'quasar'
@@ -86,6 +87,7 @@ class PushNotificationsManager {
     this.events = PushNotificationsEventEmitter.getInstance()
     this.registrationToken = ''
     this.deviceId = ''
+    this.appInfo = null
     this.registrationTokenError= 'no error'
     this.permissionStatus = null
 
@@ -103,6 +105,14 @@ class PushNotificationsManager {
 
   get platform() {
     return Capacitor.getPlatform()
+  }
+
+  fetchAppInfo() {
+    return App.getInfo()
+      .then(response => {
+        this.appInfo = response
+        return response
+      })
   }
 
   checkPermissions() {

@@ -3,9 +3,18 @@ import { backend } from './backend'
 
 class MarketplacePushNotificationsManager {
   constructor() {
+    this.appInfo = null
     this.deviceId = ''
     this.registrationToken = ''
     this.permissionStatus = null
+  }
+
+  fetchAppInfo() {
+    return pushNotificationsManager.fetchAppInfo()
+      .then(response => {
+        this.appInfo = pushNotificationsManager.appInfo
+        return response
+      })
   }
 
   fetchDeviceId() {
@@ -47,6 +56,7 @@ class MarketplacePushNotificationsManager {
   async subscribe(userId=0) {
     if (!userId) return
     if (!this.deviceId) await this.fetchDeviceId()
+    if (!this.appInfo?.id) await this.fetchAppInfo()
     if (!this.registrationToken) await this.fetchRegistrationToken()
 
     if (this.permissionStatus !== 'granted') await this.requestPermission()
@@ -55,7 +65,11 @@ class MarketplacePushNotificationsManager {
       return
     }
 
-    const data = { user_id: userId, gcm_device: undefined, apns_device: undefined }
+    const data = {
+      user_id: userId,
+      gcm_device: undefined, apns_device: undefined,
+      application_id: this.appInfo?.id,
+    }
     const deviceInfo = {
       registration_id: this.registrationToken,
       device_id: this.deviceId,

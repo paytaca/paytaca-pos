@@ -52,6 +52,11 @@ export default defineComponent({
       if (!userId.value && $route?.meta?.requireAuth) {
         $router.replace({ name: 'marketplace-login', query: { redirectTo: $route.fullPath } })
       }
+      marketplacePushNotificationsManager.subscribe(userId.value)
+        .then(response => {
+          console.log('Subscribed push notifications for marketplace', response)
+          return response
+        })
     })
     watch(userId, () => {
       if (!userId.value && $route?.meta?.requireAuth) {
