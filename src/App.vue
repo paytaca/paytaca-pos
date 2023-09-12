@@ -6,6 +6,8 @@
 import { useQuasar } from 'quasar'
 import { defineComponent, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useWalletStore } from './stores/wallet'
+import { useNotificationsStore } from './stores/notifications'
+import { pushNotificationsManager } from './boot/push-notifications'
 
 export default defineComponent({
   name: 'App',
@@ -32,7 +34,9 @@ export default defineComponent({
   setup() {
     const $q = useQuasar()
     const walletStore = useWalletStore()
+    const notificationsStore = useNotificationsStore()
     const $rpc = inject('$rpc')
+
     const pingIntervalId = ref(null)
     onMounted(() => {
       clearInterval(pingIntervalId.value)
@@ -89,6 +93,55 @@ export default defineComponent({
       } else {
         deviceSuspensionDialog.value?.hide?.() 
         deviceSuspensionDialog.value = null
+      }
+    }
+
+    
+    onMounted(() => {
+      if (!pushNotificationsManager.isMobile) return
+      pushNotificationsManager.events.addEventListener(
+        'pushNotificationReceived', onPushNotification,
+      )
+    })
+    onUnmounted(() => {
+      pushNotificationsManager.events.removeEventListener(
+        'pushNotificationReceived', onPushNotification,
+      )
+    })
+    const onPushNotification = (notification) => {
+      console.log('Notification:', notification)
+      if (notification?.title || notification?.body) {
+        let actions = [
+          { icon: 'close', 'aria-label': 'Dismiss', color: 'white' }
+        ]
+        const route = notificationsStore.resolvePushNotificationRoute(notification)
+        if (route) {
+          actions = [
+            {
+              noCaps: true,
+              label: 'Open',
+              textColor: 'white',
+              handler: () => {
+                notificationsStore.setOpenedNotification(notification)
+                notificationsStore.handleOpenedNotification()
+              }
+            },
+            {
+              noCaps: true,
+              label: 'Close',
+              textColor: 'white',
+            },
+          ]
+        }
+
+        $q.notify({
+          color: 'brandblue',
+          message: notification?.title,
+          caption: notification?.body,
+          multiLine: true,
+          attrs: { style: 'word-break:break-all;' },
+          actions: actions,
+        })
       }
     }
   }

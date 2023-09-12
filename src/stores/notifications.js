@@ -87,10 +87,12 @@ export const useNotificationsStore = defineStore('notifications', {
         data: { type: '' }
       }
     },
-    getOpenedNotificationRoute() {
+    /**
+     * @param {AndroidNotificationPayload | IOSNotificationPayload} openedNotification
+     */
+    resolvePushNotificationRoute(openedNotification) {
       const $router = getRouter()
-      const openedNotification = this.openedNotification
-
+    
       let route = null
       switch(openedNotification?.data?.type) {
         case (this.types.MARKETPLACE_ORDER_CREATE):
@@ -106,7 +108,9 @@ export const useNotificationsStore = defineStore('notifications', {
       } catch (error) { console.error(error) }
       return null
     },
-
+    getOpenedNotificationRoute() {
+      return this.resolvePushNotificationRoute(this.openedNotification)
+    },
     /**
      * Handles the routing of an opened notification
      * NOTE: Clear the notification using .clearOpenedNotification()
