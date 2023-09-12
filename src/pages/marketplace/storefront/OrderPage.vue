@@ -346,9 +346,11 @@
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
+import { marketplaceRpc } from 'src/marketplace/rpc'
 import { Delivery, Order, Payment, Rider, Storefront, Variant } from 'src/marketplace/objects'
 import { errorParser, formatOrderStatus, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useNotificationsStore } from 'src/stores/notifications'
 import { useQuasar } from 'quasar'
 import { computed, defineComponent, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
@@ -359,7 +361,6 @@ import LeafletMapDialog from 'src/components/marketplace/LeafletMapDialog.vue'
 import OrderPaymentsDialog from 'src/components/marketplace/storefront/OrderPaymentsDialog.vue'
 import UpdateOrderItemsFormDialog from 'src/components/marketplace/storefront/UpdateOrderItemsFormDialog.vue'
 import UpdateOrderDeliveryAddressFormDialog from 'src/components/marketplace/storefront/UpdateOrderDeliveryAddressFormDialog.vue'
-import { marketplaceRpc } from 'src/marketplace/rpc'
 
 export default defineComponent({
   name: 'OrderPage',
@@ -377,6 +378,7 @@ export default defineComponent({
   setup(props) {
     const $q = useQuasar()
     const marketplaceStore = useMarketplaceStore()
+    const notificationsStore = useNotificationsStore()
     onMounted(() => refreshPage())
     const order = ref(Order.parse())
     const storefrontId = computed(() => order.value?.storefrontId)
@@ -799,6 +801,24 @@ export default defineComponent({
         done()
       }
     }
+
+    onMounted(() => handleOpenedNotification())
+    function handleOpenedNotification() {
+      const openedNotification = notificationsStore.openedNotification
+      const notificationTypes = notificationsStore.types
+      const openContractTypes = [
+        notificationTypes.MARKETPLACE_ORDER_CREATE,
+        notificationTypes.MARKETPLACE_ORDER_STATUS_UPDATE,
+      ]
+
+      if (openContractTypes.includes(openedNotification?.data?.type)) {
+        const orderId = openedNotification?.data?.order_id
+        if (parseInt(props.orderId) == parseInt(orderId)) {
+          notificationsStore.clearOpenedNotification()
+        }
+      }
+    }
+
     return {
       order,
       fetchOrder,

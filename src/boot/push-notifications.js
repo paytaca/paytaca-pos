@@ -5,6 +5,7 @@ import { Device } from '@capacitor/device';
 import { Platform } from 'quasar'
 import { reactive } from 'vue';
 import { markRaw } from 'vue';
+import { useNotificationsStore } from 'src/stores/notifications';
 
 /**
  * This is a proxy events emitter for PushNotification plugin's events
@@ -175,5 +176,19 @@ export default boot(({ app }) => {
 
     app.config.globalProperties.$pushNotifications = manager
     app.provide('$pushNotifications', manager)
+
+    // Pinia notification module will act as the event bus for events when user opens app using
+    // push notifications, any page expected to do something when a push notification arrives
+    // should be handled within the page itself
+    // The reason is to have the same handlers for both cases where the app is closed/open
+    const notificationStore = useNotificationsStore()
+    manager.events.addEventListener(
+      'pushNotificationActionPerformed',
+      notificationAction => {
+        console.log('Notification action:', JSON.stringify(notificationAction, null, 2))
+        notificationStore.setOpenedNotification(notificationAction?.notification)
+        notificationStore.handleOpenedNotification()
+      },
+    )
   }
 })
