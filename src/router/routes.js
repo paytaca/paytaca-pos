@@ -51,7 +51,7 @@ const routes = [
         meta: { requireAuth: true },
         children: [
           { path: '', component: () => import('src/pages/marketplace/storefront/index.vue'), name: 'marketplace-storefront', props: route => Object.assign({}, route?.query, route?.params)},
-          { path: 'setup', component: () => import('src/pages/marketplace/storefront/SetupStorefrontPage.vue'), name: 'marketplace-storefront-setup', props: route => Object.assign({}, route?.query, route?.params)},
+          { path: 'setup/:tabParam?', component: () => import('src/pages/marketplace/storefront/SetupStorefrontPage.vue'), name: 'marketplace-storefront-setup', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'settings', redirect: { name: 'marketplace-storefront-setup' }, name: 'marketplace-storefront-settings' },
           { path: 'products', component: () => import('src/pages/marketplace/storefront/StorefrontProducts.vue'), name: 'marketplace-storefront-products', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'collections', component: () => import('src/pages/marketplace/storefront/CollectionsPage.vue'), name: 'marketplace-storefront-collections', props: route => Object.assign({}, route?.query, route?.params)},

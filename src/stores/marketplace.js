@@ -50,6 +50,17 @@ export const useMarketplaceStore = defineStore('marketplace', {
         receiving_address: '',
         auto_subscribe_products: false,
       },
+      storefrontHoursData: {
+        id: 0,
+        open_status: '',
+        weekly_hours: [].map(() => {
+          return {
+            weekday: -1,
+            start_time: '',
+            end_time: '',
+          }
+        })
+      }
     }
   },
 
@@ -292,6 +303,33 @@ export const useMarketplaceStore = defineStore('marketplace', {
         receiving_address: data?.receiving_address,
         auto_subscribe_products: data?.auto_subscribe_products,
         location: data?.location,
+      }
+    },
+    fetchStorefrontHours() {
+      const storefrontId = this.storefrontData?.id
+      return backend.get(`connecta/storefronts/${storefrontId}/weekly_hours/`)
+        .then(response => {
+          this.setStorefrontHoursData(response?.data)
+          return response
+        })
+    },
+    /**
+     * @param {Object} data
+     * @param {Number} data.id
+     * @param {String} data.open_status
+     * @param {{ weekday: Number, start_time: String, end_time: String }[]} data.weekly_hours
+     */
+    setStorefrontHoursData(data) {
+      this.storefrontHoursData = {
+        id: data?.id,
+        open_status: data?.open_status,
+        weekly_hours: !Array.isArray(data?.weekly_hours) ? [] : data?.weekly_hours.map(weekly_hour => {
+          return {
+            weekday: weekly_hour?.weekday,
+            start_time: weekly_hour?.start_time,
+            end_time: weekly_hour?.end_time,
+          }
+        })
       }
     }
   }
