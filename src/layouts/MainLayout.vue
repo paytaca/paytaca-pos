@@ -28,7 +28,7 @@ export default defineComponent({
     let vault = ref(walletStore.merchantInfo?.vault)
     const receiveWebsocket = ref({ readyState: 0 })
     const enableReconnect = ref(true)
-    const reconnectAttempts = ref(20)
+    const reconnectAttempts = ref(100)
     const reconnectTimeout = ref(null)
 
     // onMounted(() => setupListener())
@@ -56,7 +56,7 @@ export default defineComponent({
 
       console.log('Connecting ws:', url)
       const websocket = new WebSocket(url)
-      if (opts?.resetAttempts) reconnectAttempts.value = 20
+      if (opts?.resetAttempts) reconnectAttempts.value = 100
 
       websocket.addEventListener('close', () => {
         console.log('setupListener:', 'Listener closed')
@@ -82,6 +82,8 @@ export default defineComponent({
       })
     }
     function onWebsocketReceive(data) {
+      if (!data?.lock_nft_category) return
+
       const merchantReceiverPk = vault.value?.receiving?.pubkey
       const merchantSignerPk = vault.value?.signer?.pubkey
 
@@ -91,6 +93,7 @@ export default defineComponent({
           merchantSignerPk,
         },
         options: { network: 'mainnet' },
+        // TODO: do not use this when voucher is from paytaca
         feeFunder: {
           address: process.env.PURELYPEER_FEE_FUNDER_ADDR,
           wif: process.env.PURELYPEER_FEE_FUNDER_WIF,

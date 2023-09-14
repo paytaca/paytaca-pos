@@ -74,7 +74,7 @@ export class Vault {
     if (!keyNftUtxo) throw new Error(`No key NFT of category ${keyNftCategory} utxos found`)
     if (!lockNftUtxo) throw new Error(`No lock NFT of category ${lockNftCategory} utxos found`)
     
-    const transaction = contract.functions.claim(
+    const transaction = await contract.functions.claim(
       reverseHex(keyNftCategory),
       merchantSignerSig
     )

@@ -348,7 +348,7 @@ export default defineComponent({
       
     const receiveWebsocket = ref({ readyState: 0 })
     const enableReconnect = ref(true)
-    const reconnectAttempts = ref(5)
+    const reconnectAttempts = ref(100)
     const reconnectTimeout = ref(null)
     const transactionsReceived = ref([])
     const canViewTransactionsReceived = computed(() => {
@@ -381,7 +381,7 @@ export default defineComponent({
 
       const websocket = new WebSocket(url)
       console.log(`Connecting ws: ${url}`)
-      if (opts?.resetAttempts) reconnectAttempts.value = 5
+      if (opts?.resetAttempts) reconnectAttempts.value = 100
 
       websocket.addEventListener('close', () => {
         console.log('setupListener:', 'Listener closed')
@@ -457,13 +457,13 @@ export default defineComponent({
       if (!data?.voucher?.isKeyNft) return
 
       const merchantVault = walletStore.merchantInfo?.vault
-      const merchantReceivingPk = merchantVault?.receiving?.pubkey
+      const merchantReceiverPk = merchantVault?.receiving?.pubkey
       const merchantReceivingAddress = merchantVault?.receiving?.address
       const merchantSignerPk = merchantVault?.signer?.pubkey
 
       const vaultParams = {
         params: {
-          merchantReceivingPk,
+          merchantReceiverPk,
           merchantSignerPk,
         },
         options: {
