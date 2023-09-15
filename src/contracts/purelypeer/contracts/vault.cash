@@ -53,7 +53,7 @@ contract Vault(
         int claimAmount = int(claimAmountBytes);
         require(tx.outputs[0].value == claimAmount);
 
-        // the amount sent must be from lock nft's output
+        // the amount sent must be from lock nft's input
         require(tx.inputs[0].value == claimAmount);
 
         // the funds must be sent to the merchant receiving address

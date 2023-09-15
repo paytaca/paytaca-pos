@@ -408,7 +408,7 @@ export default defineComponent({
       })
     }
     function flagVoucher (txid, lockCategory) {
-      const payload = { txid, lock_category: lockCategory }
+      const payload = { txid, category: lockCategory }
 
       if (props.paymentFrom === 'purelypeer') {
         const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
@@ -472,8 +472,6 @@ export default defineComponent({
       }
 
       const __vault = new Vault(vaultParams)
-      const contract = __vault.getContract()
-
       const keyNftCategory = data?.tokenId.split('/')[1]
       const lockNftCategory = data?.voucher?.lockNftCategory
 
