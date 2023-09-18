@@ -407,8 +407,8 @@ export default defineComponent({
         showOtpInput.value = false
       })
     }
-    function flagVoucher (txid, lockCategory) {
-      const payload = { txid, category: lockCategory }
+    function flagVoucher (txid, keyCategory, lockCategory) {
+      const payload = { txid, category: keyCategory }
 
       if (props.paymentFrom === 'purelypeer') {
         const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
@@ -431,6 +431,9 @@ export default defineComponent({
       }
 
       const watchtowerVoucherFlagUrl = 'https://watchtower.cash/api/vouchers/claimed/'
+      payload.lock_category = lockCategory
+      delete payload.category
+
       axios.post(
         watchtowerVoucherFlagUrl,
         payload
@@ -440,7 +443,7 @@ export default defineComponent({
         err => console.error('Error on updating watchtower regarding claim: ', err)
       )
     }
-    function updatePurelyPeerTxnAttr (txid) {
+    function updateClaimTxnAttr (txid) {
       const payload = {
         txid,
         wallet_hash: walletStore.merchantInfo?.walletHash,
@@ -489,8 +492,8 @@ export default defineComponent({
         })
 
         const txid = transaction.txid
-        flagVoucher(txid, keyNftCategory)
-        updatePurelyPeerTxnAttr(txid)
+        flagVoucher(txid, keyNftCategory, lockNftCategory)
+        updateClaimTxnAttr(txid)
       })
     }
     function onWebsocketReceive(data) {
