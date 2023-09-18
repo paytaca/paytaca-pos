@@ -1479,6 +1479,8 @@ export class Order {
    * @param {{ delivery_fee:Number }} data.payment
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
+   * @param {String | Number} [data.preparation_deadline]
+   * @param {String | Number} [data.delivery_deadline]
   */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -1507,6 +1509,12 @@ export class Order {
 
     if (data?.updated_at) this.updatedAt = new Date(data?.updated_at)
     else if (this.updatedAt) delete this.updatedAt
+
+    if (data?.preparation_deadline) this.preparationDeadline = new Date(data?.preparation_deadline)
+    else if (this.preparationDeadline ) delete this.preparationDeadline
+
+    if (data?.delivery_deadline) this.deliveryDeadline = new Date(data?.delivery_deadline)
+    else if (this.deliveryDeadline) delete this.deliveryDeadline
   }
 
   get isCancelled() {

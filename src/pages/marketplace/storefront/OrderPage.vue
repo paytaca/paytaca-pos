@@ -87,6 +87,35 @@
       </div>
       <div class="q-mb-md"></div>
 
+      <q-banner
+        v-if="preparationTimeRemaining"
+        rounded
+        :class="[
+          'q-mb-md',
+          preparationTimeLow ? 'bg-red text-white' : '',
+        ]"
+      >
+        <div class="row items-center">
+          <div>
+            <div class="text-caption top">Preparation timer:</div>
+            <div class="text-h5">{{ preparationTimeRemainingText }}</div>
+          </div>
+          <q-icon name="help" size="1.5em">
+            <q-menu class="q-pa-sm">
+              Complete items in the order and set as ready for pickup on or before timer expires
+            </q-menu>
+          </q-icon>
+          <q-space/>
+          <q-btn
+            rounded
+            :outline="preparationTimeLow"
+            no-caps label="Extend time"
+            :color="!preparationTimeLow ? 'brandblue' : undefined"
+            @click="() => extendPreparationTime()"
+          />
+        </div>
+      </q-banner>
+
       <div class="row items-center q-gutter-sm q-mb-md">
         <q-btn
           v-if="nextStatus"
@@ -94,7 +123,11 @@
           :label="formatOrderStatus(nextStatus)"
           :color="parseOrderStatusColor(nextStatus)"
           class="q-space"
-          @click="() => updateStatus({ status: nextStatus, errorMessage:'Unable to update order' })"
+          @click="() => {
+            nextStatus == 'confirmed'
+            ? confirmOrder()
+            : updateStatus({ status: nextStatus, errorMessage:'Unable to update order' })
+          }"
         />
       </div>
       <q-card class="q-mb-md">
@@ -459,6 +492,87 @@ export default defineComponent({
       openUpdateDeliveryAddressDialog.value = false
     }
 
+    watch(() => [order.value.preparationDeadline, order.value.status], () => runPreparationTimeCountdown())
+    onActivated(() => runPreparationTimeCountdown())
+    onDeactivated(() => stopPreparationTimeCountdown())
+    onUnmounted(() => stopPreparationTimeCountdown())
+    const preparationTimeCountdownInterval = ref(null)
+    const preparationTimeRemaining = ref(0)    
+    const preparationTimeLow = computed(() => preparationTimeRemaining.value < 300 * 1000)
+    function shouldRunPreparationTimeCountdown() {
+      return ['confirmed', 'preparing'].includes(order.value.status)
+    }
+    const preparationTimeRemainingText = computed(() => {
+      const negative = preparationTimeRemaining.value < 0
+      const seconds = Math.abs(Math.round(preparationTimeRemaining.value / 1000))
+      if (Number.isNaN(seconds)) return ''
+
+      // const days = Math.floor(seconds / (3600 * 24));
+      const hours = Math.floor((seconds % (3600 * 24)) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+      // const milliseconds = Math.floor((seconds - Math.floor(seconds)) * 1000);
+
+      const pad = (value) => (value < 10 ? `0${value}` : `${value}`);
+
+      return `${negative ? '-' : ''}${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
+    })
+    function runPreparationTimeCountdown() {
+      stopPreparationTimeCountdown()
+      if (!shouldRunPreparationTimeCountdown()) return
+      preparationTimeCountdownInterval.value = setInterval(() => {
+        preparationTimeRemaining.value = order.value.preparationDeadline - Date.now()
+      }, 1000)
+    }
+    function stopPreparationTimeCountdown() {
+      clearInterval(preparationTimeCountdownInterval.value)
+      preparationTimeCountdownInterval.value = null
+      preparationTimeRemaining.value = 0
+    }
+    function extendPreparationTime() {
+      $q.dialog({
+        title: 'Preparation time',
+        message: 'Extend preparation time',
+        position: 'bottom',
+        prompt: {
+          model: 5,
+          dense: true,
+          outlined: true,
+          type: 'number',
+          suffix: 'min/s',
+        },
+        ok: { noCaps: true, label: 'Extend', color: 'brandblue' },
+        cancel: { flat: true, noCaps: true, color: 'grey' },
+      }).onOk(value => {
+        const extendMinutes = parseInt(value)
+        if (!extendMinutes) return
+
+        const timestamp = new Date(order.value.preparationDeadline)
+        timestamp.setMinutes(timestamp.getMinutes() + extendMinutes)
+        return updatePreparationDeadline(timestamp)
+      })
+    }
+    function updatePreparationDeadline(timestamp) {
+      const data = { preparation_deadline: timestamp }
+      return backend.patch(`connecta/orders/${props?.orderId}/`, data)
+        .then(response => {
+          order.value.raw = response?.data
+          return response
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          let errorMessage = errorParser.firstElementOrValue(data?.non_field_errors) ||
+                             errorParser.firstElementOrValue(data?.detail)
+          if (!errorMessage && error?.message?.length < 200) errorMessage = error?.message
+          $q.notify({
+            type: 'negative',
+            message: 'Unable to update preparation time',
+            captioN: errorMessage,
+          })
+          return Promise.reject(error)
+        })
+    }
+
     const orderStatusSequence = [
       'pending', 'confirmed', 'preparing', 'ready_for_pickup',
     ]
@@ -473,8 +587,12 @@ export default defineComponent({
       return orderStatusSequence[index-1]
     })
 
-    function updateStatus(opts={ status: '', errorMessage: '', cancelReason: '' }) {
-      const data = { status: opts?.status, cancel_reason: opts?.cancelReason || undefined }
+    function updateStatus(opts={ status: '', errorMessage: '', cancelReason: '', preparationDeadline: 0 }) {
+      const data = {
+        status: opts?.status,
+        cancel_reason: opts?.cancelReason || undefined,
+        preparation_deadline: opts?.preparationDeadline || undefined,
+      }
       return backend.post(`connecta/orders/${order.value.id}/update_status/`, data)
         .then(response => {
           order.value.raw = response?.data
@@ -487,6 +605,39 @@ export default defineComponent({
                     errorParser.firstElementOrValue(error?.response?.data),
           })
         })
+    }
+
+    function confirmOrder() {
+      $q.dialog({
+        title: 'Confirm order',
+        message: 'Set a preparation time for the order',
+        position: 'bottom',
+        prompt: {
+          dense: true,
+          outlined: true,
+          type: 'number',
+          suffix: 'minute/s',
+          color: 'brandblue',
+        },
+        ok: {
+          flat: true,
+          color: 'brandblue',
+        },
+        cancel: {
+          flat: true,
+          color: 'grey',
+          noCaps: true,
+        }
+      }).onOk(duration => {
+        const prepTime = parseInt(duration) * 60 * 1000 // milliseconds
+        if (!prepTime) return
+        let preparationDeadline = new Date(Date.now() + prepTime)
+        updateStatus({
+          status: 'confirmed',
+          errorMessage: 'Unable to confirm order',
+          preparationDeadline: preparationDeadline,
+        })
+      })
     }
 
     function confirmCancelOrder() {
@@ -836,7 +987,14 @@ export default defineComponent({
       nextStatus,
       prevStatus,
 
+      preparationTimeRemaining,
+      preparationTimeLow,
+      preparationTimeRemainingText,
+      extendPreparationTime,
+      updatePreparationDeadline,
+
       updateStatus,
+      confirmOrder,
       confirmCancelOrder,
 
       delivery,
