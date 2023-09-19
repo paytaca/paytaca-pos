@@ -54,6 +54,16 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
+              <q-item
+                v-close-popup clickable
+                @click="() => openOrderUpdatesDialog = true"
+              >
+                <q-item-section>
+                  <q-item-label>
+                    View edit history
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
               <q-separator class="menu-separator"/>
               <q-item
                 v-if="prevStatus"
@@ -375,6 +385,10 @@
       :order="order"
       @updated-items="onUpdateOrderData"
     />
+    <OrderUpdatesDialog
+      v-model="openOrderUpdatesDialog"
+      :order-id="orderId"
+    />
   </q-page>
 </template>
 <script>
@@ -394,6 +408,7 @@ import LeafletMapDialog from 'src/components/marketplace/LeafletMapDialog.vue'
 import OrderPaymentsDialog from 'src/components/marketplace/storefront/OrderPaymentsDialog.vue'
 import UpdateOrderItemsFormDialog from 'src/components/marketplace/storefront/UpdateOrderItemsFormDialog.vue'
 import UpdateOrderDeliveryAddressFormDialog from 'src/components/marketplace/storefront/UpdateOrderDeliveryAddressFormDialog.vue'
+import OrderUpdatesDialog from 'src/components/marketplace/storefront/OrderUpdatesDialog.vue'
 
 export default defineComponent({
   name: 'OrderPage',
@@ -404,6 +419,7 @@ export default defineComponent({
     OrderPaymentsDialog,
     UpdateOrderItemsFormDialog,
     UpdateOrderDeliveryAddressFormDialog,
+    OrderUpdatesDialog,
   },
   props: {
     orderId: [String, Number]
@@ -484,6 +500,7 @@ export default defineComponent({
         })
     }
 
+    const openOrderUpdatesDialog = ref(false)
     const openUpdateDeliveryAddressDialog = ref(false)
     const openUpdateItemsDialog = ref(false)
     function onUpdateOrderData(orderData) {
@@ -980,6 +997,7 @@ export default defineComponent({
       toggleAmountsDisplay,
       storefront,
 
+      openOrderUpdatesDialog,
       openUpdateDeliveryAddressDialog,
       openUpdateItemsDialog,
       onUpdateOrderData,

@@ -1595,6 +1595,95 @@ export class Order {
   }
 }
 
+export class OrderUpdates {
+  UpdateTypes = Object.freeze({
+    ITEM_ADD: 'item_add',
+    ITEM_REMOVE: 'item_remove',
+    ITEM_UPDATE: 'item_update',
+    DELIVERY_ADDRESS_UPDATE: 'delivery_address_update',
+    STATUS_UPDATE: 'status_update',
+  })
+
+  static parse(data) {
+    return new OrderUpdates(data)
+  }
+
+  constructor (data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data 
+   * @param {Number} data.id
+   * @param {Number} data.order_id
+   * @param {String} data.update_type
+   * @param {Object} data.prev_value
+   * @param {Object} data.new_value
+   * @param {String} data.created_at
+   * @param {Object} data.created_by
+   */
+  set raw(data) {
+    this.id = data?.id
+    this.orderId = data?.order_id
+    this.updateType = data?.update_type
+    this.prevValue = data?.prev_value
+    this.newValue = data?.new_value
+    if (data?.created_at) this.createdAt = new Date(data?.created_at)
+    else if (this.createdAt) delete this.createdAt
+    this.createdBy = User.parse(data?.created_by)
+  }
+
+  get updateTexts() {
+    if (this.updateType == this.UpdateTypes.STATUS_UPDATE) {
+      const prevStatus = this.prevValue?.status
+      const newStatus = this.newValue?.status
+      let str = `Updated status`
+      if (prevStatus) str += ` from '${formatOrderStatus(prevStatus)}'`
+      str += ` to '${formatOrderStatus(newStatus)}'`
+      return [str]
+    } else if (this.updateType == this.UpdateTypes.ITEM_ADD) {
+      return [`Added item ${this.newValue?.item_name}`]
+    } else if (this.updateType == this.UpdateTypes.ITEM_REMOVE) {
+      return [`Removed item ${this.prevValue?.item_name}`]
+    } else if (this.updateType == this.UpdateTypes.ITEM_UPDATE) {
+      const texts = [
+        `Updated item ${this.prevValue.item_name || this.newValue.item_name}`
+      ]
+      if (this.prevValue.quantity != this.newValue.quantity) {
+        texts.push(`Changed quantity from ${this.prevValue.quantity} to ${this.newValue.quantity}`)
+      }
+      if (this.prevValue.price != this.newValue.price) {
+        texts.push(`Changed price from ${this.prevValue.price} to ${this.newValue.price}`)
+      }
+      if (this.prevValue.markup_price != this.newValue.markup_price) {
+        texts.push(`Changed markup price from ${this.prevValue.markup_price} to ${this.newValue.markup_price}`)
+      }
+      return texts
+    } else if (this.updateType == this.UpdateTypes.DELIVERY_ADDRESS_UPDATE) {
+      const texts = []
+      const prevName = `${this.prevValue?.first_name} ${this.prevValue?.last_name}`
+      const newName = `${this.newValue?.first_name} ${this.newValue?.last_name}`
+      if (prevName != newName) {
+        texts.push(`Changed name from ${prevName} to ${newName}`)
+      }
+      if (this.prevValue?.phone_number != this.newValue?.phone_number) {
+        texts.push(`Changed contact from ${this.prevValue?.phone_number} to ${this.newValue?.phone_number}`)
+      }
+      if (this.prevValue?.location != this.newValue?.location) {
+        texts.push(`Updated location from '${this.prevValue.location}' to '${this.newValue.location}'`)
+      }
+      if (this.prevValue?.coordinates != this.newValue?.coordinates) {
+        texts.push(`Updated pin location from ${this.prevValue.coordinates} to ${this.newValue.coordinates}`)
+      }
+      return texts
+    }
+  }
+}
+
 
 export class Storefront {
   static parse(data) {
