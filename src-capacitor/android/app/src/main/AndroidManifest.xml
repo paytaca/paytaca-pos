@@ -64,4 +64,6 @@
     <!-- Audio -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    <!-- push-notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 </manifest>
