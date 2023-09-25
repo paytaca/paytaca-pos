@@ -142,37 +142,44 @@
       </div>
       <q-card class="q-mb-md">
         <q-card-section class="q-pt-sm">
-          <div class="column items-end float-right q-r-mt-sm">
-            <div>
+          <div class="row items-center q-mb-sm">
+            <div class="text-h6 q-space">Delivery</div>
+            <div class="row items-center">
+              <LeafletMapDialog v-model="showMap" :locations="mapLocations"/>
               <q-btn
                 flat
                 padding="none"
                 no-caps
                 label="Open Map"
-                class="q-mt-sm text-underline"
+                class="text-underline"
                 @click="() => showMap = true"
               />
-            </div>
-            <div class="q-mt-xs">
               <q-btn
                 v-if="order?.editable"
                 flat
                 icon="edit"
                 padding="xs"
+                class="q-ml-sm"
                 @click="() => openUpdateDeliveryAddressDialog = true"
               />
             </div>
           </div>
-          <LeafletMapDialog v-model="showMap" :locations="mapLocations"/>
-          <div class="row items-center">
-            <div class="text-h6 q-space">Delivery</div>
-          </div>
           <div>
-            {{ order?.deliveryAddress?.firstName }}
-            {{ order?.deliveryAddress?.lastName }}
+            <q-btn
+              v-if="order?.deliveryAddress?.phoneNumber"
+              flat
+              icon="phone"
+              padding="sm"
+              class="float-right"
+              :href="`tel:${order?.deliveryAddress?.phoneNumber}`"
+            />
+            <div>
+              {{ order?.deliveryAddress?.firstName }}
+              {{ order?.deliveryAddress?.lastName }}
+            </div>
+            <div>{{ order?.deliveryAddress?.phoneNumber }}</div>
+            <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
           </div>
-          <div>{{ order?.deliveryAddress?.phoneNumber }}</div>
-          <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
         </q-card-section>
         <template v-if="delivery?.id">
           <q-separator/>
@@ -243,8 +250,19 @@
             <div v-if="delivery?.rider?.id" class="q-mt-xs">
               <div class="text-subtitle2">Rider</div>
               <div class="row items-start q-gutter-x-xs">
-                <div>{{ delivery?.rider?.firstName }} {{ delivery?.rider?.lastName }}</div>
-                <div>{{ delivery?.rider?.phoneNumber }}</div>
+                <div style="line-height:1.25;">
+                  <div>{{ delivery?.rider?.firstName }} {{ delivery?.rider?.lastName }}</div>
+                  <div>{{ delivery?.rider?.phoneNumber }}</div>
+                </div>
+                <q-space/>
+                <q-btn
+                  v-if="delivery?.rider?.phoneNumber"
+                  flat
+                  icon="phone"
+                  padding="sm"
+                  class="float-right"
+                  :href="`tel:${delivery?.rider?.phoneNumber}`"
+                />
               </div>
             </div>
             <div v-else class="text-grey">No rider yet</div>
