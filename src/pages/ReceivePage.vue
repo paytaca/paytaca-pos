@@ -407,8 +407,8 @@ export default defineComponent({
         showOtpInput.value = false
       })
     }
-    function flagVoucher (txid, keyCategory, lockCategory) {
-      const payload = { txid, category: keyCategory }
+    function flagVoucher (txid, category) {
+      const payload = { txid, category: category }
 
       if (props.paymentFrom === 'purelypeer') {
         const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
@@ -431,7 +431,7 @@ export default defineComponent({
       }
 
       const watchtowerVoucherFlagUrl = 'https://watchtower.cash/api/vouchers/claimed/'
-      payload.lock_category = lockCategory
+      payload.category = lockCategory
       delete payload.category
 
       axios.post(
@@ -457,7 +457,7 @@ export default defineComponent({
         .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
     }
     function checkVoucherClaim (data) {
-      if (!data?.voucher?.isKeyNft) return
+      if (!data.voucher) return
 
       const merchantVault = walletStore.merchantInfo?.vault
       const merchantReceiverPk = merchantVault?.receiving?.pubkey
@@ -475,12 +475,10 @@ export default defineComponent({
       }
 
       const __vault = new Vault(vaultParams)
-      const keyNftCategory = data?.tokenId.split('/')[1]
-      const lockNftCategory = data?.voucher?.lockNftCategory
+      const category = data.voucher
 
       __vault.claim({
-        keyNftCategory,
-        lockNftCategory,
+        category,
         merchantReceivingAddress
       })
       .then(transaction => {
@@ -492,7 +490,7 @@ export default defineComponent({
         })
 
         const txid = transaction.txid
-        flagVoucher(txid, keyNftCategory, lockNftCategory)
+        flagVoucher(txid, category)
         updateClaimTxnAttr(txid)
       })
     }
@@ -522,9 +520,7 @@ export default defineComponent({
      * @param {String} data.address_path
      * @param {String[]} data.senders
      * 
-     * @param {Object} data.voucher
-     * @param {Boolean} data.voucher.is_key_nft
-     * @param {String} data.voucher.lock_nft_category -- only present when is_key_nft = true
+     * @param {String} data.voucher = category of voucher
      *
      */
     function parseWebsocketDataReceived(data) {
@@ -548,10 +544,7 @@ export default defineComponent({
         senders: Array.isArray(data?.senders) ? data?.senders : [],
         source: data?.source,
         logo: null,
-        voucher: {
-          isKeyNft: data?.voucher?.is_key_nft,
-          lockNftCategory: data?.voucher?.lock_nft_category,
-        },
+        voucher: data?.voucher,
       }
 
       if (typeof response.tokenSymbol === 'string') response.tokenSymbol = response.tokenSymbol.toUpperCase()

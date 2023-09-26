@@ -62,24 +62,23 @@ export class Vault {
     return contract
   }
 
-  async claim ({ keyNftCategory, lockNftCategory, merchantReceivingAddress }) {
+  async claim ({ category, merchantReceivingAddress }) {
     const contract = this.getContract()
     const signerWif = await this.getSignerWif()
     const merchantSignerSig = new SignatureTemplate(signerWif)
     
     const utxos = await this.provider.getUtxos(contract.address)
-    const keyNftUtxo = utxos.find(utxo => utxo?.token?.category === keyNftCategory)
-    const lockNftUtxo = utxos.find(utxo => utxo?.token?.category === lockNftCategory)
+    const voucherUtxos = utxos.filter(utxo => utxo?.token?.category === category)
 
-    if (!keyNftUtxo) throw new Error(`No key NFT of category ${keyNftCategory} utxos found`)
-    if (!lockNftUtxo) throw new Error(`No lock NFT of category ${lockNftCategory} utxos found`)
+    if (voucherUtxos.length === 0) throw new Error(`No category ${category} utxos found`)
+    if (voucherUtxos.length < 2) throw new Error(`Lacking category ${category} utxos found`)
     
     const transaction = await contract.functions.claim(
-      reverseHex(keyNftCategory),
+      reverseHex(category),
       merchantSignerSig
     )
-    .from([ lockNftUtxo, keyNftUtxo ])
-    .to(merchantReceivingAddress, lockNftUtxo.satoshis)
+    .from(voucherUtxos)
+    .to(merchantReceivingAddress, voucherUtxos[0].satoshis)
     .withoutTokenChange()
     .withoutChange()
     .send()
@@ -87,15 +86,18 @@ export class Vault {
     return transaction
   }
 
-  async refund ({ lockNftCategory, merchantReceivingAddress }) {
+  async refund ({ category, merchantReceivingAddress }) {
     const contract = this.getContract()
     const signerWif = await this.getSignerWif()
     const merchantSignerSig = new SignatureTemplate(signerWif)
 
     const utxos = await this.provider.getUtxos(contract.address)
-    const lockNftUtxo = utxos.find(utxo => utxo?.token?.category === lockNftCategory)
+    const lockNftUtxo = utxos.find(utxo =>
+      utxo?.token?.category === category &&
+      utxo?.satoshis !== 1000n
+    )
 
-    if (!lockNftUtxo) throw new Error(`No lock NFT of category ${lockNftCategory} utxos found`)
+    if (!lockNftUtxo) throw new Error(`No lock NFT of category ${category} utxos found`)
 
     // get latest MTP (median timestamp) from latest block
     const { mediantime } = await axios.get('https://watchtower.cash/api/blockchain/info/')

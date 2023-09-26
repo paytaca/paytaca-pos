@@ -82,7 +82,7 @@ export default defineComponent({
       })
     }
     function onWebsocketReceive(data) {
-      if (!data?.lock_nft_category) return
+      if (!data.voucher) return
 
       const merchantReceiverPk = vault.value?.receiving?.pubkey
       const merchantSignerPk = vault.value?.signer?.pubkey
@@ -103,7 +103,7 @@ export default defineComponent({
       const __vault = new Vault(params)
       const contract = __vault.getContract()
       __vault.refund({
-        lockNftCategory: data?.lock_nft_category,
+        category: data.voucher,
         merchantReceivingAddress: vault.value?.receiving?.address
       }).then(
         txn => console.log('Refund Txn: ', txn)
