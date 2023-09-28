@@ -31,6 +31,12 @@
         </template>
       </div>
     </div>
+    <div class="text-center text-weight-light q-mt-lg q-mx-md q-px-lg" style="word-break:break-all;">
+      <q-skeleton v-if="loading" height="3rem"/>
+      <div v-else style="position:relative;" v-ripple @click="copyText(addressSet?.receiving)">
+        {{ addressSet?.receiving }}
+      </div>
+    </div>
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
         <div>{{ receiveAmount }} {{ currency }}</div>
@@ -60,9 +66,10 @@
     <div v-if="canViewTransactionsReceived && !showOtpInput && !voucher" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
-          Transactions Received
+          Payment Transactions
         </div>
         <q-btn
+          v-if="paymentFrom === 'paytaca'"
           flat
           no-caps
           label="Input OTP"
@@ -100,9 +107,9 @@
         </q-item>
       </template>
       <div v-else-if="receiveWebsocket?.readyState === 1" class="row items-center justify-center">
-        <div class="text-grey text-center q-mt-xs">
-          <q-spinner size="2rem"/>
-          <div>Waiting payment ... </div>
+        <div class="text-grey text-center q-mt-xs q-pt-xs">
+          <q-spinner size="30px"/>
+          <div>Waiting for payment ... </div>
         </div>
       </div>
       <div v-else>
@@ -117,6 +124,7 @@
         </q-btn>
       </div>
       <q-input
+        v-if="paymentFrom === 'paytaca'"
         outlined
         label="Confirmation OTP"
         inputmode="numeric"
@@ -286,7 +294,7 @@ export default defineComponent({
 
     const qrData = computed(() => {
       if (!receiveAmount.value) return ''
-
+      
       const timestamp = Math.floor(Date.now() / 1000)
       let paymentUri = receivingAddress.value
       paymentUri += `?POS=${paymentUriLabel.value}`
@@ -513,6 +521,7 @@ export default defineComponent({
      * @param {String} data.token_id
      * @param {String} data.token_symbol
      * @param {Number} data.amount
+     * @param {Number} data.value
      * @param {String} data.address
      * @param {String} data.source
      * @param {String} data.txid
@@ -532,7 +541,8 @@ export default defineComponent({
         marketValue.currency = currencyBchRate.value.currency
       }
       const response = {
-        amount: data?.value,
+        amount: data?.amount,
+        value: data?.value,
         marketValue: marketValue,
         txid: data?.txid,
         index: data?.index,
@@ -547,6 +557,7 @@ export default defineComponent({
         voucher: data?.voucher,
       }
 
+      if (!response?.amount && response?.value) response.amount = Math.round(response?.value) / 10 ** 8
       if (typeof response.tokenSymbol === 'string') response.tokenSymbol = response.tokenSymbol.toUpperCase()
       if (response.tokenSymbol === 'BCH') response.logo = 'bch-logo.png'
       return response

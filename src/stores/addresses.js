@@ -108,6 +108,7 @@ export const useAddressesStore = defineStore('addresses', {
       // setup hard limit on filling address
       let loopsLeft = 20
       while(this.addressSets.length < this.maxPresavedAddresses && loopsLeft > 0) {
+        console.log(this.addressSets.length)
         let nextIndex = (lastPaymentIndex+1) % MAX_PAYMENT_INDEX
         if (nextIndex === 0) nextIndex++
 

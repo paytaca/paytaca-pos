@@ -83,6 +83,7 @@ export const useMarketStore = defineStore('market', {
         .then(response => {
           const bchRatesData = response?.data?.['bitcoin-cash']
           if (!bchRatesData) return Promise.reject({ response })
+
           const newRates = Object.getOwnPropertyNames(bchRatesData).forEach(_currency => {
            const rateValue = bchRatesData[_currency]
            if (!rateValue) return
