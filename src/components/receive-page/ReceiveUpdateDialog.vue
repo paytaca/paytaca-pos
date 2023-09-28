@@ -49,7 +49,7 @@
             label="Okay"
             color="brandblue"
             class="full-width"
-            @click="onDialogOK()"
+            @click="onOk()"
           />
         </div>
       </q-card-section>
@@ -58,7 +58,7 @@
 </template>
 <script>
 import { defineComponent } from 'vue'
-import { useDialogPluginComponent } from 'quasar'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
 
 export default defineComponent({
   name: 'ReceiveUpdateDialog',
@@ -75,6 +75,7 @@ export default defineComponent({
     marketValue: [String, Number],
     marketValueCurrency: String,
     logo: [String, null],
+    expectedAmount: [String, Number],
   },
   methods: {
     copyText(value, message='Copied address') {
@@ -90,11 +91,33 @@ export default defineComponent({
         .catch(() => {})
     }
   },
-  setup() {
+  setup(props) {
+    const $q = useQuasar()
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+
+    function onOk() {
+      if (!props.expectedAmount) return onDialogOK()
+
+      const expectedAmount = parseFloat(props.expectedAmount)
+      const amount = parseFloat(props?.amount)
+      const errorAmount = Math.abs(expectedAmount - amount)
+      const allowedErrorAmount = 1000 / 10 ** 8
+      if (errorAmount > allowedErrorAmount ) {
+        $q.dialog({
+          title: 'Amount does not match',
+          message: 'Amount does not match with expected amount. Continue?',
+          ok: { color: 'brandblue' },
+          cancel: true,
+        }).onOk(() => onDialogOK())
+          .onDismiss(() => onDialogHide())
+      } else {
+        onDialogOK()
+      }
+    }
 
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
+      onOk,
     }
   },
 })

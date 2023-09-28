@@ -9,6 +9,8 @@
     "@capacitor/app": "^1.1.1",
     "@capacitor/cli": "^3.9.0",
     "@capacitor/core": "^3.9.0",
-    "@capacitor/device": "^1.1.2"
+    "@capacitor/device": "^1.1.2",
+    "@capacitor/push-notifications": "^1.0.9",
+    "capacitor-secure-storage-plugin": "^0.7.1"
   }
 }

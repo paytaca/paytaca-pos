@@ -6,5 +6,13 @@
 	{
 		"pkg": "@capacitor/device",
 		"classpath": "com.capacitorjs.plugins.device.DevicePlugin"
+	},
+	{
+		"pkg": "@capacitor/push-notifications",
+		"classpath": "com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin"
+	},
+	{
+		"pkg": "capacitor-secure-storage-plugin",
+		"classpath": "com.whitestein.securestorage.SecureStoragePluginPlugin"
 	}
 ]
