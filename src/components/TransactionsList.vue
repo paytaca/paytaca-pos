@@ -6,7 +6,7 @@
       style="position:relative" v-ripple
       @click="displayTransaction(tx)"
     >
-      <div class="row items-center">
+      <div class="row items-start">
         <div class="q-space">
           <div class="text-weight-medium">
             {{ recordTypeMap[tx.record_type] }}
@@ -17,6 +17,15 @@
               class="q-ml-xs"
               :class="$q.dark.isActive ? '': 'text-grey'"
             />
+            <q-chip
+              v-if="resolveTransactionSalesOrderId(tx)"
+              dense clickable
+              color="brandblue"
+              class="q-my-none text-white"
+              @click.stop="() => displayCommerceHubSalesOrder(resolveTransactionSalesOrderId(tx))"
+            >
+              Sale
+            </q-chip>
           </div>
           <div class="text-subtitle text-grey">
             <template v-if="tx.tx_timestamp">{{ formatDate(tx.tx_timestamp) }}</template>
@@ -42,18 +51,29 @@
       </div>
       <q-separator/>
     </div>
+    <TransactionDetailDialog
+      v-model="transactionDetailDialog.show"
+      :transaction="transactionDetailDialog.transaction"
+    />
   </div>
 </template>
 <script>
+import { SalesOrder } from 'src/marketplace/objects'
+import { resolveTransactionSalesOrderId } from 'src/marketplace/utils'
 import ago from 's-ago'
+import { useQuasar } from 'quasar'
 import { defineComponent, computed, ref } from 'vue'
 import TransactionDetailDialog from 'src/components/TransactionDetailDialog.vue'
 import { useWalletStore } from 'src/stores/wallet'
 import { useTxCacheStore } from 'src/stores/tx-cache'
+import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
 
 const walletStore = useWalletStore()
 
 export default defineComponent({
+  components: {
+    TransactionDetailDialog,
+  },
   props: {
     transactions: Object,
   },
@@ -74,12 +94,6 @@ export default defineComponent({
     formatDate (date) {
       return ago(new Date(date))
     },
-    displayTransaction(tx) {
-      this.$q.dialog({
-        component: TransactionDetailDialog,
-        componentProps: { transaction: tx },
-      })
-    },
     marketValue(transaction) {
       const data = {
         marketAssetPrice: null,
@@ -99,6 +113,7 @@ export default defineComponent({
     }
   },
   setup(props) {
+    const $q = useQuasar()
     const txCacheStore = useTxCacheStore()
     const txHistoryTimestampBounds = computed(() => {
       const data = { min: undefined, max: undefined }
@@ -139,9 +154,42 @@ export default defineComponent({
       return data
     })
 
+    const transactionDetailDialog = ref({
+      show: false,
+      transaction: {},
+    })
+
+    function displayTransaction(tx) {
+      transactionDetailDialog.value.transaction = tx
+      transactionDetailDialog.value.show = true
+    }
+
+    const salesOrder = ref(SalesOrder.parse())
+    function displayCommerceHubSalesOrder(salesOrderId=0) {
+      if (!salesOrderId) return
+      if (salesOrder.value.id != salesOrderId) {
+        salesOrder.value = SalesOrder.parse({ id: salesOrderId })
+        salesOrder.value.refetch()
+      }
+
+      $q.dialog({
+        component: SalesOrderDetailDialog,
+        componentProps: { salesOrder: salesOrder.value },
+      })
+    }
+
+
     return {
       offlineTransactionsToShow,
       transactionsList,
+
+      transactionDetailDialog,
+      displayTransaction,
+
+      salesOrder,
+      displayCommerceHubSalesOrder,
+
+      resolveTransactionSalesOrderId,
     }
   }
 })

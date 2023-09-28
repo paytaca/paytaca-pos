@@ -3,6 +3,14 @@
     <MainHeader title="Settings"/>
     <q-card class="q-mx-md q-mt-lg text-weight-medium" style="border-radius:16px;">
       <q-list separator>
+        <q-item clickable v-ripple :to="{ name: 'marketplace' }">
+          <q-item-section :class="$q.dark.isActive ? 'text-white' : 'text-brandblue'">
+            <q-item-label>Marketplace</q-item-label>
+          </q-item-section>
+          <q-item-section avatar>
+            <q-item-label class="text-caption text-underline">Go to marketplace</q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item clickable v-ripple @click="$q.dark.toggle()">
           <q-item-section :class="$q.dark.isActive ? 'text-white' : 'text-brandblue'">
             <q-item-label>Dark Mode</q-item-label>
