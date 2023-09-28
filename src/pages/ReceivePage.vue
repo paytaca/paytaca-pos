@@ -31,12 +31,6 @@
         </template>
       </div>
     </div>
-    <div class="text-center text-weight-light q-mt-lg q-mx-md q-px-lg" style="word-break:break-all;">
-      <q-skeleton v-if="loading" height="3rem"/>
-      <div v-else style="position:relative;" v-ripple @click="copyText(addressSet?.receiving)">
-        {{ addressSet?.receiving }}
-      </div>
-    </div>
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
         <div>{{ receiveAmount }} {{ currency }}</div>
@@ -579,7 +573,7 @@ export default defineComponent({
         componentProps: {
           txid: data?.txid,
           address: data?.address,
-          amount: data?.value,
+          amount: data?.value / 100000000,
           tokenCurrency: data?.tokenSymbol,
           marketValue: marketValue.amount,
           marketValueCurrency: marketValue.currency,
