@@ -18,7 +18,6 @@ export default route(function (/* { store, ssrContext } */) {
 
   App.addListener('appUrlOpen', event => {
     const url = new URL(event?.url)
-    console.log(url)
     if (url.pathname.includes('link') && url.searchParams.get('code')) {
       Router.push({ name: 'home', query: { walletLinkUrl: url.searchParams.get('code') } })
     }

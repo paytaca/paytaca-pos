@@ -27,6 +27,21 @@
       <q-card>
         <q-item
           class="select-item"
+          clickable v-ripple
+          @click="promptAmount('purelypeer')"
+        >
+          <q-item-section avatar>
+            <img src="~assets/purelypeer-logo.png" height="50"/>
+          </q-item-section>
+          <q-item-section top class="q-py-sm">
+            <q-item-label class="text-subtitle1">PurelyPeer</q-item-label>
+            <q-item-label caption>Claim vouchers from PurelyPeer</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-card>
+      <q-card>
+        <q-item
+          class="select-item"
           :clickable="isOnline"
           :v-ripple="isOnline"
           :disable="!isOnline"
@@ -69,28 +84,37 @@ export default defineComponent({
 
     /**
      * 
-     * @param {'paytaca' | 'other'} paymentFrom 
+     * @param {'paytaca' | 'purelypeer' | 'other'} paymentFrom 
      */
     function promptAmount(paymentFrom) {
       let currencies = ['BCH']
+      const voucherSupportingWallets = [
+        'purelypeer',
+      ]
       if (paymentFrom === 'paytaca') currencies = ['BCH', 'PHP']
+
       $q.dialog({
         component: SetAmountFormDialog,
         componentProps: {
           currencies: currencies,
           initialValue: { currency: selectedCurrency.value },
+          supportsVoucher: voucherSupportingWallets.includes(paymentFrom)
         },
       }).onOk(data => {
-        if (!data?.value) return
-        $router.push({
-          name: 'receive-page',
-          query: {
-            paymentFrom: paymentFrom,
-            setAmount: data?.value || undefined,
-            setCurrency: data?.currency || undefined,
-            lockAmount: true,
-          }
-        })
+        const voucher = data?.voucher
+        const amount = data?.amount
+
+        if (!amount?.value) return
+
+        const name = 'receive-page'
+        const query = {
+          paymentFrom: paymentFrom,
+          setAmount: amount?.value || undefined,
+          setCurrency: amount?.currency || undefined,
+          lockAmount: true,
+          voucher,
+        }
+        $router.push({ name, query })
       })
     }
 

@@ -1,9 +1,9 @@
 <template>
   <q-page padding>
-    <MainHeader title="Payment"/>
+    <MainHeader :title="title"/>
     <div class="text-center text-h4 q-mb-lg">
       <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
-      <div v-else class="text-h6">#{{ addressSet?.index }}</div>
+      <div v-if="!loading && !voucher" class="text-h6">#{{ addressSet?.index }}</div>
     </div>
     <q-banner v-if="paymentFrom !== 'paytaca' && !isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-md rounded-borders">
       <q-icon name="info" class="" size="1.5em">
@@ -31,12 +31,6 @@
         </template>
       </div>
     </div>
-    <div class="text-center text-weight-light q-mt-lg q-mx-md q-px-lg" style="word-break:break-all;">
-      <q-skeleton v-if="loading" height="3rem"/>
-      <div v-else style="position:relative;" v-ripple @click="copyText(addressSet?.receiving)">
-        {{ addressSet?.receiving }}
-      </div>
-    </div>
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
         <div>{{ receiveAmount }} {{ currency }}</div>
@@ -44,7 +38,7 @@
           {{ bchValue }} BCH
         </div>
       </div>
-      <div v-else class="text-red">Set amount</div>
+      <div v-else class="text-red">{{ altAmountText }}</div>
       <!-- <q-popup-edit v-model="receiveAmount" v-slot="scope">
         <q-input
           label="Amount"
@@ -57,7 +51,13 @@
         />
       </q-popup-edit> -->
     </div>
-    <div v-if="canViewTransactionsReceived && !showOtpInput" class="q-px-md q-mt-md">
+    <div class="text-center text-h6 text-weight-light q-mt-lg q-mx-md q-px-lg" style="word-break:break-all;">
+      <q-skeleton v-if="loading" height="3rem"/>
+      <div v-else style="position:relative;" v-ripple @click="copyText(receivingAddress)">
+        {{ receivingAddress }}
+      </div>
+    </div>
+    <div v-if="canViewTransactionsReceived && !showOtpInput && !voucher" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
           Payment Transactions
@@ -110,7 +110,7 @@
         No transactions received
       </div>
     </div>
-    <div v-if="!canViewTransactionsReceived || showOtpInput" class="q-mt-lg q-px-md">
+    <div v-if="(!canViewTransactionsReceived || showOtpInput) && !voucher" class="q-mt-lg q-px-md">
       <div v-if="canViewTransactionsReceived" class="row justify-end q-mb-sm">
         <q-btn flat no-caps padding="xs-sm" @click="showOtpInput = false">
             <q-icon name="arrow_back" size="1.25em" class="q-mr-sm"/>
@@ -156,6 +156,8 @@ import { decodePaymentUri, sha256 } from 'src/wallet/utils'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
+import { Vault } from 'src/contracts/purelypeer/vault'
+import axios from 'axios'
 
 export default defineComponent({
   name: "ReceivePage",
@@ -164,10 +166,11 @@ export default defineComponent({
     MainHeader
   },
   props: {
-    paymentFrom: String, // paytaca | other
+    paymentFrom: String, // paytaca | purelypeer | other
     setAmount: Number,
     setCurrency: String,
     lockAmount: Boolean, // should only work if setAmount is given
+    voucher: Boolean,
   },
   methods: {
     copyText(value, message='Copied address') {
@@ -192,7 +195,19 @@ export default defineComponent({
     const txCacheStore = useTxCacheStore();
     const marketStore = useMarketStore()
 
+    const title = computed(() => props.voucher ? 'Claim Voucher' : 'Payment')
     const requireOtp = computed(() => props.paymentFrom === 'paytaca')
+    const altAmountText = computed(() => {
+      return props.voucher ? '' : 'Set Amount'
+    })
+    const vault = ref(walletStore.merchantInfo?.vault)
+    const receivingAddress = computed(() => {
+      return (
+        props.voucher ?
+        vault.value?.tokenAddress :
+        addressSet.value?.receiving
+      )
+    })
 
     const addressesStore = useAddressesStore()
     const generatingAddress = ref(false)
@@ -273,42 +288,32 @@ export default defineComponent({
 
     const qrData = computed(() => {
       if (!receiveAmount.value) return ''
-      if (props.paymentFrom === 'paytaca') return qrDataforPaytaca.value
-      return qrDataForOtherWallets.value
-    })
-
-    const qrDataForOtherWallets = computed(() => {
-      // QR data is a BIP0021 compliant
-      // BIP0021 is a URI scheme for bitcoin payments
-      if (!addressSet.value?.receiving) return ''
-      let paymentUri = addressSet.value?.receiving
-
-      if (paymentUriLabel.value) paymentUri += `?POS=${paymentUriLabel.value}`
-
-      if (!bchValue.value) return ''
-      paymentUri += `&amount=${bchValue.value}`
-
-      paymentUri += `&ts=${Math.floor(Date.now()/1000)}`
-      return paymentUri
-    })
-
-    const qrDataforPaytaca = computed(() => {
-      if (!addressSet.value?.receiving) return ''
-      if (!paymentUriLabel.value) return ''
-      let paymentUri = `paytaca:`
-      paymentUri += addressSet.value?.receiving.replace('bitcoincash:', '')
-
-      if (receiveAmount.value) {
+      
+      const timestamp = Math.floor(Date.now() / 1000)
+      let paymentUri = receivingAddress.value
+      paymentUri += `?POS=${paymentUriLabel.value}`
+      
+      // amount
+      if (props.paymentFrom === 'paytaca') {
         let amount = receiveAmount.value
         if (currency.value && currency.value != 'BCH') {
           amount = `${currency.value}:${amount}`
         }
         paymentUri += `@${amount}`
+      } else {
+        paymentUri += `&amount=${bchValue.value}`
+      }
+      
+      // merchant address for vouchers
+      if (props.voucher) {
+        const merchantReceivingAddress = vault.value?.receiving?.address
+        paymentUri += `&merchantAddress=${merchantReceivingAddress}`
       }
 
-      paymentUri += `?POS=${paymentUriLabel.value}&ts=${Math.floor(Date.now()/1000)}`
+      paymentUri += `&ts=${timestamp}`
       return paymentUri
     })
+
     function cacheQrData() {
       // walletStore.cacheQrData(qrData.value)
       walletStore.removeOldQrDataCache(86400*2) // remove qr data older than 2 days
@@ -345,7 +350,7 @@ export default defineComponent({
       
     const receiveWebsocket = ref({ readyState: 0 })
     const enableReconnect = ref(true)
-    const reconnectAttempts = ref(5)
+    const reconnectAttempts = ref(100)
     const reconnectTimeout = ref(null)
     const transactionsReceived = ref([])
     const canViewTransactionsReceived = computed(() => {
@@ -371,14 +376,14 @@ export default defineComponent({
     function setupListener(opts) {
       receiveWebsocket.value?.close?.()
       receiveWebsocket.value = null // for reactivity
-      const address = addressSet.value?.receiving
+      const address = props.voucher ? vault.value?.address : addressSet.value?.receiving
       if (!address) return
-      // const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
+
       const url = `wss://watchtower.cash/ws/watch/bch/${address}/`
 
-      console.log('Connecting ws:', url)
       const websocket = new WebSocket(url)
-      if (opts?.resetAttempts) reconnectAttempts.value = 5
+      console.log(`Connecting ws: ${url}`)
+      if (opts?.resetAttempts) reconnectAttempts.value = 100
 
       websocket.addEventListener('close', () => {
         console.log('setupListener:', 'Listener closed')
@@ -404,10 +409,101 @@ export default defineComponent({
         showOtpInput.value = false
       })
     }
+    function flagVoucher (txid, category) {
+      const payload = { txid, category: category }
+
+      if (props.paymentFrom === 'purelypeer') {
+        const prefix = process.env.NODE_ENV === 'production' ? '' : 'staging.'
+        const purelypeerClaimUrl = `https://${prefix}purelypeer.cash/api/key_nfts/claimed/`
+        const headers = {
+          headers: {
+            'purelypeer-proof-auth-header': process.env.PURELYPEER_HEADER_VALUE
+          }
+        }
+
+        axios.post(
+          purelypeerClaimUrl,
+          payload,
+          headers
+        ).then(
+          response => console.log('Updated purelypeer backend regarding claim: ', response)
+        ).catch(
+          err => console.error('Error on updating purelypeer backend regarding claim: ', err)
+        )
+      }
+
+      const watchtowerVoucherFlagUrl = 'https://watchtower.cash/api/vouchers/claimed/'
+      payload.category = lockCategory
+      delete payload.category
+
+      axios.post(
+        watchtowerVoucherFlagUrl,
+        payload
+      ).then(
+        response => console.log('Updated watchtower regarding claim: ', response)
+      ).catch(
+        err => console.error('Error on updating watchtower regarding claim: ', err)
+      )
+    }
+    function updateClaimTxnAttr (txid) {
+      const payload = {
+        txid,
+        wallet_hash: walletStore.merchantInfo?.walletHash,
+        key: "voucher_claim",
+        value: "Voucher Claim",
+        remove: false
+      }
+      const watchtowerTxnAttrUrl = 'https://watchtower.cash/api/transactions/attributes/'
+      axios.post(watchtowerTxnAttrUrl, payload)
+        .then(response => console.log('Added transaction attribute as voucher claim: ', response))
+        .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
+    }
+    function checkVoucherClaim (data) {
+      if (!data.voucher) return
+
+      const merchantVault = walletStore.merchantInfo?.vault
+      const merchantReceiverPk = merchantVault?.receiving?.pubkey
+      const merchantReceivingAddress = merchantVault?.receiving?.address
+      const merchantSignerPk = merchantVault?.signer?.pubkey
+
+      const vaultParams = {
+        params: {
+          merchantReceiverPk,
+          merchantSignerPk,
+        },
+        options: {
+          network: 'mainnet'
+        }
+      }
+
+      const __vault = new Vault(vaultParams)
+      const category = data.voucher
+
+      __vault.claim({
+        category,
+        merchantReceivingAddress
+      })
+      .then(transaction => {
+        $q.notify({
+          message: 'Voucher claimed!',
+          timeout: 1500,
+          icon: 'mdi-check-circle',
+          color: 'green-6'
+        })
+
+        const txid = transaction.txid
+        flagVoucher(txid, category)
+        updateClaimTxnAttr(txid)
+      })
+    }
     function onWebsocketReceive(data) {
       console.log(data)
-      if (!data?.amount && !data?.value) return
+      
+      if (!data?.value) return
+
       const parsedData = parseWebsocketDataReceived(data)
+      if (props.voucher) checkVoucherClaim(parsedData)
+
       transactionsReceived.value.push(parsedData)
       displayReceivedTransaction(parsedData)
       showOtpInput.value = false
@@ -426,12 +522,15 @@ export default defineComponent({
      * @param {Number} data.index
      * @param {String} data.address_path
      * @param {String[]} data.senders
+     * 
+     * @param {String} data.voucher = category of voucher
+     *
      */
     function parseWebsocketDataReceived(data) {
       const marketValue = { amount: 0, currency: '' }
       if (data?.tokenSymbol === 'BCH' && currencyBchRate.value.rate) {
         marketValue.amount = Number(
-          (Number(data?.amount) * currencyBchRate.value.rate).toFixed(3)
+          (Number(data?.value) * currencyBchRate.value.rate).toFixed(3)
         )
         marketValue.currency = currencyBchRate.value.currency
       }
@@ -449,6 +548,7 @@ export default defineComponent({
         senders: Array.isArray(data?.senders) ? data?.senders : [],
         source: data?.source,
         logo: null,
+        voucher: data?.voucher,
       }
 
       if (!response?.amount && response?.value) response.amount = Math.round(response?.value) / 10 ** 8
@@ -463,7 +563,7 @@ export default defineComponent({
       if (!marketValue?.amount || !marketValue?.currency) {
         if (data?.tokenSymbol === 'BCH' && currencyBchRate.value.rate) {
           marketValue.amount = Number(
-            (Number(data?.amount) * currencyBchRate.value.rate).toFixed(3)
+            (Number(data?.value) * currencyBchRate.value.rate).toFixed(3)
           )
           marketValue.currency = currencyBchRate.value.currency
         }
@@ -473,7 +573,7 @@ export default defineComponent({
         componentProps: {
           txid: data?.txid,
           address: data?.address,
-          amount: data?.amount,
+          amount: data?.value / 100000000,
           tokenCurrency: data?.tokenSymbol,
           marketValue: marketValue.amount,
           marketValueCurrency: marketValue.currency,
@@ -513,7 +613,6 @@ export default defineComponent({
       if (!isOnline.value && props.paymentFrom !== 'paytaca') {
         $networkDetect.check()
           .then(_isOnline => {
-            console.log('Detected isOnline:', _isOnline)
             if (!_isOnline) {
               $q.dialog({
                 title: 'Detected offline',
@@ -547,6 +646,9 @@ export default defineComponent({
       transactionsReceived,
       canViewTransactionsReceived,
       displayReceivedTransaction,
+      title,
+      altAmountText,
+      receivingAddress,
     }
   },
 })

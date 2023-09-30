@@ -23,7 +23,6 @@ export default boot(({ app, store }) => {
       this.client?.ws?.close?.()
       this.client.connect(this.url.value)
         .then(response => {
-          console.log('RPC Client connected:', response)
           clearTimeout(this.rpcReconnectTimeout)
       })
     }

@@ -1,9 +1,12 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" no-refocus position="bottom">
     <q-card class="q-dialog-plugin">
-      <q-form @submit="onDialogOK(amount)">
+      <q-form @submit="onDialogOK({
+        amount,
+        voucher
+      })">
         <q-card-section>
-          <div class="text-h5 q-mb-md">{{ title || 'Set amount' }}</div>
+          <div class="text-h5 q-mb-md">{{ finalTitle }}</div>
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
           </div>
@@ -27,25 +30,30 @@
         </q-card-section>
         <q-card-actions class="row items-center justify-around q-gutter-x-md">
           <q-btn
-            outline
-            no-caps
-            size="1rem"
-            padding="sm md"
-            color="grey"
-            label="Cancel"
-            class="q-space"
-            @click="onDialogCancel"
-          />
-          <q-btn
             no-caps
             color="brandblue"
             size="1rem"
             padding="sm md"
-            label="Set amount"
+            label="Receive Payment"
             class="q-space"
             type="submit"
           />
         </q-card-actions>
+
+        <div v-if="supportsVoucher">
+          <div class="flex row q-ma-sm">
+            <q-btn
+              no-caps
+              color="brandblue"
+              size="1rem"
+              padding="sm md"
+              label="Claim Voucher"
+              class="q-space"
+              type="submit"
+              @click="voucher = true"
+            />
+          </div>
+        </div>
       </q-form>
     </q-card>
   </q-dialog>
@@ -62,6 +70,7 @@ export default defineComponent({
     currencies: Array,
     title: String,
     message: String,
+    supportsVoucher: Boolean,
   },
   emits: [
     // REQUIRED; need to specify some events that your
@@ -75,6 +84,7 @@ export default defineComponent({
       value: props?.initialValue?.amount || null,
       currency: props?.initialValue?.currency || 'BCH',
     })
+    const voucher = ref(false)
     const currencyOpts = computed(() => {
       const initialCurrency = props?.initialValue?.currency
       let opts = ['BCH', 'PHP']
@@ -84,12 +94,19 @@ export default defineComponent({
       }
       return opts
     })
+
+    const finalTitle = computed(() => {
+      if (props?.supportsVoucher) return 'Pay or Claim Voucher'
+      return props?.title || 'Set Amount'
+    })
     
     
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       amount,
       currencyOpts,
+      finalTitle,
+      voucher,
     }
   },
 })

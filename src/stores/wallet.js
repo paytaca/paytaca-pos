@@ -1,8 +1,14 @@
 import Watchtower from 'watchtower-cash-js';
 import { defineStore } from 'pinia';
 import { Wallet } from 'src/wallet';
-import { sha256, decodePaymentUri, getPubkeyAt } from 'src/wallet/utils';
 import { useAddressesStore } from './addresses';
+import {
+  sha256,
+  decodePaymentUri,
+  getPubkeyAt,
+  pubkeyToCashAddress,
+} from 'src/wallet/utils';
+
 
 export const useWalletStore = defineStore('wallet', {
   state: () => ({
@@ -46,6 +52,18 @@ export const useWalletStore = defineStore('wallet', {
         longitude: null,
         latitude: null,
       },
+      vault: {
+        receiving: {
+          address: '',
+          pubkey: '',
+        },
+        signer: {
+          address: '',
+          pubkey: '',
+        },
+        address: '',
+        tokenAddress: '',
+      }
     },
 
     branchInfo: {
@@ -192,7 +210,7 @@ export const useWalletStore = defineStore('wallet', {
       })
     }
   },
-
+  
   actions: {
     /**
      * @param {Object} state 
@@ -201,6 +219,10 @@ export const useWalletStore = defineStore('wallet', {
      * @param {String} data.name
      * @param {String} data.wallet_hash
      * @param {String} data.primary_contact_number
+     * 
+     * @param {String} data.signer_pubkey
+     * @param {String} data.receiving_pubkey
+     * 
      * @param {Object} [data.location]
      * @param {String} data.location.landmark
      * @param {String} data.location.location
@@ -209,7 +231,10 @@ export const useWalletStore = defineStore('wallet', {
      * @param {String} data.location.country
      * @param {String} data.location.longitude
      * @param {String} data.location.latitude
-     */
+     * @param {Object} [data.vault]
+     * @param {String} data.vault.address
+     * @param {String} data.vault.token_address
+    */
     setMerchantInfo(data) {
       const merchantInfo = {
         id: data?.id,
@@ -225,6 +250,18 @@ export const useWalletStore = defineStore('wallet', {
           longitude: data?.location?.longitude,
           latitude: data?.location?.latitude,
         },
+        vault: {
+          receiving: {
+            address: pubkeyToCashAddress(data?.receiving_pubkey),
+            pubkey: data?.receiving_pubkey,
+          },
+          signer: {
+            address: pubkeyToCashAddress(data?.signer_pubkey),
+            pubkey: data?.signer_pubkey,
+          },
+          address: data?.vault?.address,
+          tokenAddress: data?.vault?.token_address,
+        }
       }
 
       this.merchantInfo = merchantInfo
@@ -487,7 +524,6 @@ export const useWalletStore = defineStore('wallet', {
       this.clearSalesReport()
       const addressesStore = useAddressesStore()
       addressesStore.addressSets = []
-      console.log(addressesStore.addressSets)
     }
   }
 })
