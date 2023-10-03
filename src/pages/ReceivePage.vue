@@ -433,8 +433,6 @@ export default defineComponent({
       }
 
       const watchtowerVoucherFlagUrl = 'https://watchtower.cash/api/vouchers/claimed/'
-      payload.category = lockCategory
-      delete payload.category
 
       axios.post(
         watchtowerVoucherFlagUrl,
