@@ -1095,6 +1095,7 @@ export default defineComponent({
     onMounted(() => handleOpenedNotification())
     function handleOpenedNotification() {
       const openedNotification = notificationsStore.openedNotification
+      
       const notificationTypes = notificationsStore.types
       const openContractTypes = [
         notificationTypes.MARKETPLACE_ORDER_CREATE,
@@ -1106,6 +1107,9 @@ export default defineComponent({
         if (parseInt(props.orderId) == parseInt(orderId)) {
           notificationsStore.clearOpenedNotification()
         }
+      } else if (notificationTypes.MARKETPLACE_ORDER_INCOMING_CALL == openedNotification?.data?.type) {
+        fetchOrderCallSession()
+        showOrderCallDialog.value = true
       }
     }
 
