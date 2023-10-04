@@ -56,7 +56,7 @@ export default defineComponent({
 
       console.log('Connecting ws:', url)
       const websocket = new WebSocket(url)
-      if (opts?.resetAttempts) reconnectAttempts.value = 100
+      if (opts?.resetAttempts) reconnectAttempts.value = 10000
 
       websocket.addEventListener('close', () => {
         console.log('setupListener:', 'Listener closed')
