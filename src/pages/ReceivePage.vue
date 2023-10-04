@@ -290,17 +290,22 @@ export default defineComponent({
       if (!receiveAmount.value) return ''
       
       const timestamp = Math.floor(Date.now() / 1000)
+
       let paymentUri = receivingAddress.value
-      paymentUri += `?POS=${paymentUriLabel.value}`
       
       // amount
       if (props.paymentFrom === 'paytaca') {
+        paymentUri = 'paytaca:'
+        paymentUri += receivingAddress.value.replace('bitcoincash:', '')
+
         let amount = receiveAmount.value
         if (currency.value && currency.value != 'BCH') {
           amount = `${currency.value}:${amount}`
         }
         paymentUri += `@${amount}`
+        paymentUri += `?POS=${paymentUriLabel.value}`
       } else {
+        paymentUri += `?POS=${paymentUriLabel.value}`
         paymentUri += `&amount=${bchValue.value}`
       }
       
@@ -383,7 +388,7 @@ export default defineComponent({
 
       const websocket = new WebSocket(url)
       console.log(`Connecting ws: ${url}`)
-      if (opts?.resetAttempts) reconnectAttempts.value = 100
+      if (opts?.resetAttempts) reconnectAttempts.value = 10000
 
       websocket.addEventListener('close', () => {
         console.log('setupListener:', 'Listener closed')
@@ -433,8 +438,6 @@ export default defineComponent({
       }
 
       const watchtowerVoucherFlagUrl = 'https://watchtower.cash/api/vouchers/claimed/'
-      payload.category = lockCategory
-      delete payload.category
 
       axios.post(
         watchtowerVoucherFlagUrl,
