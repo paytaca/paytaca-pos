@@ -71,7 +71,6 @@ export class Vault {
     const voucherUtxos = utxos.filter(utxo => utxo?.token?.category === category)
 
     if (voucherUtxos.length === 0) throw new Error(`No category ${category} utxos found`)
-    if (voucherUtxos.length < 2) throw new Error(`Lacking category ${category} utxos found`)
 
     const lockNftUtxo = voucherUtxos.find(utxo => utxo.satoshis !== 1000n)
     const transaction = await contract.functions.claim(
