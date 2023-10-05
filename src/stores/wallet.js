@@ -113,7 +113,9 @@ export const useWalletStore = defineStore('wallet', {
       )
 
       data.today.total = Number(data.today.total.toFixed(8))
-      data.today.totalMarketValue = Number(data.today.totalMarketValue.toFixed(2))
+      if (data.today.totalMarketValue) {
+        data.today.totalMarketValue = Number(data.today.totalMarketValue.toFixed(2))
+      }
 
       const yesterday = new Date()
       yesterday.setDate(yesterday.getDate() - 1)
@@ -122,7 +124,9 @@ export const useWalletStore = defineStore('wallet', {
         this.salesReport.data.find((record) => record?.year === yesterday.getFullYear() && record?.month-1 === yesterday.getMonth() && record?.day === yesterday.getDate()),
       )
       data.yesterday.total = Number(data.yesterday.total.toFixed(8))
-      data.yesterday.totalMarketValue = Number(data.yesterday.totalMarketValue.toFixed(2))
+      if (data.yesterday.totalMarketValue) {
+        data.yesterday.totalMarketValue = Number(data.yesterday.totalMarketValue.toFixed(2))
+      }
       return data
     },
     salesReportPastWeek() {
@@ -145,7 +149,9 @@ export const useWalletStore = defineStore('wallet', {
       }
 
       data.total = Number(data.total.toFixed(8))
-      data.totalMarketValue = Number(data.totalMarketValue.toFixed(2))
+      if (data.totalMarketValue) {
+        data.totalMarketValue = Number(data.totalMarketValue.toFixed(2))
+      }
       return data
     },
     salesReportPastMonth() {
@@ -168,7 +174,9 @@ export const useWalletStore = defineStore('wallet', {
       }
 
       data.total = Number(data.total.toFixed(8))
-      data.totalMarketValue = Number(data.totalMarketValue.toFixed(2))
+      if (data.totalMarketValue) {
+        data.totalMarketValue = Number(data.totalMarketValue.toFixed(2))
+      }
       return data
     },
     walletHandle() {

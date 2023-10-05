@@ -33,8 +33,16 @@ export default defineComponent({
 
     // onMounted(() => setupListener())
 
+    const receivingAddress = computed(() => walletStore.merchantInfo?.vault?.receiving?.address)
+
+    watch(receivingAddress, () => {
+      if (receivingAddress.value) {
+        setupListener({ resetAttempts: true })
+      }
+    })
+
     watch(isOnline, () => {
-      if (isOnline.value) {
+      if (isOnline.value && receivingAddress.value) {
         setupListener({ resetAttempts: true })
       } else {
         receiveWebsocket.value?.close()
@@ -42,8 +50,6 @@ export default defineComponent({
       }
     })
 
-    const receivingAddress = computed(() => walletStore.merchantInfo?.vault?.receiving?.address)
-    watch(receivingAddress, () => setupListener({ resetAttempts: true }))
 
     function setupListener(opts) {
       vault = ref(walletStore.merchantInfo?.vault)
