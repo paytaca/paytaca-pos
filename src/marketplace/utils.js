@@ -17,6 +17,11 @@ export function formatTimestampToText(timestamp) {
   return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
 }
 
+export function formatStatusGeneric(value='') {
+  if (typeof value !== 'string') return
+  return capitalize(value).replaceAll('_', ' ')
+}
+
 /** 
  * @param {'shop_admin' | 'inventory_control_manager' | 'cashier' | 'storefront_staff' } value
  */

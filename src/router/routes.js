@@ -27,6 +27,7 @@ const routes = [
         meta: { requireAuth: true },
         children: [
           { path: '', component: () => import('src/pages/marketplace/index.vue'), name: 'marketplace', props: route => route?.query},
+          { path: 'webrtc', component: () => import('src/pages/marketplace/webrtc-chat.vue'), name: 'marketplace-webrtc', props: route => route?.query},
           { path: 'settings', component: () => import('src/pages/marketplace/MarketplaceSettings.vue'), name: 'marketplace-settings', props: route => route?.query},
           { path: 'products', component: () => import('src/pages/marketplace/products/ProductsPage.vue'), name: 'marketplace-products', props: route => route?.query},
           { path: 'products/add', component: () => import('src/pages/marketplace/products/AddProduct.vue'), name: 'marketplace-add-product', props: route => route?.query},
@@ -58,6 +59,7 @@ const routes = [
           { path: 'collections/:collectionId', component: () => import('src/pages/marketplace/storefront/CollectionPage.vue'), name: 'marketplace-storefront-collection', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'orders', component: () => import('src/pages/marketplace/storefront/OrdersPage.vue'), name: 'marketplace-storefront-orders', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'orders/:orderId', component: () => import('src/pages/marketplace/storefront/OrderPage.vue'), name: 'marketplace-storefront-order', props: route => Object.assign({}, route?.query, route?.params)},
+          { path: 'payments', component: () => import('src/pages/marketplace/storefront/PaymentsPage.vue'), name: 'marketplace-storefront-payments', props: route => Object.assign({}, route?.query, route?.params)},
         ]
       },
       {

@@ -1369,6 +1369,10 @@ export class DeliveryAddress {
     this.location = Location.parse(data?.location)
     this.distance = data?.distance
   }
+
+  get fullName() {
+    return [this.firstName, this.lastName].filter(Boolean).join(' ')
+  }
 }
 
 
@@ -1408,6 +1412,10 @@ export class Customer {
       verifyingPubkey: data?.paytaca_wallet?.verifying_pubkey,
       verifyingPubkeyIndex: data?.paytaca_wallet?.verifying_pubkey_index,
     }
+  }
+
+  get fullName() {
+    return [this.firstName, this.lastName].filter(Boolean).join(' ')
   }
 }
 
@@ -1917,6 +1925,7 @@ export class Payment {
    * @param {Object} data
    * @param {Number} data.id
    * @param {Number} data.order_id
+   * @param {Number} data.checkout_id
    * @param {{ code:String, symbol:String }} data.currency
    * @param {String} data.status
    * @param {Object} data.bch_price
@@ -1935,6 +1944,7 @@ export class Payment {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.id = data?.id
     this.orderId = data?.order_id
+    this.checkoutId = data?.checkout_id
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.status = data?.status
     this.bchPrice = BchPrice.parse(data?.bch_price)
@@ -1997,6 +2007,16 @@ export class Payment {
     return backend.get(`connecta/escrow/${this.escrowContractAddress}/`)
       .then(response => {
         this.escrowContract = EscrowContract.parse(response?.data)
+        return response
+      })
+  }
+
+  async fetchOrder() {
+    if (!this.orderId) return Promise.reject()
+
+    return backend.get(`connecta/orders/${this.orderId}/`)
+      .then(response => {
+        this.order = Order.parse(response?.data)
         return response
       })
   }
