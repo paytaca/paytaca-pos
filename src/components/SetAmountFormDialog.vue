@@ -3,10 +3,11 @@
     <q-card class="q-dialog-plugin">
       <q-form @submit="onDialogOK({
         amount,
-        voucher
+        isVoucher,
+        isPaytaca,
       })">
-        <q-card-section>
-          <div class="text-h5 q-mb-md">{{ finalTitle }}</div>
+        <q-card-section class="q-pb-none">
+          <div class="text-h5 q-mb-md">Set Amount</div>
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
           </div>
@@ -28,38 +29,45 @@
             />
           </div>
         </q-card-section>
+
+        <q-card-section class="q-pa-none">
+          <div class="flex justify-center">
+            <div class="q-pa-md" v-if="!isVoucher">
+              <q-checkbox
+                v-model="isPaytaca"
+                label="Pay using Paytaca"
+                dense
+              />
+            </div>
+
+            <div class="q-pa-md">
+              <q-checkbox
+                v-model="isVoucher"
+                label="Claim Voucher"
+                dense
+              />
+            </div>
+          </div>
+        </q-card-section>
+
         <q-card-actions class="row items-center justify-around q-gutter-x-md">
           <q-btn
             no-caps
             color="brandblue"
             size="1rem"
             padding="sm md"
-            label="Receive Payment"
+            label="Show Payment QR"
             class="q-space"
             type="submit"
+            icon="mdi-qrcode"
           />
         </q-card-actions>
-
-        <div v-if="supportsVoucher">
-          <div class="flex row q-ma-sm">
-            <q-btn
-              no-caps
-              color="brandblue"
-              size="1rem"
-              padding="sm md"
-              label="Claim Voucher"
-              class="q-space"
-              type="submit"
-              @click="voucher = true"
-            />
-          </div>
-        </div>
       </q-form>
     </q-card>
   </q-dialog>
 </template>
 <script>
-import { computed, defineComponent, ref } from 'vue'
+import { computed, defineComponent, ref, watch } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 
 
@@ -70,7 +78,6 @@ export default defineComponent({
     currencies: Array,
     title: String,
     message: String,
-    supportsVoucher: Boolean,
   },
   emits: [
     // REQUIRED; need to specify some events that your
@@ -80,14 +87,16 @@ export default defineComponent({
   setup(props) {
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
+    const isVoucher = ref(false)
+    const isPaytaca = ref(false)
+
     const amount = ref({
       value: props?.initialValue?.amount || null,
       currency: props?.initialValue?.currency || 'BCH',
     })
-    const voucher = ref(false)
     const currencyOpts = computed(() => {
       const initialCurrency = props?.initialValue?.currency
-      let opts = ['BCH', 'PHP']
+      let opts = ['BCH']
       if (Array.isArray(props.currencies)) opts = [...props.currencies]
       if (initialCurrency && opts.indexOf(initialCurrency) < 0) {
         opts.unshift(initialCurrency)
@@ -95,18 +104,16 @@ export default defineComponent({
       return opts
     })
 
-    const finalTitle = computed(() => {
-      if (props?.supportsVoucher) return 'Pay or Claim Voucher'
-      return props?.title || 'Set Amount'
+    watch(isVoucher, (newVal) => {
+      if (newVal) isPaytaca.value = !newVal
     })
-    
     
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       amount,
       currencyOpts,
-      finalTitle,
-      voucher,
+      isVoucher,
+      isPaytaca,
     }
   },
 })

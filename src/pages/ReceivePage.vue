@@ -3,9 +3,9 @@
     <MainHeader :title="title"/>
     <div class="text-center text-h4 q-mb-lg">
       <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
-      <div v-if="!loading && !voucher" class="text-h6">#{{ addressSet?.index }}</div>
+      <div v-if="!loading && !isVoucher" class="text-h6">#{{ addressSet?.index }}</div>
     </div>
-    <q-banner v-if="paymentFrom !== 'paytaca' && !isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-md rounded-borders">
+    <q-banner v-if="isPaytaca && !isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-md rounded-borders">
       <q-icon name="info" class="" size="1.5em">
         <q-popup-proxy :breakpoint="0">
           <div class="q-pa-md">
@@ -57,13 +57,13 @@
         {{ receivingAddress }}
       </div>
     </div>
-    <div v-if="canViewTransactionsReceived && !showOtpInput && !voucher" class="q-px-md q-mt-md">
+    <div v-if="canViewTransactionsReceived && !showOtpInput && !isVoucher" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
           Payment Transactions
         </div>
         <q-btn
-          v-if="paymentFrom === 'paytaca'"
+          v-if="isPaytaca"
           flat
           no-caps
           label="Input OTP"
@@ -110,7 +110,7 @@
         No transactions received
       </div>
     </div>
-    <div v-if="(!canViewTransactionsReceived || showOtpInput) && !voucher" class="q-mt-lg q-px-md">
+    <div v-if="(!canViewTransactionsReceived || showOtpInput) && !isVoucher" class="q-mt-lg q-px-md">
       <div v-if="canViewTransactionsReceived" class="row justify-end q-mb-sm">
         <q-btn flat no-caps padding="xs-sm" @click="showOtpInput = false">
             <q-icon name="arrow_back" size="1.25em" class="q-mr-sm"/>
@@ -118,7 +118,7 @@
         </q-btn>
       </div>
       <q-input
-        v-if="paymentFrom === 'paytaca'"
+        v-if="isPaytaca"
         outlined
         label="Confirmation OTP"
         inputmode="numeric"
@@ -166,11 +166,11 @@ export default defineComponent({
     MainHeader
   },
   props: {
-    paymentFrom: String, // paytaca | purelypeer | other
     setAmount: Number,
     setCurrency: String,
     lockAmount: Boolean, // should only work if setAmount is given
-    voucher: Boolean,
+    isPaytaca: Boolean,
+    isVoucher: Boolean,
   },
   methods: {
     copyText(value, message='Copied address') {
@@ -191,19 +191,19 @@ export default defineComponent({
     const isOnline = inject('$isOnline')
     const $q = useQuasar()
     const $router = useRouter()
-    const walletStore = useWalletStore();
-    const txCacheStore = useTxCacheStore();
+    const walletStore = useWalletStore()
+    const txCacheStore = useTxCacheStore()
     const marketStore = useMarketStore()
 
-    const title = computed(() => props.voucher ? 'Claim Voucher' : 'Payment')
-    const requireOtp = computed(() => props.paymentFrom === 'paytaca')
+    const title = computed(() => props.isVoucher ? 'Claim Voucher' : 'Payment')
+    const requireOtp = computed(() => props.isPaytaca)
     const altAmountText = computed(() => {
-      return props.voucher ? '' : 'Set Amount'
+      return props.isVoucher ? '' : 'Set Amount'
     })
     const vault = ref(walletStore.merchantInfo?.vault)
     const receivingAddress = computed(() => {
       return (
-        props.voucher ?
+        props.isVoucher ?
         vault.value?.tokenAddress :
         addressSet.value?.receiving
       )
@@ -272,12 +272,11 @@ export default defineComponent({
     function showSetAmountDialog(opts={force:false}) {
       if (disableAmount.value && !opts?.force) return
 
-      let currencies = ['BCH']
-      if (props.paymentFrom === 'paytaca') currencies = ['BCH', 'PHP']
+      const currencies = ['BCH']
       $q.dialog({
         component: SetAmountFormDialog,
         componentProps: {
-          currencies: currencies,
+          currencies,
           initialValue: { amount: receiveAmount.value, currency: currency.value }
         }
       }).onOk(data => {
@@ -292,25 +291,11 @@ export default defineComponent({
       const timestamp = Math.floor(Date.now() / 1000)
 
       let paymentUri = receivingAddress.value
-      
-      // amount
-      if (props.paymentFrom === 'paytaca') {
-        paymentUri = 'paytaca:'
-        paymentUri += receivingAddress.value.replace('bitcoincash:', '')
-
-        let amount = receiveAmount.value
-        if (currency.value && currency.value != 'BCH') {
-          amount = `${currency.value}:${amount}`
-        }
-        paymentUri += `@${amount}`
-        paymentUri += `?POS=${paymentUriLabel.value}`
-      } else {
-        paymentUri += `?POS=${paymentUriLabel.value}`
-        paymentUri += `&amount=${bchValue.value}`
-      }
+      paymentUri += `?POS=${paymentUriLabel.value}`
+      paymentUri += `&amount=${bchValue.value}`
       
       // merchant address for vouchers
-      if (props.voucher) {
+      if (props.isVoucher) {
         const merchantReceivingAddress = vault.value?.receiving?.address
         paymentUri += `&merchantAddress=${merchantReceivingAddress}`
       }
@@ -381,7 +366,7 @@ export default defineComponent({
     function setupListener(opts) {
       receiveWebsocket.value?.close?.()
       receiveWebsocket.value = null // for reactivity
-      const address = props.voucher ? vault.value?.address : addressSet.value?.receiving
+      const address = props.isVoucher ? vault.value?.address : addressSet.value?.receiving
       if (!address) return
 
       const url = `wss://watchtower.cash/ws/watch/bch/${address}/`
@@ -505,7 +490,7 @@ export default defineComponent({
       if (!data?.value) return
 
       const parsedData = parseWebsocketDataReceived(data)
-      if (props.voucher) checkVoucherClaim(parsedData)
+      if (props.isVoucher) checkVoucherClaim(parsedData)
 
       transactionsReceived.value.push(parsedData)
       displayReceivedTransaction(parsedData)
@@ -563,10 +548,11 @@ export default defineComponent({
     function displayReceivedTransaction (data) {
       const _qrData = qrData.value
       let marketValue = data?.marketValue || { amount: 0, currency: '' }
+      const value = data?.value / 1e8
       if (!marketValue?.amount || !marketValue?.currency) {
         if (data?.tokenSymbol === 'BCH' && currencyBchRate.value.rate) {
           marketValue.amount = Number(
-            (Number(data?.value) * currencyBchRate.value.rate).toFixed(3)
+            (Number(value) * currencyBchRate.value.rate).toFixed(3)
           )
           marketValue.currency = currencyBchRate.value.currency
         }
@@ -576,7 +562,7 @@ export default defineComponent({
         componentProps: {
           txid: data?.txid,
           address: data?.address,
-          amount: data?.value / 100000000,
+          amount: value,
           tokenCurrency: data?.tokenSymbol,
           marketValue: marketValue.amount,
           marketValueCurrency: marketValue.currency,

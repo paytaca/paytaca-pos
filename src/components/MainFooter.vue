@@ -26,7 +26,7 @@
             size="1.75rem"
             icon="qr_code"
             :disable="(!$pinia.state.value.wallet?.walletHash || !walletStore.isDeviceValid)"
-            :to="{ name: 'select-receive-page' }"
+            @click="promptAmount"
           />
         </div>
       </div>
@@ -44,15 +44,51 @@
 </template>
 <script>
 import { useWalletStore } from 'src/stores/wallet';
-import { defineComponent } from 'vue'
+import { useQuasar } from 'quasar'
+import { useRouter } from 'vue-router'
+import { defineComponent, computed } from 'vue'
+
+import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
+
 
 export default defineComponent({
   name: 'MainFooter',
   setup() {
     const walletStore = useWalletStore()
+    const $q = useQuasar()
+    const $router = useRouter()
+
+    const selectedCurrency = computed(() => walletStore.preferences.selectedCurrency)
+
+    function promptAmount () {
+      $q.dialog({
+        component: SetAmountFormDialog,
+        componentProps: {
+          currencies: ['BCH'],
+          initialValue: { currency: selectedCurrency.value }
+        },
+      }).onOk(data => {
+        const isVoucher = data?.isVoucher
+        const isPaytaca = data?.isPaytaca
+        const amount = data?.amount
+
+        if (!amount?.value) return
+
+        const name = 'receive-page'
+        const query = {
+          setAmount: amount?.value || undefined,
+          setCurrency: amount?.currency || undefined,
+          lockAmount: true,
+          isPaytaca,
+          isVoucher,
+        }
+        $router.push({ name, query })
+      })
+    }
     
     return {
       walletStore,
+      promptAmount,
     }
   },
 })
