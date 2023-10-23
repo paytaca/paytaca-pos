@@ -5,7 +5,7 @@
       <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
       <div v-if="!loading && !isVoucher" class="text-h6">#{{ addressSet?.index }}</div>
     </div>
-    <q-banner v-if="isPaytaca && !isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-md rounded-borders">
+    <q-banner v-if="!isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-md rounded-borders">
       <q-icon name="info" class="" size="1.5em">
         <q-popup-proxy :breakpoint="0">
           <div class="q-pa-md">
@@ -31,6 +31,23 @@
         </template>
       </div>
     </div>
+
+    <div class=" flex justify-center q-pt-md q-pb-none">
+      <q-btn-toggle
+        v-model="paymentType"
+        no-caps
+        rounded
+        unelevated
+        toggle-color="blue-9"
+        color="white"
+        text-color="blue-9"
+        :options="[
+          {label: 'BCH Only', value: 'bch_only'},
+          {label: 'Voucher', value: 'voucher'}
+        ]"
+      />
+    </div>
+
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
         <div>{{ receiveAmount }} {{ currency }}</div>
@@ -49,13 +66,7 @@
           autofocus
           @keyup.enter="scope.set"
         />
-      </q-popup-edit> -->
-    </div>
-    <div class="text-center text-h6 text-weight-light q-mt-lg q-mx-md q-px-lg" style="word-break:break-all;">
-      <q-skeleton v-if="loading" height="3rem"/>
-      <div v-else style="position:relative;" v-ripple @click="copyText(receivingAddress)">
-        {{ receivingAddress }}
-      </div>
+      </q-popup-edit>-->
     </div>
     <div v-if="canViewTransactionsReceived && !showOtpInput && !isVoucher" class="q-px-md q-mt-md">
       <div class="row items-center">
@@ -63,7 +74,6 @@
           Payment Transactions
         </div>
         <q-btn
-          v-if="isPaytaca"
           flat
           no-caps
           label="Input OTP"
@@ -118,7 +128,6 @@
         </q-btn>
       </div>
       <q-input
-        v-if="isPaytaca"
         outlined
         label="Confirmation OTP"
         inputmode="numeric"
@@ -169,8 +178,6 @@ export default defineComponent({
     setAmount: Number,
     setCurrency: String,
     lockAmount: Boolean, // should only work if setAmount is given
-    isPaytaca: Boolean,
-    isVoucher: Boolean,
   },
   methods: {
     copyText(value, message='Copied address') {
@@ -195,15 +202,16 @@ export default defineComponent({
     const txCacheStore = useTxCacheStore()
     const marketStore = useMarketStore()
 
-    const title = computed(() => props.isVoucher ? 'Claim Voucher' : 'Payment')
-    const requireOtp = computed(() => props.isPaytaca)
+    const paymentType = ref('bch_only') // normal | voucher
+    const isVoucher = computed(() => paymentType.value === 'voucher')
+    const title = computed(() => isVoucher.value ? 'Claim Voucher' : 'Payment')
     const altAmountText = computed(() => {
-      return props.isVoucher ? '' : 'Set Amount'
+      return isVoucher.value ? '' : 'Set Amount'
     })
     const vault = ref(walletStore.merchantInfo?.vault)
     const receivingAddress = computed(() => {
       return (
-        props.isVoucher ?
+        isVoucher.value ?
         vault.value?.tokenAddress :
         addressSet.value?.receiving
       )
@@ -295,7 +303,7 @@ export default defineComponent({
       paymentUri += `&amount=${bchValue.value}`
       
       // merchant address for vouchers
-      if (props.isVoucher) {
+      if (isVoucher.value) {
         const merchantReceivingAddress = vault.value?.receiving?.address
         paymentUri += `&merchantAddress=${merchantReceivingAddress}`
       }
@@ -340,13 +348,22 @@ export default defineComponent({
       
     const receiveWebsocket = ref({ readyState: 0 })
     const enableReconnect = ref(true)
-    const reconnectAttempts = ref(100)
+    const reconnectAttempts = ref(10000)
     const reconnectTimeout = ref(null)
     const transactionsReceived = ref([])
     const canViewTransactionsReceived = computed(() => {
       return transactionsReceived.value?.length || receiveWebsocket.value?.readyState === 1
     })
+
+    // close existing websocket in case it exists
+    function closeWebsocket () {
+      receiveWebsocket.value?.close?.()
+      receiveWebsocket.value = null // for reactivity
+    }
+
     watch(addressSet, () => setupListener({ resetAttempts: true }))
+    watch(isVoucher, () => receiveWebsocket.value?.close?.())
+
     // 0.4ms - 0.5ms
     onMounted(() => addressSet.value?.receiving ? setupListener() : null)
     watch(isOnline, () => {
@@ -359,14 +376,12 @@ export default defineComponent({
     })
     onUnmounted(() => {
       enableReconnect.value = false
-      receiveWebsocket.value?.close?.()
-      receiveWebsocket.value = null
+      closeWebsocket()
       clearTimeout(reconnectTimeout.value)
     })
     function setupListener(opts) {
-      receiveWebsocket.value?.close?.()
-      receiveWebsocket.value = null // for reactivity
-      const address = props.isVoucher ? vault.value?.address : addressSet.value?.receiving
+      closeWebsocket()
+      const address = isVoucher.value ? vault.value?.address : addressSet.value?.receiving
       if (!address) return
 
       const url = `wss://watchtower.cash/ws/watch/bch/${address}/`
@@ -392,9 +407,7 @@ export default defineComponent({
       })
 
       websocket.addEventListener('open', () => {
-        // close existing websocket in case it exists
-        receiveWebsocket.value?.close?.()
-        receiveWebsocket.value = null // for reactivity
+        closeWebsocket()
         receiveWebsocket.value = markRaw(websocket)
         showOtpInput.value = false
       })
@@ -490,7 +503,7 @@ export default defineComponent({
       if (!data?.value) return
 
       const parsedData = parseWebsocketDataReceived(data)
-      if (props.isVoucher) checkVoucherClaim(parsedData)
+      if (isVoucher.value) checkVoucherClaim(parsedData)
 
       transactionsReceived.value.push(parsedData)
       displayReceivedTransaction(parsedData)
@@ -584,8 +597,7 @@ export default defineComponent({
 
     const promptOnLeave = ref(true)
     onBeforeRouteLeave(async (to, from, next) => {
-      if (!qrData.value || !promptOnLeave.value) return next()
-      if (!requireOtp.value) return next()
+      if (!qrData.value || !promptOnLeave.value || isVoucher.value) return next()
 
       const proceed = await new Promise((resolve) => {
         $q.dialog({
@@ -616,8 +628,9 @@ export default defineComponent({
 
     return {
       isOnline,
+      isVoucher,
+      paymentType,
       txCacheStore,
-      requireOtp,
       addressSet,
       loading,
       generatingAddress,

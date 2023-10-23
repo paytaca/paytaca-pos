@@ -28,7 +28,7 @@ export default defineComponent({
     let vault = ref(walletStore.merchantInfo?.vault)
     const receiveWebsocket = ref({ readyState: 0 })
     const enableReconnect = ref(true)
-    const reconnectAttempts = ref(100)
+    const reconnectAttempts = ref(10000)
     const reconnectTimeout = ref(null)
 
     // onMounted(() => setupListener())

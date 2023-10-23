@@ -1,12 +1,8 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" no-refocus position="bottom">
     <q-card class="q-dialog-plugin">
-      <q-form @submit="onDialogOK({
-        amount,
-        isVoucher,
-        isPaytaca,
-      })">
-        <q-card-section class="q-pb-none">
+      <q-form @submit="onDialogOK({ amount })">
+        <q-card-section>
           <div class="text-h5 q-mb-md">Set Amount</div>
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
@@ -27,26 +23,6 @@
               v-model="amount.currency"
               :options="currencyOpts"
             />
-          </div>
-        </q-card-section>
-
-        <q-card-section class="q-pa-none">
-          <div class="flex justify-center">
-            <div class="q-pa-md" v-if="!isVoucher">
-              <q-checkbox
-                v-model="isPaytaca"
-                label="Pay using Paytaca"
-                dense
-              />
-            </div>
-
-            <div class="q-pa-md">
-              <q-checkbox
-                v-model="isVoucher"
-                label="Claim Voucher"
-                dense
-              />
-            </div>
           </div>
         </q-card-section>
 
@@ -87,9 +63,6 @@ export default defineComponent({
   setup(props) {
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
-    const isVoucher = ref(false)
-    const isPaytaca = ref(false)
-
     const amount = ref({
       value: props?.initialValue?.amount || null,
       currency: props?.initialValue?.currency || 'BCH',
@@ -103,17 +76,11 @@ export default defineComponent({
       }
       return opts
     })
-
-    watch(isVoucher, (newVal) => {
-      if (newVal) isPaytaca.value = !newVal
-    })
     
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       amount,
       currencyOpts,
-      isVoucher,
-      isPaytaca,
     }
   },
 })

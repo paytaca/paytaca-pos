@@ -68,8 +68,6 @@ export default defineComponent({
           initialValue: { currency: selectedCurrency.value }
         },
       }).onOk(data => {
-        const isVoucher = data?.isVoucher
-        const isPaytaca = data?.isPaytaca
         const amount = data?.amount
 
         if (!amount?.value) return
@@ -79,8 +77,6 @@ export default defineComponent({
           setAmount: amount?.value || undefined,
           setCurrency: amount?.currency || undefined,
           lockAmount: true,
-          isPaytaca,
-          isVoucher,
         }
         $router.push({ name, query })
       })
