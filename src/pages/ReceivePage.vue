@@ -232,12 +232,11 @@ export default defineComponent({
 
     // not using computed to stop calculating immediately causing slight delay in changing page
     // this is due to usage of walletStore.walletObj
-    const paymentUriLabel = ref('')
+    const posId = ref(-1)
     onMounted(() => setTimeout(() => updatePaymentUriLabel(), 5))
     watch(() => [walletStore.walletHash, walletStore.posId], () => updatePaymentUriLabel())
     function updatePaymentUriLabel() {
-      if (!walletStore.walletHash) paymentUriLabel.value = ''
-      else paymentUriLabel.value = `${walletStore.walletHash}-${walletStore.posId}`
+      posId.value = walletStore.posId
     }
 
     const receiveAmount = ref(0)
@@ -299,7 +298,7 @@ export default defineComponent({
       const timestamp = Math.floor(Date.now() / 1000)
 
       let paymentUri = receivingAddress.value
-      paymentUri += `?POS=${paymentUriLabel.value}`
+      paymentUri += `?POS=${posId.value}`
       paymentUri += `&amount=${bchValue.value}`
       
       // merchant address for vouchers
