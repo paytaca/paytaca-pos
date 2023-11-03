@@ -160,8 +160,10 @@ export default defineComponent({
         .then(({ skip, qrCodeData, encryptedXpubkey }) => {
           if (skip) return { skip }
           dialog.update({ message: 'Decrypting xpubkey' })
-          const xpubkey = aes.decrypt(
+          const decryptedData = aes.decrypt(
             encryptedXpubkey, qrCodeData.decryptKey.password, qrCodeData.decryptKey.iv)
+
+          const xpubkey = decryptedData.split('@')[0]
 
           return { qrCodeData, encryptedXpubkey, xpubkey }
         })
