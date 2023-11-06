@@ -1,9 +1,9 @@
 <template>
   <q-page padding>
-    <MainHeader :title="title"/>
+    <MainHeader title="Payment"/>
     <div class="text-center text-h4 q-mb-lg">
       <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
-      <div v-if="!loading && !isVoucher" class="text-h6">#{{ addressSet?.index }}</div>
+      <div v-if="!loading" class="text-h6">#{{ addressSet?.index }}</div>
     </div>
     <q-banner v-if="!isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-md rounded-borders">
       <q-icon name="info" class="" size="1.5em">
@@ -32,22 +32,6 @@
       </div>
     </div>
 
-    <div class=" flex justify-center q-pt-md q-pb-none">
-      <q-btn-toggle
-        v-model="paymentType"
-        no-caps
-        rounded
-        unelevated
-        toggle-color="blue-9"
-        color="white"
-        text-color="blue-9"
-        :options="[
-          {label: 'BCH Only', value: 'bch_only'},
-          {label: 'Voucher', value: 'voucher'}
-        ]"
-      />
-    </div>
-
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
         <div>{{ receiveAmount }} {{ currency }}</div>
@@ -55,7 +39,6 @@
           {{ bchValue }} BCH
         </div>
       </div>
-      <div v-else class="text-red">{{ altAmountText }}</div>
       <!-- <q-popup-edit v-model="receiveAmount" v-slot="scope">
         <q-input
           label="Amount"
@@ -68,7 +51,7 @@
         />
       </q-popup-edit>-->
     </div>
-    <div v-if="canViewTransactionsReceived && !showOtpInput && !isVoucher" class="q-px-md q-mt-md">
+    <div v-if="canViewTransactionsReceived && !showOtpInput" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
           Payment Transactions
@@ -110,7 +93,7 @@
           </q-item-section>
         </q-item>
       </template>
-      <div v-else-if="receiveWebsocket?.readyState === 1" class="row items-center justify-center">
+      <div v-else-if="websocketsReady" class="row items-center justify-center">
         <div class="text-grey text-center q-mt-xs q-pt-xs">
           <q-spinner size="30px"/>
           <div>Waiting for payment ... </div>
@@ -120,7 +103,7 @@
         No transactions received
       </div>
     </div>
-    <div v-if="(!canViewTransactionsReceived || showOtpInput) && !isVoucher" class="q-mt-lg q-px-md">
+    <div v-if="!canViewTransactionsReceived || showOtpInput" class="q-mt-lg q-px-md">
       <div v-if="canViewTransactionsReceived" class="row justify-end q-mb-sm">
         <q-btn flat no-caps padding="xs-sm" @click="showOtpInput = false">
             <q-icon name="arrow_back" size="1.25em" class="q-mr-sm"/>
@@ -201,24 +184,15 @@ export default defineComponent({
     const walletStore = useWalletStore()
     const txCacheStore = useTxCacheStore()
     const marketStore = useMarketStore()
-
-    const paymentType = ref('bch_only') // normal | voucher
-    const isVoucher = computed(() => paymentType.value === 'voucher')
-    const title = computed(() => isVoucher.value ? 'Claim Voucher' : 'Payment')
-    const altAmountText = computed(() => {
-      return isVoucher.value ? '' : 'Set Amount'
-    })
-    const vault = ref(walletStore.merchantInfo?.vault)
-    const receivingAddress = computed(() => {
-      return (
-        isVoucher.value ?
-        vault.value?.tokenAddress :
-        addressSet.value?.receiving
-      )
-    })
-
     const addressesStore = useAddressesStore()
+
+    const addressSet = computed(() => addressesStore.currentAddressSet)
+    const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
+
+    const receivingAddress = addressSet.value?.receiving
+    const vault = ref(walletStore.merchantInfo?.vault)
     const generatingAddress = ref(false)
+
     onMounted(() => {
       generatingAddress.value = true
       addressesStore.fillAddressSets()
@@ -226,9 +200,6 @@ export default defineComponent({
           generatingAddress.value = false
         })
     })
-
-    const addressSet = computed(() => addressesStore.currentAddressSet)
-    const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
 
     // not using computed to stop calculating immediately causing slight delay in changing page
     // this is due to usage of walletStore.walletObj
@@ -295,19 +266,17 @@ export default defineComponent({
     const qrData = computed(() => {
       if (!receiveAmount.value) return ''
       
+      const merchantVaultTokenAddress = vault.value?.tokenAddress
+      const merchantReceivingAddress = vault.value?.receiving?.address
       const timestamp = Math.floor(Date.now() / 1000)
 
-      let paymentUri = receivingAddress.value
+      let paymentUri = receivingAddress
       paymentUri += `?POS=${posId.value}`
       paymentUri += `&amount=${bchValue.value}`
-      
-      // merchant address for vouchers
-      if (isVoucher.value) {
-        const merchantReceivingAddress = vault.value?.receiving?.address
-        paymentUri += `&merchantAddress=${merchantReceivingAddress}`
-      }
-
+      paymentUri += `&vault=${merchantVaultTokenAddress}`    // recipient of voucher NFT
+      paymentUri += `&merchant=${merchantReceivingAddress}`  // recipient of voucher BCH (always 0th index of merchant wallet)
       paymentUri += `&ts=${timestamp}`
+
       return paymentUri
     })
 
@@ -344,24 +313,45 @@ export default defineComponent({
           }
         })
       }
-      
-    const receiveWebsocket = ref({ readyState: 0 })
+    
+    const reconnectAttempts = 10000
+    const websocketUrl = 'wss://watchtower.cash/ws/watch/bch'
+    const merchantReceivingAddress = addressSet.value?.receiving
+    const vaultTokenAddress = vault.value?.address
+    const websockets = ref([
+      // receiving address
+      {
+        instance: { readyState: 0 },
+        url: `${websocketUrl}/${merchantReceivingAddress}/`,
+        reconnectAttempts,
+      },
+      // vault token address
+      {
+        instance: { readyState: 0 },
+        url: `${websocketUrl}/${vaultTokenAddress}/`,
+        reconnectAttempts,
+      }
+    ])
+    const websocketsReady = computed(() => {
+      const readySockets = websockets.value.filter((websocket) => websocket.instance?.readyState === 1)
+      return readySockets.length === websockets.value.length
+    })
     const enableReconnect = ref(true)
-    const reconnectAttempts = ref(10000)
     const reconnectTimeout = ref(null)
     const transactionsReceived = ref([])
     const canViewTransactionsReceived = computed(() => {
-      return transactionsReceived.value?.length || receiveWebsocket.value?.readyState === 1
+      return transactionsReceived.value?.length || websocketsReady.value
     })
 
     // close existing websocket in case it exists
     function closeWebsocket () {
-      receiveWebsocket.value?.close?.()
-      receiveWebsocket.value = null // for reactivity
+      websockets.value.forEach(ws => {
+        ws?.close?.()
+        ws = null
+      })
     }
 
     watch(addressSet, () => setupListener({ resetAttempts: true }))
-    watch(isVoucher, () => receiveWebsocket.value?.close?.())
 
     // 0.4ms - 0.5ms
     onMounted(() => addressSet.value?.receiving ? setupListener() : null)
@@ -369,8 +359,7 @@ export default defineComponent({
       if (isOnline.value) {
         setupListener({ resetAttempts: true })
       } else {
-        receiveWebsocket.value?.close()
-        receiveWebsocket.value = null // for reactivity
+        closeWebsocket()
       }
     })
     onUnmounted(() => {
@@ -380,36 +369,49 @@ export default defineComponent({
     })
     function setupListener(opts) {
       closeWebsocket()
-      const address = isVoucher.value ? vault.value?.address : addressSet.value?.receiving
-      if (!address) return
 
-      const url = `wss://watchtower.cash/ws/watch/bch/${address}/`
+      const merchantReceivingAddress = addressSet.value?.receiving
+      const vaultTokenAddress = vault.value?.address
+      
+      if (!merchantReceivingAddress && !vaultTokenAddress) return
 
-      const websocket = new WebSocket(url)
-      console.log(`Connecting ws: ${url}`)
-      if (opts?.resetAttempts) reconnectAttempts.value = 10000
+      for (let x = 0; x < websockets.value.length; x++) {
+        const url = websockets.value[x].url
+        const websocket = new WebSocket(url)
+        console.log(`Connecting ws: ${url}`)
+        
+        if (opts?.resetAttempts) websockets.value[x].reconnectAttempts = 10000
 
-      websocket.addEventListener('close', () => {
-        console.log('setupListener:', 'Listener closed')
-        if (!enableReconnect.value) return console.log('setupListener:', 'Skipping reconnection')
-        if (reconnectAttempts.value <= 0) return console.log('setupListener:', 'Reached reconnection attempts limit')
-        reconnectAttempts.value--;
-        const reconnectInterval = 5000
-        console.log('setupListener:', 'Attempting reconnection after', reconnectInterval / 1000, 'seconds. retries left:', reconnectAttempts.value)
-        clearTimeout(reconnectTimeout.value)
-        reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
-      })
+        websocket.addEventListener('close', () => {
+          console.log('setupListener:', 'Listener closed')
+          if (!enableReconnect.value) return console.log('setupListener:', 'Skipping reconnection')
 
-      websocket.addEventListener('message', message => {
-        const data = JSON.parse(message.data)
-        onWebsocketReceive(data)
-      })
+          if (websockets.value[x].reconnectAttempts.value <= 0)
+            return console.log('setupListener:', 'Reached reconnection attempts limit')
 
-      websocket.addEventListener('open', () => {
-        closeWebsocket()
-        receiveWebsocket.value = markRaw(websocket)
-        showOtpInput.value = false
-      })
+          websockets.value[x].reconnectAttempts.value--;
+
+          const reconnectInterval = 5000
+          const reconnectIntervalSeconds = reconnectInterval / 1000
+          const reconnectAttemptsLeft = websockets.value[x].reconnectAttempts.value
+          let reconnectingLog = `Attempting websocket for (${url}) reconnection after ${reconnectIntervalSeconds} seconds.`
+          reconnectingLog += `retries left: ${reconnectAttemptsLeft}`
+
+          clearTimeout(reconnectTimeout.value)
+          reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
+        })
+
+        websocket.addEventListener('message', message => {
+          const data = JSON.parse(message.data)
+          onWebsocketReceive(data)
+        })
+
+        websocket.addEventListener('open', () => {
+          closeWebsocket()
+          websockets.value[x].instance = markRaw(websocket)
+          showOtpInput.value = false
+        })
+      }
     }
     function flagVoucher (txid, category) {
       const payload = { txid, category: category }
@@ -462,13 +464,13 @@ export default defineComponent({
       if (!data.voucher) return
 
       const merchantVault = walletStore.merchantInfo?.vault
-      const merchantReceiverPk = merchantVault?.receiving?.pubkey
+      const merchantReceivingPk = merchantVault?.receiving?.pubkey
       const merchantReceivingAddress = merchantVault?.receiving?.address
       const merchantSignerPk = merchantVault?.signer?.pubkey
 
       const vaultParams = {
         params: {
-          merchantReceiverPk,
+          merchantReceivingPk,
           merchantSignerPk,
         },
         options: {
@@ -502,7 +504,7 @@ export default defineComponent({
       if (!data?.value) return
 
       const parsedData = parseWebsocketDataReceived(data)
-      if (isVoucher.value) checkVoucherClaim(parsedData)
+      if (parsedData.voucher) checkVoucherClaim(parsedData)
 
       transactionsReceived.value.push(parsedData)
       displayReceivedTransaction(parsedData)
@@ -523,7 +525,9 @@ export default defineComponent({
      * @param {String} data.address_path
      * @param {String[]} data.senders
      * 
-     * @param {String} data.voucher = category of voucher
+     * @param {Object} data.voucher
+     * @param {Boolean} data.voucher.is_key_nft
+     * @param {String} data.voucher.lock_nft_category
      *
      */
     function parseWebsocketDataReceived(data) {
@@ -596,7 +600,7 @@ export default defineComponent({
 
     const promptOnLeave = ref(true)
     onBeforeRouteLeave(async (to, from, next) => {
-      if (!qrData.value || !promptOnLeave.value || isVoucher.value) return next()
+      if (!qrData.value || !promptOnLeave.value) return next()
 
       const proceed = await new Promise((resolve) => {
         $q.dialog({
@@ -627,8 +631,6 @@ export default defineComponent({
 
     return {
       isOnline,
-      isVoucher,
-      paymentType,
       txCacheStore,
       addressSet,
       loading,
@@ -643,13 +645,11 @@ export default defineComponent({
       otpInput,
       showOtpInput,
       verifyOtp,
-      receiveWebsocket,
+      websockets,
+      websocketsReady,
       transactionsReceived,
       canViewTransactionsReceived,
       displayReceivedTransaction,
-      title,
-      altAmountText,
-      receivingAddress,
     }
   },
 })

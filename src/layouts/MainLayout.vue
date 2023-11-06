@@ -31,7 +31,7 @@ export default defineComponent({
     const reconnectAttempts = ref(10000)
     const reconnectTimeout = ref(null)
 
-    // onMounted(() => setupListener())
+    onMounted(() => setupListener())
 
     const receivingAddress = computed(() => walletStore.merchantInfo?.vault?.receiving?.address)
 
