@@ -1,11 +1,11 @@
 <template>
   <q-page padding>
-    <MainHeader :title="title"/>
+    <MainHeader title="Payment"/>
     <div class="text-center text-h4 q-mb-lg">
       <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
-      <div v-if="!loading && !voucher" class="text-h6">#{{ addressSet?.index }}</div>
+      <div v-if="!loading" class="text-h6">#{{ addressSet?.index }}</div>
     </div>
-    <q-banner v-if="paymentFrom !== 'paytaca' && !isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-md rounded-borders">
+    <q-banner v-if="!isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-md rounded-borders">
       <q-icon name="info" class="" size="1.5em">
         <q-popup-proxy :breakpoint="0">
           <div class="q-pa-md">
@@ -31,6 +31,7 @@
         </template>
       </div>
     </div>
+
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
         <div>{{ receiveAmount }} {{ currency }}</div>
@@ -38,7 +39,6 @@
           {{ bchValue }} BCH
         </div>
       </div>
-      <div v-else class="text-red">{{ altAmountText }}</div>
       <!-- <q-popup-edit v-model="receiveAmount" v-slot="scope">
         <q-input
           label="Amount"
@@ -49,21 +49,14 @@
           autofocus
           @keyup.enter="scope.set"
         />
-      </q-popup-edit> -->
+      </q-popup-edit>-->
     </div>
-    <div class="text-center text-h6 text-weight-light q-mt-lg q-mx-md q-px-lg" style="word-break:break-all;">
-      <q-skeleton v-if="loading" height="3rem"/>
-      <div v-else style="position:relative;" v-ripple @click="copyText(receivingAddress)">
-        {{ receivingAddress }}
-      </div>
-    </div>
-    <div v-if="canViewTransactionsReceived && !showOtpInput && !voucher" class="q-px-md q-mt-md">
+    <div v-if="canViewTransactionsReceived && !showOtpInput" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
           Payment Transactions
         </div>
         <q-btn
-          v-if="paymentFrom === 'paytaca'"
           flat
           no-caps
           label="Input OTP"
@@ -100,7 +93,7 @@
           </q-item-section>
         </q-item>
       </template>
-      <div v-else-if="receiveWebsocket?.readyState === 1" class="row items-center justify-center">
+      <div v-else-if="websocketsReady" class="row items-center justify-center">
         <div class="text-grey text-center q-mt-xs q-pt-xs">
           <q-spinner size="30px"/>
           <div>Waiting for payment ... </div>
@@ -110,7 +103,7 @@
         No transactions received
       </div>
     </div>
-    <div v-if="(!canViewTransactionsReceived || showOtpInput) && !voucher" class="q-mt-lg q-px-md">
+    <div v-if="!canViewTransactionsReceived || showOtpInput" class="q-mt-lg q-px-md">
       <div v-if="canViewTransactionsReceived" class="row justify-end q-mb-sm">
         <q-btn flat no-caps padding="xs-sm" @click="showOtpInput = false">
             <q-icon name="arrow_back" size="1.25em" class="q-mr-sm"/>
@@ -118,7 +111,6 @@
         </q-btn>
       </div>
       <q-input
-        v-if="paymentFrom === 'paytaca'"
         outlined
         label="Confirmation OTP"
         inputmode="numeric"
@@ -166,11 +158,9 @@ export default defineComponent({
     MainHeader
   },
   props: {
-    paymentFrom: String, // paytaca | purelypeer | other
     setAmount: Number,
     setCurrency: String,
     lockAmount: Boolean, // should only work if setAmount is given
-    voucher: Boolean,
   },
   methods: {
     copyText(value, message='Copied address') {
@@ -191,26 +181,18 @@ export default defineComponent({
     const isOnline = inject('$isOnline')
     const $q = useQuasar()
     const $router = useRouter()
-    const walletStore = useWalletStore();
-    const txCacheStore = useTxCacheStore();
+    const walletStore = useWalletStore()
+    const txCacheStore = useTxCacheStore()
     const marketStore = useMarketStore()
-
-    const title = computed(() => props.voucher ? 'Claim Voucher' : 'Payment')
-    const requireOtp = computed(() => props.paymentFrom === 'paytaca')
-    const altAmountText = computed(() => {
-      return props.voucher ? '' : 'Set Amount'
-    })
-    const vault = ref(walletStore.merchantInfo?.vault)
-    const receivingAddress = computed(() => {
-      return (
-        props.voucher ?
-        vault.value?.tokenAddress :
-        addressSet.value?.receiving
-      )
-    })
-
     const addressesStore = useAddressesStore()
+
+    const addressSet = computed(() => addressesStore.currentAddressSet)
+    const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
+
+    const receivingAddress = addressSet.value?.receiving
+    const vault = ref(walletStore.merchantInfo?.vault)
     const generatingAddress = ref(false)
+
     onMounted(() => {
       generatingAddress.value = true
       addressesStore.fillAddressSets()
@@ -219,17 +201,13 @@ export default defineComponent({
         })
     })
 
-    const addressSet = computed(() => addressesStore.currentAddressSet)
-    const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
-
     // not using computed to stop calculating immediately causing slight delay in changing page
     // this is due to usage of walletStore.walletObj
-    const paymentUriLabel = ref('')
+    const posId = ref(-1)
     onMounted(() => setTimeout(() => updatePaymentUriLabel(), 5))
     watch(() => [walletStore.walletHash, walletStore.posId], () => updatePaymentUriLabel())
     function updatePaymentUriLabel() {
-      if (!walletStore.walletHash) paymentUriLabel.value = ''
-      else paymentUriLabel.value = `${walletStore.walletHash}-${walletStore.posId}`
+      posId.value = walletStore.posId
     }
 
     const receiveAmount = ref(0)
@@ -272,12 +250,11 @@ export default defineComponent({
     function showSetAmountDialog(opts={force:false}) {
       if (disableAmount.value && !opts?.force) return
 
-      let currencies = ['BCH']
-      if (props.paymentFrom === 'paytaca') currencies = ['BCH', 'PHP']
+      const currencies = ['BCH']
       $q.dialog({
         component: SetAmountFormDialog,
         componentProps: {
-          currencies: currencies,
+          currencies,
           initialValue: { amount: receiveAmount.value, currency: currency.value }
         }
       }).onOk(data => {
@@ -289,33 +266,17 @@ export default defineComponent({
     const qrData = computed(() => {
       if (!receiveAmount.value) return ''
       
+      const merchantVaultTokenAddress = vault.value?.tokenAddress
+      const merchantReceivingAddress = vault.value?.receiving?.address
       const timestamp = Math.floor(Date.now() / 1000)
 
-      let paymentUri = receivingAddress.value
-      
-      // amount
-      if (props.paymentFrom === 'paytaca') {
-        paymentUri = 'paytaca:'
-        paymentUri += receivingAddress.value.replace('bitcoincash:', '')
-
-        let amount = receiveAmount.value
-        if (currency.value && currency.value != 'BCH') {
-          amount = `${currency.value}:${amount}`
-        }
-        paymentUri += `@${amount}`
-        paymentUri += `?POS=${paymentUriLabel.value}`
-      } else {
-        paymentUri += `?POS=${paymentUriLabel.value}`
-        paymentUri += `&amount=${bchValue.value}`
-      }
-      
-      // merchant address for vouchers
-      if (props.voucher) {
-        const merchantReceivingAddress = vault.value?.receiving?.address
-        paymentUri += `&merchantAddress=${merchantReceivingAddress}`
-      }
-
+      let paymentUri = receivingAddress
+      paymentUri += `?POS=${posId.value}`
+      paymentUri += `&amount=${bchValue.value}`
+      paymentUri += `&vault=${merchantVaultTokenAddress}`    // recipient of voucher NFT
+      paymentUri += `&merchant=${merchantReceivingAddress}`  // recipient of voucher BCH (always 0th index of merchant wallet)
       paymentUri += `&ts=${timestamp}`
+
       return paymentUri
     })
 
@@ -352,67 +313,105 @@ export default defineComponent({
           }
         })
       }
-      
-    const receiveWebsocket = ref({ readyState: 0 })
+    
+    const reconnectAttempts = 10000
+    const websocketUrl = 'wss://watchtower.cash/ws/watch/bch'
+    const merchantReceivingAddress = addressSet.value?.receiving
+    const vaultTokenAddress = vault.value?.address
+    const websockets = ref([
+      // receiving address
+      {
+        instance: { readyState: 0 },
+        url: `${websocketUrl}/${merchantReceivingAddress}/`,
+        reconnectAttempts,
+      },
+      // vault token address
+      {
+        instance: { readyState: 0 },
+        url: `${websocketUrl}/${vaultTokenAddress}/`,
+        reconnectAttempts,
+      }
+    ])
+    const websocketsReady = computed(() => {
+      const readySockets = websockets.value.filter((websocket) => websocket.instance?.readyState === 1)
+      return readySockets.length === websockets.value.length
+    })
     const enableReconnect = ref(true)
-    const reconnectAttempts = ref(100)
     const reconnectTimeout = ref(null)
     const transactionsReceived = ref([])
     const canViewTransactionsReceived = computed(() => {
-      return transactionsReceived.value?.length || receiveWebsocket.value?.readyState === 1
+      return transactionsReceived.value?.length || websocketsReady.value
     })
+
+    // close existing websocket in case it exists
+    function closeWebsocket () {
+      websockets.value.forEach(ws => {
+        ws?.close?.()
+        ws = null
+      })
+    }
+
     watch(addressSet, () => setupListener({ resetAttempts: true }))
+
     // 0.4ms - 0.5ms
     onMounted(() => addressSet.value?.receiving ? setupListener() : null)
     watch(isOnline, () => {
       if (isOnline.value) {
         setupListener({ resetAttempts: true })
       } else {
-        receiveWebsocket.value?.close()
-        receiveWebsocket.value = null // for reactivity
+        closeWebsocket()
       }
     })
     onUnmounted(() => {
       enableReconnect.value = false
-      receiveWebsocket.value?.close?.()
-      receiveWebsocket.value = null
+      closeWebsocket()
       clearTimeout(reconnectTimeout.value)
     })
     function setupListener(opts) {
-      receiveWebsocket.value?.close?.()
-      receiveWebsocket.value = null // for reactivity
-      const address = props.voucher ? vault.value?.address : addressSet.value?.receiving
-      if (!address) return
+      closeWebsocket()
 
-      const url = `wss://watchtower.cash/ws/watch/bch/${address}/`
+      const merchantReceivingAddress = addressSet.value?.receiving
+      const vaultTokenAddress = vault.value?.address
+      
+      if (!merchantReceivingAddress && !vaultTokenAddress) return
 
-      const websocket = new WebSocket(url)
-      console.log(`Connecting ws: ${url}`)
-      if (opts?.resetAttempts) reconnectAttempts.value = 10000
+      for (let x = 0; x < websockets.value.length; x++) {
+        const url = websockets.value[x].url
+        const websocket = new WebSocket(url)
+        console.log(`Connecting ws: ${url}`)
+        
+        if (opts?.resetAttempts) websockets.value[x].reconnectAttempts = 10000
 
-      websocket.addEventListener('close', () => {
-        console.log('setupListener:', 'Listener closed')
-        if (!enableReconnect.value) return console.log('setupListener:', 'Skipping reconnection')
-        if (reconnectAttempts.value <= 0) return console.log('setupListener:', 'Reached reconnection attempts limit')
-        reconnectAttempts.value--;
-        const reconnectInterval = 5000
-        console.log('setupListener:', 'Attempting reconnection after', reconnectInterval / 1000, 'seconds. retries left:', reconnectAttempts.value)
-        clearTimeout(reconnectTimeout.value)
-        reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
-      })
+        websocket.addEventListener('close', () => {
+          console.log('setupListener:', 'Listener closed')
+          if (!enableReconnect.value) return console.log('setupListener:', 'Skipping reconnection')
 
-      websocket.addEventListener('message', message => {
-        const data = JSON.parse(message.data)
-        onWebsocketReceive(data)
-      })
+          if (websockets.value[x].reconnectAttempts.value <= 0)
+            return console.log('setupListener:', 'Reached reconnection attempts limit')
 
-      websocket.addEventListener('open', () => {
-        // close existing websocket in case it exists
-        receiveWebsocket.value?.close?.()
-        receiveWebsocket.value = null // for reactivity
-        receiveWebsocket.value = markRaw(websocket)
-        showOtpInput.value = false
-      })
+          websockets.value[x].reconnectAttempts.value--;
+
+          const reconnectInterval = 5000
+          const reconnectIntervalSeconds = reconnectInterval / 1000
+          const reconnectAttemptsLeft = websockets.value[x].reconnectAttempts.value
+          let reconnectingLog = `Attempting websocket for (${url}) reconnection after ${reconnectIntervalSeconds} seconds.`
+          reconnectingLog += `retries left: ${reconnectAttemptsLeft}`
+
+          clearTimeout(reconnectTimeout.value)
+          reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
+        })
+
+        websocket.addEventListener('message', message => {
+          const data = JSON.parse(message.data)
+          onWebsocketReceive(data)
+        })
+
+        websocket.addEventListener('open', () => {
+          closeWebsocket()
+          websockets.value[x].instance = markRaw(websocket)
+          showOtpInput.value = false
+        })
+      }
     }
     function flagVoucher (txid, category) {
       const payload = { txid, category: category }
@@ -465,13 +464,13 @@ export default defineComponent({
       if (!data.voucher) return
 
       const merchantVault = walletStore.merchantInfo?.vault
-      const merchantReceiverPk = merchantVault?.receiving?.pubkey
+      const merchantReceivingPk = merchantVault?.receiving?.pubkey
       const merchantReceivingAddress = merchantVault?.receiving?.address
       const merchantSignerPk = merchantVault?.signer?.pubkey
 
       const vaultParams = {
         params: {
-          merchantReceiverPk,
+          merchantReceivingPk,
           merchantSignerPk,
         },
         options: {
@@ -505,7 +504,7 @@ export default defineComponent({
       if (!data?.value) return
 
       const parsedData = parseWebsocketDataReceived(data)
-      if (props.voucher) checkVoucherClaim(parsedData)
+      if (parsedData.voucher) checkVoucherClaim(parsedData)
 
       transactionsReceived.value.push(parsedData)
       displayReceivedTransaction(parsedData)
@@ -526,7 +525,9 @@ export default defineComponent({
      * @param {String} data.address_path
      * @param {String[]} data.senders
      * 
-     * @param {String} data.voucher = category of voucher
+     * @param {Object} data.voucher
+     * @param {Boolean} data.voucher.is_key_nft
+     * @param {String} data.voucher.lock_nft_category
      *
      */
     function parseWebsocketDataReceived(data) {
@@ -563,10 +564,11 @@ export default defineComponent({
     function displayReceivedTransaction (data) {
       const _qrData = qrData.value
       let marketValue = data?.marketValue || { amount: 0, currency: '' }
+      const value = data?.value / 1e8
       if (!marketValue?.amount || !marketValue?.currency) {
         if (data?.tokenSymbol === 'BCH' && currencyBchRate.value.rate) {
           marketValue.amount = Number(
-            (Number(data?.value) * currencyBchRate.value.rate).toFixed(3)
+            (Number(value) * currencyBchRate.value.rate).toFixed(3)
           )
           marketValue.currency = currencyBchRate.value.currency
         }
@@ -576,7 +578,7 @@ export default defineComponent({
         componentProps: {
           txid: data?.txid,
           address: data?.address,
-          amount: data?.value / 100000000,
+          amount: value,
           tokenCurrency: data?.tokenSymbol,
           marketValue: marketValue.amount,
           marketValueCurrency: marketValue.currency,
@@ -599,7 +601,6 @@ export default defineComponent({
     const promptOnLeave = ref(true)
     onBeforeRouteLeave(async (to, from, next) => {
       if (!qrData.value || !promptOnLeave.value) return next()
-      if (!requireOtp.value) return next()
 
       const proceed = await new Promise((resolve) => {
         $q.dialog({
@@ -631,7 +632,6 @@ export default defineComponent({
     return {
       isOnline,
       txCacheStore,
-      requireOtp,
       addressSet,
       loading,
       generatingAddress,
@@ -645,13 +645,11 @@ export default defineComponent({
       otpInput,
       showOtpInput,
       verifyOtp,
-      receiveWebsocket,
+      websockets,
+      websocketsReady,
       transactionsReceived,
       canViewTransactionsReceived,
       displayReceivedTransaction,
-      title,
-      altAmountText,
-      receivingAddress,
     }
   },
 })

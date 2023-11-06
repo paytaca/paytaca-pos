@@ -12,10 +12,8 @@ const routes = [
         props: route => Object.assign(route.query, {
           setAmount: Number(route.query?.setAmount) || route.query?.setAmount,
           lockAmount: String(route.query?.lockAmount).toLowerCase() === 'false' ? false : Boolean(route.query?.lockAmount),
-          voucher: route.query?.voucher === 'true'
         }),
       },
-      { path: 'receive/select', component: () => import('src/pages/SelectReceivePage.vue'), name: 'select-receive-page'},
       { path: 'settings', component: () => import('pages/Settings.vue'), name: 'settings'}
     ]
   },

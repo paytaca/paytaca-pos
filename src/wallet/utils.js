@@ -2,7 +2,7 @@ import BCHJS from "@psf/bch-js"
 import { createHmac, createHash } from "crypto"
 import axios from 'axios'
 import * as crypto from 'crypto'
-import { parsePaytacaPaymentUri } from "./payment-uri"
+// import { parsePaytacaPaymentUri } from "./payment-uri"
 
 const bchjs = new BCHJS()
 
@@ -100,21 +100,21 @@ export function decodePaymentUri(paymentUri) {
     parameters: null,
   }
 
-  if (paymentUri.startsWith('paytaca:')) {
-    const decoded = parsePaytacaPaymentUri(paymentUri, { keepParsedParams: true })
-    if (decoded?.outputs?.length) {
-      const output = decoded?.outputs?.[0]
-      response.address = output?.address
-      response.amount = output?.amount?.value
-      response.label = decoded?.name
-      response.message = decoded?.message
+  // if (paymentUri.startsWith('paytaca:')) {
+  //   const decoded = parsePaytacaPaymentUri(paymentUri, { keepParsedParams: true })
+  //   if (decoded?.outputs?.length) {
+  //     const output = decoded?.outputs?.[0]
+  //     response.address = output?.address
+  //     response.amount = output?.amount?.value
+  //     response.label = decoded?.name
+  //     response.message = decoded?.message
 
-      const parsedParams = { ts: decoded.timestamp }
-      if (output?.amount?.currency) parsedParams.currency = output?.amount?.currency
-      response.parameters = Object.assign(decoded?.otherParams, parsedParams)
-      return response
-    }
-  }
+  //     const parsedParams = { ts: decoded.timestamp }
+  //     if (output?.amount?.currency) parsedParams.currency = output?.amount?.currency
+  //     response.parameters = Object.assign(decoded?.otherParams, parsedParams)
+  //     return response
+  //   }
+  // }
 
   return decodeBIP0021URI(paymentUri)
 }
