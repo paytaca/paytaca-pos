@@ -58,6 +58,8 @@ export default defineComponent({
       receiveWebsocket.value = null // for reactivity
 
       const merchantReceivingAddress = vault.value?.receiving?.address
+      if (!merchantReceivingAddress) return
+
       const url = `wss://watchtower.cash/ws/vouchers/${merchantReceivingAddress}/`
 
       console.log('Connecting ws:', url)
