@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md">
+  <q-page class="q-pa-md q-pb-xl">
     <q-pull-to-refresh @refresh="refreshPage">
       <MarketplaceHeader>
         <template v-slot:title>
@@ -441,6 +441,9 @@
           </template>
         </template>
       </div>
+      <div class="fixed-bottom q-pl-sm q-pb-sm">
+        <OrderChatButton ref="chatButton" :order-id="orderId"/>
+      </div>
     </q-pull-to-refresh>
     <OrderPaymentsDialog ref="paymentsDialog" v-model="showPaymentsDialog" :payments="payments" @updated="() => fetchOrder()">
       <template v-slot:before>
@@ -495,6 +498,7 @@ import UpdateOrderItemsFormDialog from 'src/components/marketplace/storefront/Up
 import UpdateOrderDeliveryAddressFormDialog from 'src/components/marketplace/storefront/UpdateOrderDeliveryAddressFormDialog.vue'
 import OrderUpdatesDialog from 'src/components/marketplace/storefront/OrderUpdatesDialog.vue'
 import OrderCallDialog from 'src/components/marketplace/storefront/OrderCallDialog.vue'
+import OrderChatButton from 'src/components/marketplace/storefront/OrderChatButton.vue'
 
 import customerLocationPin from 'src/assets/customer_map_marker.png'
 import riderLocationPin from 'src/assets/rider_map_marker.png'
@@ -511,6 +515,7 @@ export default defineComponent({
     UpdateOrderDeliveryAddressFormDialog,
     OrderUpdatesDialog,
     OrderCallDialog,
+    OrderChatButton,
   },
   props: {
     orderId: [String, Number]
@@ -598,6 +603,11 @@ export default defineComponent({
       order.value.raw = orderData
       openUpdateItemsDialog.value = false
       openUpdateDeliveryAddressDialog.value = false
+    }
+
+    const chatButton = ref()
+    function openChatDialog() {
+      chatButton.value.openChatDialog = true
     }
 
     const showOrderCallDialog = ref(false)
@@ -1086,6 +1096,7 @@ export default defineComponent({
           fetchDelivery(),
           fetchPayments(),
           fetchOrderCallSession(),
+          chatButton.value?.refresh(),
         ])
       } finally {
         done()
@@ -1109,6 +1120,10 @@ export default defineComponent({
       } else if (notificationTypes.MARKETPLACE_ORDER_INCOMING_CALL == openedNotification?.data?.type) {
         fetchOrderCallSession()
         showOrderCallDialog.value = true
+        notificationsStore.clearOpenedNotification()
+      } else if (notificationTypes.MARKETPLACE_CHAT_UNREAD_MESSAGES == openedNotification?.data?.type) {
+        openChatDialog()
+        notificationsStore.clearOpenedNotification()
       }
     }
 
@@ -1126,6 +1141,8 @@ export default defineComponent({
       openUpdateDeliveryAddressDialog,
       openUpdateItemsDialog,
       onUpdateOrderData,
+
+      chatButton,
 
       showOrderCallDialog,
       orderCallSession,

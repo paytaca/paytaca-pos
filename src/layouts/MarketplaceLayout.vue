@@ -21,6 +21,7 @@
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { updateOrCreateKeypair } from 'src/marketplace/chat'
 import { useWalletStore } from 'src/stores/wallet'
 import { computed, defineComponent, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -70,6 +71,9 @@ export default defineComponent({
           })
       }
     })
+
+    onMounted(() => userId.value ? updateOrCreateKeypair() : null)
+    watch(userId, () => userId.value ? updateOrCreateKeypair() : null)
 
     return {
       marketplaceStore,
