@@ -38,7 +38,7 @@
                 :bg-color="isOwnMessage(message) ? 'grey-7' : 'brandblue'"
                 text-color="white"
                 :name="message?.name"
-                :sent="isOwnMessage(message)"
+                :sent="!isOwnMessage(message)"
                 :stamp="formatDateRelative(message?.createdAt)"
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
               >
@@ -67,7 +67,7 @@
               <div
                 :class="[
                   'row q-mb-xs',
-                  isOwnMessage(message) ? 'justify-end' : 'justify-start'
+                  !isOwnMessage(message) ? 'justify-end' : 'justify-start'
                 ]"
               >
                 <img
@@ -458,7 +458,7 @@ export default defineComponent({
       websocket.value?.close?.()
     })
     watch(() => [props.chatRef], () => initWebsocket())
-    watch(innerVal, () => innerVal.value ? initWebsocket() : null)
+    watch(innerVal, () => websocket.value?.readyState !== WebSocket.OPEN ? initWebsocket() : null)
     function initWebsocket() {
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
       const backendUrl = new URL(backend.defaults.baseURL)
