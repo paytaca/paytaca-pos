@@ -166,44 +166,13 @@
           </div>
           <div>
             <q-btn
-              v-if="order?.id"
+              v-if="order?.id && order?.deliveryAddress?.phoneNumber"
               flat
-              padding="none"
+              icon="phone"
+              padding="sm"
               class="float-right"
-            >
-              <div style="position:relative;" class="q-pa-xs">
-                <q-icon name="phone"/>
-                <q-badge
-                  v-if="!orderCallSession?.hasEnded && orderCallSession?.caller?.type == 'customer'"
-                  floating
-                  color="brandblue"
-                >!</q-badge>
-              </div>
-              <q-menu>
-                <q-item
-                  clickable v-ripple
-                  v-close-popup
-                  @click="() => showOrderCallDialog = true"
-                >
-                  <q-item-section>
-                    <q-item-label>In-app call</q-item-label>
-                    <q-item-label v-if="!orderCallSession?.hasEnded" caption>
-                      Call ongoing
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item
-                  v-if="order?.deliveryAddress?.phoneNumber"
-                  clickable v-ripple
-                  v-close-popup
-                  :href="`tel:${order?.deliveryAddress?.phoneNumber}`"
-                >
-                  <q-item-section>
-                    <q-item-label>Call phone number</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-menu>
-            </q-btn>
+              :href="`tel:${order?.deliveryAddress?.phoneNumber}`"
+            />
             <div>
               {{ order?.deliveryAddress?.firstName }}
               {{ order?.deliveryAddress?.lastName }}
@@ -289,42 +258,11 @@
                 <q-btn
                   v-if="delivery?.rider?.phoneNumber"
                   flat
-                  padding="none"
+                  icon="phone"
+                  padding="sm"
                   class="float-right"
-                >
-                  <div style="position:relative;" class="q-pa-xs">
-                    <q-icon name="phone"/>
-                    <q-badge
-                      v-if="!orderCallSession?.hasEnded && orderCallSession?.caller?.type == 'rider'"
-                      floating
-                      color="brandblue"
-                    >!</q-badge>
-                  </div>
-                  <q-menu>
-                    <q-item
-                      clickable v-ripple
-                      v-close-popup
-                      @click="() => showOrderCallDialog = true"
-                    >
-                      <q-item-section>
-                        <q-item-label>In-app call</q-item-label>
-                        <q-item-label v-if="!orderCallSession?.hasEnded" caption>
-                          Call ongoing
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      v-if="delivery?.rider?.phoneNumber"
-                      clickable v-ripple
-                      v-close-popup
-                      :href="`tel:${delivery?.rider?.phoneNumber}`"
-                    >
-                      <q-item-section>
-                        <q-item-label>Call phone number</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-menu>
-                </q-btn>
+                  :href="`tel:${delivery?.rider?.phoneNumber}`"
+                />
               </div>
             </div>
             <div v-else class="text-grey">No rider yet</div>
@@ -472,17 +410,12 @@
       v-model="openOrderUpdatesDialog"
       :order-id="orderId"
     />
-    <OrderCallDialog
-      v-model="showOrderCallDialog"
-      :order-id="orderId"
-      auto-join
-    />
   </q-page>
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
-import { Delivery, Order, OrderCallSession, Payment, Rider, Storefront, Variant } from 'src/marketplace/objects'
+import { Delivery, Order, Payment, Rider, Storefront, Variant } from 'src/marketplace/objects'
 import { errorParser, formatOrderStatus, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useNotificationsStore } from 'src/stores/notifications'
@@ -497,7 +430,6 @@ import OrderPaymentsDialog from 'src/components/marketplace/storefront/OrderPaym
 import UpdateOrderItemsFormDialog from 'src/components/marketplace/storefront/UpdateOrderItemsFormDialog.vue'
 import UpdateOrderDeliveryAddressFormDialog from 'src/components/marketplace/storefront/UpdateOrderDeliveryAddressFormDialog.vue'
 import OrderUpdatesDialog from 'src/components/marketplace/storefront/OrderUpdatesDialog.vue'
-import OrderCallDialog from 'src/components/marketplace/storefront/OrderCallDialog.vue'
 import OrderChatButton from 'src/components/marketplace/storefront/OrderChatButton.vue'
 
 import customerLocationPin from 'src/assets/customer_map_marker.png'
@@ -514,7 +446,6 @@ export default defineComponent({
     UpdateOrderItemsFormDialog,
     UpdateOrderDeliveryAddressFormDialog,
     OrderUpdatesDialog,
-    OrderCallDialog,
     OrderChatButton,
   },
   props: {
@@ -608,21 +539,6 @@ export default defineComponent({
     const chatButton = ref()
     function openChatDialog() {
       chatButton.value.openChatDialog = true
-    }
-
-    const showOrderCallDialog = ref(false)
-    watch(showOrderCallDialog, () => fetchOrderCallSession())
-    const orderCallSession = ref(OrderCallSession.parse())
-    function fetchOrderCallSession() {
-      return backend.get(`connecta/orders/${props.orderId}/call/`)
-        .then(response => {
-          orderCallSession.value = OrderCallSession.parse(response?.data)
-          return response
-        })
-        .catch(error => {
-          if (error?.response?.status == 400) orderCallSession.value = OrderCallSession.parse(response?.data)
-          return Promise.reject(error)
-        })
     }
 
     watch(() => [order.value.preparationDeadline, order.value.status], () => runPreparationTimeCountdown())
@@ -1117,10 +1033,6 @@ export default defineComponent({
         if (parseInt(props.orderId) == parseInt(orderId)) {
           notificationsStore.clearOpenedNotification()
         }
-      } else if (notificationTypes.MARKETPLACE_ORDER_INCOMING_CALL == openedNotification?.data?.type) {
-        fetchOrderCallSession()
-        showOrderCallDialog.value = true
-        notificationsStore.clearOpenedNotification()
       } else if (notificationTypes.MARKETPLACE_CHAT_UNREAD_MESSAGES == openedNotification?.data?.type) {
         openChatDialog()
         notificationsStore.clearOpenedNotification()
@@ -1143,10 +1055,6 @@ export default defineComponent({
       onUpdateOrderData,
 
       chatButton,
-
-      showOrderCallDialog,
-      orderCallSession,
-      fetchOrderCallSession,
 
       nextStatus,
       prevStatus,

@@ -27,7 +27,6 @@ const routes = [
         meta: { requireAuth: true },
         children: [
           { path: '', component: () => import('src/pages/marketplace/index.vue'), name: 'marketplace', props: route => route?.query},
-          { path: 'webrtc', component: () => import('src/pages/marketplace/webrtc-chat.vue'), name: 'marketplace-webrtc', props: route => route?.query},
           { path: 'settings', component: () => import('src/pages/marketplace/MarketplaceSettings.vue'), name: 'marketplace-settings', props: route => route?.query},
           { path: 'products', component: () => import('src/pages/marketplace/products/ProductsPage.vue'), name: 'marketplace-products', props: route => route?.query},
           { path: 'products/add', component: () => import('src/pages/marketplace/products/AddProduct.vue'), name: 'marketplace-add-product', props: route => route?.query},
