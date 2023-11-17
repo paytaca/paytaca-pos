@@ -1011,7 +1011,6 @@ export default defineComponent({
           fetchOrder(),
           fetchDelivery(),
           fetchPayments(),
-          fetchOrderCallSession(),
           chatButton.value?.refresh(),
         ])
       } finally {

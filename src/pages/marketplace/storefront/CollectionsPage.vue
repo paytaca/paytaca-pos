@@ -21,6 +21,37 @@
             <template v-slot:prepend><q-icon name="search"/></template>
           </q-input>
           <q-space/>
+          <q-btn flat padding="sm" icon="tune">
+            <q-menu v-model="openFilterOptsForm" class="q-pa-md">
+              <q-btn
+                flat
+                no-caps label="Reset"
+                color="brandblue"
+                padding="xs md"
+                class="text-underline q-r-mt-md q-r-mr-lg float-right"
+                v-close-popup
+                @click="() => filterOpts = createDefaultFilterOpts()"
+              />
+              <div class="q-py-xs"></div>
+              <div class="q-mb-sm" style="min-width:100%;">
+                <div class="text-subtitle1">Collection type</div>
+                <q-btn-toggle
+                  v-model="filterOpts.auto"
+                  no-caps
+                  no-wrap
+                  stack
+                  toggle-color="primary"
+                  padding="xs lg"
+                  :options="[
+                    {label: 'Auto', value: true },
+                    {label: 'Manual', value: false },
+                    {label: 'All', value: null}
+                  ]"
+                />
+              </div>
+            </q-menu>
+          </q-btn>
+          <q-separator vertical class="q-ml-xs q-mr-sm"/>
           <q-btn 
             rounded
             icon="add"
@@ -29,39 +60,14 @@
             @click="() => openCreateCollectionDialog()"
           />
         </div>
-        <div class="row items-center">
-          <q-btn-dropdown
-            no-caps
-            :flat="!$q.dark.isActive"
-            :outline="$q.dark.isActive"
+        <div class="row items-center"> 
+          <div
+            v-if="typeof filterOpts?.auto === 'boolean'"
+            class="ellipsis filter-opt q-px-xs"
+            @click="openFilterOptsForm = true"
           >
-            <template v-slot:label>
-              <template v-if="filterOpts.auto == true">
-                Auto
-              </template>
-              <template v-else-if="filterOpts.auto === false">
-                Manual
-              </template>
-              <template v-else>
-                Filter type
-              </template>
-            </template>
-            <q-item clickable v-ripple v-close-popup @click="() => filterOpts.auto = null">
-              <q-item-section>
-                <q-item-label>All</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item clickable v-ripple v-close-popup @click="() => filterOpts.auto = true">
-              <q-item-section>
-                <q-item-label>Auto</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item clickable v-ripple v-close-popup @click="() => filterOpts.auto = false">
-              <q-item-section>
-                <q-item-label>Manual</q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-btn-dropdown>
+            Collection Type: {{ filterOpts?.auto ? 'Auto' : 'Manual' }}
+          </div>
         </div>
       </div>
 
@@ -129,10 +135,14 @@ export default defineComponent({
     const $q = useQuasar()
     const marketplaceStore = useMarketplaceStore()
 
-    const filterOpts = ref({
-      search: '',
-      auto: null,
-    })
+    const openFilterOptsForm = ref(false)
+    function createDefaultFilterOpts() {
+      return {
+        search: '',
+        auto: null,
+      }
+    }
+    const filterOpts = ref(createDefaultFilterOpts())
     watch(filterOpts, () => fetchCollections(), { deep: true })
 
     const collections = ref([].map(Collection.parse))
@@ -184,6 +194,8 @@ export default defineComponent({
     }
 
     return {
+      openFilterOptsForm,
+      createDefaultFilterOpts,
       filterOpts,
       collections,
       fetchingCollections,
@@ -198,3 +210,9 @@ export default defineComponent({
   },
 })
 </script>
+<style lang="scss" scoped>
+.filter-opt {
+  border: 1px solid currentColor;
+  border-radius: 4px;
+}
+</style>

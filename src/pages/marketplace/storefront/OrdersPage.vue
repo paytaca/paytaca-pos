@@ -70,6 +70,9 @@
                 <q-item-section>
                   <q-item-label>{{ formatOrderStatus(status) }}</q-item-label>
                 </q-item-section>
+                <q-item-section side>
+                  <q-icon name="circle" size="0.65em" :color="parseOrderStatusColor(status)"/>
+                </q-item-section>
               </q-item>
             </q-list>
           </q-btn-dropdown>
@@ -93,6 +96,13 @@
         hide-pagination
         @row-click="(evt, row) => $router.push({ name: 'marketplace-storefront-order', params: { orderId: row.id } })"
       >
+        <template v-slot:body-cell-status="props">
+          <q-td :props="props">
+            <q-badge :color="props.row?.statusColor">
+              {{ props.row.formattedStatus }}
+            </q-badge>
+          </q-td>
+        </template>
         <template v-slot:bottom>
           <div class="row items-center full-width">
             <q-space/>
