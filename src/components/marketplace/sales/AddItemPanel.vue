@@ -22,7 +22,6 @@
     </div>
     <q-slide-transition>
       <div v-if="scanner.show" class="q-mb-sm">
-        <q-checkbox dense label="Auto add items" v-model="submitOnScan" class="q-mb-sm"/>
         <div class="full-width" style="position:relative;min-height:1rem;">
           <StreamBarcodeReader
             @decode="onScannerDecode"
@@ -36,7 +35,7 @@
       </div>
     </q-slide-transition>
 
-    <q-slide-transition>
+    <!-- <q-slide-transition>
       <div v-if="!hideFieldsForScan" class="row items-center">
         <q-checkbox
           v-if="!disableCustomItem || formData.customItem"
@@ -47,8 +46,8 @@
           class="q-mb-sm"
         />
       </div>
-    </q-slide-transition>
-    <div v-if="!formData.customItem || hideFieldsForScan" @click="() => selectVariant()">
+    </q-slide-transition> -->
+    <div v-if="!formData.customItem && !hideFieldsForScan" @click="() => selectVariant()">
       <q-field
         :dense="!formData.variant?.id"
         outlined
@@ -88,13 +87,15 @@
         </template>
       </q-field>
     </div>
-    <template v-else>
+    <template v-else-if="formData.customItem">
       <q-input
         dense
         outlined
         :disable="disable"
-        label="Item name"
+        label="Item name (Custom)"
         v-model="formData.itemName"
+        @blur="() => formData.customItem = Boolean(formData.itemName)"
+        lazy-rules
         :rules="[
           val => Boolean(val) || 'Required',
         ]"
@@ -110,46 +111,42 @@
         v-model.number="formData.price"
         :rules="[
           val => Boolean(val) || 'Required',
-          val => parseFloat(val) > 0 || 'Invalid',
         ]"
       />
     </template>
 
+    <q-input
+      v-if="withCostPrice"
+      dense
+      outlined
+      :disable="disable"
+      label="Cost price"
+      :suffix="marketplaceStore?.currency"
+      type="number"
+      step="0.001"
+      v-model.number="formData.costPrice"
+      :placeholder="formData?.variant?.price ? `Price: ${formData?.variant?.price}`: ''"
+      bottom-slots
+    />
+    <q-input
+      dense
+      outlined
+      :disable="disable"
+      label="Quantity"
+      type="number"
+      v-model.number="formData.quantity"
+      bottom-slots
+    />
     <q-slide-transition>
-      <div v-if="!hideFieldsForScan">
-        <q-input
-          v-if="withCostPrice"
-          dense
-          outlined
+      <div v-if="!hideFieldsForScan" class="q-gutter-y-sm">
+        <q-btn
           :disable="disable"
-          label="Cost price"
-          :suffix="marketplaceStore?.currency"
-          type="number"
-          step="0.001"
-          v-model.number="formData.costPrice"
-          :placeholder="formData?.variant?.price ? `Price: ${formData?.variant?.price}`: ''"
-          bottom-slots
+          color="brandblue"
+          no-caps
+          :label="formData.customItem ? 'Add custom item': 'Add Item'"
+          class="full-width"
+          type="submit"
         />
-        <q-input
-          dense
-          outlined
-          :disable="disable"
-          label="Quantity"
-          type="number"
-          v-model.number="formData.quantity"
-          bottom-slots
-        />
-    
-        <div class="q-gutter-y-sm">
-          <q-btn
-            :disable="disable"
-            color="brandblue"
-            no-caps
-            :label="formData.customItem ? 'Add custom item': 'Add Item'"
-            class="full-width"
-            type="submit"
-          />
-        </div>
       </div>
     </q-slide-transition>
     <VariantSearchDialog
@@ -157,7 +154,29 @@
       @ok="onVariantSelected"
       :excludeVariantIds="excludeVariantIds"
       hide-scanner
-    />
+    >
+      <template v-slot:no-item="ctx">
+        <q-item v-if="!ctx?.searchVal">
+          <q-item-section class="text-center text-grey">
+            <q-item-label>Search item</q-item-label>
+          </q-item-section>
+        </q-item>
+        <div v-else></div>
+      </template>
+      <template v-slot:before-options="ctx">
+        <q-item
+          v-if="(!ctx?.variantOpts?.length || ctx?.loading) && ctx?.searchVal"
+          clickable v-ripple
+          @click="() => setCustomItem({ itemName: ctx?.searchVal })"
+        >
+          <q-item-section class="text-center">
+            <q-item-label class="text-subtitle1 text-underline">
+              Add item '{{ ctx?.searchVal }}'
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </template>
+    </VariantSearchDialog>
   </q-form>
 </template>
 <script>
@@ -200,8 +219,7 @@ export default defineComponent({
     const $q = useQuasar()
     const marketplaceStore = useMarketplaceStore()
 
-    const submitOnScan = ref(true)
-    const hideFieldsForScan = computed(() => submitOnScan.value && scanner.value.show)
+    const hideFieldsForScan = computed(() => scanner.value.show)
     const formData = ref({
       customItem: false,
       variant: [].map(Variant.parse)[0],
@@ -242,6 +260,13 @@ export default defineComponent({
         shop_id: marketplaceStore.activeShopId,
       }
 
+      const dialog = $q.dialog({
+        title: 'Searching item',
+        progress: true,
+        ok: false, cancel: false,
+        color: 'brandblue',
+        persistent: true
+      })
       cachedBackend.get('variants/', { params })
         .finally(() => {
           scanner.value.error = ''
@@ -252,12 +277,9 @@ export default defineComponent({
             return response
           }
 
-          formData.value.customItem = false
-          formData.value.variant = Variant.parse(response?.data?.results[0])
-          if (submitOnScan.value) {
-            if (!formData.value.quantity) formData.value.quantity = 1
-            submit()
-          }
+          onVariantSelected(Variant.parse(response?.data?.results[0]), { keepScannerOn: true })
+          if (!formData.value.quantity) formData.value.quantity = 1
+          submit()
           return response
         })
         .catch(error => {
@@ -266,8 +288,9 @@ export default defineComponent({
         })
         .finally(() => {
           scanner.value.loading = false
+          dialog.hide()
         })
-    }, 1000, true)
+    }, 500, true)
     function onScannerError(...args) {
       console.error(...args)
     }
@@ -276,9 +299,25 @@ export default defineComponent({
     function selectVariant() {
       showVariantSearchDialog.value = true
     }
-    function onVariantSelected(variant) {
+    function onVariantSelected(variant, opts={ keepScannerOn: false }) {
       formData.value.customItem = false
       formData.value.variant = variant
+      if (hideFieldsForScan.value && !opts?.keepScannerOn) scanner.value.show = false
+    }
+
+    /**
+     * @param {Object} opts
+     * @param {String} opts.itemName
+     * @param {Number} opts.price
+     * @param {Number} opts.quantity
+     */
+    function setCustomItem(opts={ itemName: '',  price: undefined, quantity: undefined }) {
+      formData.value.customItem = true
+      formData.value.variant = null
+      formData.value.itemName = opts?.itemName
+      formData.value.price = opts?.price
+      formData.value.quantity = opts?.quantity
+      showVariantSearchDialog.value = false
       if (hideFieldsForScan.value) scanner.value.show = false
     }
 
@@ -312,7 +351,6 @@ export default defineComponent({
   
     return {
       marketplaceStore,
-      submitOnScan,
       hideFieldsForScan,
       formData,
       form,
@@ -324,6 +362,7 @@ export default defineComponent({
       showVariantSearchDialog,
       selectVariant,
       onVariantSelected,
+      setCustomItem,
 
       submit,
     }
