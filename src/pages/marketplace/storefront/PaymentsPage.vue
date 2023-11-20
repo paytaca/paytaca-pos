@@ -342,7 +342,18 @@ export default defineComponent({
     async function displayPaymentOrder(payment = Payment.parse()) {
       if (!payment.orderId) return
 
-      if (!payment.order) await payment.fetchOrder()
+      if (!payment.order) {
+        const dialog = $q.dialog({
+          title: 'Fetching order',
+          progress: true,
+          color: 'brandblue',
+          ok: false,
+          cancel: false,
+          persistent: true,
+        })
+        await payment.fetchOrder()?.finally(() => dialog?.hide())
+        dialog.hide()
+      }
 
       orderDetailDialog.value.order = payment.order
       orderDetailDialog.value.show = true
