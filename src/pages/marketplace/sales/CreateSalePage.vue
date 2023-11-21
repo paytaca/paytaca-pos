@@ -189,64 +189,85 @@
             :disable="loading"
             label="Next"
             class="full-width"
-            @click="() => nextTab()"
+            @click="() => {
+              nextTab()
+              refetchVariantsWithoutStockCount()
+            }"
           />
         </div>
       </q-tab-panel>
       <q-tab-panel name="stocks" class="q-pa-none">
-        <q-card v-for="(item, index) in formData.items" :key="item?.variant?.id" class="q-pa-sm q-mb-sm">
-          <div>Item {{ index+1 }}</div>
-          <div class="q-space row items-center no-wrap q-gutter-x-sm q-mb-sm">
-            <div class="row items-center no-wrap text-weight-medium" @click="() => item?.customItem ? null : viewItemVariant(item)">
-              <img
-                v-if="item?.variant?.itemImage"
-                :src="item?.variant?.itemImage"
-                style="width:30px;"
-                class="rounded-borders q-mr-xs"
-              />
-              <div>{{ item?.variant?.itemName || item?.itemName }}</div>
-            </div>
-            <div class="text-body1">x{{ item?.quantity }}</div>
-          </div>
-          <div class="row items-center">
-            <q-checkbox :disable="loading || item?.customItem" dense v-model="item.requireStocks" label="Require stocks"/>
-            <q-space/>
-            <q-btn
-              flat
-              no-caps
-              padding="none"
-              label="Select stocks"
-              class="text-underline"
-              :disable="loading || item?.customItem"
-              @click="() => selectStocks(item)"
-            />
-          </div>
-          <div
-            v-for="consumption in item.consumptions" :key="consumption.stock.id"
-            class="row q-mt-sm"
+        <q-list separator>
+          <q-expansion-item
+            v-for="(item, index) in formData.items" :key="item?.variant?.id || `item-${index}`"
+            class="q-mb-sm"
+            expand-icon-class="q-pr-none q-r-mr-sm"
           >
-            <q-item-section @click="() => viewStockDetail(consumption?.stock)">
-              <q-item-label class="text-weight-medium">
-                Stock #{{ consumption?.stock?.id }}
-              </q-item-label>
-              <q-item-label class="text-caption">
-                In stock: {{ consumption?.stock?.quantity }}
-              </q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-item-label>
-                <q-input
-                  outlined
-                  dense
-                  :disable="loading"
-                  type="number"
-                  v-model.number="consumption.quantity"
-                  width="5em"
+            <template v-slot:header>
+              <div class="row items-center no-wrap text-weight-medium full-width">
+                <img
+                  v-if="item?.variant?.itemImage"
+                  :src="item?.variant?.itemImage"
+                  style="width:30px;"
+                  class="rounded-borders q-mr-xs"
                 />
-              </q-item-label>
-            </q-item-section>
-          </div>
-        </q-card>
+                <div>{{ item?.variant?.itemName || item?.itemName }}</div>
+                <q-space style="min-width:1.5em;"/>
+                <div v-if="[null, 0].includes(item?.variant?.totalStocks)" class="text-grey text-right">
+                  No stocks
+                </div>
+                <div
+                  v-else-if="item?.variant?.totalStocks !== undefined"
+                  :class="[item?.variant?.totalStocks >= item?.quantity ? 'text-green' : 'text-red', 'text-right']"
+                >
+                  Stocks: <span style="white-space:nowrap;">{{ item?.quantity }} / {{ item?.variant?.totalStocks }}</span>
+                </div>
+                <div v-else-if="item?.customItem" class="text-grey text-right">
+                  Custom item
+                </div>
+              </div>
+            </template>
+            <div class="row items-center q-py-sm q-px-md">
+              <q-checkbox :disable="loading || item?.customItem" dense v-model="item.requireStocks" label="Require stocks"/>
+              <q-space/>
+              <q-btn
+                flat
+                no-caps
+                padding="none"
+                :disable="loading || item?.customItem"
+                @click="() => selectStocks(item)"
+              >
+                <span class="text-underline">Select stocks</span>
+                <q-icon name="inventory" class="q-ml-sm"/>
+              </q-btn>
+              <div
+                v-for="consumption in item.consumptions" :key="consumption.stock.id"
+                class="row q-mt-sm full-width"
+              >
+                <div @click="() => viewStockDetail(consumption?.stock)" class="q-space">
+                  <q-item-label class="text-weight-medium">
+                    Stock #{{ consumption?.stock?.id }}
+                  </q-item-label>
+                  <q-item-label class="text-caption">
+                    In stock: {{ consumption?.stock?.quantity }}
+                  </q-item-label>
+                </div>
+                <div style="width:max(6em, 50%);">
+                  <q-item-label>
+                    <q-input
+                      outlined
+                      dense
+                      :disable="loading"
+                      type="number"
+                      prefix="Qty"
+                      v-model.number="consumption.quantity"
+                    />
+                  </q-item-label>
+                </div>
+              </div>
+            </div>
+          </q-expansion-item>
+        </q-list>
 
         <div v-if="formComputedData.subtotal > 0" class="q-mt-md">
           <q-btn
@@ -661,6 +682,18 @@ export default defineComponent({
       const nextIndex = Math.min(index + 1, tabs.value.length-1)
 
       tab.value = _tabs.at(nextIndex).name
+    }
+
+    function refetchVariantsWithoutStockCount() {
+      formData.value.items.forEach(item => {
+        if (!item?.variant?.id) return
+        if (item?.variant?.totalStocks !== undefined) return
+
+        backend.get(`variants/${item?.variant?.id}/`)
+          .then(response => {
+            item.variant.raw = response?.data
+          })
+      })
     }
 
     // onMounted(() => {
@@ -1108,6 +1141,8 @@ export default defineComponent({
       tab,
       tabs,
       nextTab,
+
+      refetchVariantsWithoutStockCount,
 
       itemsTabListItems,
 
