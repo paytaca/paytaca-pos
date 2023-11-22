@@ -330,7 +330,18 @@ export default defineComponent({
     async function displayPaymentEscrowContract(payment=Payment.parse()) {
       if (!payment.escrowContractAddress) return
 
-      if (!payment.escrowContract) await payment.fetchEscrowContract()
+      if (!payment.escrowContract) {
+        const dialog = $q.dialog({
+          title: 'Fetching details',
+          progress: true,
+          color: 'brandblue',
+          ok: false,
+          cancel: false,
+          persistent: true,
+        })
+        await await payment.fetchEscrowContract()?.finally(() => dialog?.hide())
+        dialog.hide()
+      }
 
       escrowContractDialog.value.escrowContract = payment.escrowContract
       escrowContractDialog.value.bchPrice = payment.bchPrice
