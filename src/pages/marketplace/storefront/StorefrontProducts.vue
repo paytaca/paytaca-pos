@@ -21,6 +21,54 @@
             <template v-slot:prepend><q-icon name="search"/></template>
           </q-input>
           <q-space/>
+          <q-btn flat padding="sm" icon="tune">
+            <q-menu
+              v-model="openFilterOptsForm"
+              class="q-pa-md"
+              @hide="() => syncTempFilterOptsToFilterOpts()"
+            >
+              <q-btn
+                flat
+                no-caps label="Reset"
+                color="brandblue"
+                padding="xs md"
+                class="text-underline q-r-mt-md q-r-mr-lg float-right"
+                v-close-popup
+                @click="filterOpts = createDefaultFilterOpts(), tempFilterOpts = createDefaultFilterOpts()"
+              />
+              <div class="q-mb-sm">
+                <div class="text-subtitle1">Categories</div>
+                <div style="min-width:min(50vw, 300px);">
+                  <q-select
+                    outlined
+                    dense
+                    multiple
+                    use-input
+                    use-chips
+                    :options="categoriesFilter?.opts"
+                    v-model="tempFilterOpts.categories"
+                    class="q-r-mx-xs"
+                  />
+                </div>
+              </div>
+              <div class="q-mb-sm">
+                <div class="text-subtitle1">Availability</div>
+                <q-btn-toggle
+                  v-model="tempFilterOpts.availability"
+                  no-caps
+                  no-wrap
+                  toggle-color="primary"
+                  padding="xs md"
+                  :options="[
+                    {label: 'Available', value: true },
+                    {label: 'Unvailable', value: false },
+                    {label: 'All', value: undefined}
+                  ]"
+                />
+              </div>
+            </q-menu>
+          </q-btn>
+          <q-separator vertical class="q-ml-xs q-mr-sm"/>
           <q-btn 
             rounded
             icon="add"
@@ -29,23 +77,26 @@
             @click="() => openAddProductsDialog()"
           />
         </div>
-        <div class="row items-center">
-          <q-chip
-            v-for="category in filterOpts.categories" :key="category"
-            removable
-            @remove="() => filterOpts.categories = filterOpts.categories.filter(_category => _category != category)"
+        <div class="row items-center q-gutter-xs">
+          <div class="row items-center"> 
+          <div
+            v-if="typeof filterOpts?.availability === 'boolean'"
+            class="ellipsis filter-opt q-px-xs"
+            @click="openFilterOptsForm = true"
           >
-            {{ category }}
-          </q-chip>
-          <q-btn
-            flat
-            :rounded="filterOpts.categories.length > 0"
-            padding="xs"
-            no-caps
-            :label="!filterOpts.categories.length ? 'Filter categories': ''"
-            :icon="filterOpts.categories.length ? 'add' : undefined"
-            @click="categoriesPrompt"
-          />
+            {{ availability ? 'Available' : 'Unavailable' }}
+          </div>
+        </div>
+          <div
+            v-if="filterOpts?.categories?.length > 0"
+            class="ellipsis filter-opt q-px-xs"
+            style="max-width:max(500px,75vw);"
+            @click="openFilterOptsForm = true"
+          >
+            {{ filterOpts?.categories?.length === 1 ? 'Category' : 'Categories' }}
+            :
+            {{ filterOpts?.categories?.join(', ') }}
+          </div>
         </div>
       </div>
 
@@ -182,31 +233,29 @@ export default defineComponent({
           return response
         })
     }
-    function categoriesPrompt() {
-      $q.dialog({
-        title: 'Filter categories',
-        position: 'bottom',
-        options: {
-          type: 'checkbox',
-          model: filterOpts.value.categories,
-          items: categoriesFilter.value.opts.map(category => Object({
-            label: category,
-            value: category,
-            color: 'brandblue',
-          })),
-        },
-        ok: { color: 'brandblue' },
-        cancel: { flat: true, color: 'grey' },
-      }).onOk(val => {
-        filterOpts.value.categories = val
-      })
-    }
 
-    const filterOpts = ref({
-      search: '',
-      categories: [],
-    })
+    const openFilterOptsForm = ref()
+    function createDefaultFilterOpts() {
+      return {
+        search: '',
+        categories: [],
+        availability: undefined,
+      }
+    }
+    const filterOpts = ref(createDefaultFilterOpts())
     watch(filterOpts, () => fetchProducts(), { deep: true })
+    const tempFilterOpts = ref(createDefaultFilterOpts())
+    function syncTempFilterOptsToFilterOpts() {
+      filterOpts.value.search = tempFilterOpts.value.search
+      filterOpts.value.availability = tempFilterOpts.value.availability
+      
+      const tempCategories = tempFilterOpts.value.categories
+      const categories = filterOpts.value.categories
+      const hasAddedCategories = tempCategories.some(category => !categories.includes(category))
+      const hasRemovedCategories = categories.some(category => !tempCategories.includes(category))
+      if (!hasAddedCategories && !hasRemovedCategories) return
+      filterOpts.value.categories = [...tempFilterOpts.value.categories]
+    }
 
     const products = ref([].map(Product.parse))
     const fetchingProducts = ref(false)
@@ -219,6 +268,7 @@ export default defineComponent({
         limit: opts?.limit || 10,
         offset: opts?.offset || 0,
         categories: filterOpts.value.categories.join('|') || undefined,
+        availability: filterOpts.value.availability,
       }
       fetchingProducts.value = true
       return backend.get(`products/info/`, { params })
@@ -387,11 +437,14 @@ export default defineComponent({
 
     return {
       marketplaceStore,
+      openFilterOptsForm,
+      createDefaultFilterOpts,
       filterOpts,
+      tempFilterOpts,
+      syncTempFilterOptsToFilterOpts,
 
       categoriesFilter,
       updateProductCategories,
-      categoriesPrompt,
 
       products,
       fetchingProducts,
@@ -413,3 +466,9 @@ export default defineComponent({
   },
 })
 </script>
+<style lang="scss" scoped>
+.filter-opt {
+  border: 1px solid currentColor;
+  border-radius: 4px;
+}
+</style>

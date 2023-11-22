@@ -66,6 +66,7 @@ export default defineComponent({
       { name: 'Products', icon: 'local_mall', route: { name: 'marketplace-storefront-products' } },
       { name: 'Collections', icon: 'collections', route: { name: 'marketplace-storefront-collections' } },
       { name: 'Orders', icon: 'pending_actions', route: { name: 'marketplace-storefront-orders' } },
+      { name: 'Payments', icon: 'payments', route: { name: 'marketplace-storefront-payments' } },
       { name: 'Settings', icon: 'settings', route: { name: 'marketplace-storefront-settings' } },
     ]
 

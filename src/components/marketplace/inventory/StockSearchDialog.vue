@@ -30,7 +30,11 @@
               />
             </q-item-section>
             <q-item-section top>
-              <q-item-label>{{ stock?.itemName }}</q-item-label>
+              <q-item-label v-if="isSingleVariant">
+                <template v-if="stock?.purchaseOrderNumber">{{ stock?.purchaseOrderNumber }}</template>
+                <i v-else class="text-grey">No purchase order</i>
+              </q-item-label>
+              <q-item-label v-else>{{ stock?.itemName }}</q-item-label>
               <q-item-label class="text-caption">#{{ stock?.id }}</q-item-label>
             </q-item-section>
             <q-item-section>
@@ -68,12 +72,13 @@
           </q-item-section>
         </q-item>
       </q-list>
-      <q-card-actions>
+      <div class="row items-center q-pa-sm q-gutter-x-sm q-mt-sm">
         <q-btn
           v-if="cancel"
           flat
           label="Cancel"
           v-bind="cancel"
+          class="q-space"
           @click="onDialogCancel"
         />
         <q-btn
@@ -81,9 +86,10 @@
           color="brandblue"
           label="OK"
           v-bind="ok"
+          class="q-space"
           @click="submit"
         />
-      </q-card-actions>
+      </div>
     </q-card>
   </q-dialog>
 </template>
@@ -124,6 +130,14 @@ export default defineComponent({
     watch(innerSelected, () => $emit('update:selected', innerSelected.value), { deep: true })
     watch(() =>  [props.selected], () => innerSelected.value = props.selected, { deep: true })
     const multiple = computed(() => Array.isArray(innerSelected.value))
+
+    const isSingleVariant = computed(() => {
+      if (!props.searchFilterKwargs?.variant_id) return false
+
+      const variantIds = stocks.value.map(stock => stock?.variant?.id)
+      const mainVariantId = variantIds[0]
+      return variantIds.every(variantId => variantId == mainVariantId)
+    })
 
     const loading = ref(false)
     const searchVal = ref('')
@@ -193,6 +207,8 @@ export default defineComponent({
       marketplaceStore,
       innerSelected,
       innerVal,
+
+      isSingleVariant,
 
       loading,
       searchVal,

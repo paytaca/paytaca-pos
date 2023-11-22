@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md">
+  <q-page class="q-pa-md q-pb-xl">
     <q-pull-to-refresh @refresh="refreshPage">
       <MarketplaceHeader>
         <template v-slot:title>
@@ -166,7 +166,7 @@
           </div>
           <div>
             <q-btn
-              v-if="order?.deliveryAddress?.phoneNumber"
+              v-if="order?.id && order?.deliveryAddress?.phoneNumber"
               flat
               icon="phone"
               padding="sm"
@@ -379,6 +379,9 @@
           </template>
         </template>
       </div>
+      <div class="fixed-bottom q-pl-sm q-pb-sm">
+        <OrderChatButton ref="chatButton" :order-id="orderId"/>
+      </div>
     </q-pull-to-refresh>
     <OrderPaymentsDialog ref="paymentsDialog" v-model="showPaymentsDialog" :payments="payments" @updated="() => fetchOrder()">
       <template v-slot:before>
@@ -427,6 +430,7 @@ import OrderPaymentsDialog from 'src/components/marketplace/storefront/OrderPaym
 import UpdateOrderItemsFormDialog from 'src/components/marketplace/storefront/UpdateOrderItemsFormDialog.vue'
 import UpdateOrderDeliveryAddressFormDialog from 'src/components/marketplace/storefront/UpdateOrderDeliveryAddressFormDialog.vue'
 import OrderUpdatesDialog from 'src/components/marketplace/storefront/OrderUpdatesDialog.vue'
+import OrderChatButton from 'src/components/marketplace/storefront/OrderChatButton.vue'
 
 import customerLocationPin from 'src/assets/customer_map_marker.png'
 import riderLocationPin from 'src/assets/rider_map_marker.png'
@@ -442,6 +446,7 @@ export default defineComponent({
     UpdateOrderItemsFormDialog,
     UpdateOrderDeliveryAddressFormDialog,
     OrderUpdatesDialog,
+    OrderChatButton,
   },
   props: {
     orderId: [String, Number]
@@ -529,6 +534,11 @@ export default defineComponent({
       order.value.raw = orderData
       openUpdateItemsDialog.value = false
       openUpdateDeliveryAddressDialog.value = false
+    }
+
+    const chatButton = ref()
+    function openChatDialog() {
+      chatButton.value.openChatDialog = true
     }
 
     watch(() => [order.value.preparationDeadline, order.value.status], () => runPreparationTimeCountdown())
@@ -1001,6 +1011,7 @@ export default defineComponent({
           fetchOrder(),
           fetchDelivery(),
           fetchPayments(),
+          chatButton.value?.refresh(),
         ])
       } finally {
         done()
@@ -1021,6 +1032,9 @@ export default defineComponent({
         if (parseInt(props.orderId) == parseInt(orderId)) {
           notificationsStore.clearOpenedNotification()
         }
+      } else if (notificationTypes.MARKETPLACE_CHAT_UNREAD_MESSAGES == openedNotification?.data?.type) {
+        openChatDialog()
+        notificationsStore.clearOpenedNotification()
       }
     }
 
@@ -1038,6 +1052,8 @@ export default defineComponent({
       openUpdateDeliveryAddressDialog,
       openUpdateItemsDialog,
       onUpdateOrderData,
+
+      chatButton,
 
       nextStatus,
       prevStatus,

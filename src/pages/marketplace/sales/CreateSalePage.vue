@@ -91,96 +91,50 @@
           <q-card class="q-space items-card q-mb-md">
             <q-card-section>
               <div class="text-h5">Items</div>
-              <TransitionGroup name="fade">
-                <div v-for="(item, index) in formData.items" :key="item._index || `item-${index}`">
-                  <div class="row items-center justify-end">
-                    <div class="text-grey q-space">Item {{ index+1 }}</div> 
-                    <q-btn
-                      flat
-                      :disable="loading"
-                      icon="close"
-                      color="red"
-                      padding="xs"
-                      @click="() => removeItem(item)"
-                    />
-                  </div>
-                  <div class="row items-center no-wrap q-gutter-x-sm q-mb-sm">
-                    <div v-if="item?.customItem" class="q-space">
-                      {{ item?.itemName }}
-                      <q-icon name="edit" color="grey" size="0.9em"/>
-                      <q-popup-edit
-                        v-if="item?.customItem"
-                        v-model="item.itemName"
-                        :cover="false"
-                        :validate="val => Boolean(val)"
-                        v-slot="scope"
-                      >
-                        <q-input
-                          dense
-                          borderless
-                          label="Item name"
-                          v-model="scope.value"
-                          @keypress.enter="() => !scope.validate() ? scope.set() : scope.cancel()"
-                        />
-                      </q-popup-edit>
-                    </div>
-                    <div v-else class="q-space row items-center no-wrap text-weight-medium" @click="() => viewItemVariant(item)">
-                      <img
-                        v-if="item?.variant?.itemImage"
-                        :src="item?.variant?.itemImage"
-                        style="width:30px;"
-                        class="rounded-borders q-mr-xs"
-                      />
-                      <div>{{ item?.variant?.itemName }}</div>
-                    </div>
-                    <div class="col-3 col-sm-2">
-                      <template v-if="item?.customItem">
-                        <div class="row items-center no-wrap">
-                          {{ item.price }} {{ marketplaceStore?.currency }}
-                          <q-icon name="edit" color="grey" size="0.9em"/>
-                        </div>
-                        <q-popup-edit
-                          v-if="item?.customItem"
-                          v-model="item.price"
-                          :cover="false"
-                          :validate="val => parseFloat(val) > 0"
-                          v-slot="scope"
-                        >
-                          <q-input
-                            dense
-                            outlined
-                            label="Price"
-                            :suffix="marketplaceStore?.currency"
-                            type="number"
-                            step="0.001"
-                            v-model.number="scope.value"
-                            @keypress.enter="() => !scope.validate() ? scope.set() : scope.cancel()"
-                          />
-                        </q-popup-edit>
-                      </template>
-                      <template v-else>
-                        {{ item.variant?.price }} {{ marketplaceStore?.currency }}
-                      </template>
-                    </div>
-                    <div class="col-2 col-sm-1">
-                      <div class="row no-wrap items-center justify-center">
-                        <span>x{{ item.quantity }}</span>
-                        <q-icon name="edit" color="grey" size="0.9em"/>
-                        <q-popup-edit
-                          v-model="item.quantity" v-slot="props"
-                          :disable="loading"
-                          :cover="false"
-                          @update:model-value="val => val ? null: removeItem(item)"
-                        >
-                          <q-input
+              <table class="items-tab-table">
+                <TransitionGroup name="fade">
+                  <template v-for="(item, index) in formData.items" :key="item._index || `item-${index}`">
+                    <tr
+                      :ref="component => itemsTabListItems[item?._index] = component"
+                      @click="() => openEditItemDialog(item)"
+                    >
+                      <td colspan="1000">
+                        <div class="row items-center justify-end">
+                          <div class="text-grey q-space">Item {{ index+1 }}</div> 
+                          <q-btn
                             flat
-                            dense
                             :disable="loading"
-                            type="number"
-                            v-model.number="props.value"
-                            @keypress.enter="() => props.set()"
+                            icon="close"
+                            color="red"
+                            padding="xs"
+                            class="q-r-mr-md q-r-mt-sm"
+                            @click.stop="() => removeItem(item)"
                           />
-                        </q-popup-edit>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr @click="() => openEditItemDialog(item)">
+                      <td>
+                        <div v-if="item?.customItem">{{ item?.itemName }}</div>
+                        <div
+                          v-else
+                          class="q-space row items-center no-wrap text-weight-medium"
+                          @click.stop="() => viewItemVariant(item)"
+                        >
+                          <img
+                            v-if="item?.variant?.itemImage"
+                            :src="item?.variant?.itemImage"
+                            style="width:30px;"
+                            class="rounded-borders q-mr-xs"
+                          />
+                          <div>{{ item?.variant?.itemName }}</div>
+                        </div>
+                      </td>
+                      <td style="min-width:5em;" class="text-center">
+                        {{ item.price || item?.variant?.price }} {{ marketplaceStore?.currency }}
+                      </td>
+                      <td style="min-width:3em;" class="text-right">
+                        x{{ item?.quantity }}
                         <q-icon
                           v-if="item?.quantity > item?.variant?.totalStocks"
                           name="assignment_late"
@@ -191,11 +145,14 @@
                             Quantity is over total stocks: {{ item?.variant?.totalStocks }} 
                           </q-menu>
                         </q-icon>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </TransitionGroup>
+                      </td>
+                    </tr>
+                    <tr><th colspan="1000" class="spacer">
+                      <q-separator/>
+                    </th></tr>
+                  </template>
+                </TransitionGroup>
+              </table>
               <div v-if="!formData.items?.length" class="text-center text-grey">
                 No items
               </div>
@@ -232,64 +189,85 @@
             :disable="loading"
             label="Next"
             class="full-width"
-            @click="() => nextTab()"
+            @click="() => {
+              nextTab()
+              refetchVariantsWithoutStockCount()
+            }"
           />
         </div>
       </q-tab-panel>
       <q-tab-panel name="stocks" class="q-pa-none">
-        <q-card v-for="(item, index) in formData.items" :key="item?.variant?.id" class="q-pa-sm q-mb-sm">
-          <div>Item {{ index+1 }}</div>
-          <div class="q-space row items-center no-wrap q-gutter-x-sm q-mb-sm">
-            <div class="row items-center no-wrap text-weight-medium" @click="() => item?.customItem ? null : viewItemVariant(item)">
-              <img
-                v-if="item?.variant?.itemImage"
-                :src="item?.variant?.itemImage"
-                style="width:30px;"
-                class="rounded-borders q-mr-xs"
-              />
-              <div>{{ item?.variant?.itemName || item?.itemName }}</div>
-            </div>
-            <div class="text-body1">x{{ item?.quantity }}</div>
-          </div>
-          <div class="row items-center">
-            <q-checkbox :disable="loading || item?.customItem" dense v-model="item.requireStocks" label="Require stocks"/>
-            <q-space/>
-            <q-btn
-              flat
-              no-caps
-              padding="none"
-              label="Select stocks"
-              class="text-underline"
-              :disable="loading || item?.customItem"
-              @click="() => selectStocks(item)"
-            />
-          </div>
-          <div
-            v-for="consumption in item.consumptions" :key="consumption.stock.id"
-            class="row q-mt-sm"
+        <q-list separator>
+          <q-expansion-item
+            v-for="(item, index) in formData.items" :key="item?.variant?.id || `item-${index}`"
+            class="q-mb-sm"
+            expand-icon-class="q-pr-none q-r-mr-sm"
           >
-            <q-item-section @click="() => viewStockDetail(consumption?.stock)">
-              <q-item-label class="text-weight-medium">
-                Stock #{{ consumption?.stock?.id }}
-              </q-item-label>
-              <q-item-label class="text-caption">
-                In stock: {{ consumption?.stock?.quantity }}
-              </q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-item-label>
-                <q-input
-                  outlined
-                  dense
-                  :disable="loading"
-                  type="number"
-                  v-model.number="consumption.quantity"
-                  width="5em"
+            <template v-slot:header>
+              <div class="row items-center no-wrap text-weight-medium full-width">
+                <img
+                  v-if="item?.variant?.itemImage"
+                  :src="item?.variant?.itemImage"
+                  style="width:30px;"
+                  class="rounded-borders q-mr-xs"
                 />
-              </q-item-label>
-            </q-item-section>
-          </div>
-        </q-card>
+                <div>{{ item?.variant?.itemName || item?.itemName }}</div>
+                <q-space style="min-width:1.5em;"/>
+                <div v-if="[null, 0].includes(item?.variant?.totalStocks)" class="text-grey text-right">
+                  No stocks
+                </div>
+                <div
+                  v-else-if="item?.variant?.totalStocks !== undefined"
+                  :class="[item?.variant?.totalStocks >= item?.quantity ? 'text-green' : 'text-red', 'text-right']"
+                >
+                  Stocks: <span style="white-space:nowrap;">{{ item?.quantity }} / {{ item?.variant?.totalStocks }}</span>
+                </div>
+                <div v-else-if="item?.customItem" class="text-grey text-right">
+                  Custom item
+                </div>
+              </div>
+            </template>
+            <div class="row items-center q-py-sm q-px-md">
+              <q-checkbox :disable="loading || item?.customItem" dense v-model="item.requireStocks" label="Require stocks"/>
+              <q-space/>
+              <q-btn
+                flat
+                no-caps
+                padding="none"
+                :disable="loading || item?.customItem"
+                @click="() => selectStocks(item)"
+              >
+                <span class="text-underline">Select stocks</span>
+                <q-icon name="inventory" class="q-ml-sm"/>
+              </q-btn>
+              <div
+                v-for="consumption in item.consumptions" :key="consumption.stock.id"
+                class="row q-mt-sm full-width"
+              >
+                <div @click="() => viewStockDetail(consumption?.stock)" class="q-space">
+                  <q-item-label class="text-weight-medium">
+                    Stock #{{ consumption?.stock?.id }}
+                  </q-item-label>
+                  <q-item-label class="text-caption">
+                    In stock: {{ consumption?.stock?.quantity }}
+                  </q-item-label>
+                </div>
+                <div style="width:max(6em, 50%);">
+                  <q-item-label>
+                    <q-input
+                      outlined
+                      dense
+                      :disable="loading"
+                      type="number"
+                      prefix="Qty"
+                      v-model.number="consumption.quantity"
+                    />
+                  </q-item-label>
+                </div>
+              </div>
+            </div>
+          </q-expansion-item>
+        </q-list>
 
         <div v-if="formComputedData.subtotal > 0" class="q-mt-md">
           <q-btn
@@ -562,6 +540,11 @@
         />
       </template>
     </SalesOrderDetailDialog>
+    <EditSaleItemDialog
+      v-model="editItemDialog.show"
+      :initial-data="editItemDialog.item"
+      @submit="data => syncEditItemDialog(data)"
+    />
   </q-page>
 </template>
 <script>
@@ -580,6 +563,7 @@ import StockSearchDialog from 'src/components/marketplace/inventory/StockSearchD
 import QRCode from 'vue-qrcode-component'
 import SalesOrderDetailDialog from 'src/components/marketplace/sales/SalesOrderDetailDialog.vue'
 import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
+import EditSaleItemDialog from 'src/components/marketplace/sales/EditSaleItemDialog.vue'
 import { useAddressesStore } from 'src/stores/addresses'
 import { TransactionListener } from 'src/wallet/utils'
 
@@ -592,6 +576,7 @@ export default defineComponent({
     StockDetailDialog,
     QRCode,
     SalesOrderDetailDialog,
+    EditSaleItemDialog,
   },
   setup() {
     const $q = useQuasar()
@@ -611,7 +596,7 @@ export default defineComponent({
         .then(response => {
           const results = response.data?.results
           if (Array.isArray(results)) draftSalesOrders.value = results.map(SalesOrder.parse)
-          // loadDraftSalesOrder({ salesOrder: draftSalesOrders.value[0] })
+          loadDraftSalesOrder({ salesOrder: draftSalesOrders.value[0] })
           return response
         })
     }
@@ -699,6 +684,18 @@ export default defineComponent({
       tab.value = _tabs.at(nextIndex).name
     }
 
+    function refetchVariantsWithoutStockCount() {
+      formData.value.items.forEach(item => {
+        if (!item?.variant?.id) return
+        if (item?.variant?.totalStocks !== undefined) return
+
+        backend.get(`variants/${item?.variant?.id}/`)
+          .then(response => {
+            item.variant.raw = response?.data
+          })
+      })
+    }
+
     // onMounted(() => {
     //   const params = {
     //     offset: 2,
@@ -716,6 +713,8 @@ export default defineComponent({
     //   setTimeout(() => nextTab(), 10)
     // addItem({ customItem: true, itemName: 'Something', price: 10.75, quantity: 5 })
     // })
+
+    const itemsTabListItems = ref({})
 
     let itemCtr = 0
     function createEmptyItem() {
@@ -815,6 +814,7 @@ export default defineComponent({
       const itemData = Object.assign(createEmptyItem(), item)
       if (isNaN(itemData?.quantity)) return
 
+      const refIndex = index >= 0 ? formData.value.items?.[index]?._index : itemData?._index
       if (index >= 0) {
         const addedQuantity = parseInt(itemData.quantity)
         formData.value.items[index].variant = itemData.variant
@@ -822,6 +822,16 @@ export default defineComponent({
       } else {
         formData.value.items.push(itemData)
       }
+      setTimeout(() => {
+        const element = itemsTabListItems.value?.[refIndex]
+        console.log(element)
+        if (!element) return
+        element?.scrollIntoView?.({ behavior: 'smooth' })
+        window.t = () => {
+          console.log('Scrolling to view', element)
+          element?.scrollIntoView?.({ behavior: 'smooth' })
+        }
+      }, 250)
     }
 
     function removeItem(item) {
@@ -1097,6 +1107,17 @@ export default defineComponent({
       salesOrderDetailDialog.value.show = true
     }
 
+    const editItemDialog = ref({
+      show: false,
+      item: [].map(createEmptyItem)?.[0],
+    })
+    function openEditItemDialog(item=[].map(createEmptyItem)?.[0]) {
+      editItemDialog.value = { item, show: true }
+    }
+    function syncEditItemDialog(data) {
+      Object.assign(editItemDialog.value.item, data)
+    }
+
     function copyToClipboard(value, message='') {
       this.$copyText(value)
         .then(() => {
@@ -1120,6 +1141,10 @@ export default defineComponent({
       tab,
       tabs,
       nextTab,
+
+      refetchVariantsWithoutStockCount,
+
+      itemsTabListItems,
 
       loading,
       formData,
@@ -1149,6 +1174,10 @@ export default defineComponent({
 
       salesOrderDetailDialog,
       viewSalesOrder,
+
+      editItemDialog,
+      openEditItemDialog,
+      syncEditItemDialog,
 
       copyToClipboard,
 
@@ -1239,4 +1268,24 @@ export default defineComponent({
 .q-r-ml-md {
   margin-left: -(map-get($space-md, 'x'))/2;
 }
+
+table.items-tab-table  tr:nth-child(2n) {
+  border-bottom: 2px solid grey;
+}
+table.items-tab-table td {
+  vertical-align: top;
+}
+table.items-tab-table tr td:first-child {
+  width: 100%;
+}
+table.items-tab-table tr th.spacer {
+  border: none;
+  padding-top: 5px;
+}
+table.items-tab-table tr:last-child th.spacer {
+  display: none;
+  border: none;
+  padding-top: 5px;
+}
 </style>
+

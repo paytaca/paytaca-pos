@@ -52,6 +52,8 @@ export const useNotificationsStore = defineStore('notifications', {
       return {
         MARKETPLACE_ORDER_CREATE: 'marketplace_order_created',
         MARKETPLACE_ORDER_STATUS_UPDATE: 'marketplace_order_status_update',
+        MARKETPLACE_ORDER_INCOMING_CALL: 'marketplace_order_incoming_call',
+        MARKETPLACE_CHAT_UNREAD_MESSAGES: 'marketplace_chat_unread_messages',
       }
     }
   },
@@ -96,6 +98,9 @@ export const useNotificationsStore = defineStore('notifications', {
       let route = null
       switch(openedNotification?.data?.type) {
         case (this.types.MARKETPLACE_ORDER_CREATE):
+        case (this.types.MARKETPLACE_ORDER_STATUS_UPDATE):
+        case (this.types.MARKETPLACE_ORDER_INCOMING_CALL):
+        case (this.types.MARKETPLACE_CHAT_UNREAD_MESSAGES):
           route = {
             name: 'marketplace-storefront-order',
             params: { orderId: openedNotification?.data?.order_id },

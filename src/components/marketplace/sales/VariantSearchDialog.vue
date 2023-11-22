@@ -29,15 +29,18 @@
           </template>
         </q-input>
         <q-list separator>
+          <slot name="before-options" v-bind="{ loading, variantOpts, searchVal }"></slot>
           <div v-if="loading" class="row items-center justify-center q-my-sm">
             <q-spinner size="2em"/>
           </div>
-          <q-item v-else-if="!variantOpts?.length">
-            <q-item-section class="text-center text-grey">
-              <q-item-label v-if="searchVal">No items</q-item-label>
-              <q-item-label v-else>Search variant</q-item-label>
-            </q-item-section>
-          </q-item>
+          <slot v-else-if="!variantOpts?.length" name="no-item" v-bind="{ loading, searchVal }">
+            <q-item>
+              <q-item-section class="text-center text-grey">
+                <q-item-label v-if="searchVal">No items</q-item-label>
+                <q-item-label v-else>Search variant</q-item-label>
+              </q-item-section>
+            </q-item>
+          </slot>
           <q-item
             v-for="opt in variantOpts" :key="opt?.id"
             clickable
@@ -60,6 +63,7 @@
             </q-item-section>
           </q-item>
         </q-list>
+        <slot name="after-options" v-bind="{ loading, variantOpts, searchVal }"></slot>
       </template>
       <template v-else>
         <div class="q-mb-sm">

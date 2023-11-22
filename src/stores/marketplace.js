@@ -38,7 +38,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
         defaultPurchaseOrderReviewer: {
           id: 0, first_name: '', last_name: '',
         },
-        markupSaleRate: 0,
+        markupSaleRate: 1,
         startingPurchaseOrderNumber: 0,
         startingSalesOrderNumber: 0,
       },
@@ -110,7 +110,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
     refetchShopSettings() {
       backend.get(`shops/${this.shop.id}/settings/`)
         .then(response => {
-          if (!response?.data?.id) return Promise.reject({ response })
+          if (response?.data?.shop_id != this.shop.id) return Promise.reject({ response })
           this.setShopSettingsData(response?.data)
           return response
         })
