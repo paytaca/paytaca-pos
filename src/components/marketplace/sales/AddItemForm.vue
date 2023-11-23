@@ -55,6 +55,21 @@
           </q-item-section>
         </q-item>
       </template>
+      <template v-if="pagination?.hasMore" v-slot:after-options>
+        <q-separator inset/>
+        <q-item
+          clickable v-ripple
+          :disable="Boolean(pagination?.appending)"
+          @click="() => updateVariantOpts({ append: true })"
+        >
+          <q-item-section class="text-center">
+            <q-item-label>
+              More
+              <q-spinner v-if="pagination?.appending"/>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </template>
     </q-select>
 
     <q-slide-transition>
@@ -232,33 +247,49 @@ export default defineComponent({
       setTimeout(() => form.value?.resetValidation(), 10)
     }
 
-    const variantOpts = ref([
-      { id: 0, name: '', image_url: '', price: 0, product: { id: 0, name: '', image_url: '' } },
-    ])
+    const pagination = ref({ nextOffset: 0, hasMore: 0, appending: false })
+    const searchVal = ref('')
+    const variantOpts = ref([].map(Variant.parse))
     function filterVariantOpts(val, update, abortUpdate) {
-      const params = {
-        s: val,
-        shop_id: marketplaceStore.activeShopId,
-        exclude_ids: props.exludeVariantIds?.join?.(',') || undefined,
-        limit: 5 + 2**(val?.length || 0),
-      }
-
-      backend.get('variants/', { params })
-        .then(response => {
-          if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
-          update(() => {
-            variantOpts.value = response.data?.results?.map(Variant.parse)
-            if (Array.isArray(props.exludeVariantIds) && props.exludeVariantIds.length) {
-              variantOpts.value = variantOpts.value.filter(variant => {
-                return props.exludeVariantIds.indexOf(variant?.id) < 0
-              })
-            }
-          })
-          return response
-        })
+      searchVal.value = val
+      updateVariantOpts()
+        .then(() => update())
         .catch(() => abortUpdate())
     }
     filterVariantOpts = debounce(filterVariantOpts)
+    function updateVariantOpts(opts={ append: false }) {
+      const params = {
+        s: searchVal.value,
+        shop_id: marketplaceStore.activeShopId,
+        exclude_ids: props.exludeVariantIds?.join?.(',') || undefined,
+        limit: 5,
+        offset: opts?.append ? pagination.value?.nextOffset : undefined,
+      }
+
+      pagination.value.appending = Boolean(opts?.append)
+      const cache = { maxAge: 2 * 60 * 1000, exclude: { query: false } }
+      return cachedBackend.get(`variants/`, { params, cache })
+        .then(response => {
+          if (!response?.data) return Promise.reject({ response })
+          const { results, offset, limit, count } = response?.data
+          if (!Array.isArray(results)) return Promise.reject({ response })
+
+          const parsedResults = results.map(Variant.parse)
+          if (opts?.append) variantOpts.value.push(...parsedResults)
+          else variantOpts.value = parsedResults
+          if (props.exludeVariantIds?.length) {
+            variantOpts.value = variantOpts.value.filter(variant => {
+              return props.exludeVariantIds.indexOf(variant?.id) < 0
+            })
+          }
+          const nextOffset = offset + limit
+          pagination.value = { nextOffset: nextOffset, hasMore: nextOffset < count }
+          return response
+        })
+        .finally(() => {
+          pagination.value.appending = false
+        })
+    }
 
     function submit() {
       const data = {
@@ -279,8 +310,10 @@ export default defineComponent({
       formData,
       form,
       clearForm,
+      pagination,
       variantOpts,
       filterVariantOpts,
+      updateVariantOpts,
       submit,
     }
   },
