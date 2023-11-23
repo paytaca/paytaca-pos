@@ -1,5 +1,6 @@
 import { capitalize } from "vue"
 import { backend } from "./backend"
+import { getPurchaseOrderUpdatesTexts } from "./edit-history-utils"
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from "./chat/encryption"
 import { formatOrderStatus, formatPurchaseOrderStatus, parseOrderStatusColor, parsePurchaseOrderStatusColor } from './utils'
 
@@ -1069,6 +1070,52 @@ export class PurchaseOrder {
   }
 }
 
+export class PurchaseOrderUpdates {
+  UpdateTypes = Object.freeze({
+    ITEM_ADD: 'item_add',
+    ITEM_REMOVE: 'item_remove',
+    ITEM_UPDATE: 'item_update',
+    OTHER: 'other',
+  })
+
+  static parse(data) {
+    return new PurchaseOrderUpdates(data)
+  }
+
+  constructor (data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data 
+   * @param {Number} data.id
+   * @param {Number} data.purchase_order_id
+   * @param {String} data.update_type
+   * @param {Object} data.prev_value
+   * @param {Object} data.new_value
+   * @param {String} data.created_at
+   * @param {Object} data.created_by
+   */
+  set raw(data) {
+    this.id = data?.id
+    this.purchaseOrderId = data?.purchase_order_id
+    this.updateType = data?.update_type
+    this.prevValue = data?.prev_value
+    this.newValue = data?.new_value
+    if (data?.created_at) this.createdAt = new Date(data?.created_at)
+    else if (this.createdAt) delete this.createdAt
+    this.createdBy = User.parse(data?.created_by)
+  }
+
+  get updateTexts() {
+    return getPurchaseOrderUpdatesTexts(this)
+  }
+}
+
 export class StockRecount {
   static parse(data) {
     return new StockRecount(data)
@@ -1709,10 +1756,14 @@ export class OrderUpdates {
         texts.push(`Changed quantity from ${this.prevValue.quantity} to ${this.newValue.quantity}`)
       }
       if (this.prevValue.price != this.newValue.price) {
-        texts.push(`Changed price from ${this.prevValue.price} to ${this.newValue.price}`)
+        const prevPrice = [this.prevValue.price, this.prevValue.currency].filter(Boolean).join(' ')
+        const newPrice = [this.newValue.price, this.newValue.currency].filter(Boolean).join(' ')
+        texts.push(`Changed price from ${prevPrice} to ${newPrice}`)
       }
       if (this.prevValue.markup_price != this.newValue.markup_price) {
-        texts.push(`Changed markup price from ${this.prevValue.markup_price} to ${this.newValue.markup_price}`)
+        const prevMarkupPrice = [this.prevValue.markup_price, this.prevValue.currency].filter(Boolean).join(' ')
+        const newMarkupPrice = [this.newValue.markup_price, this.newValue.currency].filter(Boolean).join(' ')
+        texts.push(`Changed markup price from ${prevMarkupPrice} to ${newMarkupPrice}`)
       }
       return texts
     } else if (this.updateType == this.UpdateTypes.DELIVERY_ADDRESS_UPDATE) {
