@@ -1,6 +1,6 @@
 import { capitalize } from "vue"
 import { backend } from "./backend"
-import { getPurchaseOrderUpdatesTexts } from "./edit-history-utils"
+import { getOrderUpdatesTexts, getPurchaseOrderUpdatesTexts } from "./edit-history-utils"
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from "./chat/encryption"
 import { formatOrderStatus, formatPurchaseOrderStatus, parseOrderStatusColor, parsePurchaseOrderStatusColor } from './utils'
 
@@ -1737,53 +1737,7 @@ export class OrderUpdates {
   }
 
   get updateTexts() {
-    if (this.updateType == this.UpdateTypes.STATUS_UPDATE) {
-      const prevStatus = this.prevValue?.status
-      const newStatus = this.newValue?.status
-      let str = `Updated status`
-      if (prevStatus) str += ` from '${formatOrderStatus(prevStatus)}'`
-      str += ` to '${formatOrderStatus(newStatus)}'`
-      return [str]
-    } else if (this.updateType == this.UpdateTypes.ITEM_ADD) {
-      return [`Added item ${this.newValue?.item_name}`]
-    } else if (this.updateType == this.UpdateTypes.ITEM_REMOVE) {
-      return [`Removed item ${this.prevValue?.item_name}`]
-    } else if (this.updateType == this.UpdateTypes.ITEM_UPDATE) {
-      const texts = [
-        `Updated item ${this.prevValue.item_name || this.newValue.item_name}`
-      ]
-      if (this.prevValue.quantity != this.newValue.quantity) {
-        texts.push(`Changed quantity from ${this.prevValue.quantity} to ${this.newValue.quantity}`)
-      }
-      if (this.prevValue.price != this.newValue.price) {
-        const prevPrice = [this.prevValue.price, this.prevValue.currency].filter(Boolean).join(' ')
-        const newPrice = [this.newValue.price, this.newValue.currency].filter(Boolean).join(' ')
-        texts.push(`Changed price from ${prevPrice} to ${newPrice}`)
-      }
-      if (this.prevValue.markup_price != this.newValue.markup_price) {
-        const prevMarkupPrice = [this.prevValue.markup_price, this.prevValue.currency].filter(Boolean).join(' ')
-        const newMarkupPrice = [this.newValue.markup_price, this.newValue.currency].filter(Boolean).join(' ')
-        texts.push(`Changed markup price from ${prevMarkupPrice} to ${newMarkupPrice}`)
-      }
-      return texts
-    } else if (this.updateType == this.UpdateTypes.DELIVERY_ADDRESS_UPDATE) {
-      const texts = []
-      const prevName = `${this.prevValue?.first_name} ${this.prevValue?.last_name}`
-      const newName = `${this.newValue?.first_name} ${this.newValue?.last_name}`
-      if (prevName != newName) {
-        texts.push(`Changed name from ${prevName} to ${newName}`)
-      }
-      if (this.prevValue?.phone_number != this.newValue?.phone_number) {
-        texts.push(`Changed contact from ${this.prevValue?.phone_number} to ${this.newValue?.phone_number}`)
-      }
-      if (this.prevValue?.location != this.newValue?.location) {
-        texts.push(`Updated location from '${this.prevValue.location}' to '${this.newValue.location}'`)
-      }
-      if (this.prevValue?.coordinates != this.newValue?.coordinates) {
-        texts.push(`Updated pin location from ${this.prevValue.coordinates} to ${this.newValue.coordinates}`)
-      }
-      return texts
-    }
+    return getOrderUpdatesTexts(this)
   }
 }
 

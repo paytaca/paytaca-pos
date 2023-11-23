@@ -1,6 +1,59 @@
-import { PurchaseOrderUpdates } from "./objects";
+import { OrderUpdates, PurchaseOrderUpdates } from "./objects";
 import { formatTimestampToText, formatDateToText } from "./utils";
 
+/**
+ * 
+ * @param {OrderUpdates} obj 
+ */
+export function getOrderUpdatesTexts(obj) {
+  if (obj.updateType == obj.UpdateTypes.STATUS_UPDATE) {
+    const prevStatus = obj.prevValue?.status
+    const newStatus = obj.newValue?.status
+    let str = `Updated status`
+    if (prevStatus) str += ` from '${formatOrderStatus(prevStatus)}'`
+    str += ` to '${formatOrderStatus(newStatus)}'`
+    return [str]
+  } else if (obj.updateType == obj.UpdateTypes.ITEM_ADD) {
+    return [`Added item ${obj.newValue?.item_name}`]
+  } else if (obj.updateType == obj.UpdateTypes.ITEM_REMOVE) {
+    return [`Removed item ${obj.prevValue?.item_name}`]
+  } else if (obj.updateType == obj.UpdateTypes.ITEM_UPDATE) {
+    const texts = [
+      `Updated item ${obj.prevValue.item_name || obj.newValue.item_name}`
+    ]
+    if (obj.prevValue.quantity != obj.newValue.quantity) {
+      texts.push(`Changed quantity from ${obj.prevValue.quantity} to ${obj.newValue.quantity}`)
+    }
+    if (obj.prevValue.price != obj.newValue.price) {
+      const prevPrice = [obj.prevValue.price, obj.prevValue.currency].filter(Boolean).join(' ')
+      const newPrice = [obj.newValue.price, obj.newValue.currency].filter(Boolean).join(' ')
+      texts.push(`Changed price from ${prevPrice} to ${newPrice}`)
+    }
+    if (obj.prevValue.markup_price != obj.newValue.markup_price) {
+      const prevMarkupPrice = [obj.prevValue.markup_price, obj.prevValue.currency].filter(Boolean).join(' ')
+      const newMarkupPrice = [obj.newValue.markup_price, obj.newValue.currency].filter(Boolean).join(' ')
+      texts.push(`Changed markup price from ${prevMarkupPrice} to ${newMarkupPrice}`)
+    }
+    return texts
+  } else if (obj.updateType == obj.UpdateTypes.DELIVERY_ADDRESS_UPDATE) {
+    const texts = []
+    const prevName = `${obj.prevValue?.first_name} ${obj.prevValue?.last_name}`
+    const newName = `${obj.newValue?.first_name} ${obj.newValue?.last_name}`
+    if (prevName != newName) {
+      texts.push(`Changed name from ${prevName} to ${newName}`)
+    }
+    if (obj.prevValue?.phone_number != obj.newValue?.phone_number) {
+      texts.push(`Changed contact from ${obj.prevValue?.phone_number} to ${obj.newValue?.phone_number}`)
+    }
+    if (obj.prevValue?.location != obj.newValue?.location) {
+      texts.push(`Updated location from '${obj.prevValue.location}' to '${obj.newValue.location}'`)
+    }
+    if (obj.prevValue?.coordinates != obj.newValue?.coordinates) {
+      texts.push(`Updated pin location from ${obj.prevValue.coordinates} to ${obj.newValue.coordinates}`)
+    }
+    return texts
+  }
+}
 
 /**
  * @param {PurchaseOrderUpdates} obj 
