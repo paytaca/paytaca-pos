@@ -100,12 +100,7 @@ export default defineComponent({
           merchantReceiverPk,
           merchantSignerPk,
         },
-        options: { network: 'mainnet' },
-        // TODO: do not use this when voucher is from paytaca
-        feeFunder: {
-          address: process.env.PURELYPEER_FEE_FUNDER_ADDR,
-          wif: process.env.PURELYPEER_FEE_FUNDER_WIF,
-        }
+        options: { network: 'mainnet' }
       }
 
       const __vault = new Vault(params)

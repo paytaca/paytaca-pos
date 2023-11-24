@@ -21,7 +21,7 @@ export class Vault {
     this.merchantReceiverPk = opts?.params?.merchantReceiverPk
     this.merchantSignerPk = opts?.params?.merchantSignerPk
     this.network = opts?.options?.network
-    this.feeFunder = opts?.feeFunder
+    this.dust = 1000n
   }
 
   get contractCreationParams () {
@@ -72,7 +72,7 @@ export class Vault {
 
     if (voucherUtxos.length === 0) throw new Error(`No category ${category} utxos found`)
 
-    const lockNftUtxo = voucherUtxos.find(utxo => utxo.satoshis !== 1000n)
+    const lockNftUtxo = voucherUtxos.find(utxo => utxo.satoshis !== this.dust)
     const transaction = await contract.functions.claim(
       reverseHex(category),
       merchantSignerSig
@@ -94,7 +94,7 @@ export class Vault {
     const utxos = await this.provider.getUtxos(contract.address)
     const lockNftUtxo = utxos.find(utxo =>
       utxo?.token?.category === category &&
-      utxo?.satoshis !== 1000n
+      utxo?.satoshis !== this.dust
     )
 
     if (!lockNftUtxo) throw new Error(`No lock NFT of category ${category} utxos found`)
@@ -102,52 +102,17 @@ export class Vault {
     // get latest MTP (median timestamp) from latest block
     const { mediantime } = await axios.get('https://watchtower.cash/api/blockchain/info/')
     const latestBlockTimestamp = mediantime
+    const refundedAmount = lockNftUtxo.satoshis - this.dust
 
-    let transaction = contract.functions
+    let transaction = await contract.functions
       .refund(merchantSignerSig)
       .from(lockNftUtxo)
-      .to(merchantReceivingAddress, lockNftUtxo.satoshis)
+      .to(merchantReceivingAddress, refundedAmount)
       .withoutTokenChange()
-      .withHardcodedFee(1000n)
+      .withHardcodedFee(this.dust)
       .withTime(latestBlockTimestamp)
+      .send()
 
-    transaction = await this.fundTransaction(transaction)
-    transaction = await transaction.send()
-    return transaction
-  }
-
-  async fundTransaction (transaction) {
-    let fundingUtxos = await this.provider.getUtxos(this.feeFunder.address)
-    
-    fundingUtxos = fundingUtxos.filter(
-      utxo => !utxo?.token && utxo?.satoshis
-    ).map(utxo => {
-      utxo.wif = this.feeFunder.wif
-      return utxo
-    })
-
-    let temp = transaction.address
-    transaction.address = this.feeFunder.address
-  
-    for (var i = 0; i < fundingUtxos?.length; i++) {
-      const utxo = fundingUtxos?.[i]
-      try {
-        await transaction.setInputsAndOutputs()
-        break
-      } catch(error) {
-        if (!error?.message?.startsWith?.('Insufficient funds')) throw error
-        if (utxo.wif) {
-          const keyPair = bchjs.ECPair.fromWIF(utxo.wif)
-          const sig = new SignatureTemplate(keyPair)
-          transaction.fromP2PKH(utxo, sig)
-        } else {
-          transaction.from(utxo)
-        }
-      }
-    }
-  
-    await transaction.setInputsAndOutputs()
-    transaction.address = temp
     return transaction
   }
   
