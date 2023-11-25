@@ -61,6 +61,12 @@
         </q-item>
         <q-item v-if="transaction?.txid" clickable v-ripple @click="copyToClipboard(transaction?.txid)" style="overflow-wrap: anywhere;">
           <q-item-section>
+            <q-item-label caption class="text-grey">Reference ID</q-item-label>
+            <q-item-label>{{ transaction?.txid.substring(0, 6).toUpperCase() }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item v-if="transaction?.txid" clickable v-ripple @click="copyToClipboard(transaction?.txid)" style="overflow-wrap: anywhere;">
+          <q-item-section>
             <q-item-label caption class="text-grey">Transaction ID</q-item-label>
             <q-item-label>{{ transaction?.txid }}</q-item-label>
           </q-item-section>

@@ -22,9 +22,13 @@
             {{ marketValue }} {{ marketValueCurrency }}
           </div>
         </div>
+        <div class="text-grey text-center" style="margin-bottom:-0.5em;">Reference ID</div>
+        <p class="text-center" style="font-size: 22px; margin-top: 7px;">
+          {{ txid.substring(0, 6).toUpperCase() }}
+        </p>
 
-        <div class="text-grey" style="margin-bottom:-0.5em;">Transaction ID</div>
-        <div class="row items-center no-wrap text-subtitle1">
+        <div class="text-grey text-center" style="margin-bottom:-0.5em;">Transaction ID</div>
+        <div class="row items-center no-wrap text-subtitle1" style="margin-top: 7px;">
           <div class="ellipsis">{{txid}}</div>
           <div class="row no-wrap">
             <q-btn
