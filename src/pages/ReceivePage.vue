@@ -6,14 +6,7 @@
       <!-- <div v-if="!loading" class="text-h6">#{{ addressSet?.index }}</div> -->
     </div>
     <q-banner v-if="!isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-lg rounded-borders">
-      <q-icon name="info" class="" size="1.5em">
-        <q-popup-proxy :breakpoint="0">
-          <div class="q-pa-md">
-            Confirmation OTP might be unavailable for payments received from non-paytaca wallets.
-          </div>
-        </q-popup-proxy>
-      </q-icon>
-      Detected offline, confirming payments might be unavailable
+      The app offline, you will not receive payment notifications.
     </q-banner>
     <div class="row items-center justify-center">
       <div class="qr-code-container" style="position:relative;" v-ripple @click="copyText(qrData, 'Copied payment URI')">
@@ -51,20 +44,11 @@
         />
       </q-popup-edit>-->
     </div>
-    <div v-if="canViewTransactionsReceived && !showOtpInput" class="q-px-md q-mt-md">
+    <div v-if="canViewTransactionsReceived" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
           Payment Transactions
         </div>
-        <!-- <q-btn
-          flat
-          no-caps
-          label="Input OTP"
-          color="brandblue"
-          padding="none md"
-          style="text-decoration:underline;"
-          @click="showOtpInput = true"
-        /> -->
       </div>
       <q-separator/>
       <template v-if="transactionsReceived?.length">
@@ -103,36 +87,6 @@
         No transactions received
       </div>
     </div>
-    <div v-if="!canViewTransactionsReceived || showOtpInput" class="q-mt-lg q-px-md">
-      <div v-if="canViewTransactionsReceived" class="row justify-end q-mb-sm">
-        <q-btn flat no-caps padding="xs-sm" @click="showOtpInput = false">
-            <q-icon name="arrow_back" size="1.25em" class="q-mr-sm"/>
-            Received transactions
-        </q-btn>
-      </div>
-      <q-input
-        outlined
-        label="Confirmation OTP"
-        inputmode="numeric"
-        mask="#-#-#-#-#-#"
-        unmasked-value
-        v-model="otpInput"
-        hint="Input OTP sent to customer to verify payment"
-        :bg-color="$q.dark.isActive ? 'dark' : 'white'"
-        class="q-space text-h6"
-      >
-        <template v-slot:append>
-          <q-btn
-            no-caps
-            color="primary"
-            label="Verify"
-            type="submit"
-            class="q-my-md"
-            @click="verifyOtp()"
-          />
-        </template>
-      </q-input>
-    </div>
   </q-page>
 </template>
 <script>
@@ -144,7 +98,7 @@ import { defineComponent, ref, onMounted, computed, watch, onUnmounted, markRaw,
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import QRCode from 'vue-qrcode-component'
-import { decodePaymentUri, sha256 } from 'src/wallet/utils'
+import { sha256 } from 'src/wallet/utils'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
@@ -192,6 +146,7 @@ export default defineComponent({
     const receivingAddress = addressSet.value?.receiving
     const vault = ref(walletStore.merchantInfo?.vault)
     const generatingAddress = ref(false)
+    const promptOnLeave = ref(true)
 
     onMounted(() => {
       generatingAddress.value = true
@@ -286,33 +241,6 @@ export default defineComponent({
     }
     watch(qrData, () => cacheQrData())
     onMounted(() => cacheQrData())
-
-    const otpInput = ref('')
-    const showOtpInput = ref(false)
-    function verifyOtp() {
-      if (otpInput.value.length < 6) return
-      const _qrData = qrData.value
-      const match = walletStore.verifyOtpForQrData(otpInput.value, _qrData)
-      const decodedQrData = decodePaymentUri(_qrData)
-
-      $q.dialog({
-        title: 'OTP verification',
-        message: match ? 'OTP match. Payment has been verified!' : 'OTP incorrect. Failed to verify the payment!',
-      })
-        .onDismiss(() => {
-          if (match) {
-            otpInput.value = ''
-            receiveAmount.value = 0
-            const qrDataHash = sha256(_qrData)
-            txCacheStore.addQrDataToUnconfirmedPayments(walletStore.qrDataTimestampCache[qrDataHash]?.qrData || _qrData)
-            addressesStore.removeAddressSet(decodedQrData.address)
-            addressesStore.fillAddressSets()
-
-            delete walletStore.qrDataTimestampCache[qrDataHash]
-            $router.push({ name: 'home' })
-          }
-        })
-      }
     
     const reconnectAttempts = 10000
     const websocketUrl = 'wss://watchtower.cash/ws/watch/bch'
@@ -409,7 +337,6 @@ export default defineComponent({
         websocket.addEventListener('open', () => {
           closeWebsocket()
           websockets.value[x].instance = markRaw(websocket)
-          showOtpInput.value = false
         })
       }
     }
@@ -508,7 +435,6 @@ export default defineComponent({
 
       transactionsReceived.value.push(parsedData)
       displayReceivedTransaction(parsedData)
-      showOtpInput.value = false
     }
 
     /**
@@ -586,9 +512,10 @@ export default defineComponent({
         }
       })
         .onOk(() => {
-          otpInput.value = ''
           receiveAmount.value = 0
           transactionsReceived.value = []
+          promptOnLeave.value = false
+
           const qrDataHash = sha256(_qrData)
           delete walletStore.qrDataTimestampCache[qrDataHash]
 
@@ -598,14 +525,12 @@ export default defineComponent({
         })
     }
 
-    const promptOnLeave = ref(true)
     onBeforeRouteLeave(async (to, from, next) => {
       if (!qrData.value || !promptOnLeave.value) return next()
-
       const proceed = await new Promise((resolve) => {
         $q.dialog({
           title: 'Leave Page',
-          message: 'Leaving page without confirming payment OTP. Are you sure?',
+          message: 'Are you sure you want to leave this page without receiving a payment?',
           cancel: true,
           ok: true,
         }).onOk(() => resolve(true)).onDismiss(() => resolve(false))
@@ -642,9 +567,6 @@ export default defineComponent({
       bchValue,
       showSetAmountDialog,
       qrData,
-      otpInput,
-      showOtpInput,
-      verifyOtp,
       websockets,
       websocketsReady,
       transactionsReceived,
