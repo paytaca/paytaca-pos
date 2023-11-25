@@ -45,7 +45,7 @@
             :class="[$q.dark.isActive ? 'text-weight-light' : '']"
             style="margin-top:-0.25em;"
           >
-            {{ marketValue(tx)?.marketValue }} {{ selectedMarketCurrency }}
+            {{ parseFloat(marketValue(tx)?.marketValue).toFixed(2) }} {{ selectedMarketCurrency }}
           </div>
         </div>
       </div>

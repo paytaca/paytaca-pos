@@ -75,8 +75,10 @@ export const useMarketStore = defineStore('market', {
 
       getUsdRates.map(this.refreshUsdPrice)
       return axios.get(
-        'https://api.coingecko.com/api/v3/simple/price/',
+        // 'https://api.coingecko.com/api/v3/simple/price/',
+        'https://pro-api.coingecko.com/api/v3/simple/price/',
         {
+          headers: { 'x-cg-pro-api-key': process.env.COINGECKO_API_KEY },
           params: { ids: 'bitcoin-cash', vs_currencies: vsCurrencies.join(',') }
         }
       )
