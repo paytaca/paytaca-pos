@@ -1,11 +1,11 @@
 <template>
   <q-page padding>
     <MainHeader title="Payment"/>
-    <div class="text-center text-h4 q-mb-lg">
+    <div class="text-center text-h4" style="margin-bottom: 50px;">
       <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
-      <div v-if="!loading" class="text-h6">#{{ addressSet?.index }}</div>
+      <!-- <div v-if="!loading" class="text-h6">#{{ addressSet?.index }}</div> -->
     </div>
-    <q-banner v-if="!isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-md rounded-borders">
+    <q-banner v-if="!isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-lg rounded-borders">
       <q-icon name="info" class="" size="1.5em">
         <q-popup-proxy :breakpoint="0">
           <div class="q-pa-md">
@@ -56,7 +56,7 @@
         <div class="q-space text-subtitle1">
           Payment Transactions
         </div>
-        <q-btn
+        <!-- <q-btn
           flat
           no-caps
           label="Input OTP"
@@ -64,7 +64,7 @@
           padding="none md"
           style="text-decoration:underline;"
           @click="showOtpInput = true"
-        />
+        /> -->
       </div>
       <q-separator/>
       <template v-if="transactionsReceived?.length">
@@ -288,7 +288,7 @@ export default defineComponent({
     onMounted(() => cacheQrData())
 
     const otpInput = ref('')
-    const showOtpInput = ref(true)
+    const showOtpInput = ref(false)
     function verifyOtp() {
       if (otpInput.value.length < 6) return
       const _qrData = qrData.value

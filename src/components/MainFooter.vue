@@ -20,6 +20,7 @@
         <div class="receive-page-btn-container shadow-20">
           <q-btn
             flat
+            style="border: 1px solid rgb(68, 68, 83);"
             color="brandblue"
             round
             padding="md"
