@@ -84,13 +84,11 @@ export function getPurchaseOrderUpdatesTexts(obj) {
       texts.push(`Updated delivery timestamp to ${formatTimestampToText(obj.prevValue.delivered_at)}`)
     }
 
-    if (obj.prevValue.expired_at != obj.newValue.expired_at) {
-      if (!obj.prevValue.expired_at && obj.newValue.expired_at) {
-        texts.push(`Added expiration date for '${obj.newValue.item_name}'`)
-      } else if (obj.prevValue.expired_at && !obj.newValue.expired_at) {
+    if (obj.prevValue.expires_at != obj.newValue.expires_at) {
+      if (obj.newValue.expires_at) {
+        texts.push(`Set expiration date to ${formatDateToText(obj.newValue.expires_at)}`)
+      } else if (obj.prevValue.expires_at && !obj.newValue.expires_at) {
         texts.push(`Removed expiration date for '${obj.newValue.item_name}'`)
-      } else if (obj.newValue.expired_at) {
-        texts.push(`Changed expiration date to ${formatDateToText(obj.newValue.expired_at)}`)
       }
     }
 
