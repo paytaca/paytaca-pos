@@ -116,12 +116,15 @@
         </div>
       </div>
       <q-table
+        ref="table"
         :loading="fetchingPayments"
         :columns="paymentsTableColumns"
         :rows="payments"
         :pagination="{ rowsPerPage: 0 }"
         row-key="id"
         hide-pagination
+        binary-state-sort
+        :sort-method="sortMethod"
       >
         <template v-slot:bottom>
           <div class="row items-center full-width">
@@ -221,6 +224,7 @@ export default defineComponent({
     const openFilterOptsForm = ref(false)
     function createDefaultFilterOpts() {
       return {
+        sort: undefined,
         search: '',
         statuses: ['sent', 'received', 'voided'].map(String),
         isEscrow: undefined,
@@ -251,6 +255,7 @@ export default defineComponent({
         limit: opts?.limit || 10,
         offset: opts?.offset || undefined,
         s: filterOpts.value?.search || undefined,
+        ordering: filterOpts.value?.sort,
         statuses: filterOpts.value?.statuses?.filter?.(Boolean)?.join?.(',') || undefined,
         is_escrow: filterOpts.value?.isEscrow,
         refundable: filterOpts.value?.refundable,
@@ -272,15 +277,26 @@ export default defineComponent({
         })
     }
 
+    const table = ref()
     const paymentsTableColumns = [
-      { name: 'id', align: 'center', label: 'Payment', field: 'id', format: val => val ? `#${val}` : '' },
-      { name: 'status', align: 'center', label: 'Status', field: 'status', format: formatStatusGeneric },
-      { name: 'amount', align: 'center', label: 'Amount', field: obj => `${obj?.totalAmount} ${obj?.currency?.symbol}` },
-      { name: 'source', align: 'center', label: 'Reference', },
+      { name: 'id', align: 'center', label: 'Payment', field: 'id', format: val => val ? `#${val}` : '', sortable: true },
+      { name: 'status', align: 'center', label: 'Status', field: 'status', format: formatStatusGeneric, sortable: true },
+      { name: 'amount', align: 'center', label: 'Amount', field: obj => `${obj?.totalAmount} ${obj?.currency?.symbol}`, sortable: true },
+      { name: 'source', align: 'center', label: 'Reference', sortable: true },
       { name: 'escrow', align: 'center', label: 'Escrow', },
-      { name: 'timestamp', align: 'center', label: 'Timestamp', field: 'createdAt', format: formatDateRelative },
+      { name: 'timestamp', align: 'center', label: 'Timestamp', field: 'createdAt', format: formatDateRelative, sortable: true },
       { name: 'actions', align: 'center', },
     ]
+    const sortFieldNameMap = {
+      amount: 'total_amount',
+      source: 'order_id',
+      timestamp: 'created_at',
+    }
+    function sortMethod(rows, sortBy, descending) {
+      const fieldName = sortFieldNameMap[sortBy] || sortBy
+      filterOpts.value.sort = (descending ? '-': '') + fieldName
+      return rows
+    }
 
     function refundPayment(payment=Payment.parse()) {
       const paymentId = payment?.id
@@ -390,6 +406,8 @@ export default defineComponent({
       paymentsPagination,
       fetchPayments,
       paymentsTableColumns,
+      table,
+      sortMethod,
 
       refundPayment,
 

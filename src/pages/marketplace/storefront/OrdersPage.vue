@@ -88,12 +88,15 @@
         </div>
       </div>
       <q-table
+        ref="table"
         :loading="fetchingOrders"
         :columns="ordersTableColumns"
         :rows="orders"
         :pagination="{ rowsPerPage: 0 }"
         row-key="id"
         hide-pagination
+        binary-state-sort
+        :sort-method="sortMethod"
         @row-click="(evt, row) => $router.push({ name: 'marketplace-storefront-order', params: { orderId: row.id } })"
       >
         <template v-slot:body-cell-status="props">
@@ -173,6 +176,7 @@ export default defineComponent({
 
     const openFilterOptsForm = ref(false) 
     const filterOpts = ref({
+      sort: undefined,
       search: props.s || '',
       statuses: props.statuses?.split?.(',')?.filter(status => statusOpts.includes(status)) || [],
     })
@@ -194,6 +198,7 @@ export default defineComponent({
         storefront_id: marketplaceStore.storefrontData?.id || null,
         limit: opts?.limit || 10,
         offset: opts?.offset || undefined,
+        ordering: filterOpts.value?.sort || undefined,
         statuses: filterOpts.value?.statuses?.join(',') || undefined,
         s: filterOpts.value.search || undefined,
       }
@@ -214,13 +219,23 @@ export default defineComponent({
         })
     }
 
+    const table = ref()
     const ordersTableColumns = [
-      { name: 'id', align: 'left', label: 'Order', field: 'id', format: val => val ? `#${val}` : '' },
-      { name: 'status', align: 'left', label: 'Status', field: 'formattedStatus' },
-      { name: 'payment-status', align: 'left', label: 'Payment Status', field: 'formattedPaymentStatus' },
-      { name: 'subtotal', align: 'left', label: 'Subtotal', field: obj => obj?.subtotal ? `${obj.subtotal} ${obj?.currency?.symbol}` : '' },
-      { name: 'customer', align: 'left', label: 'Customer', field: obj => `${obj?.customer?.firstName} ${obj?.customer?.lastName}` },
+      { name: 'id', align: 'left', label: 'Order', field: 'id', format: val => val ? `#${val}` : '', sortable: true },
+      { name: 'status', align: 'left', label: 'Status', field: 'formattedStatus', sortable: true },
+      { name: 'payment-status', align: 'left', label: 'Payment Status', field: 'formattedPaymentStatus', sortable: true },
+      { name: 'subtotal', align: 'left', label: 'Subtotal', field: obj => obj?.subtotal ? `${obj.subtotal} ${obj?.currency?.symbol}` : '', sortable: true },
+      { name: 'customer', align: 'left', label: 'Customer', field: obj => `${obj?.customer?.firstName} ${obj?.customer?.lastName}`, sortable: true },
     ]
+    const sortFieldNameMap = {
+      customer: 'customer_name',
+      'payment-status': 'paid_pctg',
+    }
+    function sortMethod(rows, sortBy, descending) {
+      const fieldName = sortFieldNameMap[sortBy] || sortBy
+      filterOpts.value.sort = (descending ? '-': '') + fieldName
+      return rows
+    }
 
     async function refreshPage(done=() => {}) {
       try {
@@ -246,6 +261,8 @@ export default defineComponent({
       fetchOrders,
 
       ordersTableColumns,
+      table,
+      sortMethod,
 
       refreshPage,
 
