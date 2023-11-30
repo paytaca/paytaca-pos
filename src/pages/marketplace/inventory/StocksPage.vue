@@ -124,6 +124,7 @@
         </div>
       </q-slide-transition>
       <q-table
+        ref="table"
         :loading="fetchingStocks"
         loading-label="Loading..."
         :columns="stocksTableColumns"
@@ -131,6 +132,8 @@
         row-key="id"
         :pagination="{ rowsPerPage: 0 }"
         hide-pagination
+        binary-state-sort
+        :sort-method="sortMethod"
         selection="multiple"
         v-model:selected="selectedStocks"
       >
@@ -351,6 +354,7 @@ export default defineComponent({
     }
 
     const filterOpts = ref({
+      sort: undefined,
       search: '',
       expired: null,
       productId: Number(props.productId) || null,
@@ -407,6 +411,7 @@ export default defineComponent({
         shop_id: marketplaceStore.activeShopId,
         limit: opts?.limit || 10,
         offset: opts?.offset || 0,
+        ordering: filterOpts.value.sort || undefined,
         s: filterOpts.value.search || undefined,
         categories: filterOpts.value.categories.join('|') || undefined,
       }
@@ -438,17 +443,30 @@ export default defineComponent({
       })
     }
 
+    const table = ref()
     const stocksTableColumns = [
-      { name: 'product', align: 'left', label: 'Product', field: obj => [obj?.variant?.product?.name, obj?.variant?.name].filter(Boolean).join('- ') },
+      { name: 'product', align: 'left', label: 'Product', field: obj => [obj?.variant?.product?.name, obj?.variant?.name].filter(Boolean).join('- '), sortable: true },
       // { name: 'variant', align: 'center', label: 'Variant', field: obj => obj?.variant?.name },
-      { name: 'purchase-order', align: 'center', label: 'Purchase Order', field: 'purchaseOrderNumber' },
-      { name: 'quantity', align: 'center', label: 'Qty', field: 'quantity' },
-      { name: 'cost-price', align: 'center', label: 'Cost Price', field: obj => obj.costPrice && `${obj.costPrice} ${marketplaceStore?.currency}` },
-      { name: 'expires-at', align: 'center', label: 'Expires', field: obj => obj.expiresAt, format: val => val ? formatDateRelative(val) : '' },
+      { name: 'purchase-order', align: 'center', label: 'Purchase Order', field: 'purchaseOrderNumber', sortable: true },
+      { name: 'quantity', align: 'center', label: 'Qty', field: 'quantity', sortable: true },
+      { name: 'cost-price', align: 'center', label: 'Cost Price', field: obj => obj.costPrice && `${obj.costPrice} ${marketplaceStore?.currency}`, sortable: true },
+      { name: 'expires-at', align: 'center', label: 'Expires', field: obj => obj.expiresAt, format: val => val ? formatDateRelative(val) : '', sortable: true },
       // { name: 'created-at', align: 'center', label: 'Created' },
-      { name: 'updated-at', align: 'center', label: 'Updated' },
-      { name: 'actions', align: 'center', label: '' },
+      { name: 'updated-at', align: 'center', label: 'Updated', sortable: true },
+      { name: 'actions', align: 'center', label: '', sortable: true },
     ]
+    const sortFieldNameMap = {
+      product: 'item_name',
+      'purchase-order': 'purchase_order_number',
+      'cost-price': 'cost_price',
+      'expires-at': 'expires_at',
+      'updated-at': 'updated_at',
+    }
+    function sortMethod(rows, sortBy, descending) {
+      const fieldName = sortFieldNameMap[sortBy] || sortBy
+      filterOpts.value.sort = (descending ? '-': '') + fieldName
+      return rows
+    }
 
     function displayStockDetail(stock=Stock.parse()) {
       $q.dialog({
@@ -598,7 +616,9 @@ export default defineComponent({
       displaySelectedStocks,
       fetchStocks,
       
+      table,
       stocksTableColumns,
+      sortMethod,
       displayStockDetail,
       displayStockPurchaseOrder,
       openCreateStockDialog,

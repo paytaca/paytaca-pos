@@ -42,6 +42,7 @@
         </q-chip>
       </div>
       <q-table
+        ref="table"
         :loading="fetchingStaff"
         loading-label="Loading..."
         :columns="staffTableColumns"
@@ -49,6 +50,8 @@
         row-key="id"
         :pagination="{ rowsPerPage: 0 }"
         hide-pagination
+        binary-state-sort
+        :sort-method="sortMethod"
       >
         <template v-slot:bottom>
           <div class="row items-center full-width">
@@ -142,6 +145,7 @@ export default defineComponent({
     }
 
     const filterOpts = ref({
+      sort: undefined,
       search: '',
       roles: [],
     })
@@ -156,6 +160,7 @@ export default defineComponent({
       const params = {
         limit: opts?.limit || 10,
         offset: opts?.offset || undefined,
+        ordering: filterOpts.value.sort || undefined,
         s: filterOpts.value.search || undefined,
       }
       if (filterOpts.value.roles?.length) params.roles = filterOpts.value.roles.join(',')
@@ -175,16 +180,26 @@ export default defineComponent({
         })
     }
 
+    const table = ref()
     const staffTableColumns = [
-      { name: 'name', align: 'left', label: 'Name', field: 'fullName' },
-      // { name: 'username', align: 'center', label: 'Username', field: 'username' },
-      // { name: 'email', align: 'center', label: 'Email', field: 'email' },
+      { name: 'name', align: 'left', label: 'Name', field: 'fullName', sortable: true },
       {
         name: 'roles', align: 'left', label: 'Roles',
         field: obj => obj?.getRolesFromShop(marketplaceStore.activeShopId),
         format: val => Array.isArray(val) ? val.map(formatRole).join(', ') : '',
       },
+      { name: 'username', align: 'center', label: 'Username', field: 'username', sortable: true },
+      { name: 'email', align: 'center', label: 'Email', field: 'email', sortable: true },
     ]
+    const sortFieldNameMap = {
+      items: 'items_count',
+      'payment-mode': 'payment_mode',
+    }
+    function sortMethod(rows, sortBy, descending) {
+      const fieldName = sortFieldNameMap[sortBy] || sortBy
+      filterOpts.value.sort = (descending ? '-': '') + fieldName
+      return rows
+    }
 
     function displayStaffInfo(staff=User.parse()) {
       $q.dialog({
@@ -265,7 +280,9 @@ export default defineComponent({
       staff,
       staffPagination,
       fetchStaff,
+      table,
       staffTableColumns,
+      sortMethod,
       displayStaffInfo,
       openAddUserDialog,
       getUpdateRoleOpts,

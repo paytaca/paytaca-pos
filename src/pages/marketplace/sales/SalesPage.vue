@@ -64,7 +64,6 @@
               self="top middle"
               class="q-pa-none"
               v-slot="scope"
-              @update:model-value="() => fetchSalesOrders()"
             >
               <q-date
                 flat
@@ -87,6 +86,7 @@
         </div>
       </div>
       <q-table
+        ref="table"
         :loading="fetchingSalesOrders"
         loading-label="Loading..."
         :columns="salesOrdersTableColumns"
@@ -94,6 +94,8 @@
         row-key="id"
         :pagination="{ rowsPerPage: 0 }"
         hide-pagination
+        binary-state-sort
+        :sort-method="sortMethod"
       >
         <template v-slot:bottom>
           <div class="row items-center full-width">
@@ -150,7 +152,7 @@ import { SalesOrder } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { date } from 'quasar'
-import { computed, defineComponent, onMounted, ref } from 'vue'
+import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import SalesOrderDetailDialog from 'src/components/marketplace/sales/SalesOrderDetailDialog.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
@@ -166,6 +168,7 @@ export default defineComponent({
     const marketplaceStore = useMarketplaceStore()
 
     const filterOpts = ref({
+      sort: undefined,
       search: '',
       dateRange: {
         from: null,
@@ -203,6 +206,7 @@ export default defineComponent({
     const salesOrders = ref([].map(SalesOrder.parse))
     const salesOrdersPagination = ref({count: 0, limit: 0, offset: 0 })
     const fetchingSalesOrders = ref(false)
+    watch(filterOpts, () => fetchSalesOrders(), { deep: true })
     onMounted(() => fetchSalesOrders())
     function fetchSalesOrders(opts={limit: 0, offset: 0}) {
       const params = {
@@ -210,6 +214,7 @@ export default defineComponent({
         limit: opts?.limit || 10,
         offset: opts?.offset || undefined,
         draft: false,
+        ordering: filterOpts.value.sort || undefined,
         s: filterOpts.value.search || undefined,
       }
 
@@ -235,13 +240,23 @@ export default defineComponent({
         })
     }
 
+    const table = ref()
     const salesOrdersTableColumns = [
-      { name: 'number', align: 'center', label: 'Number', field: 'number', format: val => `SO#${val}` },
-      { name: 'status', align: 'center', label: 'Status', field: 'parsedStatus' },
-      { name: 'total', align: 'center', label: 'Total', field: obj => obj?.total ? `${obj?.total} ${obj?.currency?.symbol}` : '' },
-      { name: 'items', align: 'center', label: 'Items', field: obj => obj?.items?.length || obj?.itemsCount, format: val => val === 1 ? `${val} item` : `${val} items` },
-      { name: 'payment-mode', align: 'center', label: 'Payment mode', field: obj => obj?.parsedPaymentMode || obj?.paymentMode },
+      { name: 'number', align: 'center', label: 'Number', field: 'number', format: val => `SO#${val}`, sortable: true },
+      { name: 'status', align: 'center', label: 'Status', field: 'parsedStatus', sortable: true },
+      { name: 'total', align: 'center', label: 'Total', field: obj => obj?.total ? `${obj?.total} ${obj?.currency?.symbol}` : '', sortable: true },
+      { name: 'items', align: 'center', label: 'Items', field: obj => obj?.items?.length || obj?.itemsCount, format: val => val === 1 ? `${val} item` : `${val} items`, sortable: true },
+      { name: 'payment-mode', align: 'center', label: 'Payment mode', field: obj => obj?.parsedPaymentMode || obj?.paymentMode, sortable: true },
     ]
+    const sortFieldNameMap = {
+      items: 'items_count',
+      'payment-mode': 'payment_mode',
+    }
+    function sortMethod(rows, sortBy, descending) {
+      const fieldName = sortFieldNameMap[sortBy] || sortBy
+      filterOpts.value.sort = (descending ? '-': '') + fieldName
+      return rows
+    }
 
     const salesOrderDetailDialog = ref({
       show: false,
@@ -275,7 +290,9 @@ export default defineComponent({
       fetchingSalesOrders,
       fetchSalesOrders,
 
+      table,
       salesOrdersTableColumns,
+      sortMethod,
 
       salesOrderDetailDialog,
       showSalesOrderDetail,

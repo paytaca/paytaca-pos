@@ -84,6 +84,7 @@
         </div>
       </div>
       <q-table
+        ref="table"
         :loading="fetchingPurchaseOrders"
         loading-label="Loading..."
         :columns="purchaseOrdersTableColumns"
@@ -91,6 +92,8 @@
         row-key="id"
         :pagination="{ rowsPerPage: 0 }"
         hide-pagination
+        binary-state-sort
+        :sort-method="sortMethod"
       >
         <template v-slot:bottom>
           <div class="row items-center full-width">
@@ -287,6 +290,7 @@ export default defineComponent({
 
     const statusOpts = ['pending', 'partial', 'received', 'complete']
     const filterOpts = ref({
+      sort: undefined,
       search: '',
       status: '',
       reviewed: null,
@@ -304,6 +308,7 @@ export default defineComponent({
         limit: opts?.limit || 10,
         offset: opts?.offset || undefined,
         shop_id: marketplaceStore.activeShopId,
+        ordering: filterOpts.value.sort || undefined,
         status: filterOpts.value.status || undefined,
         s: filterOpts.value.search || undefined,
         to_review: Boolean(filterOpts.value.filterToReview) || undefined,
@@ -346,14 +351,25 @@ export default defineComponent({
       filterOpts.value.status =''
     }
 
+    const table = ref()
     const purchaseOrdersTableColumns = [
-      { name: 'number', align: 'center', label: 'Number', field: 'number', format: val => `PO#${val}` },
-      { name: 'status', align: 'center', label: 'Status', field: 'status', format: formatPurchaseOrderStatus, },
-      { name: 'items', align: 'center', label: 'Items', field: obj => obj?.items?.length || obj?.itemsCount, format: val => val === 1 ? `${val} item` : `${val} items` },
-      { name: 'vendor', align: 'center', label: 'Supplier', field: obj => obj?.vendor?.name },
-      { name: 'updated-at', align: 'center', label: 'Updated', field: 'updatedAt' },
+      { name: 'number', align: 'center', label: 'Number', field: 'number', format: val => `PO#${val}`, sortable: true },
+      { name: 'status', align: 'center', label: 'Status', field: 'status', format: formatPurchaseOrderStatus, sortable: true },
+      { name: 'items', align: 'center', label: 'Items', field: obj => obj?.items?.length || obj?.itemsCount, format: val => val === 1 ? `${val} item` : `${val} items`, sortable: true },
+      { name: 'vendor', align: 'center', label: 'Supplier', field: obj => obj?.vendor?.name, sortable: true },
+      { name: 'updated-at', align: 'center', label: 'Updated', field: 'updatedAt', sortable: true },
       // { name: 'actions', align: 'center', label: '' },
     ]
+    const sortFieldNameMap = {
+      items: 'items_count',
+      vendor: 'vendor__name',
+      'updated-at': 'updated_at',
+    }
+    function sortMethod(rows, sortBy, descending) {
+      const fieldName = sortFieldNameMap[sortBy] || sortBy
+      filterOpts.value.sort = (descending ? '-': '') + fieldName
+      return rows
+    }
 
     const vendorInfoDialog = ref({ vendor: Vendor.parse(), show: false })
     function displayVendorInfo(vendor=Vendor.parse()) {
@@ -411,7 +427,9 @@ export default defineComponent({
       updateToReviewPurchaseOrders,
       filterToReviewPurchaseOrders,
 
+      table,
       purchaseOrdersTableColumns,
+      sortMethod,
 
       vendorInfoDialog,
       displayVendorInfo,

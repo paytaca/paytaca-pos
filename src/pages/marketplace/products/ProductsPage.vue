@@ -63,6 +63,7 @@
         </div>
       </div>
       <q-table
+        ref="table"
         :loading="fetchingProducts"
         :columns="productsTableColumns"
         :rows="products"
@@ -70,6 +71,8 @@
         :selected="productsTableState.selected"
         :expanded="productsTableState.expanded"
         hide-pagination
+        binary-state-sort
+        :sort-method="sortMethod"
       >
         <template v-slot:bottom>
           <div class="row items-center full-width">
@@ -233,6 +236,7 @@ export default defineComponent({
     }
 
     const filterOpts = ref({
+      sort: undefined,
       search: '',
       categories: [],
     })
@@ -249,6 +253,7 @@ export default defineComponent({
         shop_id: Number(marketplaceStore.activeShopId),
         limit: opts?.limit || 10,
         offset: opts?.offset || 0,
+        ordering: filterOpts.value.sort || undefined,
         categories: filterOpts.value.categories.join('|') || undefined,
       }
 
@@ -267,12 +272,23 @@ export default defineComponent({
         })
     }
     
+    const table = ref()
     const productsTableColumns = [
-      { name: 'product', align: 'left', label: 'Product', field: 'name' },
-      { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks' },
-      { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText },
+      { name: 'product', align: 'left', label: 'Product', field: 'name', sortable: true },
+      { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks', sortable: true },
+      { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText, sortable: true },
       // { name: 'actions', align: 'center', label: '' },
     ]
+    const sortFieldNameMap = {
+      product: 'name',
+      'total-quantity': 'total_stocks',
+      'created': 'created_at',
+    }
+    function sortMethod(rows, sortBy, descending) {
+      const fieldName = sortFieldNameMap[sortBy] || sortBy
+      filterOpts.value.sort = (descending ? '-': '') + fieldName
+      return rows
+    }
 
     const productsTableState = ref({
       expanded: [].map(Product.parse),
@@ -308,7 +324,9 @@ export default defineComponent({
       fetchingProducts,
       productsPagination,
       fetchProducts,
+      table,
       productsTableColumns,
+      sortMethod,
       productsTableState,
       productDetailDialog,
       viewProductDetail,

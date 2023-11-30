@@ -72,12 +72,15 @@
       </div>
 
       <q-table
+        ref="table"
         :loading="fetchingCollections"
         :columns="collectionsTableColumns"
         :rows="collections"
         :pagination="{ rowsPerPage: 0 }"
         row-key="id"
         hide-pagination
+        binary-state-sort
+        :sort-method="sortMethod"
         @row-click="(evt, row) => $router.push({ name: 'marketplace-storefront-collection', params: { collectionId: row.id } })"
       >
         <template v-slot:bottom>
@@ -138,6 +141,7 @@ export default defineComponent({
     const openFilterOptsForm = ref(false)
     function createDefaultFilterOpts() {
       return {
+        sort: undefined,
         search: '',
         auto: null,
       }
@@ -154,6 +158,7 @@ export default defineComponent({
         storefront_id: marketplaceStore.storefrontData.id,
         limit: opts?.limit || 10,
         offset: opts?.offset || 0,
+        ordering: filterOpts.value.sort || undefined,
         s: filterOpts.value?.search || undefined,
         auto: typeof filterOpts.value.auto === 'boolean' ? filterOpts.value.auto : undefined,
       }
@@ -172,12 +177,22 @@ export default defineComponent({
         })
     }
 
+    const table = ref()
     const collectionsTableColumns = [
-      { name: 'name', align: 'left', label: 'Name', field: 'name', classes: 'text-weight-medium' },
-      { name: 'auto', align: 'center', label: 'Type', field: 'auto', format: val => val ? 'Auto' : 'Manual' },
-      { name: 'count', align: 'center', label: 'Products', field: 'productsCount' },
-      { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText },
+      { name: 'name', align: 'left', label: 'Name', field: 'name', classes: 'text-weight-medium', sortable: true },
+      { name: 'auto', align: 'center', label: 'Type', field: 'auto', format: val => val ? 'Auto' : 'Manual', sortable: true },
+      { name: 'count', align: 'center', label: 'Products', field: 'productsCount', sortable: true },
+      { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText, sortable: true },
     ]
+    const sortFieldNameMap = {
+      count: 'products_count',
+      created: 'created_at',
+    }
+    function sortMethod(rows, sortBy, descending) {
+      const fieldName = sortFieldNameMap[sortBy] || sortBy
+      filterOpts.value.sort = (descending ? '-': '') + fieldName
+      return rows
+    }
 
     function openCreateCollectionDialog() {
       $q.dialog({
@@ -202,7 +217,9 @@ export default defineComponent({
       fetchCollections,
       collectionsPagination,
 
+      table,
       collectionsTableColumns,
+      sortMethod,
 
       openCreateCollectionDialog,
       refreshPage,
