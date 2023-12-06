@@ -434,6 +434,7 @@ export default defineComponent({
       if (parsedData.voucher) checkVoucherClaim(parsedData)
 
       transactionsReceived.value.push(parsedData)
+      promptOnLeave.value = false
       displayReceivedTransaction(parsedData)
     }
 
@@ -527,15 +528,19 @@ export default defineComponent({
 
     onBeforeRouteLeave(async (to, from, next) => {
       if (!qrData.value || !promptOnLeave.value) return next()
-      const proceed = await new Promise((resolve) => {
-        $q.dialog({
-          title: 'Leave Page',
-          message: 'Are you sure you want to leave this page without receiving a payment?',
-          cancel: true,
-          ok: true,
-        }).onOk(() => resolve(true)).onDismiss(() => resolve(false))
-      })
-      return next(proceed)
+      if (promptOnLeave.value) {
+        const proceed = await new Promise((resolve) => {
+          $q.dialog({
+            title: 'Leave Page',
+            message: 'Are you sure you want to leave this page without receiving a payment?',
+            cancel: true,
+            ok: true,
+          }).onOk(() => resolve(true)).onDismiss(() => resolve(false))
+        })
+        return next(proceed)
+      } else {
+        return next()
+      }
     })
 
     onMounted(() => {
@@ -557,6 +562,7 @@ export default defineComponent({
     return {
       isOnline,
       txCacheStore,
+      promptOnLeave,
       addressSet,
       loading,
       generatingAddress,
