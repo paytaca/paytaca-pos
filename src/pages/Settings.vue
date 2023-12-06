@@ -125,6 +125,32 @@
         </q-item>
       </q-list>
     </q-card>
+    <q-card class="q-mx-md q-mt-lg text-weight-medium" style="border-radius:16px;">
+      <q-list>
+        <q-item>
+          <q-item-section class="text-grey">
+            App version
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>
+              v{{ appVersion }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item>
+          <q-item-section class="text-grey">
+            Source code repository
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>
+              <a :href="repoUrl" style="text-decoration: none; color: white;" target="_blank">
+                {{ repoUrl }}
+              </a>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </q-card>
   </q-page>
 </template>
 
@@ -133,6 +159,7 @@ import { computed, defineComponent } from 'vue'
 import MainHeader from 'src/components/MainHeader.vue'
 import { useWalletStore } from 'src/stores/wallet'
 import { padPosId } from 'src/wallet/utils'
+import packageInfo from '../../package.json'
 
 export default defineComponent({
     name: "SettingsPage",
@@ -141,6 +168,8 @@ export default defineComponent({
     },
     setup() {
       const walletStore = useWalletStore()
+      const appVersion = packageInfo.version
+      const repoUrl = 'https://github.com/paytaca/paytaca-pos'
       const truncatedWalletHash = computed(() => {
         const walletHash = walletStore.walletHash
         if (typeof walletHash !== 'string') return walletHash
@@ -152,6 +181,8 @@ export default defineComponent({
       return {
         padPosId,
         walletStore,
+        appVersion,
+        repoUrl,
         truncatedWalletHash,
       }
     }
