@@ -41,10 +41,19 @@ export default defineComponent({
     const userId = computed(() => marketplaceStore.user.id)
 
     onUnmounted(() => marketplaceRpc.disconnect())
-    onMounted(async () => {
+    onMounted(() => loadApp())
+
+    async function loadApp() {
+      if (marketplaceStore.appRefreshScopePromise) {
+        return marketplaceStore.appRefreshScopePromise
+      }
+      marketplaceStore.appRefreshScopePromise = _loadApp()
+      return marketplaceStore.appRefreshScopePromise.finally(() => {
+        marketplaceStore.appRefreshScopePromise = undefined
+      })
+    }
+    async function _loadApp() {
       const silent = $route.query.silentSync == 'true'
-      // marketplaceStore.refetchMerchant({ silent: false })
-      // marketplaceStore.refetchShop({ silent: false })
       const branchChanged = marketplaceStore.shop?.watchtowerBranchId == walletStore.deviceInfo?.branchId
       const updateShopPromise = marketplaceStore.updateActiveShopId({ silent: branchChanged, forceSync: false }).catch(console.error)
       if (branchChanged) await updateShopPromise
@@ -58,7 +67,8 @@ export default defineComponent({
           console.log('Subscribed push notifications for marketplace', response)
           return response
         })
-    })
+    }
+
     watch(userId, () => {
       if (!userId.value && $route?.meta?.requireAuth) {
         $router.replace({ name: 'marketplace-login', query: { redirectTo: $route.fullPath } })

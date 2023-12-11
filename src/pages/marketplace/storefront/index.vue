@@ -39,6 +39,9 @@
           class="full-width"
           style="min-height: 120px;"
         >
+          <q-badge v-if="page?.badge" floating color="red">
+            {{ page?.badge }}
+          </q-badge>
           <div>
             <div><q-icon :name="page.icon" size="3em"/></div>
             <div>{{ page.name }}</div>
@@ -49,8 +52,10 @@
   </q-page>
 </template>
 <script>
+import { backend } from 'src/marketplace/backend'
 import { useMarketplaceStore } from 'src/stores/marketplace'
-import { defineComponent, onMounted } from 'vue'
+import { debounce } from 'quasar'
+import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 
 export default defineComponent({
@@ -61,14 +66,33 @@ export default defineComponent({
   setup() {
     const marketplaceStore = useMarketplaceStore()
     onMounted(() => marketplaceStore.fetchStorefront())
+    onMounted(() => updateOrdersCount())
 
-    const pages = [
-      { name: 'Products', icon: 'local_mall', route: { name: 'marketplace-storefront-products' } },
-      { name: 'Collections', icon: 'collections', route: { name: 'marketplace-storefront-collections' } },
-      { name: 'Orders', icon: 'pending_actions', route: { name: 'marketplace-storefront-orders' } },
-      { name: 'Payments', icon: 'payments', route: { name: 'marketplace-storefront-payments' } },
-      { name: 'Settings', icon: 'settings', route: { name: 'marketplace-storefront-settings' } },
-    ]
+    const pages = computed(() => {
+      return [
+        { name: 'Products', icon: 'local_mall', route: { name: 'marketplace-storefront-products' } },
+        { name: 'Collections', icon: 'collections', route: { name: 'marketplace-storefront-collections' } },
+        { name: 'Orders', icon: 'pending_actions', badge: ordersCount.value, route: { name: 'marketplace-storefront-orders' } },
+        { name: 'Payments', icon: 'payments', route: { name: 'marketplace-storefront-payments' } },
+        { name: 'Settings', icon: 'settings', route: { name: 'marketplace-storefront-settings' } },
+      ]
+    })
+
+    watch(() => [marketplaceStore.storefront?.id], () => updateOrdersCount())
+    const ordersCount = ref([0].map(Number)[0])
+    const updateOrdersCount = debounce(async function () {
+      const params = {
+        storefront_id: marketplaceStore.storefrontData?.id || null,
+        limit: 1, offset: 999,
+        statuses: ['pending', 'confirmed', 'preparing'].join(','),
+      }
+
+      return backend.get(`connecta/orders/`, { params })
+        .then(response => {
+          ordersCount.value = response?.data?.count
+          return response
+        })
+    }, 500)
 
     return {
       marketplaceStore,

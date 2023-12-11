@@ -60,7 +60,8 @@ export const useMarketplaceStore = defineStore('marketplace', {
             end_time: '',
           }
         })
-      }
+      },
+      appRefreshScopePromise: [].map(() => new Promise())[0],
     }
   },
 

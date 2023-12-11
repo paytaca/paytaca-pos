@@ -45,6 +45,10 @@
                 class="full-width"
                 style="min-height: 120px;"
               >
+
+                <q-badge v-if="page?.badge" floating color="red">
+                  {{ page?.badge }}
+                </q-badge>
                 <div>
                   <div><q-icon :name="page.icon" size="3em"/></div>
                   <div>{{ page.name }}</div>
@@ -79,8 +83,9 @@
   </q-page>
 </template>
 <script>
+import { backend } from 'src/marketplace/backend'
 import { useMarketplaceStore } from 'src/stores/marketplace'
-import { computed, defineComponent, onMounted } from 'vue'
+import { computed, defineComponent, onMounted, ref } from 'vue'
 import MainFooter from 'src/components/MainFooter.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 
@@ -99,6 +104,10 @@ export default defineComponent({
         marketplaceStore.refetchShop()
       }, 100)
     })
+    onMounted(() => setTimeout(async () => {
+      await marketplaceStore.appRefreshScopePromise?.catch?.(() => {})
+      getToReviewPurchaseOrderCount()
+    }, 100))
 
     const pageGroups = computed(() => {
       const data = {
@@ -128,7 +137,7 @@ export default defineComponent({
         data.inventory.pages.push(
           { name: 'Products', icon: 'local_mall', route: { name: 'marketplace-products' } },
           { name: 'Stocks', icon: 'inventory', route: { name: 'marketplace-stocks' } },
-          { name: 'Purchase Orders', icon: 'assignment_returned', route: { name: 'marketplace-purchase-orders' } },
+          { name: 'Purchase Orders', icon: 'assignment_returned', badge: toReviewPurchaseOrdersCount.value, route: { name: 'marketplace-purchase-orders' } },
         )
       }
 
@@ -144,6 +153,23 @@ export default defineComponent({
       }
       return data
     })
+
+    const toReviewPurchaseOrdersCount = ref([].map(Number)[0])
+    function getToReviewPurchaseOrderCount() {
+      const params = {
+        to_review: true,
+        reviewed: false,
+        limit: 1,
+        offset: 999,
+      }
+
+      return backend.get('/purchase-orders/', { params })
+        .then(response => {
+          if (response?.data?.count === undefined) return Promise.reject({ response })
+          toReviewPurchaseOrdersCount.value = response?.data?.count
+          return response
+        })
+    }
 
     return {
       marketplaceStore,

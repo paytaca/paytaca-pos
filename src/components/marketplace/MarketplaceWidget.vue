@@ -97,7 +97,7 @@ export default defineComponent({
     const ordersCount = ref(0)
     onMounted(async () => {
       await updateShopPromise.value?.catch?.(() => {})
-      if (marketplaceStore.shopData?.id != marketplaceStore?.storefrontData?.id) {
+      if (marketplaceStore.shopData?.id != marketplaceStore?.storefrontData?.shop_id) {
         await marketplaceStore.fetchStorefront()
       }
       updateOrdersCount()
