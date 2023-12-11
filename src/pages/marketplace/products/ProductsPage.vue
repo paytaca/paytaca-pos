@@ -11,7 +11,7 @@
         </template>
       </MarketplaceHeader>
       <div class="full-width q-px-sm q-mb-sm">
-        <div class="row items-end q-mb-md">
+        <div class="row items-end q-mb-md no-wrap">
           <q-input
             dense
             v-model="filterOpts.search"
@@ -21,6 +21,8 @@
             <template v-slot:prepend><q-icon name="search"/></template>
           </q-input>
           <q-space/>
+          <q-btn flat padding="sm" icon="tune" @click="categoriesPrompt"></q-btn>
+          <q-separator vertical class="q-ml-xs q-mr-sm"/>
           <q-btn 
             rounded
             icon="add"
@@ -44,22 +46,16 @@
           </q-btn>
         </div>
         <div class="row items-center">
-          <q-chip
-            v-for="category in filterOpts.categories" :key="category"
-            removable
-            @remove="() => filterOpts.categories = filterOpts.categories.filter(_category => _category != category)"
-          >
-            {{ category }}
-          </q-chip>
-          <q-btn
-            flat
-            :rounded="filterOpts.categories.length > 0"
-            padding="xs"
-            no-caps
-            :label="!filterOpts.categories.length ? 'Filter categories': ''"
-            :icon="filterOpts.categories.length ? 'add' : undefined"
+          <div
+            v-if="filterOpts?.categories?.length > 0"
+            class="ellipsis filter-opt q-px-xs"
+            style="max-width:max(500px,75vw);"
             @click="categoriesPrompt"
-          />
+          >
+            {{ filterOpts?.categories?.length === 1 ? 'Category' : 'Categories' }}
+            :
+            {{ filterOpts?.categories?.join(', ') }}
+          </div>
         </div>
       </div>
       <q-table
@@ -336,3 +332,9 @@ export default defineComponent({
   },
 })
 </script>
+<style scoped lang="scss">
+.filter-opt {
+  border: 1px solid currentColor;
+  border-radius: 4px;
+}
+</style>

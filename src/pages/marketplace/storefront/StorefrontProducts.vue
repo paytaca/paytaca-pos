@@ -11,7 +11,7 @@
         </template>
       </MarketplaceHeader>
       <div class="full-width q-px-sm q-mb-sm">
-        <div class="row items-end q-mb-md">
+        <div class="row items-end q-mb-md no-wrap">
           <q-input
             dense
             v-model="filterOpts.search"
@@ -79,14 +79,14 @@
         </div>
         <div class="row items-center q-gutter-xs">
           <div class="row items-center"> 
-          <div
-            v-if="typeof filterOpts?.availability === 'boolean'"
-            class="ellipsis filter-opt q-px-xs"
-            @click="openFilterOptsForm = true"
-          >
-            {{ availability ? 'Available' : 'Unavailable' }}
+            <div
+              v-if="typeof filterOpts?.availability === 'boolean'"
+              class="ellipsis filter-opt q-px-xs"
+              @click="openFilterOptsForm = true"
+            >
+              {{ availability ? 'Available' : 'Unavailable' }}
+            </div>
           </div>
-        </div>
           <div
             v-if="filterOpts?.categories?.length > 0"
             class="ellipsis filter-opt q-px-xs"

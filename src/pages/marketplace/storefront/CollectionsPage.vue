@@ -11,7 +11,7 @@
         </template>
       </MarketplaceHeader>
       <div class="full-width q-px-sm q-mb-sm">
-        <div class="row items-end q-mb-sm">
+        <div class="row items-end q-mb-sm no-wrap">
           <q-input
             dense
             v-model="filterOpts.search"
