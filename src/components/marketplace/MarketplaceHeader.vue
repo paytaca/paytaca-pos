@@ -54,9 +54,10 @@
   </div>
 </template>
 <script>
-import { setAuthToken } from 'src/marketplace/backend'
+import { backend, setAuthToken } from 'src/marketplace/backend'
 import { formatRole } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useQuasar } from 'quasar'
 import { computed, defineComponent, ref } from 'vue'
 import blankUserImg from 'src/assets/blank_user_image.webp'
 
@@ -66,6 +67,7 @@ export default defineComponent({
     title: { type: String, default: 'Marketplace'},
   },
   setup() {
+    const $q = useQuasar()
     const marketplaceStore = useMarketplaceStore()
     const openUserMenu = ref(false)
 
@@ -79,9 +81,16 @@ export default defineComponent({
       return blankUserImg
     })
 
-    function logOut() {
-      setAuthToken(undefined)
-      marketplaceStore.setUser(null)
+    async function logOut() {
+      try{
+        $q.loading.show({ group: 'logout' })
+        await backend.post(`users/revoke_token/`).catch(console.error)
+          .then(() => $q.loading.hide('logout'))
+        setAuthToken(undefined)
+        marketplaceStore.setUser(null)
+      } finally {
+        $q.loading.hide('logout')
+      }
     }
 
     return {
