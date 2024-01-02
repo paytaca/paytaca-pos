@@ -263,6 +263,11 @@ export default defineComponent({
               { name: 'Settings', icon: 'settings', route: { name: 'marketplace-storefront-settings' } },
             ]
           }
+          if (!marketplaceStore.storefrontData?.id) {
+            data.storefront.pages = [
+              { name: 'Setup storefront', icon: 'settings', route: { name: 'marketplace-storefront-settings' } }, 
+            ]
+          }
         }
 
       }
@@ -385,7 +390,11 @@ export default defineComponent({
           updateSalesToday(),
           getProductsCount(),
           getToReviewPurchaseOrderCount(),
-          marketplaceStore.fetchStorefrontHours(),
+          marketplaceStore.fetchStorefront()
+            .then(() => {
+              if (!marketplaceStore.storefrontData?.id) return
+              return marketplaceStore.fetchStorefrontHours()
+            }),
           updateOrdersCount(),
           getStaffCount(),
         ])
