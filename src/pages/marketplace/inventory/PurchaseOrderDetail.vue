@@ -10,6 +10,17 @@
           </div>
         </template>
       </MarketplaceHeader>
+      <div class="row items-center justify-end no-wrap q-mb-sm">
+        <q-btn
+          flat
+          no-caps
+          label="Edits"
+          icon-right="history"
+          padding="none sm"
+          class="q-r-mr-sm"
+          @click="() => openPurchaseOrderUpdatesDialog = true"
+        />
+      </div>
       <q-card class="q-mb-md">
         <q-card-section>
           <div class="row items-center">
@@ -29,7 +40,7 @@
               </q-menu>
             </q-icon>
             <q-space/>
-            <q-chip :color="purchaseOrder?.statusColor" class="q-mx-none q-mb-sm text-weight-medium">
+            <q-chip :color="purchaseOrder?.statusColor" class="q-mx-none q-mb-sm text-weight-medium text-white">
               {{ purchaseOrder?.formattedStatus }}
             </q-chip>
           </div>
@@ -421,6 +432,11 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+
+    <PurchaseOrderUpdatesDialog
+      v-model="openPurchaseOrderUpdatesDialog"
+      :purchase-order-id="purchaseOrderId"
+    />
   </q-page>
 </template>
 <script>
@@ -430,6 +446,7 @@ import { PurchaseOrder, PurchaseOrderItem, Stock, User, Variant } from 'src/mark
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
+import PurchaseOrderUpdatesDialog from 'src/components/marketplace/inventory/PurchaseOrderUpdatesDialog.vue'
 import AddItemForm from 'src/components/marketplace/sales/AddItemForm.vue'
 import StockDetailDialog from 'src/components/marketplace/inventory/StockDetailDialog.vue'
 import ReceivePurchaseOrderItemsFormDialog from 'src/components/marketplace/inventory/ReceivePurchaseOrderItemsFormDialog.vue'
@@ -439,6 +456,7 @@ import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 export default defineComponent({
   name: 'PurchaseOrderDetail',
   components: {
+    PurchaseOrderUpdatesDialog,
     AddItemForm,
     ReceivePurchaseOrderItemsFormDialog,
     VariantInfoDialog,
@@ -451,6 +469,7 @@ export default defineComponent({
     const marketplaceStore = useMarketplaceStore()
     const $q = useQuasar()
 
+    const openPurchaseOrderUpdatesDialog = ref(false)
     const purchaseOrder = ref(PurchaseOrder.parse({ id: props.purchaseOrderId }))
     onMounted(() => purchaseOrder.value.refetch())
     const editable = computed(() => {
@@ -741,6 +760,7 @@ export default defineComponent({
     return {
       marketplaceStore,
 
+      openPurchaseOrderUpdatesDialog,
       purchaseOrder,
       editable,
       itemsViewMode,

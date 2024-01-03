@@ -11,7 +11,7 @@
         </template>
       </MarketplaceHeader>
       <div class="full-width q-px-sm q-mb-sm">
-        <div class="row items-end q-mb-md">
+        <div class="row items-end q-mb-md no-wrap">
           <q-input
             dense
             v-model="filterOpts.search"
@@ -79,14 +79,14 @@
         </div>
         <div class="row items-center q-gutter-xs">
           <div class="row items-center"> 
-          <div
-            v-if="typeof filterOpts?.availability === 'boolean'"
-            class="ellipsis filter-opt q-px-xs"
-            @click="openFilterOptsForm = true"
-          >
-            {{ availability ? 'Available' : 'Unavailable' }}
+            <div
+              v-if="typeof filterOpts?.availability === 'boolean'"
+              class="ellipsis filter-opt q-px-xs"
+              @click="openFilterOptsForm = true"
+            >
+              {{ availability ? 'Available' : 'Unavailable' }}
+            </div>
           </div>
-        </div>
           <div
             v-if="filterOpts?.categories?.length > 0"
             class="ellipsis filter-opt q-px-xs"
@@ -131,6 +131,7 @@
       </q-slide-transition>
 
       <q-table
+        ref="table"
         :loading="fetchingProducts"
         :columns="productsTableColumns"
         :rows="products"
@@ -139,6 +140,8 @@
         row-key="id"
         v-model:selected="productsTableState.selected"
         hide-pagination
+        binary-state-sort
+        :sort-method="sortMethod"
       >
         <template v-slot:bottom>
           <div class="row items-center full-width">
@@ -237,6 +240,7 @@ export default defineComponent({
     const openFilterOptsForm = ref()
     function createDefaultFilterOpts() {
       return {
+        sort: undefined,
         search: '',
         categories: [],
         availability: undefined,
@@ -267,6 +271,7 @@ export default defineComponent({
         s: filterOpts?.value?.search || undefined,
         limit: opts?.limit || 10,
         offset: opts?.offset || 0,
+        ordering: filterOpts.value.sort || undefined,
         categories: filterOpts.value.categories.join('|') || undefined,
         availability: filterOpts.value.availability,
       }
@@ -285,14 +290,25 @@ export default defineComponent({
         })
     }
 
+    const table = ref()
     const productsTableColumns = [
-      { name: 'product', align: 'left', label: 'Product', field: 'name' },
+      { name: 'product', align: 'left', label: 'Product', field: 'name', sortable: true },
       // { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks' },
-      { name: 'available', align: 'left', label: 'Available' },
-      { name: 'markup-price', align: 'left', label: 'Markup Price', field: 'markupPriceRangeText', format: val => `${val} ${marketplaceStore?.currency}` },
-      { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText },
+      { name: 'available', align: 'left', label: 'Available', sortable: true },
+      { name: 'markup-price', align: 'left', label: 'Markup Price', field: 'markupPriceRangeText', format: val => `${val} ${marketplaceStore?.currency}`, sortable: true },
+      { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText, sortable: true },
       // { name: 'actions', align: 'center', label: '' },
     ]
+    const sortFieldNameMap = {
+      product: 'name',
+      'markup-price': 'markup_price',
+      created: 'created_at',
+    }
+    function sortMethod(rows, sortBy, descending) {
+      const fieldName = sortFieldNameMap[sortBy] || sortBy
+      filterOpts.value.sort = (descending ? '-': '') + fieldName
+      return rows
+    }
 
     const productsTableState = ref({
       selected: [].map(Product.parse),
@@ -451,7 +467,10 @@ export default defineComponent({
       productsPagination,
       fetchProducts,
 
+      table,
       productsTableColumns,
+      sortMethod,
+
       productsTableState,
       toggleProductSelection,
       confirmRemoveSelectedProducts,

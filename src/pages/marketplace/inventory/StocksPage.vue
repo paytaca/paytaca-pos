@@ -11,7 +11,7 @@
         </template>
       </MarketplaceHeader>
       <div class="full-width q-px-sm q-mb-sm">
-        <div class="row items-end q-mb-md">
+        <div class="row items-end q-mb-md no-wrap">
           <q-input
             dense
             v-model="filterOpts.search"
@@ -21,6 +21,57 @@
             <template v-slot:prepend><q-icon name="search"/></template>
           </q-input>
           <q-space/>
+          <q-btn flat padding="sm" icon="tune">
+            <q-menu
+              v-model="openFilterOptsForm"
+              class="q-pa-md"
+              @hide="() => syncTempFilterOptsToFilterOpts()"
+            >
+              <q-btn
+                flat
+                no-caps label="Reset"
+                color="brandblue"
+                padding="xs md"
+                class="text-underline q-r-mt-md q-r-mr-lg float-right"
+                v-close-popup
+                @click="filterOpts = createDefaultFilterOpts(), tempFilterOpts = createDefaultFilterOpts()"
+              />
+              <div
+                v-if="!tempFilterOpts.productId && !tempFilterOpts.variantId"
+                class="q-mb-sm"
+              >
+                <div class="text-subtitle1">Categories</div>
+                <div style="min-width:min(50vw, 300px);">
+                  <q-select
+                    outlined
+                    dense
+                    multiple
+                    use-input
+                    use-chips
+                    :options="categoriesFilter?.opts"
+                    v-model="tempFilterOpts.categories"
+                    class="q-r-mx-xs"
+                  />
+                </div>
+              </div>
+              <div class="q-mb-sm">
+                <div class="text-subtitle1">Expired</div>
+                <q-btn-toggle
+                  v-model="tempFilterOpts.expired"
+                  no-caps
+                  no-wrap
+                  toggle-color="primary"
+                  padding="xs md"
+                  :options="[
+                    {label: 'Yes', value: true },
+                    {label: 'No', value: false },
+                    {label: 'All', value: undefined}
+                  ]"
+                />
+              </div>
+            </q-menu>
+          </q-btn>
+          <q-separator vertical class="q-ml-xs q-mr-sm"/>
           <q-btn round icon="add" padding="sm" color="brandblue">
             <q-menu>
               <q-list separator>
@@ -39,15 +90,35 @@
           </q-btn>
         </div>
         <div class="row items-center q-gutter-x-md q-gutter-y-sm">
-          <div class="q-space">
-            <q-checkbox
-              v-model="filterOpts.expired"
-              toggle-indeterminate
-              label="Expired"
+          <div
+            v-if="filterOpts?.categories?.length > 0"
+            class="ellipsis filter-opt q-px-xs"
+            style="max-width:max(500px,75vw);"
+            @click="openFilterOptsForm = true"
+          >
+            {{ filterOpts?.categories?.length === 1 ? 'Category' : 'Categories' }}
+            :
+            {{ filterOpts?.categories?.join(', ') }}
+          </div>
+          <div
+            v-if="(typeof filterOpts?.expired) === 'boolean'"
+            class="filter-opt q-px-xs"
+            @click="openFilterOptsForm = true"
+          >
+            <q-icon
+              size="1.25em"
+              :name="filterOpts?.expired ? 'check_circle' : 'cancel'"
+              :color="filterOpts?.expired ? 'green' : 'red'"
+              class="q-mr-xs"
             />
+            Expired
           </div>
           <template v-if="filterOptsMetadata.product?.id">
-            <q-chip v-if="filterOptsMetadata?.variant?.id" clickable @click="() => showVariantInfoDialog = true">
+            <div
+              v-if="filterOptsMetadata?.variant?.id"
+              class="filter-opt q-px-xs"
+              @click="() => showVariantInfoDialog = true"
+            >
               Variant:
               <template v-if="filterOptsMetadata?.product?.name">
                 {{ filterOptsMetadata?.product?.name }}
@@ -58,29 +129,11 @@
               <template v-else>
                 #{{ filterOptsMetadata?.variant?.id }}
               </template>
-            </q-chip>
-            <q-chip v-else clickable @click="() => showProductInfoDialog = true">
+            </div>
+            <div v-else class="filter-opt q-px-xs" @click="() => showProductInfoDialog = true">
               Product: {{  filterOptsMetadata.product?.name || `#${filterOptsMetadata.product?.id}` }}
-            </q-chip>
+            </div>
           </template>
-          <div v-else class="row items-center">
-            <q-chip
-              v-for="category in filterOpts.categories" :key="category"
-              removable
-              @remove="() => filterOpts.categories = filterOpts.categories.filter(_category => _category != category)"
-            >
-              {{ category }}
-            </q-chip>
-            <q-btn
-              flat
-              :rounded="filterOpts.categories.length > 0"
-              padding="xs"
-              no-caps
-              :label="!filterOpts.categories.length ? 'Filter categories': ''"
-              :icon="filterOpts.categories.length ? 'add' : undefined"
-              @click="categoriesPrompt"
-            />
-          </div>
           <ProductInventoryDialog
             v-model="showProductInfoDialog"
             :productObj="filterOptsMetadata.product"
@@ -124,6 +177,7 @@
         </div>
       </q-slide-transition>
       <q-table
+        ref="table"
         :loading="fetchingStocks"
         loading-label="Loading..."
         :columns="stocksTableColumns"
@@ -131,6 +185,8 @@
         row-key="id"
         :pagination="{ rowsPerPage: 0 }"
         hide-pagination
+        binary-state-sort
+        :sort-method="sortMethod"
         selection="multiple"
         v-model:selected="selectedStocks"
       >
@@ -350,13 +406,32 @@ export default defineComponent({
       })
     }
 
-    const filterOpts = ref({
-      search: '',
-      expired: null,
-      productId: Number(props.productId) || null,
-      variantId: Number(props.variantId) || null,
-      categories: [],
-    })
+    const openFilterOptsForm = ref(false)
+    function createDefaultFilterOpts() {
+      return {
+        sort: null,
+        search: '',
+        expired: null,
+        productId: Number(props.productId) || null,
+        variantId: Number(props.variantId) || null,
+        categories: [],
+      }
+    }
+    const filterOpts = ref(createDefaultFilterOpts())
+    const tempFilterOpts = ref(createDefaultFilterOpts())
+    function syncTempFilterOptsToFilterOpts() {
+      filterOpts.value.search = tempFilterOpts.value.search
+      filterOpts.value.expired = tempFilterOpts.value.expired
+      filterOpts.value.productId = tempFilterOpts.value.productId
+      filterOpts.value.variantId = tempFilterOpts.value.variantId
+
+      const tempCategories = tempFilterOpts.value.categories
+      const categories = filterOpts.value.categories
+      const hasAddedCategories = tempCategories.some(category => !categories.includes(category))
+      const hasRemovedCategories = categories.some(category => !tempCategories.includes(category))
+      if (!hasAddedCategories && !hasRemovedCategories) return
+      filterOpts.value.categories = [...tempFilterOpts.value.categories]
+    }
 
     const filterOptsMetadata = ref({
       product: Product.parse({ id: filterOpts.value.productId }),
@@ -407,6 +482,7 @@ export default defineComponent({
         shop_id: marketplaceStore.activeShopId,
         limit: opts?.limit || 10,
         offset: opts?.offset || 0,
+        ordering: filterOpts.value.sort || undefined,
         s: filterOpts.value.search || undefined,
         categories: filterOpts.value.categories.join('|') || undefined,
       }
@@ -438,17 +514,30 @@ export default defineComponent({
       })
     }
 
+    const table = ref()
     const stocksTableColumns = [
-      { name: 'product', align: 'left', label: 'Product', field: obj => [obj?.variant?.product?.name, obj?.variant?.name].filter(Boolean).join('- ') },
+      { name: 'product', align: 'left', label: 'Product', field: obj => [obj?.variant?.product?.name, obj?.variant?.name].filter(Boolean).join('- '), sortable: true },
       // { name: 'variant', align: 'center', label: 'Variant', field: obj => obj?.variant?.name },
-      { name: 'purchase-order', align: 'center', label: 'Purchase Order', field: 'purchaseOrderNumber' },
-      { name: 'quantity', align: 'center', label: 'Qty', field: 'quantity' },
-      { name: 'cost-price', align: 'center', label: 'Cost Price', field: obj => obj.costPrice && `${obj.costPrice} ${marketplaceStore?.currency}` },
-      { name: 'expires-at', align: 'center', label: 'Expires', field: obj => obj.expiresAt, format: val => val ? formatDateRelative(val) : '' },
+      { name: 'purchase-order', align: 'center', label: 'Purchase Order', field: 'purchaseOrderNumber', sortable: true },
+      { name: 'quantity', align: 'center', label: 'Qty', field: 'quantity', sortable: true },
+      { name: 'cost-price', align: 'center', label: 'Cost Price', field: obj => obj.costPrice && `${obj.costPrice} ${marketplaceStore?.currency}`, sortable: true },
+      { name: 'expires-at', align: 'center', label: 'Expires', field: obj => obj.expiresAt, format: val => val ? formatDateRelative(val) : '', sortable: true },
       // { name: 'created-at', align: 'center', label: 'Created' },
-      { name: 'updated-at', align: 'center', label: 'Updated' },
-      { name: 'actions', align: 'center', label: '' },
+      { name: 'updated-at', align: 'center', label: 'Updated', sortable: true },
+      { name: 'actions', align: 'center', label: '', sortable: true },
     ]
+    const sortFieldNameMap = {
+      product: 'item_name',
+      'purchase-order': 'purchase_order_number',
+      'cost-price': 'cost_price',
+      'expires-at': 'expires_at',
+      'updated-at': 'updated_at',
+    }
+    function sortMethod(rows, sortBy, descending) {
+      const fieldName = sortFieldNameMap[sortBy] || sortBy
+      filterOpts.value.sort = (descending ? '-': '') + fieldName
+      return rows
+    }
 
     function displayStockDetail(stock=Stock.parse()) {
       $q.dialog({
@@ -587,7 +676,11 @@ export default defineComponent({
       marketplaceStore,
       categoriesFilter,
       categoriesPrompt,
+      openFilterOptsForm,
+      createDefaultFilterOpts,
       filterOpts,
+      tempFilterOpts,
+      syncTempFilterOptsToFilterOpts,
       filterOptsMetadata,
       showProductInfoDialog,
       showVariantInfoDialog,
@@ -598,7 +691,9 @@ export default defineComponent({
       displaySelectedStocks,
       fetchStocks,
       
+      table,
       stocksTableColumns,
+      sortMethod,
       displayStockDetail,
       displayStockPurchaseOrder,
       openCreateStockDialog,
@@ -631,5 +726,10 @@ export default defineComponent({
   position: sticky;
   left: 0;
   z-index: 1;
+}
+
+.filter-opt {
+  border: 1px solid currentColor;
+  border-radius: 4px;
 }
 </style>

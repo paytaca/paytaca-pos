@@ -11,7 +11,7 @@
         </template>
       </MarketplaceHeader>
       <div class="full-width q-px-sm q-mb-sm">
-        <div class="row items-end q-mb-md">
+        <div class="row items-end q-mb-md no-wrap">
           <q-input
             dense
             v-model="filterOpts.search"
@@ -21,6 +21,8 @@
             <template v-slot:prepend><q-icon name="search"/></template>
           </q-input>
           <q-space/>
+          <q-btn flat padding="sm" icon="tune" @click="categoriesPrompt"></q-btn>
+          <q-separator vertical class="q-ml-xs q-mr-sm"/>
           <q-btn 
             rounded
             icon="add"
@@ -44,25 +46,20 @@
           </q-btn>
         </div>
         <div class="row items-center">
-          <q-chip
-            v-for="category in filterOpts.categories" :key="category"
-            removable
-            @remove="() => filterOpts.categories = filterOpts.categories.filter(_category => _category != category)"
-          >
-            {{ category }}
-          </q-chip>
-          <q-btn
-            flat
-            :rounded="filterOpts.categories.length > 0"
-            padding="xs"
-            no-caps
-            :label="!filterOpts.categories.length ? 'Filter categories': ''"
-            :icon="filterOpts.categories.length ? 'add' : undefined"
+          <div
+            v-if="filterOpts?.categories?.length > 0"
+            class="ellipsis filter-opt q-px-xs"
+            style="max-width:max(500px,75vw);"
             @click="categoriesPrompt"
-          />
+          >
+            {{ filterOpts?.categories?.length === 1 ? 'Category' : 'Categories' }}
+            :
+            {{ filterOpts?.categories?.join(', ') }}
+          </div>
         </div>
       </div>
       <q-table
+        ref="table"
         :loading="fetchingProducts"
         :columns="productsTableColumns"
         :rows="products"
@@ -70,6 +67,8 @@
         :selected="productsTableState.selected"
         :expanded="productsTableState.expanded"
         hide-pagination
+        binary-state-sort
+        :sort-method="sortMethod"
       >
         <template v-slot:bottom>
           <div class="row items-center full-width">
@@ -233,6 +232,7 @@ export default defineComponent({
     }
 
     const filterOpts = ref({
+      sort: undefined,
       search: '',
       categories: [],
     })
@@ -249,6 +249,7 @@ export default defineComponent({
         shop_id: Number(marketplaceStore.activeShopId),
         limit: opts?.limit || 10,
         offset: opts?.offset || 0,
+        ordering: filterOpts.value.sort || undefined,
         categories: filterOpts.value.categories.join('|') || undefined,
       }
 
@@ -267,12 +268,23 @@ export default defineComponent({
         })
     }
     
+    const table = ref()
     const productsTableColumns = [
-      { name: 'product', align: 'left', label: 'Product', field: 'name' },
-      { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks' },
-      { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText },
+      { name: 'product', align: 'left', label: 'Product', field: 'name', sortable: true },
+      { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks', sortable: true },
+      { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText, sortable: true },
       // { name: 'actions', align: 'center', label: '' },
     ]
+    const sortFieldNameMap = {
+      product: 'name',
+      'total-quantity': 'total_stocks',
+      'created': 'created_at',
+    }
+    function sortMethod(rows, sortBy, descending) {
+      const fieldName = sortFieldNameMap[sortBy] || sortBy
+      filterOpts.value.sort = (descending ? '-': '') + fieldName
+      return rows
+    }
 
     const productsTableState = ref({
       expanded: [].map(Product.parse),
@@ -308,7 +320,9 @@ export default defineComponent({
       fetchingProducts,
       productsPagination,
       fetchProducts,
+      table,
       productsTableColumns,
+      sortMethod,
       productsTableState,
       productDetailDialog,
       viewProductDetail,
@@ -318,3 +332,9 @@ export default defineComponent({
   },
 })
 </script>
+<style scoped lang="scss">
+.filter-opt {
+  border: 1px solid currentColor;
+  border-radius: 4px;
+}
+</style>

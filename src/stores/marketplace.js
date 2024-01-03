@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { backend } from 'src/marketplace/backend'
 import { Shop, ROLES, User, Storefront } from 'src/marketplace/objects';
+import { time } from 'src/marketplace/utils';
 import { useWalletStore } from './wallet';
 
 
@@ -60,7 +61,9 @@ export const useMarketplaceStore = defineStore('marketplace', {
             end_time: '',
           }
         })
-      }
+      },
+      dashboard: { showSummary: true },
+      appRefreshScopePromise: [].map(() => new Promise())[0],
     }
   },
 
@@ -99,6 +102,37 @@ export const useMarketplaceStore = defineStore('marketplace', {
     },
     storefront() {
       return Storefront.parse(this.storefrontData)
+    },
+    nextOpenHours() {
+      const now = new Date()
+      const weekday = now.getDay()
+      const localUTCOffset = now.getTimezoneOffset() * -1
+      const utcOffset = Math.floor(Number(this.shopData?.location?.longitude) / 15) * 60
+      const relativeOffset = localUTCOffset - utcOffset
+
+      return this.storefrontHoursData.weekly_hours
+        .map(weekly_hour => {
+          const offsetDays = (weekly_hour?.weekday - weekday + 7) % 7
+          const startTimeInt = time.toInteger(weekly_hour.start_time)
+          const start = new Date(now)
+          start.setDate(start.getDate()+offsetDays)
+          start.setHours(Math.floor(startTimeInt / 60), startTimeInt % 60, 0)
+          start.setMinutes(start.getMinutes() + relativeOffset)
+
+          const endTimeInt = time.toInteger(weekly_hour.end_time)
+          const end = new Date(now)
+          end.setDate(end.getDate()+offsetDays)
+          end.setHours(Math.floor(endTimeInt / 60), endTimeInt % 60, 0)
+          end.setMinutes(end.getMinutes() + relativeOffset)
+
+          // if the timeslot for the day is ended, append to next week
+          if (start <= now && end <= now) {
+            start.setDate(start.getDate()+7)
+            end.setDate(end.getDate()+7)
+          }
+          return [start, end]
+        })
+        .sort((a, b) => a[0] - b[0])
     }
   },
   actions: {

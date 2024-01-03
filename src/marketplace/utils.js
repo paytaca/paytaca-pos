@@ -17,6 +17,11 @@ export function formatTimestampToText(timestamp) {
   return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
 }
 
+export function formatDateToText(timestamp) {
+  const dateObj = new Date(timestamp)
+  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(dateObj)
+}
+
 export function formatStatusGeneric(value='') {
   if (typeof value !== 'string') return
   return capitalize(value).replaceAll('_', ' ')
