@@ -29,9 +29,11 @@
           class="snap-container row no-wrap q-mx-xs q-mb-md"
         >
           <DashboardCard
+            :ref="el => dashboarCardRefs.inventory = el"
             v-if="marketplaceStore.userPermissions.inventory"
-            title="Inventory" :loading="salesToday?.loading" ripple class="q-space"
-            @click="() => tabs.active = tabs.active === 'inventory' ? '' : 'inventory'"
+            title="Inventory" :loading="salesToday?.loading" ripple class="q-space dashboard-card"
+            :class="[(tabs.active && tabs.active === 'inventory') ? 'col-12' : '']"
+            @click="onDashboardCardClick('inventory')"
           >
             <div v-if="Number.isFinite(productsCount)">
               {{ productsCount }} product{{ productsCount == 1 ? '' : 's' }}
@@ -42,9 +44,11 @@
           </DashboardCard>
     
           <DashboardCard
+            :ref="el => dashboarCardRefs.storefront = el"
             v-if="marketplaceStore.userPermissions.storefront"
-            title="Storefront" :loading="salesToday?.loading" ripple class="q-space"
-            @click="() => tabs.active = tabs.active === 'storefront' ? '' : 'storefront'"
+            title="Storefront" :loading="salesToday?.loading" ripple class="q-space dashboard-card"
+            :class="[(tabs.active && tabs.active === 'storefront') ? 'col-12' : '']"
+            @click="onDashboardCardClick('storefront')"
           >
             <template v-if="marketplaceStore.storefrontData?.id">
               <div v-if="typeof storefrontHours?.isOpen === 'boolean'" class="row">
@@ -71,9 +75,11 @@
           </DashboardCard>
   
           <DashboardCard
+            :ref="el => dashboarCardRefs.sales = el"
             v-if="marketplaceStore.userPermissions.cashier"
-            title="Sales" :loading="salesToday?.loading" ripple class="q-space"
-            @click="() => tabs.active = tabs.active === 'sales' ? '' : 'sales'"
+            title="Sales" :loading="salesToday?.loading" ripple class="q-space dashboard-card"
+            :class="[(tabs.active && tabs.active === 'sales') ? 'col-12' : '']"
+            @click="onDashboardCardClick('sales')"
           >
             <template v-if="salesToday.data?.length">
               <div v-for="(report, index) in salesToday.data" :key="index">
@@ -84,9 +90,11 @@
           </DashboardCard>
   
           <DashboardCard
+            :ref="el => dashboarCardRefs.shop = el"
             v-if="marketplaceStore.userPermissions.admin"
-            title="Shop" ripple class="q-space"
-            @click="() => tabs.active = tabs.active === 'shop' ? '' : 'shop'"
+            title="Shop" ripple class="q-space dashboard-card"
+            :class="[(tabs.active && tabs.active === 'shop') ? 'col-12' : '']"
+            @click="onDashboardCardClick('shop')"
           >
             <div v-if="staffCount !== undefined">{{ staffCount }} staff</div>
           </DashboardCard>
@@ -201,6 +209,7 @@ export default defineComponent({
       active: tabOpts.includes(props.activeTab) ? props.activeTab : '',
       opts: tabOpts,
     })
+    onMounted(() => scrollToDashboardCard(tabs.value.active))
     watch(() => [tabs.value.active], () => {
       const query = { ...$route.query, activeTab: tabs.value.active }
       if (!query.activeTab) delete query.activeTab
@@ -383,6 +392,29 @@ export default defineComponent({
         })
     }
 
+    const dashboarCardRefs = ref({
+      inventory: undefined,
+      storefront: undefined,
+      sales: undefined,
+      shop: undefined,
+    })
+
+    function onDashboardCardClick(cardName='') {
+      if (typeof cardName !== 'string') return
+      tabs.value.active = tabs.value.active === cardName ? '' : cardName
+      setTimeout(() => scrollToDashboardCard(cardName), 125)
+    }
+
+    function scrollToDashboardCard(cardName) {
+      const element = dashboarCardRefs.value?.[cardName]?.$el
+      if (!element) return
+
+      element?.parentNode?.scrollTo?.({
+        left: element?.offsetLeft,
+        behavior: 'smooth',
+      })
+    }
+
     async function refreshPage(done=() => {}) {
       try {
         await Promise.all([
@@ -415,6 +447,9 @@ export default defineComponent({
       storefrontHours,
       staffCount,
 
+      dashboarCardRefs,
+      onDashboardCardClick,
+
       refreshPage,
 
       formatDateRelative,
@@ -434,5 +469,8 @@ export default defineComponent({
   // aspect-ratio: 1/1;
   // margin: 5px;
   scroll-snap-align: start;
+}
+.dashboard-card {
+  transition: 0.1s width;
 }
 </style>
