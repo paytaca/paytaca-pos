@@ -391,13 +391,13 @@ export default defineComponent({
       if (!data.voucher) return
 
       const merchantVault = walletStore.merchantInfo?.vault
-      const merchantReceivingPk = merchantVault?.receiving?.pubkey
+      const merchantReceiverPk = merchantVault?.receiving?.pubkey
       const merchantReceivingAddress = merchantVault?.receiving?.address
       const merchantSignerPk = merchantVault?.signer?.pubkey
 
       const vaultParams = {
         params: {
-          merchantReceivingPk,
+          merchantReceiverPk,
           merchantSignerPk,
         },
         options: {
