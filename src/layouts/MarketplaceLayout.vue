@@ -62,11 +62,14 @@ export default defineComponent({
       if (!userId.value && $route?.meta?.requireAuth) {
         $router.replace({ name: 'marketplace-login', query: { redirectTo: $route.fullPath } })
       }
-      marketplacePushNotificationsManager.subscribe(userId.value)
-        .then(response => {
-          console.log('Subscribed push notifications for marketplace', response)
-          return response
-        })
+
+      if (userId.value) {
+        subscribePushNotifications(userId.value)
+          .then(response => {
+            console.log('Subscribed push notifications for marketplace', response)
+            return response
+          })
+      }
     }
 
     watch(userId, () => {
@@ -74,7 +77,8 @@ export default defineComponent({
         $router.replace({ name: 'marketplace-login', query: { redirectTo: $route.fullPath } })
       }
       if (userId.value) {
-        marketplacePushNotificationsManager.subscribe(userId.value)
+        window.promptedPushNotificationsSettings = false
+        subscribePushNotifications(userId.value)
           .then(response => {
             console.log('Subscribed push notifications for marketplace', response)
             return response
@@ -84,6 +88,30 @@ export default defineComponent({
 
     onMounted(() => userId.value ? updateOrCreateKeypair() : null)
     watch(userId, () => userId.value ? updateOrCreateKeypair() : null)
+
+    async function subscribePushNotifications(id) {
+      if (!window.promptedPushNotificationsSettings) {
+        const promptResponse = await promptEnablePushNotificationSetting(
+          'Enable notifications to receive updates'
+        ).catch(console.error)
+        window.promptedPushNotificationsSettings = promptResponse.prompted
+      }
+      return marketplacePushNotificationsManager.subscribe(id)
+    }
+
+    async function promptEnablePushNotificationSetting(message='') {
+      const response = { isPushNotificationEnabled: null, prompted: false }
+      const pushNotificationsStatusResponse = await marketplacePushNotificationsManager.isPushNotificationEnabled()
+      response.isPushNotificationEnabled = pushNotificationsStatusResponse?.isEnabled
+      if (response.isPushNotificationEnabled === false) {
+        const openSettingsResponse = await marketplacePushNotificationsManager.openPushNotificationsSettingsPrompt({
+          message: message || undefined,
+        })
+        response.isPushNotificationEnabled = openSettingsResponse?.isEnabled
+        response.prompted = true
+      }
+      return response
+    }
 
     return {
       marketplaceStore,
