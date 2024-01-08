@@ -3,7 +3,7 @@
     <MainHeader title="Settings"/>
     <q-card class="q-mx-md q-mt-lg text-weight-medium" style="border-radius:16px;">
       <q-list separator>
-        <q-item clickable v-ripple :to="{ name: 'marketplace' }">
+        <q-item v-if="walletStore?.branchInfo?.id" clickable v-ripple :to="{ name: 'marketplace' }">
           <q-item-section :class="$q.dark.isActive ? 'text-white' : 'text-brandblue'">
             <q-item-label>Marketplace</q-item-label>
           </q-item-section>
