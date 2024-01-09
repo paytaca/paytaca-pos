@@ -164,6 +164,7 @@ export default defineComponent({
           return response
         })
         .catch(error => {
+          console.error(error)
           const data = error?.response?.data
           formErrors.value.detail = errorParser.toArray(data?.non_field_errors)
           formErrors.value.name = errorParser.firstElementOrValue(data?.name)

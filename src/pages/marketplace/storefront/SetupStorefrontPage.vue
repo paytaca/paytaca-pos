@@ -24,7 +24,7 @@
         <StorefrontInfoForm @saved="() => onStorefrontInfoSaved()"/>
       </q-tab-panel>
       <q-tab-panel name="hours" class="q-px-none">
-        <StorefrontHoursForm/>
+        <StorefrontHoursForm @saved="() => onStorefrontHoursSaved()"/>
       </q-tab-panel>
     </q-tab-panels>
   </q-page>
@@ -68,8 +68,19 @@ export default defineComponent({
     function onStorefrontInfoSaved() {
       $q.dialog({
         title: marketplaceStore?.storefrontData?.id ? 'Storefront updated' : 'Storefront created',
-        ok: { color: 'brandblue' },
-      }).onDismiss(() => $router.go(-1))
+        color: 'brandblue',
+        ok: { noCaps: true, label: 'Return'},
+        cancel: { noCaps: true, label: 'Stay in page', flat: true }, 
+      }).onOk(() => $router.go(-1))
+    }
+
+    function onStorefrontHoursSaved() {
+      $q.dialog({
+        title: 'Storefront updated',
+        color: 'brandblue',
+        ok: { noCaps: true, label: 'Return' },
+        cancel: { noCaps: true, label: 'Stay in page', flat: true },
+      }).onOk(() => $router.go(-1))
     }
 
     return {
@@ -78,6 +89,7 @@ export default defineComponent({
       tabs,
 
       onStorefrontInfoSaved,
+      onStorefrontHoursSaved,
     }
   },
 })
