@@ -243,7 +243,7 @@ export default defineComponent({
     onMounted(() => cacheQrData())
     
     const reconnectAttempts = 10000
-    const websocketUrl = 'wss://watchtower.cash/ws/watch/bch'
+    const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
     const merchantReceivingAddress = addressSet.value?.receiving
     const vaultTokenAddress = vault.value?.address
     const websockets = ref([
@@ -363,7 +363,7 @@ export default defineComponent({
         )
       }
 
-      const watchtowerVoucherFlagUrl = 'https://watchtower.cash/api/vouchers/claimed/'
+      const watchtowerVoucherFlagUrl = `${process.env.WATCHTOWER_API}/vouchers/claimed/`
 
       axios.post(
         watchtowerVoucherFlagUrl,
@@ -382,7 +382,7 @@ export default defineComponent({
         value: "Voucher Claim",
         remove: false
       }
-      const watchtowerTxnAttrUrl = 'https://watchtower.cash/api/transactions/attributes/'
+      const watchtowerTxnAttrUrl = `${process.env.WATCHTOWER_API}/transactions/attributes/`
       axios.post(watchtowerTxnAttrUrl, payload)
         .then(response => console.log('Added transaction attribute as voucher claim: ', response))
         .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
@@ -431,9 +431,9 @@ export default defineComponent({
       if (!data?.value) return
 
       const parsedData = parseWebsocketDataReceived(data)
-      if (parsedData.voucher) checkVoucherClaim(parsedData)
+      checkVoucherClaim(parsedData)
 
-      transactionsReceived.value.push(parsedData)
+      if (!parsedData.voucher) transactionsReceived.value.push(parsedData)
       promptOnLeave.value = false
       displayReceivedTransaction(parsedData)
     }
@@ -452,9 +452,7 @@ export default defineComponent({
      * @param {String} data.address_path
      * @param {String[]} data.senders
      * 
-     * @param {Object} data.voucher
-     * @param {Boolean} data.voucher.is_key_nft
-     * @param {String} data.voucher.lock_nft_category
+     * @param {String} data.voucher
      *
      */
     function parseWebsocketDataReceived(data) {
@@ -489,6 +487,8 @@ export default defineComponent({
     }
 
     function displayReceivedTransaction (data) {
+      if (data?.voucher) return
+
       const _qrData = qrData.value
       let marketValue = data?.marketValue || { amount: 0, currency: '' }
       const value = data?.value / 1e8

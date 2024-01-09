@@ -100,7 +100,7 @@ export class Vault {
     if (!lockNftUtxo) throw new Error(`No lock NFT of category ${category} utxos found`)
 
     // get latest MTP (median timestamp) from latest block
-    const { mediantime } = await axios.get('https://watchtower.cash/api/blockchain/info/')
+    const { mediantime } = await axios.get(`${process.env.WATCHTOWER_API}/blockchain/info/`)
     const latestBlockTimestamp = mediantime
     const refundedAmount = lockNftUtxo.satoshis - this.dust
 
