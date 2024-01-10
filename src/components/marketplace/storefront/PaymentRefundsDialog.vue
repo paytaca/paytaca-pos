@@ -11,7 +11,10 @@
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <q-linear-progress v-if="fetchingRefunds" :color="$q.dark.isActive ? 'white' : 'brandblue'" query/>
-        <q-list dense separator>
+        <div v-if="!payment?.refunds?.length && !fetchingRefunds" class="text-grey text-center q-py-md">
+          No data
+        </div>
+        <q-list v-else dense separator>
           <q-item v-for="refund in payment?.refunds" :key="refund?.id">
             <q-item-section>
               <q-item-label>

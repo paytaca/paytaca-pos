@@ -68,6 +68,9 @@
                 </div>
                 <div v-else class="text-grey">No pending orders</div>
               </template>
+              <div v-if="paymentsInEscrowCount">
+                {{ paymentsInEscrowCount }} payment{{ paymentsInEscrowCount === 1 ? '' : 's' }} in escrow
+              </div>
             </template>
             <div v-else class="text-grey">
               Storefront not setup
@@ -268,7 +271,7 @@ export default defineComponent({
               { name: 'Products', icon: 'local_mall', route: { name: 'marketplace-storefront-products' } },
               { name: 'Collections', icon: 'collections', route: { name: 'marketplace-storefront-collections' } },
               { name: 'Orders', icon: 'pending_actions', badge: pendingOrdersCount.value, route: { name: 'marketplace-storefront-orders' } },
-              { name: 'Payments', icon: 'payments', route: { name: 'marketplace-storefront-payments' } },
+              { name: 'Payments', icon: 'payments', badge: paymentsInEscrowCount.value, route: { name: 'marketplace-storefront-payments' } },
               { name: 'Settings', icon: 'settings', route: { name: 'marketplace-storefront-settings' } },
             ]
           }
@@ -365,6 +368,23 @@ export default defineComponent({
         })
     }, 500)
 
+    watch(() => [marketplaceStore.storefront?.id], () => updatePaymentsInEscrowCount())
+    const paymentsInEscrowCount = ref([].map(Number)[0])
+    const updatePaymentsInEscrowCount = debounce(async function() {
+      if (!marketplaceStore.userPermissions.storefront) return
+      const params = {
+        storefront_id: marketplaceStore.storefrontData?.id || null,
+        limit: 1, offset: 999,
+        statuses: ['sent'].join(','),
+      }
+
+      return backend.get(`connecta/payments/`, { params })
+        .then(response => {
+          paymentsInEscrowCount.value = response?.data?.count
+          return response
+        })
+    }, 500)
+
     const storefrontHours = computed(() => {
       const data = { isOpen: [].map(Boolean)[0], nextOpenTimestamp: 0 }
 
@@ -428,6 +448,7 @@ export default defineComponent({
               return marketplaceStore.fetchStorefrontHours()
             }),
           updateOrdersCount(),
+          updatePaymentsInEscrowCount(),
           getStaffCount(),
         ])
       } finally {
@@ -444,6 +465,7 @@ export default defineComponent({
       productsCount,
       toReviewPurchaseOrdersCount,
       pendingOrdersCount,
+      paymentsInEscrowCount,
       storefrontHours,
       staffCount,
 
