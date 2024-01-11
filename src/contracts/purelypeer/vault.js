@@ -62,7 +62,7 @@ export class Vault {
     return contract
   }
 
-  async claim ({ category, merchantReceivingAddress }) {
+  async claim ({ category, voucherClaimerAddress }) {
     const contract = this.getContract()
     const signerWif = await this.getSignerWif()
     const merchantSignerSig = new SignatureTemplate(signerWif)
@@ -78,7 +78,7 @@ export class Vault {
       merchantSignerSig
     )
     .from(voucherUtxos)
-    .to(merchantReceivingAddress, lockNftUtxo.satoshis)
+    .to(voucherClaimerAddress, lockNftUtxo.satoshis)
     .withoutTokenChange()
     .withoutChange()
     .send()
@@ -86,7 +86,7 @@ export class Vault {
     return transaction
   }
 
-  async refund ({ category, merchantReceivingAddress }) {
+  async refund ({ category, voucherClaimerAddress }) {
     const contract = this.getContract()
     const signerWif = await this.getSignerWif()
     const merchantSignerSig = new SignatureTemplate(signerWif)
@@ -107,7 +107,7 @@ export class Vault {
     let transaction = await contract.functions
       .refund(merchantSignerSig)
       .from(lockNftUtxo)
-      .to(merchantReceivingAddress, refundedAmount)
+      .to(voucherClaimerAddress, refundedAmount)
       .withoutTokenChange()
       .withHardcodedFee(this.dust)
       .withTime(latestBlockTimestamp)

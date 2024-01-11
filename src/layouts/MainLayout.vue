@@ -107,7 +107,7 @@ export default defineComponent({
       const contract = __vault.getContract()
       __vault.refund({
         category: data.voucher,
-        merchantReceivingAddress: vault.value?.receiving?.address
+        voucherClaimerAddress: vault.value?.receiving?.address
       }).then(
         txn => console.log('Refund Txn: ', txn)
       )

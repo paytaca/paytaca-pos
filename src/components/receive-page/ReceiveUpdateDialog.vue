@@ -2,11 +2,12 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card class="q-dialog-plugin">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
-        <div class="text-h5 q-space q-mt-sm"> Received </div>
+        <div class="text-h5 text-brandblue q-space q-mt-sm"> Received </div>
         <q-btn
           flat
           padding="sm"
           icon="close"
+          class="text-brandblue"
           v-close-popup
         />
       </div>
@@ -46,6 +47,7 @@
             />
           </div>
         </div>
+        <!--
         <q-separator class="q-my-md"/>
         <div class="q-mt-sm">
           <q-btn
@@ -56,6 +58,7 @@
             @click="onOk()"
           />
         </div>
+        -->
       </q-card-section>
     </q-card>
   </q-dialog>
