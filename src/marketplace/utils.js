@@ -1,6 +1,13 @@
 import ago from 's-ago'
 import { capitalize } from 'vue'
 
+export function lineItemPropertiesToText(data) {
+  if (!data) return ''
+  return Object.getOwnPropertyNames(data).map(name => {
+    return `${name}: ${data[name]}`
+  }).join(', ')
+}
+
 /**
  * @param {Date} value 
  */

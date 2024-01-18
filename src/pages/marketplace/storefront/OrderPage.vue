@@ -314,7 +314,10 @@
                     ratio="1"
                     class="rounded-borders q-mr-xs"
                   />
-                  <div>{{ orderItem?.variant?.itemName }}</div>
+                  <div class="q-space">
+                    <div class="text-weight-medium">{{ orderItem?.variant?.itemName }}</div>
+                    <div class="text-caption bottom">{{ orderItem?.propertiesText }} </div>
+                  </div>
                 </div>
               </td>
               <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>

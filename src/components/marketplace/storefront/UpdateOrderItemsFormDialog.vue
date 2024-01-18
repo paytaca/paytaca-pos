@@ -93,6 +93,25 @@
                   />
                 </div>
               </div>
+              <q-field
+                v-if="orderItem?.variant?.product?.hasCartOptions"
+                dense outlined
+                label="Item options"
+                :model-value="orderItem?.properties"
+                bottom-slots
+              >
+                <template v-slot:control>
+                  {{ lineItemPropertiesToText(orderItem?.properties?.data) }}
+                </template>
+                <template v-slot:append>
+                  <q-btn
+                    dense
+                    flat
+                    icon="edit"
+                    @click="() => openItemOptionsForm(orderItem)"
+                  />
+                </template>
+              </q-field>
             </div>
           </TransitionGroup>
           <q-btn
@@ -143,10 +162,11 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { Order, Variant } from 'src/marketplace/objects'
-import { errorParser } from 'src/marketplace/utils'
-import { useDialogPluginComponent } from 'quasar'
+import { errorParser, lineItemPropertiesToText } from 'src/marketplace/utils'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import VariantSearchDialog from '../sales/VariantSearchDialog.vue'
+import JSONFormDataDialog from '../jsonform/JSONFormDataDialog.vue'
 
 export default defineComponent({
   name: 'UpdateOrderItemsFormDialog',
@@ -172,6 +192,8 @@ export default defineComponent({
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
+    const $q = useQuasar()
+
     onMounted(() => resetFormData())
     watch(innerVal, () => {
       if (!innerVal.value) return
@@ -183,15 +205,17 @@ export default defineComponent({
 
     const loading = ref(false)
     const form = ref()
+    function emptyItemFormData() {
+      return {
+        variant: Variant.parse(),
+        quantity: 0,
+        price: 0,
+        markupPrice: 0,
+        properties: undefined,
+      }
+    }
     const formData = ref({
-      items: [].map(() => {
-        return {
-          variant: Variant.parse(),
-          quantity: 0,
-          price: 0,
-          markupPrice: 0,
-        }
-      })
+      items: [].map(emptyItemFormData)
     })
 
     function resetFormData() {
@@ -201,6 +225,7 @@ export default defineComponent({
           quantity: item.quantity,
           price: item.price,
           markupPrice: item.markupPrice,
+          properties: item.properties ? Object.assign({}, item.properties) : undefined,
         }
       }) || []
 
@@ -292,6 +317,7 @@ export default defineComponent({
             quantity: item?.quantity,
             price: item?.price || undefined,
             markup_price: item?.markupPrice || undefined,
+            properties: item?.properties,
           }
         })
       }
@@ -330,6 +356,28 @@ export default defineComponent({
         })
     }
 
+    async function openItemOptionsForm(orderItem=emptyItemFormData()) {
+      if (!orderItem?.variant?.product?.hasCartOptions) return
+      let schema = orderItem?.properties?.schema
+      if (!schema?.length) {
+        if (orderItem?.variant?.product?.cartOptions === undefined) {
+          await orderItem?.variant?.product?.fetchCartOptions().catch(console.error)
+        }
+        schema = orderItem?.variant?.product?.cartOptions
+      }
+
+      $q.dialog({
+        component: JSONFormDataDialog,
+        componentProps: {
+          schemaData: schema,
+          schemaFormData: orderItem?.properties?.data,
+        }
+      }) 
+        .onOk(data => {
+          orderItem.properties = { schema: schema, data: data }
+        })
+    }
+
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
@@ -351,6 +399,10 @@ export default defineComponent({
       onVariantSelected,
 
       submit,
+
+      openItemOptionsForm,
+
+      lineItemPropertiesToText,
     }
   },
 })

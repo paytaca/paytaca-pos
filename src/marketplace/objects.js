@@ -1557,6 +1557,7 @@ export class OrderItem {
    * @param {Number} data.quantity
    * @param {Number} data.price
    * @param {Number} data.markup_price
+   * @param {{ schema:Array, data:Object }} [data.properties]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -1566,6 +1567,11 @@ export class OrderItem {
     this.quantity = data?.quantity
     this.price = data?.price
     this.markupPrice = data?.markup_price
+    this.properties = data?.properties
+  }
+
+  get propertiesText() {
+    return lineItemPropertiesToText(this.properties?.data)
   }
 }
 
