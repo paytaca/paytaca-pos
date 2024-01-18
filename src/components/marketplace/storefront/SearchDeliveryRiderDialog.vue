@@ -6,16 +6,22 @@
           <div class="text-subtitle1 text-grey q-space">Search Riders</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
-        <q-input
-          dense outlined
+        <div class="text-body2 q-mb-xs">Search radius (in meters)</div>
+        <q-btn-toggle
+          no-caps
+          v-model="searchOpts.radius"
           :disable="fetchingRiders"
           :loading="fetchingRiders"
-          label="Search radius" suffix="meters"
-          v-model="searchOpts.radius"
-          :rules="[
-            val => val >= 0 || 'Inavlid',
+          spread
+          toggle-color="brandblue"
+          class="q-mb-md"
+          :options="[
+            {label: '500m', value: 500},
+            {label: '1km', value: 1000},
+            {label: '5km', value: 5000},
+            {label: '10km', value: 10000},
+            {label: '20km', value: 20000},
           ]"
-          :debounce="500"
         />
         <div class="row items-center q-mb-sm">
           <q-space/>
@@ -69,9 +75,20 @@
             :options="selected?.id == rider?.id ? { icon: selectedMarkerIcon } : undefined"
             @click="() => toggleSelected(rider)"
           />
+          <LCircle
+            :latLng="{
+              lat: delivery?.pickupLocation?.latitude,
+              lng: delivery?.pickupLocation?.longitude,
+            }"
+            color="red"
+            :radius="searchOpts.radius"
+          />
         </LMap>
       </template>
       <q-list v-else>
+        <div v-if="!riders?.length" class="text-center text-grey q-py-md">
+          No riders found
+        </div>
         <q-item
           v-for="rider in riders" :key="rider?.id"
           clickable
@@ -115,7 +132,7 @@ import { backend } from 'src/marketplace/backend'
 import { Delivery, Rider } from 'src/marketplace/objects'
 import { useDialogPluginComponent } from 'quasar'
 import { defineComponent, onMounted, ref, watch, inject, computed } from 'vue'
-import { LMap, LTileLayer, LMarker, LControl } from '@vue-leaflet/vue-leaflet'
+import { LMap, LTileLayer, LMarker, LControl, LCircle } from '@vue-leaflet/vue-leaflet'
 
 export default defineComponent({
   name: 'SearchDeliveryRiderDialog',
@@ -124,6 +141,7 @@ export default defineComponent({
     LTileLayer,
     LMarker,
     LControl,
+    LCircle,
   },
   emits: [
     'update:modelValue',
@@ -148,6 +166,7 @@ export default defineComponent({
     const searchOpts = ref({
       radius: props?.radius,
     })
+    watch(() => [searchOpts.value?.radius], () => centerMapBySearchRadius())
 
     watch(() => [props?.delivery?.id], () => searchRiderForDelivery())
     watch(searchOpts, () => searchRiderForDelivery(), { deep: true })
@@ -181,7 +200,7 @@ export default defineComponent({
     const map = ref()
     const mapView = ref(true)
     const mapState = ref({
-      zoom: 13,
+      zoom: 18,
       center: [11.2674652, 124.9370791],
     })
     const selectedMarkerIcon = leaflet.icon.glyph({
@@ -190,15 +209,45 @@ export default defineComponent({
       prefix: '', glyph: 'check_circle',
     })
     const preferredBounds = computed(() => {
-      const latitudes = riders.value.map(rider => rider?.currentLocation?.[1]).filter(lat => !isNaN(lat))
-      const longitudes = riders.value.map(rider => rider?.currentLocation?.[0]).filter(lng => !isNaN(lng))
+      const latitudes = riders.value.map(rider => rider?.currentLocation?.[1]).filter(lat => !Number.isNaN(lat))
+      const longitudes = riders.value.map(rider => rider?.currentLocation?.[0]).filter(lng => !Number.isNaN(lng))
       const bottomLeft = [Math.min(...latitudes), Math.min(...longitudes)]
       const topRight = [Math.max(...latitudes), Math.max(...longitudes)]
       return [bottomLeft, topRight]
     })
     function centerMap() {
+      if (!preferredBounds.value[0].every(Number.isFinite) || preferredBounds.value[1].every(Number.isFinite)) {
+        return centerMapBySearchRadius()
+      }
       map.value?.leafletObject?.fitBounds?.(preferredBounds.value)
     }
+
+    function centerMapBySearchRadius() {
+      console.log('here1')
+      const lat = parseFloat(props.delivery?.pickupLocation?.latitude)
+      const lng = parseFloat(props.delivery?.pickupLocation?.longitude)
+      if (!Number.isFinite(lat)) return
+      if (!Number.isFinite(lng)) return
+      console.log('here2')
+
+      // 500 -> 15
+      // 1000 -> 14
+      // 5000 -> 12
+      // 10000 -> 11
+      // 20000 -> 10
+      // Formula below is based on testing of ideal radius and zoom level
+      const MAX_ZOOM = 18
+      const radius = searchOpts.value.radius
+      const zoom = Math.floor(MAX_ZOOM - Math.log2(radius / 125))
+      const center = [lat,lng]
+
+      const setView = map.value?.leafletObject?.setView
+      console.log(setView)
+      if (map.value?.leafletObject?.setView) {
+        map.value?.leafletObject?.setView(center, zoom, { animate: true, duration: 1 })
+      }  else mapState.value = { center, zoom }
+    }
+
     watch(preferredBounds, () => centerMap(), { deep: true })
 
     return {
