@@ -67,6 +67,65 @@
               {{ props }}
             </template>
           </q-select>
+          <div class="row items-center">
+            <div class="text-subtitle1">Cart options</div>
+            <q-space/>
+            <q-icon
+              size="1.5em"
+              name="help"
+            >
+              <q-menu class="q-pa-sm text-body2">
+                Additional details customers must provide when adding to cart
+              </q-menu>
+            </q-icon>
+          </div>
+          <div class="row items-center q-r-mx-sm">
+            <div class="full-width q-pa-xs q-mb-sm">
+              <q-btn
+                no-caps label="Configure"
+                icon="edit"
+                color="brandblue"
+                class="full-width"
+                @click="() => openPropertiesSchemaOptions()"
+              />
+            </div>
+            <template v-if="Boolean(formData.cartOptions)">
+              <div class="col-6 q-pa-xs">
+                <q-btn
+                  outline
+                  no-caps label="Preview"
+                  icon="preview"
+                  color="brandblue"
+                  class="full-width"
+                  @click="() => showCartOptionsPreview = !showCartOptionsPreview"
+                />
+              </div>
+  
+              <div class="col-6 q-pa-xs">
+                <q-btn
+                  outline
+                  no-caps label="Remove"
+                  icon="delete"
+                  color="red"
+                  class="full-width"
+                  @click="() => formData.cartOptions = undefined"
+                />
+              </div>
+              <q-dialog v-model="showCartOptionsPreview" position="bottom">
+                <q-card>
+                  <q-card-section>
+                    <div class="row items-center">
+                      <div class="text-h6">Form Preview</div>
+                      <q-space/>
+                      <q-btn v-close-popup flat icon="close" padding="sm"/>
+                    </div>
+                    <JSONFormPreview :schemaData="formData.cartOptions"/>
+                    <q-btn label="OK" color="brandblue" v-close-popup/>
+                  </q-card-section>
+                </q-card>
+              </q-dialog>
+            </template>
+          </div>
         </q-card-section>
       </q-card>
       <q-card>
@@ -216,6 +275,8 @@ import { useQuasar } from 'quasar'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import UploadImageField from 'src/components/marketplace/UploadImageField.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
+import JSONFormDialog from 'src/components/marketplace/jsonform/JSONFormDialog.vue'
+import JSONFormPreview from 'src/components/marketplace/jsonform/JSONFormPreview.vue'
 
 
 export default defineComponent({
@@ -223,6 +284,7 @@ export default defineComponent({
   components: {
     UploadImageField,
     MarketplaceHeader,
+    JSONFormPreview,
   },
   setup() {
     const marketplaceStore = useMarketplaceStore()
@@ -248,6 +310,7 @@ export default defineComponent({
       name: '',
       description: '',
       categories: [],
+      cartOptions: undefined,
       variants: [createEmptyVariant()],
     })
     const categoriesOpts = ref([].map(String))
@@ -299,6 +362,19 @@ export default defineComponent({
       formErrors.value.variants = []
     }
 
+    const showCartOptionsPreview = ref(false)
+    function openPropertiesSchemaOptions() {
+      $q.dialog({
+        component: JSONFormDialog,
+        componentProps: {
+          title: 'Cart options',
+          schemaData: formData.value.cartOptions,
+        }
+      }).onOk(updatedSchemaData => {
+        formData.value.cartOptions = updatedSchemaData
+      })
+    }
+
     function addVariant() {
       if (!Array.isArray(formData.value.variants)) formData.value.variants = []
       formData.value.variants.push(createEmptyVariant())
@@ -311,8 +387,10 @@ export default defineComponent({
         name: formData.value.name,
         description: formData.value.description,
         categories: [],
+        cart_options: formData.value.cartOptions?.map?.(data => Object.assign({}, data, { _index: undefined })),
         variants: [],
       }
+      if (!data?.cart_options?.length) data.cart_options = null
 
       if (Array.isArray(formData.value.categories)) data.categories = formData.value.categories
 
@@ -385,6 +463,10 @@ export default defineComponent({
       categoriesFilter,
       formErrors,
       variantErrorAt,
+
+      showCartOptionsPreview,
+      openPropertiesSchemaOptions,
+
       addVariant,
       addProduct,
     }

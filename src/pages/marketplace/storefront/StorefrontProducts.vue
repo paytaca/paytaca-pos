@@ -189,6 +189,22 @@
             {{ props?.row?.availableAtStorefrontText?.(marketplaceStore.storefrontData.id) }}
           </q-td>
         </template>
+        <template v-slot:body-cell-cart-options="props">
+          <q-td :props="props">
+            <q-btn
+              :disable="props.row?.$state?.updatingCartOptions"
+              :loading="props.row?.$state?.updatingCartOptions"
+              flat
+              no-caps
+              :label="props.row?.hasCartOptions ? 'Edit' : 'Add'"
+              :icon-right="props.row?.hasCartOptions ? 'edit' : 'add'"
+              no-wrap
+              padding="xs sm"
+              dense
+              @click="() => updateCartOptions(props.row)"
+            />
+          </q-td>
+        </template>
       </q-table>
     </q-pull-to-refresh>
     <ProductInventoryDialog
@@ -208,6 +224,7 @@ import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue';
 import ProductInventoryDialog from 'src/components/marketplace/inventory/ProductInventoryDialog.vue';
 import ProductSearchDialog from 'src/components/marketplace/ProductSearchDialog.vue';
+import JSONFormDialog from 'src/components/marketplace/jsonform/JSONFormDialog.vue';
 
 export default defineComponent({
   name: 'StorefrontProducts',
@@ -296,6 +313,7 @@ export default defineComponent({
       // { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks' },
       { name: 'available', align: 'left', label: 'Available', sortable: true },
       { name: 'markup-price', align: 'left', label: 'Markup Price', field: 'markupPriceRangeText', format: val => `${val} ${marketplaceStore?.currency}`, sortable: true },
+      { name: 'cart-options', align: 'left', label: 'Cart Options' },
       { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText, sortable: true },
       // { name: 'actions', align: 'center', label: '' },
     ]
@@ -391,6 +409,45 @@ export default defineComponent({
       return Promise.all(promises)
     }
 
+    async function updateCartOptions(product=Product.parse()) {
+      if (product.cartOptions === undefined) await product.fetchCartOptions()
+
+      $q.dialog({
+        component: JSONFormDialog,
+        componentProps: {
+          title: [product?.name, 'Cart options'].filter(Boolean).join(' - '),
+          schemaData: product.cartOptions || undefined,
+        }
+      }).onOk(result => {
+        if (Array.isArray(result)) {
+          result = result?.map?.(data => Object.assign({}, data, { _index: undefined }))
+        }
+
+        const data = { cart_options: result }
+        if (!data?.cart_options?.length) data.cart_options = null
+
+        const params = { storefront_id: Number(marketplaceStore.storefrontData.id) }
+        product.$state.updatingCartOptions = true
+        backend.patch(`products/${product.id}/`, data, { params })
+          .then(response => {
+            product.cartOptions = response?.data?.cart_options
+            product.raw.cart_options = response?.data?.cart_options
+
+            product.hasCartOptions = product.cartOptions !== null
+            product.raw.has_cart_options = product.hasCartOptions
+            $q.notify({
+              message: 'Cart options updated',
+              icon: 'check',
+              color: 'brandblue',
+            })
+            return response
+          })
+          .finally(() => {
+            product.$state.updatingCartOptions = false
+          })
+      })
+    }
+
     function openAddProductsDialog() {
       $q.dialog({
         component: ProductSearchDialog,
@@ -475,6 +532,7 @@ export default defineComponent({
       toggleProductSelection,
       confirmRemoveSelectedProducts,
       updateSelectedProductsAvailability,
+      updateCartOptions,
       openAddProductsDialog,
 
       productDetailDialog,

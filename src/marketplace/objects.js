@@ -2,7 +2,7 @@ import { capitalize } from "vue"
 import { backend } from "./backend"
 import { getOrderUpdatesTexts, getPurchaseOrderUpdatesTexts } from "./edit-history-utils"
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from "./chat/encryption"
-import { formatOrderStatus, formatPurchaseOrderStatus, parseOrderStatusColor, parsePurchaseOrderStatusColor } from './utils'
+import { formatOrderStatus, formatPurchaseOrderStatus, lineItemPropertiesToText, parseOrderStatusColor, parsePurchaseOrderStatusColor } from './utils'
 
 export const ROLES = Object.freeze({
   admin: 'shop_admin',
@@ -386,6 +386,7 @@ export class Product {
       updating: false,
       fetchingStocks: false,
       fetchingShops: false,
+      updatingCartOptions: false,
     }
   }
 
@@ -398,6 +399,8 @@ export class Product {
    * @param {Number} data.id
    * @param {String} [data.code]
    * @param {String[]} data.categories
+   * @param {Object[]} [data.cart_options]
+   * @param {Boolean} data.has_cart_options
    * @param {String} data.image_url
    * @param {String} [data.variant_image_url]
    * @param {String} data.name
@@ -417,6 +420,8 @@ export class Product {
     this.id = data?.id
     this.code = data?.code
     if (Array.isArray(data?.categories)) this.categories = [...data.categories]
+    if (Array.isArray(data?.cart_options)) this.cartOptions = [...data.cart_options]
+    this.hasCartOptions = data?.has_cart_options
     this.imageUrl = data?.image_url
     this.variantImageUrl = data?.variant_image_url
     this.name = data?.name
@@ -494,10 +499,30 @@ export class Product {
   async fetchStorefrontProduct(storefrontId=0) {
     if (!storefrontId) return Promise.resolve()
     const handle = `${storefrontId}-${this.id}`
-    return backend.get(`connecta/storefront-prodocuts/${handle}/`)
+    return backend.get(`connecta/storefront-products/${handle}/`)
       .then(response => {
         this.addStorefrontProductData(response?.data)
         return response
+      })
+  }
+
+  async fetchCartOptions() {
+    if (!this.id) return Promise.resolve()
+
+    this.$state.updatingCartOptions = true
+    const params = { ids: this.id }
+    return backend.get(`products/cart_options/`, { params })
+      .then(response => {
+        const obj = response?.data?.results?.find(product => product?.id == this?.id)
+        console.log('obj', obj)
+        if (obj) {
+          this.cartOptions = obj?.cart_options
+          if (this.$raw) this.$raw.cartOptions = obj?.cart_options
+        }
+        return response
+      })
+      .finally(() => {
+        this.$state.updatingCartOptions = false
       })
   }
 

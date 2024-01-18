@@ -67,21 +67,23 @@
               <span v-else>{{ variant.totalStocks }}</span>
             </td>
             <td style="width:3.5em;">
-              <q-btn flat icon="more_vert" padding="sm">
-                <q-menu anchor="bottom right" self="top right">
-                  <q-list separator>
-                    <q-item
-                      clickable
-                      :to="{ name: 'marketplace-stocks', query: { productId: product?.id, variantId: variant?.id } }"
-                      v-close-popup
-                    >
-                      <q-item-section>
-                        <q-item-label>Go to inventory</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-btn>
+              <slot name="variant-menu" v-bind="{ variant, product }">
+                <q-btn flat icon="more_vert" padding="sm">
+                  <q-menu anchor="bottom right" self="top right">
+                    <q-list separator>
+                      <q-item
+                        clickable
+                        :to="{ name: 'marketplace-stocks', query: { productId: product?.id, variantId: variant?.id } }"
+                        v-close-popup
+                      >
+                        <q-item-section>
+                          <q-item-label>Go to inventory</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-btn>
+              </slot>
             </td>
           </tr>
           <tr>
