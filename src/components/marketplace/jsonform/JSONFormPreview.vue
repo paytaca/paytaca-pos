@@ -47,10 +47,10 @@ export default defineComponent({
     const schema = computed(() => serializeSchemaFields(props.schemaData))
     const uischema = computed(() => schemaToUISchema(schema.value))
 
-    watch(schema, () => formData.value = props?.modelValue, { deep: true })
+    watch(schema, () => formData.value = props?.modelValue || {}, { deep: true })
     watch(() => props?.modelValue, () => formData.value = props.modelValue, { deep: true })
 
-    const formData = ref(props?.modelValue)
+    const formData = ref(props?.modelValue || {})
     watch(formData, () => $emit('update:modelValue', formData.value), { deep: true })
 
     const innerFormDataErrors = ref(props?.formDataErrors)
