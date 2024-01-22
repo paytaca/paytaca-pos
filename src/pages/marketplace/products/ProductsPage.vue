@@ -254,7 +254,7 @@ export default defineComponent({
       }
 
       fetchingProducts.value = true
-      return backend.get(`products/info`, { params })
+      return backend.get(`products/info/`, { params })
         .then(response => {
           if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
           products.value = response?.data?.results.map(Product.parse)

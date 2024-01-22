@@ -21,8 +21,10 @@
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useMarketplaceHeartbeatStore } from 'src/stores/marketplace-heartbeat'
 import { updateOrCreateKeypair } from 'src/marketplace/chat'
 import { useWalletStore } from 'src/stores/wallet'
+import { throttle } from 'quasar'
 import { computed, defineComponent, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -31,6 +33,7 @@ export default defineComponent({
   setup() {
     const $router = useRouter()
     const $route = useRoute()
+    const marketplaceHeartbeatStore = useMarketplaceHeartbeatStore()
     const marketplaceStore = useMarketplaceStore()
     const walletStore = useWalletStore()
     const updatingScope = computed(() => {
@@ -112,6 +115,19 @@ export default defineComponent({
       }
       return response
     }
+
+
+    const events = ['click', 'mousemove', 'mouseenter', 'keydown', 'scroll']
+    onMounted(() => {
+      events.forEach(event => document.addEventListener(event, onUserActivity))
+    })
+    onUnmounted(() => {
+      events.forEach(event => document.removeEventListener(event, onUserActivity))
+    })
+
+    const onUserActivity = throttle(async (event) => {
+      await marketplaceHeartbeatStore.triggerHeartbeat()
+    }, 5000)
 
     return {
       marketplaceStore,
