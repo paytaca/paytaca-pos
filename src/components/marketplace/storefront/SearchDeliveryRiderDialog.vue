@@ -223,12 +223,10 @@ export default defineComponent({
     }
 
     function centerMapBySearchRadius() {
-      console.log('here1')
       const lat = parseFloat(props.delivery?.pickupLocation?.latitude)
       const lng = parseFloat(props.delivery?.pickupLocation?.longitude)
       if (!Number.isFinite(lat)) return
       if (!Number.isFinite(lng)) return
-      console.log('here2')
 
       // 500 -> 15
       // 1000 -> 14
@@ -241,8 +239,6 @@ export default defineComponent({
       const zoom = Math.floor(MAX_ZOOM - Math.log2(radius / 125))
       const center = [lat,lng]
 
-      const setView = map.value?.leafletObject?.setView
-      console.log(setView)
       if (map.value?.leafletObject?.setView) {
         map.value?.leafletObject?.setView(center, zoom, { animate: true, duration: 1 })
       }  else mapState.value = { center, zoom }
