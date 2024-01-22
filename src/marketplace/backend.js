@@ -80,6 +80,6 @@ const heartbeat = {
     marketplaceHeartbeatStore.lastTimestamp = lastHeartbeatTimestamp
 
     console.log('Updated heartbeat', marketplaceHeartbeatStore.lastTimestamp)
-    return erorrOrResponse
+    return response
   },
 }
