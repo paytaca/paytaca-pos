@@ -9,12 +9,18 @@
       The app offline, you will not receive payment notifications.
     </q-banner>
     <div class="row items-center justify-center">
-      <div class="qr-code-container" style="position:relative;" v-ripple @click="copyText(qrData, 'Copied payment URI')">
+      <div
+        class="qr-code-container"
+        :class="paid ? 'bg-dark border-green' : 'border-red'"
+        style="position:relative;"
+        v-ripple
+        @click="copyText(qrData, 'Copied payment URI')"
+      >
         <div v-if="loading"><q-skeleton height="200px" width="200px" /></div>
-        <div v-if="paid">
+        <div v-if="paid" class="bg-dark">
           <img src="~assets/success-check.gif" height="200" />
         </div>
-        <template v-if="!paid && !loading">
+        <template v-else>
           <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
           <QRCode
             :text="qrData"
@@ -298,7 +304,6 @@ export default defineComponent({
     watch(qrData, () => cacheQrData())
     onMounted(() => cacheQrData())
     
-    const reconnectAttempts = 10000
     const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
     const merchantReceivingAddress = addressSet.value?.receiving
     const voucherClaimerAddress  = vault.value?.receiving?.address
@@ -307,17 +312,14 @@ export default defineComponent({
       {
         instance: { readyState: 0 },
         url: `${websocketUrl}/${merchantReceivingAddress}/`,
-        reconnectAttempts,
       },
       {
         instance: { readyState: 0 },
         url: `${websocketUrl}/${vaultTokenAddress}/`,
-        reconnectAttempts,
       },
       {
         instance: { readyState: 0 },
         url: `${websocketUrl}/${voucherClaimerAddress}/`,
-        reconnectAttempts,
       },
     ]
     const isZerothAddress = voucherClaimerAddress === merchantReceivingAddress
@@ -335,20 +337,20 @@ export default defineComponent({
 
     // close existing websocket in case it exists
     function closeWebsocket () {
-      websockets.value.forEach(ws => {
-        ws?.close?.()
-        ws = null
-      })
+      for (let x = 0; x < websockets.value.length; x++) {
+        websockets.value[x].instance?.close()
+        websockets.value[x].instance = null
+      }
     }
 
-    watch(addressSet, () => setupListener({ resetAttempts: true }))
+    watch(addressSet, () => setupListener())
     watch(paid, (newVal) => { if (newVal) closeWebsocket() })
 
     // 0.4ms - 0.5ms
     onMounted(() => addressSet.value?.receiving ? setupListener() : null)
     watch(isOnline, () => {
       if (isOnline.value) {
-        setupListener({ resetAttempts: true })
+        setupListener()
       } else {
         closeWebsocket()
       }
@@ -359,8 +361,6 @@ export default defineComponent({
       clearTimeout(reconnectTimeout.value)
     })
     function setupListener(opts) {
-      closeWebsocket()
-
       const merchantReceivingAddress = addressSet.value?.receiving
       const vaultTokenAddress = vault.value?.address
       
@@ -369,24 +369,18 @@ export default defineComponent({
       for (let x = 0; x < websockets.value.length; x++) {
         const url = websockets.value[x].url
         const websocket = new WebSocket(url)
-        console.log(`Connecting ws: ${url}`)
-        
-        if (opts?.resetAttempts) websockets.value[x].reconnectAttempts = 10000
+        console.log(`Connecting receiving page ws: ${url}`)
 
         websocket.addEventListener('close', () => {
-          console.log('setupListener:', 'Listener closed')
-          if (!enableReconnect.value) return console.log('setupListener:', 'Skipping reconnection')
-
-          if (websockets.value[x].reconnectAttempts.value <= 0)
-            return console.log('setupListener:', 'Reached reconnection attempts limit')
-
-          websockets.value[x].reconnectAttempts.value--;
+          if (paid.value) return
+ 
+          console.log('Listener closed: ', url)
+          if (!enableReconnect.value) return console.log('Skipping reconnection: ', url)
 
           const reconnectInterval = 5000
           const reconnectIntervalSeconds = reconnectInterval / 1000
-          const reconnectAttemptsLeft = websockets.value[x].reconnectAttempts.value
-          let reconnectingLog = `Attempting websocket for (${url}) reconnection after ${reconnectIntervalSeconds} seconds.`
-          reconnectingLog += `retries left: ${reconnectAttemptsLeft}`
+          const reconnectingLog = `Attempting websocket for (${url}) reconnection after ${reconnectIntervalSeconds} seconds.`
+          console.log(reconnectingLog)
 
           clearTimeout(reconnectTimeout.value)
           reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
@@ -398,7 +392,6 @@ export default defineComponent({
         })
 
         websocket.addEventListener('open', () => {
-          closeWebsocket()
           websockets.value[x].instance = markRaw(websocket)
         })
       }
@@ -495,16 +488,15 @@ export default defineComponent({
       const parsedData = parseWebsocketDataReceived(data)
       checkVoucherClaim(parsedData)
 
-      if (!parsedData.voucher) {
+      if (parsedData.tokenName === 'bch') {
         const paidBchValue = data.value / 1e8
         const paidBch = Number((paidBchValue).toFixed(8))
         paymentsStore.addPayment(paidBch)
-
-        transactionsReceived.value.push(parsedData)
+        
+        promptOnLeave.value = false
+        console.log('on websocket received: ', promptOnLeave.value)
+        displayReceivedTransaction(parsedData)
       }
-      
-      promptOnLeave.value = false
-      displayReceivedTransaction(parsedData)
     }
 
     /**
@@ -557,6 +549,10 @@ export default defineComponent({
 
     function displayReceivedTransaction (data) {
       if (data?.voucher) return
+
+      transactionsReceived.value.push(data)
+
+      console.log('transactions received: ', transactionsReceived.value)
 
       const _qrData = qrData.value
       let marketValue = data?.marketValue || { amount: 0, currency: '' }
@@ -665,10 +661,16 @@ export default defineComponent({
   align-content: center;
 
   border-radius: 16px;
-  border: 4px solid #ed5f59;
   background-color: white;
 
   padding: 1.8rem 2.1rem;
+}
+
+.border-red {
+  border: 4px solid #ed5f59;
+}
+.border-green {
+  border: 4px solid #58D68D;
 }
 
 .qr-code-container > .qr-code-icon {

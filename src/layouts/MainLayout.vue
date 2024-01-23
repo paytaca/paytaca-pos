@@ -28,22 +28,21 @@ export default defineComponent({
     let vault = ref(walletStore.merchantInfo?.vault)
     const receiveWebsocket = ref({ readyState: 0 })
     const enableReconnect = ref(true)
-    const reconnectAttempts = ref(10000)
     const reconnectTimeout = ref(null)
 
     onMounted(() => setupListener())
 
-    const receivingAddress = computed(() => walletStore.merchantInfo?.vault?.receiving?.address)
+    const voucherClaimerAddress = computed(() => walletStore.merchantInfo?.vault?.receiving?.address)
 
-    watch(receivingAddress, () => {
-      if (receivingAddress.value) {
-        setupListener({ resetAttempts: true })
+    watch(voucherClaimerAddress, () => {
+      if (voucherClaimerAddress.value) {
+        setupListener()
       }
     })
 
     watch(isOnline, () => {
-      if (isOnline.value && receivingAddress.value) {
-        setupListener({ resetAttempts: true })
+      if (isOnline.value && voucherClaimerAddress.value) {
+        setupListener()
       } else {
         receiveWebsocket.value?.close()
         receiveWebsocket.value = null // for reactivity
@@ -51,28 +50,23 @@ export default defineComponent({
     })
 
 
-    function setupListener(opts) {
-      vault = ref(walletStore.merchantInfo?.vault)
+    function setupListener() {
+      if (!voucherClaimerAddress.value) return
 
-      receiveWebsocket.value?.close?.()
-      receiveWebsocket.value = null // for reactivity
-
-      const merchantReceivingAddress = vault.value?.receiving?.address
-      if (!merchantReceivingAddress) return
-
-      const url = `${process.env.WATCHTOWER_WEBSOCKET}/vouchers/${merchantReceivingAddress}/`
+      const url = `${process.env.WATCHTOWER_WEBSOCKET}/vouchers/${voucherClaimerAddress.value}/`
 
       console.log('Connecting ws:', url)
       const websocket = new WebSocket(url)
-      if (opts?.resetAttempts) reconnectAttempts.value = 10000
 
       websocket.addEventListener('close', () => {
-        console.log('setupListener:', 'Listener closed')
-        if (!enableReconnect.value) return console.log('setupListener:', 'Skipping reconnection')
-        if (reconnectAttempts.value <= 0) return console.log('setupListener:', 'Reached reconnection attempts limit')
-        reconnectAttempts.value--;
-        const reconnectInterval = 5000
-        console.log('setupListener:', 'Attempting reconnection after', reconnectInterval / 1000, 'seconds. retries left:', reconnectAttempts.value)
+        console.log('Listener closed: ', url)
+
+        if (!enableReconnect.value) return console.log('Skipping reconnection: ', url)
+        const reconnectInterval =  5000
+        const reconnectIntervalSeconds = reconnectInterval / 1000
+
+        console.log(`Attempting reconnection for (${url}) after`, reconnectIntervalSeconds, 'seconds.')
+
         clearTimeout(reconnectTimeout.value)
         reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
       })
@@ -83,9 +77,6 @@ export default defineComponent({
       })
 
       websocket.addEventListener('open', () => {
-        // close existing websocket in case it exists
-        receiveWebsocket.value?.close?.()
-        receiveWebsocket.value = null // for reactivity
         receiveWebsocket.value = markRaw(websocket)
       })
     }

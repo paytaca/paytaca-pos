@@ -239,6 +239,8 @@ export const useWalletStore = defineStore('wallet', {
      * @param {String} data.location.country
      * @param {String} data.location.longitude
      * @param {String} data.location.latitude
+     * @param {String} data.receiving_pubkey
+     * @param {String} data.signer_pubkey
      * @param {Object} [data.vault]
      * @param {String} data.vault.address
      * @param {String} data.vault.token_address
