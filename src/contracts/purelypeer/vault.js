@@ -62,7 +62,7 @@ export class Vault {
     return contract
   }
 
-  async claim ({ category, merchantReceivingAddress }) {
+  async claim ({ category, voucherClaimerAddress }) {
     const contract = this.getContract()
     const signerWif = await this.getSignerWif()
     const merchantSignerSig = new SignatureTemplate(signerWif)
@@ -78,7 +78,7 @@ export class Vault {
       merchantSignerSig
     )
     .from(voucherUtxos)
-    .to(merchantReceivingAddress, lockNftUtxo.satoshis)
+    .to(voucherClaimerAddress, lockNftUtxo.satoshis)
     .withoutTokenChange()
     .withoutChange()
     .send()
@@ -86,7 +86,7 @@ export class Vault {
     return transaction
   }
 
-  async refund ({ category, merchantReceivingAddress }) {
+  async refund ({ category, voucherClaimerAddress }) {
     const contract = this.getContract()
     const signerWif = await this.getSignerWif()
     const merchantSignerSig = new SignatureTemplate(signerWif)
@@ -100,14 +100,14 @@ export class Vault {
     if (!lockNftUtxo) throw new Error(`No lock NFT of category ${category} utxos found`)
 
     // get latest MTP (median timestamp) from latest block
-    const { mediantime } = await axios.get('https://watchtower.cash/api/blockchain/info/')
+    const { mediantime } = await axios.get(`${process.env.WATCHTOWER_API}/blockchain/info/`)
     const latestBlockTimestamp = mediantime
     const refundedAmount = lockNftUtxo.satoshis - this.dust
 
     let transaction = await contract.functions
       .refund(merchantSignerSig)
       .from(lockNftUtxo)
-      .to(merchantReceivingAddress, refundedAmount)
+      .to(voucherClaimerAddress, refundedAmount)
       .withoutTokenChange()
       .withHardcodedFee(this.dust)
       .withTime(latestBlockTimestamp)
