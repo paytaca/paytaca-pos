@@ -57,10 +57,6 @@ export const useWalletStore = defineStore('wallet', {
           address: '',
           pubkey: '',
         },
-        signer: {
-          address: '',
-          pubkey: '',
-        },
         address: '',
         tokenAddress: '',
       }
@@ -228,7 +224,6 @@ export const useWalletStore = defineStore('wallet', {
      * @param {String} data.wallet_hash
      * @param {String} data.primary_contact_number
      * 
-     * @param {String} data.signer_pubkey
      * @param {String} data.receiving_pubkey
      * 
      * @param {Object} [data.location]
@@ -239,8 +234,7 @@ export const useWalletStore = defineStore('wallet', {
      * @param {String} data.location.country
      * @param {String} data.location.longitude
      * @param {String} data.location.latitude
-     * @param {String} data.receiving_pubkey
-     * @param {String} data.signer_pubkey
+     * 
      * @param {Object} [data.vault]
      * @param {String} data.vault.address
      * @param {String} data.vault.token_address
@@ -264,10 +258,6 @@ export const useWalletStore = defineStore('wallet', {
           receiving: {
             address: pubkeyToCashAddress(data?.receiving_pubkey),
             pubkey: data?.receiving_pubkey,
-          },
-          signer: {
-            address: pubkeyToCashAddress(data?.signer_pubkey),
-            pubkey: data?.signer_pubkey,
           },
           address: data?.vault?.address,
           tokenAddress: data?.vault?.token_address,

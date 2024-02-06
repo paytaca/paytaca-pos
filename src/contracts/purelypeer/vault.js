@@ -1,4 +1,3 @@
-import { SecureStoragePlugin } from "capacitor-secure-storage-plugin"
 import vaultContractSource from "./contracts/vault.cash"
 import Watchtower from 'watchtower-cash-js'
 import { reverseHex } from "../utils"
@@ -8,7 +7,6 @@ import BCHJS from "@psf/bch-js"
 import {
   Contract,
   ElectrumNetworkProvider,
-  SignatureTemplate,
 } from "cashscript"
 
 
@@ -19,7 +17,6 @@ export class Vault {
 
   constructor (opts) {
     this.merchantReceiverPk = opts?.params?.merchantReceiverPk
-    this.merchantSignerPk = opts?.params?.merchantSignerPk
     this.network = opts?.options?.network
     this.dust = 1000n
   }
@@ -27,7 +24,6 @@ export class Vault {
   get contractCreationParams () {
     return [
       this.merchantReceiverPk,
-      this.merchantSignerPk,
     ]
   }
 
@@ -37,13 +33,6 @@ export class Vault {
 
   get artifact () {
     return compileString(vaultContractSource)
-  }
-
-  async getSignerWif () {
-    const wif = await SecureStoragePlugin.get({
-      key: 'purelypeerVaultSignerWif'
-    })
-    return wif.value
   }
 
   getContract () {
@@ -64,33 +53,24 @@ export class Vault {
 
   async claim ({ category, voucherClaimerAddress }) {
     const contract = this.getContract()
-    const signerWif = await this.getSignerWif()
-    const merchantSignerSig = new SignatureTemplate(signerWif)
-    
     const utxos = await this.provider.getUtxos(contract.address)
     const voucherUtxos = utxos.filter(utxo => utxo?.token?.category === category)
 
     if (voucherUtxos.length === 0) throw new Error(`No category ${category} utxos found`)
 
     const lockNftUtxo = voucherUtxos.find(utxo => utxo.satoshis !== this.dust)
-    const transaction = await contract.functions.claim(
-      reverseHex(category),
-      merchantSignerSig
-    )
-    .from(voucherUtxos)
-    .to(voucherClaimerAddress, lockNftUtxo.satoshis)
-    .withoutTokenChange()
-    .withoutChange()
-    .send()
+    const transaction = await contract.functions.claim(reverseHex(category))
+      .from(voucherUtxos)
+      .to(voucherClaimerAddress, lockNftUtxo.satoshis)
+      .withoutTokenChange()
+      .withoutChange()
+      .send()
 
     return transaction
   }
 
   async refund ({ category, voucherClaimerAddress }) {
     const contract = this.getContract()
-    const signerWif = await this.getSignerWif()
-    const merchantSignerSig = new SignatureTemplate(signerWif)
-
     const utxos = await this.provider.getUtxos(contract.address)
     const lockNftUtxo = utxos.find(utxo =>
       utxo?.token?.category === category &&
@@ -104,8 +84,8 @@ export class Vault {
     const latestBlockTimestamp = mediantime
     const refundedAmount = lockNftUtxo.satoshis - this.dust
 
-    let transaction = await contract.functions
-      .refund(merchantSignerSig)
+    const transaction = await contract.functions
+      .refund()
       .from(lockNftUtxo)
       .to(voucherClaimerAddress, refundedAmount)
       .withoutTokenChange()

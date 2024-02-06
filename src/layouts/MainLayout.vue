@@ -84,12 +84,10 @@ export default defineComponent({
       if (!data.voucher) return
 
       const merchantReceiverPk = vault.value?.receiving?.pubkey
-      const merchantSignerPk = vault.value?.signer?.pubkey
 
       const params = {
         params: {
           merchantReceiverPk,
-          merchantSignerPk,
         },
         options: { network: 'mainnet' }
       }
