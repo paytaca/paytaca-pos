@@ -430,12 +430,15 @@ export default defineComponent({
       )
     }
     function updateClaimTxnAttr (txid) {
+      const posId = walletStore.posId
+      const key = `voucher_claim_${posId}`
+
       const payload = {
-        txid,
         wallet_hash: walletStore.merchantInfo?.walletHash,
-        key: "voucher_claim",
         value: "Voucher Claim",
-        remove: false
+        remove: false,
+        txid,
+        key
       }
       const watchtowerTxnAttrUrl = `${process.env.WATCHTOWER_API}/transactions/attributes/`
       axios.post(watchtowerTxnAttrUrl, payload)
@@ -447,12 +450,10 @@ export default defineComponent({
 
       const merchantReceiverPk = vault.value?.receiving?.pubkey
       const voucherClaimerAddress = vault.value?.receiving?.address
-      const merchantSignerPk = vault.value?.signer?.pubkey
 
       const vaultParams = {
         params: {
           merchantReceiverPk,
-          merchantSignerPk,
         },
         options: {
           network: 'mainnet'

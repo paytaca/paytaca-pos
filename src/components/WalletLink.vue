@@ -49,8 +49,7 @@ import { aes, getPubkeyAt } from 'src/wallet/utils'
 import QRCodeReader from 'src/components/QRCodeReader.vue';
 import { Device } from '@capacitor/device'
 import { defineComponent, onMounted, ref } from 'vue'
-import { useQuasar } from 'quasar' 
-import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
+import { useQuasar } from 'quasar'
 
 export default defineComponent({
   components: {
@@ -144,7 +143,7 @@ export default defineComponent({
           dialog.update({ title: 'Link device error', message: 'Unable to decode QR data' })
           return { skip: true }
         })
-        // encryptedData = xpubkey + @ + ppvsWif
+        // encryptedData = xpubkey
         .then(async (qrCodeData) => {
           if (qrCodeData?.skip) return { skip: true }
           dialog.update({ message: 'Retrieving link code data' })
@@ -162,19 +161,13 @@ export default defineComponent({
           if (skip) return { skip }
           dialog.update({ message: 'Decrypting xpubkey' })
 
-          let decryptedData = aes.decrypt(
-            encryptedData, qrCodeData.decryptKey.password, qrCodeData.decryptKey.iv)
-          
-          decryptedData = decryptedData.split('@')
-          const xpubkey = decryptedData[0]
-          const ppvsWif = decryptedData[1]
-          
-          SecureStoragePlugin.set({
-            key: 'purelypeerVaultSignerWif',
-            value: ppvsWif
-          })
+          let xpubkey = aes.decrypt(
+            encryptedData,
+            qrCodeData.decryptKey.password,
+            qrCodeData.decryptKey.iv
+          )
 
-          return { qrCodeData, encryptedData, xpubkey, ppvsWif }
+          return { qrCodeData, encryptedData, xpubkey }
         })
         .catch(error => {
           console.error(error)
