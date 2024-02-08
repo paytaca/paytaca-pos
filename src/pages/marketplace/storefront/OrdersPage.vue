@@ -23,59 +23,64 @@
             <template v-slot:prepend><q-icon name="search"/></template>
           </q-input>
           <q-space/>
-          <q-btn-dropdown
-            v-model="openFilterOptsForm"
+          <q-btn
             flat
             no-caps
             padding="xs"
-            dropdown-icon="tune"
-            no-icon-animation
+            icon="tune"
             style="max-width: 50%;"
-            @before-show="() => tempStatusesFilter = [].concat(filterOpts.statuses)"
-            @hide="() => syncTempStatusesToFilterOpts()"
           >
-            <!-- <template v-slot:label>
-              <div v-if="filterOpts.statuses.length" class="ellipsis">
-                Status: {{ filterOpts.statuses.map(formatOrderStatus).join(',') }}
-              </div>
-              <template v-else>
-                Filter status
-              </template>
-            </template> -->
-            <q-list separator>
-              <q-item
-                v-show="Boolean(filterOpts.statuses?.length)"
-                clickable
+            <q-menu
+              v-model="openFilterOptsForm" class="q-pa-md"  
+              @before-show="() => syncFilterOptsToTemp()"
+              @hide="() => syncTempToFilterOpts()"
+            >
+              <q-btn
+                flat
+                no-caps label="Reset"
+                color="brandblue"
+                padding="xs md"
+                class="text-underline q-r-mr-lg float-right"
                 v-close-popup
-                @click="() => tempStatusesFilter = []"
-              >
-                <q-item-section>
-                  <q-item-label class="text-grey">Remove filter</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item
-                v-for="status in statusOpts" :key="status"
-                clickable
-                active-class="text-weight-medium"
-                @click="() => toggleTempStatusesFilter(status)"
-              >
-                <q-item-section side>
+                @click="() => tempFilterOpts = createDefaultFilterOpts()"
+              />
+              <div class="q-mb-sm">
+                <div class="text-subtitle1">Statuses</div>
+                <div>
                   <q-checkbox
+                    v-for="status in statusOpts" :key="status"
                     dense
-                    v-model="tempStatusesFilter" :val="status"
-                    :color="parseOrderStatusColor(status)"
+                    :label="formatOrderStatus(status)"
+                    :val="status"
+                    v-model="tempFilterOpts.statuses"
+                    class="q-pa-xs"
                   />
-                  <!-- <q-icon size="0.6em" name="circle" :color="parseOrderStatusColor(status)"/> -->
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>{{ formatOrderStatus(status) }}</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <q-icon name="circle" size="0.65em" :color="parseOrderStatusColor(status)"/>
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </q-btn-dropdown>
+                </div>
+              </div>
+              <div class="q-mb-sm">
+                <div class="text-subtitle1">Has ongoing dispute</div>
+                <q-btn-toggle
+                  v-model="tempFilterOpts.hasOngoingDispute"
+                  no-caps
+                  spread
+                  toggle-color="primary"
+                  padding="none xs"
+                  :options="[
+                    {label: 'Yes', value: true },
+                    {label: 'No', value: false },
+                    {label: 'All', value: undefined}
+                  ]"
+                />
+              </div>
+              <q-btn
+                no-caps
+                label="Apply filter"
+                class="full-width q-mt-sm"
+                color="brandblue"
+                v-close-popup
+              />
+            </q-menu>
+          </q-btn>
         </div>
       </div>
       <div class="row q-gutter-sm q-mb-md">
@@ -85,6 +90,17 @@
           @click="openFilterOptsForm = true"
         >
           Status: {{ filterOpts?.statuses?.map?.(formatOrderStatus)?.join(', ') }}
+        </div>
+        <div
+          v-if="(typeof filterOpts?.hasOngoingDispute === 'boolean')"
+          class="ellipsis filter-opt q-px-xs"
+          @click="openFilterOptsForm = true"
+        >
+          has
+          <template v-if="!filterOpts?.hasOngoingDispute">
+            no
+          </template>
+          dispute
         </div>
       </div>
       <q-table
@@ -103,6 +119,10 @@
           <q-td :props="props">
             <q-badge :color="props.row?.statusColor">
               {{ props.row.formattedStatus }}
+            </q-badge>
+            <br/>
+            <q-badge v-if="props.row?.hasOngoingDispute" color="red">
+              Dispute
             </q-badge>
           </q-td>
         </template>
@@ -146,6 +166,7 @@ export default defineComponent({
   props: {
     s: String,
     statuses: String,
+    dispute: String,
   },
   setup(props) {
     const $route = useRoute()
@@ -158,35 +179,56 @@ export default defineComponent({
       'ready_for_pickup', 'on_delivery', 'delivered',
       'completed', 'cancelled',
     ]
-    const tempStatusesFilter = ref([])
-    function toggleTempStatusesFilter(status) {
-      if (!statusOpts.includes(status)) return
-      if (!tempStatusesFilter.value.includes(status)) tempStatusesFilter.value.push(status)
-      else tempStatusesFilter.value = tempStatusesFilter.value.filter(_status => _status != status)
+
+    function createDefaultFilterOpts(useProps=false) {
+      const data = {
+        sort: undefined,
+        search: '',
+        statuses: [],
+        hasOngoingDispute: [].map(Boolean)[0],
+      }
+      if (useProps) {
+        data.statuses = props.statuses?.split?.(',')?.filter(status => statusOpts.includes(status)) || []
+        data.search = props.search || ''
+        console.log('props.dispute', props.dispute)
+        if (props.dispute == 'true') data.hasOngoingDispute = true
+        if (props.dispute == 'false') data.hasOngoingDispute = false
+      }
+      return data
     }
-    function syncTempStatusesToFilterOpts() {
-      const hasAddedStatuses = tempStatusesFilter.value
+    const tempFilterOpts = ref(createDefaultFilterOpts())
+    function syncTempToFilterOpts() {
+      const hasAddedStatuses = tempFilterOpts.value.statuses
         .some(status => !filterOpts.value.statuses.includes(status))
       const hasRemovedStatuses = filterOpts.value.statuses
-        .some(status => !tempStatusesFilter.value.includes(status))
-      if (!hasAddedStatuses && !hasRemovedStatuses) return
+        .some(status => !tempFilterOpts.value.statuses.includes(status))
 
-      filterOpts.value.statuses = [].concat(tempStatusesFilter.value)
+      if (hasAddedStatuses || hasRemovedStatuses) {
+        filterOpts.value.statuses = [].concat(tempFilterOpts.value.statuses)
+      }
+
+      filterOpts.value.hasOngoingDispute = tempFilterOpts.value.hasOngoingDispute
+    }
+    function syncFilterOptsToTemp() {
+      tempFilterOpts.value = {
+        sort: filterOpts.value.sort,
+        search: filterOpts.value.search,
+        statuses: filterOpts.value.statuses.map(e => e),
+        hasOngoingDispute: filterOpts.value.hasOngoingDispute,
+      }
     }
 
     const openFilterOptsForm = ref(false) 
-    const filterOpts = ref({
-      sort: undefined,
-      search: props.s || '',
-      statuses: props.statuses?.split?.(',')?.filter(status => statusOpts.includes(status)) || [],
-    })
+    const filterOpts = ref(createDefaultFilterOpts(true))
     watch(filterOpts, () => fetchOrders(), { deep: true })
     watch(filterOpts, () => {
       $router.replace({
-        s: filterOpts.value.search || undefined,
         query: Object.assign({}, $route.query, {
+          s: filterOpts.value.search || undefined,
           statuses: filterOpts.value?.statuses?.join(',') || undefined,
-        })
+          dispute: typeof filterOpts.value?.hasOngoingDispute === 'boolean'
+            ? String(filterOpts.value?.hasOngoingDispute) : undefined,
+        }),
       })
     }, { deep: true })
 
@@ -201,6 +243,9 @@ export default defineComponent({
         ordering: filterOpts.value?.sort || undefined,
         statuses: filterOpts.value?.statuses?.join(',') || undefined,
         s: filterOpts.value.search || undefined,
+      }
+      if (typeof filterOpts.value.hasOngoingDispute == 'boolean') {
+        params.has_ongoing_dispute = filterOpts.value.hasOngoingDispute
       }
 
       fetchingOrders.value = true
@@ -248,12 +293,13 @@ export default defineComponent({
     }
 
     return {
-      tempStatusesFilter,
+      createDefaultFilterOpts,
+      tempFilterOpts,
+      syncTempToFilterOpts,
+      syncFilterOptsToTemp,
       openFilterOptsForm,
       filterOpts,
       statusOpts,
-      toggleTempStatusesFilter,
-      syncTempStatusesToFilterOpts,
 
       orders,
       fetchingOrders,

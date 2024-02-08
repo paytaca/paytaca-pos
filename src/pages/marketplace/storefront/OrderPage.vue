@@ -126,6 +126,28 @@
         </div>
       </q-banner>
 
+      <q-banner v-if="orderDispute?.id" rounded class="q-my-sm">
+        <div class="row items-center justify-between q-gutter-y-sm" style="gap:12px;">
+          <div>
+            <div class="text-subtitle1">
+              Order dispute
+            </div>
+            <div class="text-caption text-grey">Order is currently in dispute</div>
+          </div>
+          <q-btn
+            :outline="!$q.dark.isActive"
+            rounded
+            no-caps
+            :color="disputeButtonOpts.color"
+            padding="1px sm"
+            @click="() => showOrderDisputeDialog()"
+          >
+            Dispute
+            <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
+          </q-btn>
+        </div>
+      </q-banner>
+
       <div class="row items-center q-gutter-sm q-mb-md">
         <q-btn
           v-if="nextStatus"
@@ -383,7 +405,24 @@
         </template>
       </div>
       <div class="fixed-bottom q-pl-sm q-pb-sm">
-        <OrderChatButton ref="chatButton" :order-id="orderId"/>
+        <OrderChatButton ref="chatButton" :order-id="orderId">
+          <template v-if="orderDispute?.id" v-slot:before-messages>
+            <div class="row item-center q-r-mt-sm q-pb-xs">
+              <q-btn
+                :outline="!$q.dark.isActive"
+                rounded
+                no-caps
+                :color="disputeButtonOpts.color"
+                padding="xs md"
+                @click="() => showOrderDisputeDialog()"
+              >
+                Dispute
+                <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
+              </q-btn>
+            </div>
+            <q-separator/>
+          </template>
+        </OrderChatButton>
       </div>
     </q-pull-to-refresh>
     <OrderPaymentsDialog ref="paymentsDialog" v-model="showPaymentsDialog" :payments="payments" @updated="() => fetchOrder()">
@@ -418,7 +457,7 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
-import { Delivery, Order, Payment, Rider, Storefront, Variant } from 'src/marketplace/objects'
+import { Delivery, Order, OrderDispute, Payment, Rider, Storefront, Variant } from 'src/marketplace/objects'
 import { errorParser, formatOrderStatus, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useNotificationsStore } from 'src/stores/notifications'
@@ -434,6 +473,7 @@ import UpdateOrderItemsFormDialog from 'src/components/marketplace/storefront/Up
 import UpdateOrderDeliveryAddressFormDialog from 'src/components/marketplace/storefront/UpdateOrderDeliveryAddressFormDialog.vue'
 import OrderUpdatesDialog from 'src/components/marketplace/storefront/OrderUpdatesDialog.vue'
 import OrderChatButton from 'src/components/marketplace/storefront/OrderChatButton.vue'
+import OrderDisputeFormDialog from 'src/components/marketplace/storefront/OrderDisputeFormDialog.vue'
 
 import customerLocationPin from 'src/assets/customer_map_marker.png'
 import riderLocationPin from 'src/assets/rider_map_marker.png'
@@ -456,6 +496,7 @@ export default defineComponent({
   },
   setup(props) {
     const $q = useQuasar()
+    window.t = () => $q.dark.toggle()
     const marketplaceStore = useMarketplaceStore()
     const notificationsStore = useNotificationsStore()
     onMounted(() => refreshPage())
@@ -972,6 +1013,48 @@ export default defineComponent({
       showPaymentsDialog.value = true
     }
 
+    const orderDispute = ref([].map(OrderDispute.parse)[0])
+    const hasOngoingDispute = computed(() => {
+      if (!orderDispute.value?.id) return order.value?.hasOngoingDispute
+      return !orderDispute.value?.resolvedAt
+    })
+    const disputeButtonOpts = computed(() => {
+      if (orderDispute.value.id) {
+        if (orderDispute.value.resolvedAt) return { color: 'green', icon: 'done' }
+        else return { color: 'red', icon: undefined }
+      }
+      return { color: 'grey', icon: undefined }
+    })
+    function fetchOrderDispute() {
+      return backend.get(`connecta/orders/${props.orderId}/dispute/`)
+        .then(response => {
+          orderDispute.value = OrderDispute.parse(response?.data)
+          return response
+        })
+        .catch(error => {
+          if (error?.response?.status === 404 && error?.response?.data?.detail) {
+            orderDispute.value = undefined
+          }
+          return Promise.reject(error)
+        })
+    }
+    function showOrderDisputeDialog() {
+      if (!orderDispute.value?.id) return
+      $q.dialog({
+        component: OrderDisputeFormDialog,
+        componentProps: {
+          readonly: true,
+          editable: false,
+          orderDispute: orderDispute.value,
+        }
+      })
+        .onOk(result => {
+          if (result?.action === 'submit') createOrUpdateDispute(result?.data)
+          // else if (result?.action === 'resolve') resolveDispute(result?.data)
+        })
+    }
+
+
     const variantInfoDIalog = ref({ show: false, variant: Variant.parse() })
     function displayVariant(variant = Variant.parse()) {
       variantInfoDIalog.value.variant = variant
@@ -980,9 +1063,13 @@ export default defineComponent({
 
     const orderUpdateEventName = 'order_updates'
     const onNotificationHandler = notification  => {
-      if (notification?.event != orderUpdateEventName) return
-      if (notification?.data?.id != props.orderId) return
+      const eventName = notification?.event
+      const data = notification?.data
+      if (eventName != orderUpdateEventName) return
+      if (data?.id != props.orderId) return
+
       fetchOrder()
+      if (typeof data?.has_ongoing_dispute === 'bool') fetchOrderDispute()
     }
    
     watch(() => [props.orderId], () => {
@@ -1012,6 +1099,7 @@ export default defineComponent({
       try {
         await Promise.all([
           fetchOrder(),
+          fetchOrderDispute(),
           fetchDelivery(),
           fetchPayments(),
           chatButton.value?.refresh(),
@@ -1089,6 +1177,11 @@ export default defineComponent({
       fetchPayments,
       createPayment,
       onNewPayment,
+
+      orderDispute,
+      hasOngoingDispute,
+      disputeButtonOpts,
+      showOrderDisputeDialog,
 
       variantInfoDIalog,
       displayVariant,

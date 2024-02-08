@@ -1,5 +1,5 @@
 import { OrderUpdates, PurchaseOrderUpdates } from "./objects";
-import { formatTimestampToText, formatDateToText } from "./utils";
+import { formatTimestampToText, formatDateToText, formatOrderStatus } from "./utils";
 
 /**
  * 

@@ -10,6 +10,8 @@
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <div class="row column no-wrap" style="height:calc(75vh - 4rem);">
+          <slot name="before-messages"></slot>
+          <q-space/>
           <q-space/>
           <div ref="messagesPanel" class="q-pa-sm messages-panel" style="overflow:auto;">
             <div class="row justify-center">
