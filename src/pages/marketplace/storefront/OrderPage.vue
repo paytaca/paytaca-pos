@@ -1050,10 +1050,56 @@ export default defineComponent({
       })
         .onOk(result => {
           if (result?.action === 'submit') createOrUpdateDispute(result?.data)
-          // else if (result?.action === 'resolve') resolveDispute(result?.data)
+          else if (result?.action === 'resolve') resolveDispute(result?.data)
         })
     }
 
+    function resolveDispute(opts = { resolveAction: ''}) {
+      const resolveAction = opts?.resolveAction
+      if (!OrderDispute.resolveActionsList.includes(resolveAction)) return
+      let msg
+      if (resolveAction == OrderDispute.resolveActions.completeOrder) {
+        msg = 'Completing order'
+      } else if (resolveAction == OrderDispute.resolveActions.cancelOrder) {
+        msg = 'Cancelling order'
+      }
+
+      const data = { resolve_action: resolveAction }
+      const dialog = $q.dialog({
+        title: 'Resolving dispute',
+        message: msg,
+        progress: true,
+        persistent: true,
+        ok: false,
+        color: 'brandblue',
+      })
+      return backend.post(`connecta/orders/${props.orderId}/dispute/`, data)
+        .then(response => {
+          orderDispute.value = OrderDispute.parse(response?.data)
+          dialog.hide()
+          return response
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          let errorMessage = errorParser.firstElementOrValue(data?.resolve_action) || 
+            errorParser.firstElementOrValue(data?.non_field_errors)
+
+          if (!errorMessage && typeof data?.detail === 'string') errorMessage = data?.detail
+          if (!errorMessage && typeof error?.message === 'string' && error?.message?.length < 250) {
+            errorMessage = error?.message
+          }
+          console.log('errorMessage', errorMessage)
+
+          dialog.update({
+            title: 'Resolve dispute error',
+            message: errorMessage || 'Unknown error occurred',
+          })
+          return Promise.reject(error)
+        })
+        .finally(() => {
+          dialog.update({ progress: false, persistent: false, ok: true })
+        })
+    }
 
     const variantInfoDIalog = ref({ show: false, variant: Variant.parse() })
     function displayVariant(variant = Variant.parse()) {

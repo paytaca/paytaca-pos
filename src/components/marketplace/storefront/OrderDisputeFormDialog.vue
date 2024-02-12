@@ -66,13 +66,36 @@
           class="text-white bg-green q-r-mx-sm"
         >
           <div class="row items-center justify-between">
+            <q-icon name="check_circle" :size="resolveActionText ? '2.5em' : '1.2em'"/>
             <div>
-              <q-icon name="check_circle" size="1.2em"/>
               Resolved
+              <div v-if="resolveActionText" class="text-caption bottom text-grey-4">
+                {{ resolveActionText }}
+              </div>
             </div>
+            <q-space/>
             <div>{{ formatDateRelative(orderDispute?.resolvedAt) }}</div>
           </div>
         </q-banner>
+        <q-expansion-item
+          v-if="innerReadonly && !orderDispute?.resolvedAt"
+          no-caps label="Resolve dispute"
+          header-class="bg-brandblue text-white text-weight-medium"
+          header-style="border-radius:4px;"
+        >
+          <q-btn
+            no-caps label="Complete order"
+            color="green"
+            class="full-width q-mt-sm"
+            @click="() => resolve(OrderDispute.resolveActions.completeOrder)"
+          />
+          <q-btn
+            no-caps label="Cancel order"
+            color="red"
+            class="full-width q-mt-sm"
+            @click="() => resolve(OrderDispute.resolveActions.cancelOrder)"
+          />
+        </q-expansion-item>
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -81,7 +104,7 @@
 import { OrderDispute } from 'src/marketplace/objects';
 import { formatDateRelative } from 'src/marketplace/utils';
 import { useDialogPluginComponent } from 'quasar'
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 
 const $emit = defineEmits([
@@ -106,6 +129,13 @@ watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 const innerReadonly = ref(props.readonly)
 watch(() => [props.modelValue], () => innerReadonly.value = props.readonly)
 watch(innerReadonly, () => $emit('update:readonly', innerReadonly.value))
+
+const resolveActionText = computed(() => {
+  const resolveAction = props.orderDispute?.resolveAction
+  if (resolveAction == OrderDispute.resolveActions.cancelOrder) return 'Order cancelled'
+  if (resolveAction == OrderDispute.resolveActions.completeOrder) return 'Order completed'
+  return ''
+})
 
 const reasonOptions = [
   'Defective or Damaged Goods',
@@ -143,6 +173,13 @@ function submit() {
   onDialogOK({
     action: 'submit',
     data: { reasons: [...formData.value.reasons] },
+  })
+}
+
+function resolve(resolveAction) {
+  onDialogOK({
+    action: 'resolve',
+    data: { resolveAction },
   })
 }
 </script>
