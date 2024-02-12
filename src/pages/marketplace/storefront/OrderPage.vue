@@ -1115,7 +1115,7 @@ export default defineComponent({
       if (data?.id != props.orderId) return
 
       fetchOrder()
-      if (typeof data?.has_ongoing_dispute === 'bool') fetchOrderDispute()
+      if (typeof data?.has_ongoing_dispute === 'boolean') fetchOrderDispute()
     }
    
     watch(() => [props.orderId], () => {
