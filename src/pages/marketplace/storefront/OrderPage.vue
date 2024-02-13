@@ -499,6 +499,18 @@ export default defineComponent({
     window.t = () => $q.dark.toggle()
     const marketplaceStore = useMarketplaceStore()
     const notificationsStore = useNotificationsStore()
+
+    /**
+     * @param {import("../../../node_modules/quasar/dist/types/").QDialogOptions} dialogOpts 
+     */
+     async function promiseDialog(dialogOpts) {
+      return new Promise((resolve, reject) => {
+        $q.dialog(dialogOpts)
+          .onOk(resolve)
+          .onDismiss(reject)
+      })
+    }
+
     onMounted(() => refreshPage())
     const order = ref(Order.parse())
     const storefrontId = computed(() => order.value?.storefrontId)
@@ -1054,14 +1066,36 @@ export default defineComponent({
         })
     }
 
-    function resolveDispute(opts = { resolveAction: ''}) {
+    async function resolveDispute(opts = { resolveAction: ''}) {
       const resolveAction = opts?.resolveAction
       if (!OrderDispute.resolveActionsList.includes(resolveAction)) return
       let msg
       if (resolveAction == OrderDispute.resolveActions.completeOrder) {
         msg = 'Completing order'
+        if (order.value?.status !== 'delivered') {
+          await promiseDialog({
+            title: 'Resolve dispute',
+            message: 'Order will be set as completed after resolving dispute. Continue?',
+            color: 'brandblue',
+            persistent: true,
+            ok: { noCaps: true, label: 'Complete order', color: 'green', flat: true },
+            cancel: { noCaps: true, label: 'Close', flat: true, color: $q.dark.isActive ? 'white' : 'black' },
+            stackButtons: true,
+          })
+        }
       } else if (resolveAction == OrderDispute.resolveActions.cancelOrder) {
         msg = 'Cancelling order'
+        if (order.value?.status !== 'cancelled') {
+          await promiseDialog({
+            title: 'Resolve dispute',
+            message: 'Order will be cancelled after resolving dispute. Continue?',
+            color: 'brandblue',
+            persistent: true,
+            ok: { noCaps: true, label: 'Cancel order', color: 'red', flat: true },
+            cancel: { noCaps: true, label: 'Close', flat: true, color: $q.dark.isActive ? 'white' : 'black' },
+            stackButtons: true,
+          })
+        }
       }
 
       const data = { resolve_action: resolveAction }
