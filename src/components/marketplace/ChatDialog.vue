@@ -39,11 +39,18 @@
               <q-chat-message
                 :bg-color="isOwnMessage(message) ? 'grey-7' : 'brandblue'"
                 text-color="white"
-                :name="message?.name"
                 :sent="!isOwnMessage(message)"
                 :stamp="formatDateRelative(message?.createdAt)"
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
               >
+                <template v-slot:name>
+                  <div class="ellipsis" style="max-width:80vw;">
+                    <span v-if="message?.memberNickname" class="text-grey">
+                      ({{ message?.memberNickname }})
+                    </span>
+                    {{ message?.name }}
+                  </div>
+                </template>
                 <template v-slot:stamp>
                   <div>
                     {{ formatDateRelative(message?.createdAt) }}

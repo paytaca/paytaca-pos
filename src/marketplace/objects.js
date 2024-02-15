@@ -1771,6 +1771,7 @@ export class OrderDispute {
    * @param {String[]} data.reasons
    * @param {String | null} data.resolve_action
    * @param {String | null} data.resolved_at
+   * @param {Object} [data.resolved_by]
    * @param {String} data.created_at
    * @param {Object} data.created_by
    */
@@ -1782,8 +1783,15 @@ export class OrderDispute {
     this.resolveAction = data?.resolve_action
     if (data?.resolved_at) this.resolvedAt = new Date(data?.resolved_at)
     else if (this.resolvedAt) delete this.resolvedAt
+
+    if (data?.resolved_by) this.resolvedBy = User.parse(data?.resolved_by)
+    else if (this.resolvedBy) delete this.resolvedBy
+
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt
+
+    if (data?.created_by) this.createdBy = User.parse(data?.created_by)
+    else if (this.createdBy) delete this.createdBy
   }
 }
 
@@ -2380,6 +2388,7 @@ export class ChatMessage {
    * @param {String} data.encrypted_attachment_url
    * @param {String} data.created_at
    * @param {Object} [data.chat_identity]
+   * @param {String} [data.member_nickname]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -2392,6 +2401,7 @@ export class ChatMessage {
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt
     this.chatIdentity = ChatIdentity.parse(data?.chat_identity)
+    this.memberNickname = data?.member_nickname
   }
 
   get user() {
