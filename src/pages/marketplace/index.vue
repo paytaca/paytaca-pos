@@ -68,6 +68,9 @@
                 </div>
                 <div v-else class="text-grey">No pending orders</div>
               </template>
+              <div v-if="orderDisputesCount > 0">
+                {{ orderDisputesCount }} order dispute{{ orderDisputesCount === 1 ? '' : 's' }}
+              </div>
               <div v-if="paymentsInEscrowCount">
                 {{ paymentsInEscrowCount }} payment{{ paymentsInEscrowCount === 1 ? '' : 's' }} in escrow
               </div>
@@ -368,6 +371,23 @@ export default defineComponent({
         })
     }, 500)
 
+    watch(() => [marketplaceStore.storefront?.id], () => updateOrderDisputesCount())
+    const orderDisputesCount = ref([].map(Number)[0])
+    const updateOrderDisputesCount = debounce(async function () {
+      if (!marketplaceStore.userPermissions.storefront) return
+      const params = {
+        storefront_id: marketplaceStore.storefrontData?.id || null,
+        limit: 1, offset: 999,
+        has_ongoing_dispute: true,
+      }
+
+      return backend.get(`connecta/orders/`, { params })
+        .then(response => {
+          orderDisputesCount.value = response?.data?.count
+          return response
+        })
+    }, 500)
+
     watch(() => [marketplaceStore.storefront?.id], () => updatePaymentsInEscrowCount())
     const paymentsInEscrowCount = ref([].map(Number)[0])
     const updatePaymentsInEscrowCount = debounce(async function() {
@@ -448,6 +468,7 @@ export default defineComponent({
               return marketplaceStore.fetchStorefrontHours()
             }),
           updateOrdersCount(),
+          updateOrderDisputesCount(),
           updatePaymentsInEscrowCount(),
           getStaffCount(),
         ])
@@ -465,6 +486,7 @@ export default defineComponent({
       productsCount,
       toReviewPurchaseOrdersCount,
       pendingOrdersCount,
+      orderDisputesCount,
       paymentsInEscrowCount,
       storefrontHours,
       staffCount,

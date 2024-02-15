@@ -10,6 +10,8 @@
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <div class="row column no-wrap" style="height:calc(75vh - 4rem);">
+          <slot name="before-messages"></slot>
+          <q-space/>
           <q-space/>
           <div ref="messagesPanel" class="q-pa-sm messages-panel" style="overflow:auto;">
             <div class="row justify-center">
@@ -37,11 +39,18 @@
               <q-chat-message
                 :bg-color="isOwnMessage(message) ? 'grey-7' : 'brandblue'"
                 text-color="white"
-                :name="message?.name"
                 :sent="!isOwnMessage(message)"
                 :stamp="formatDateRelative(message?.createdAt)"
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
               >
+                <template v-slot:name>
+                  <div class="ellipsis" style="max-width:80vw;">
+                    <span v-if="message?.memberNickname" class="text-grey">
+                      ({{ message?.memberNickname }})
+                    </span>
+                    {{ message?.name }}
+                  </div>
+                </template>
                 <template v-slot:stamp>
                   <div>
                     {{ formatDateRelative(message?.createdAt) }}

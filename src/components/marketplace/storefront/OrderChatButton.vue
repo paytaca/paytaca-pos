@@ -17,7 +17,11 @@
       ref="chatDialog"
       v-model="openChatDialog"
       :chat-ref="orderChatSession?.ref"
-    />
+    >
+      <template v-slot:before-messages>
+        <slot name="before-messages"></slot>
+      </template>
+    </ChatDialog>
   </div>
 </template>
 <script>

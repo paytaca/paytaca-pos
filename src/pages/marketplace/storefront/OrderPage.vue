@@ -126,6 +126,28 @@
         </div>
       </q-banner>
 
+      <q-banner v-if="orderDispute?.id" rounded class="q-my-sm">
+        <div class="row items-center justify-between q-gutter-y-sm" style="gap:12px;">
+          <div>
+            <div class="text-subtitle1">
+              Order dispute
+            </div>
+            <div class="text-caption text-grey">Order is currently in dispute</div>
+          </div>
+          <q-btn
+            :outline="!$q.dark.isActive"
+            rounded
+            no-caps
+            :color="disputeButtonOpts.color"
+            padding="1px sm"
+            @click="() => showOrderDisputeDialog()"
+          >
+            Dispute
+            <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
+          </q-btn>
+        </div>
+      </q-banner>
+
       <div class="row items-center q-gutter-sm q-mb-md">
         <q-btn
           v-if="nextStatus"
@@ -383,7 +405,24 @@
         </template>
       </div>
       <div class="fixed-bottom q-pl-sm q-pb-sm">
-        <OrderChatButton ref="chatButton" :order-id="orderId"/>
+        <OrderChatButton ref="chatButton" :order-id="orderId">
+          <template v-if="orderDispute?.id" v-slot:before-messages>
+            <div class="row item-center q-r-mt-sm q-pb-xs">
+              <q-btn
+                :outline="!$q.dark.isActive"
+                rounded
+                no-caps
+                :color="disputeButtonOpts.color"
+                padding="xs md"
+                @click="() => showOrderDisputeDialog()"
+              >
+                Dispute
+                <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
+              </q-btn>
+            </div>
+            <q-separator/>
+          </template>
+        </OrderChatButton>
       </div>
     </q-pull-to-refresh>
     <OrderPaymentsDialog ref="paymentsDialog" v-model="showPaymentsDialog" :payments="payments" @updated="() => fetchOrder()">
@@ -418,11 +457,11 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
-import { Delivery, Order, Payment, Rider, Storefront, Variant } from 'src/marketplace/objects'
+import { Delivery, Order, OrderDispute, Payment, Rider, Storefront, Variant } from 'src/marketplace/objects'
 import { errorParser, formatOrderStatus, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useNotificationsStore } from 'src/stores/notifications'
-import { useQuasar } from 'quasar'
+import { debounce, useQuasar } from 'quasar'
 import { computed, defineComponent, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoDialog.vue'
@@ -434,6 +473,7 @@ import UpdateOrderItemsFormDialog from 'src/components/marketplace/storefront/Up
 import UpdateOrderDeliveryAddressFormDialog from 'src/components/marketplace/storefront/UpdateOrderDeliveryAddressFormDialog.vue'
 import OrderUpdatesDialog from 'src/components/marketplace/storefront/OrderUpdatesDialog.vue'
 import OrderChatButton from 'src/components/marketplace/storefront/OrderChatButton.vue'
+import OrderDisputeFormDialog from 'src/components/marketplace/storefront/OrderDisputeFormDialog.vue'
 
 import customerLocationPin from 'src/assets/customer_map_marker.png'
 import riderLocationPin from 'src/assets/rider_map_marker.png'
@@ -456,8 +496,21 @@ export default defineComponent({
   },
   setup(props) {
     const $q = useQuasar()
+    window.t = () => $q.dark.toggle()
     const marketplaceStore = useMarketplaceStore()
     const notificationsStore = useNotificationsStore()
+
+    /**
+     * @param {import("../../../node_modules/quasar/dist/types/").QDialogOptions} dialogOpts 
+     */
+     async function promiseDialog(dialogOpts) {
+      return new Promise((resolve, reject) => {
+        $q.dialog(dialogOpts)
+          .onOk(resolve)
+          .onDismiss(reject)
+      })
+    }
+
     onMounted(() => refreshPage())
     const order = ref(Order.parse())
     const storefrontId = computed(() => order.value?.storefrontId)
@@ -468,6 +521,7 @@ export default defineComponent({
         return response
       })
     }
+    fetchOrder.debounced = debounce(fetchOrder, 500)
     const orderCurrency = computed(() => order.value?.currency?.symbol)
     const orderBchPrice = computed(() => order.value?.bchPrice?.price || undefined)
     const orderAmounts = computed(() => {
@@ -972,17 +1026,150 @@ export default defineComponent({
       showPaymentsDialog.value = true
     }
 
+    const orderDispute = ref([].map(OrderDispute.parse)[0])
+    const hasOngoingDispute = computed(() => {
+      if (!orderDispute.value?.id) return order.value?.hasOngoingDispute
+      return !orderDispute.value?.resolvedAt
+    })
+    const disputeButtonOpts = computed(() => {
+      if (orderDispute.value.id) {
+        if (orderDispute.value.resolvedAt) return { color: 'green', icon: 'done' }
+        else return { color: 'red', icon: undefined }
+      }
+      return { color: 'grey', icon: undefined }
+    })
+    function fetchOrderDispute() {
+      return backend.get(`connecta/orders/${props.orderId}/dispute/`)
+        .then(response => {
+          orderDispute.value = OrderDispute.parse(response?.data)
+          return response
+        })
+        .catch(error => {
+          if (error?.response?.status === 404 && error?.response?.data?.detail) {
+            orderDispute.value = undefined
+          }
+          return Promise.reject(error)
+        })
+    }
+    function showOrderDisputeDialog() {
+      if (!orderDispute.value?.id) return
+      $q.dialog({
+        component: OrderDisputeFormDialog,
+        componentProps: {
+          readonly: true,
+          editable: false,
+          orderDispute: orderDispute.value,
+        }
+      })
+        .onOk(result => {
+          if (result?.action === 'submit') createOrUpdateDispute(result?.data)
+          else if (result?.action === 'resolve') resolveDispute(result?.data)
+        })
+    }
+
+    async function resolveDispute(opts = { resolveAction: ''}) {
+      const resolveAction = opts?.resolveAction
+      if (!OrderDispute.resolveActionsList.includes(resolveAction)) return
+      let msg
+      if (resolveAction == OrderDispute.resolveActions.completeOrder) {
+        msg = 'Completing order'
+        if (order.value?.status !== 'delivered') {
+          await promiseDialog({
+            title: 'Resolve dispute',
+            message: 'Order will be set as completed after resolving dispute. Continue?',
+            color: 'brandblue',
+            persistent: true,
+            ok: { noCaps: true, label: 'Complete order', color: 'green', flat: true },
+            cancel: { noCaps: true, label: 'Close', flat: true, color: $q.dark.isActive ? 'white' : 'black' },
+            stackButtons: true,
+          })
+        }
+      } else if (resolveAction == OrderDispute.resolveActions.cancelOrder) {
+        msg = 'Cancelling order'
+        if (order.value?.status !== 'cancelled') {
+          await promiseDialog({
+            title: 'Resolve dispute',
+            message: 'Order will be cancelled after resolving dispute. Continue?',
+            color: 'brandblue',
+            persistent: true,
+            ok: { noCaps: true, label: 'Cancel order', color: 'red', flat: true },
+            cancel: { noCaps: true, label: 'Close', flat: true, color: $q.dark.isActive ? 'white' : 'black' },
+            stackButtons: true,
+          })
+        }
+      }
+
+      const data = { resolve_action: resolveAction }
+      const dialog = $q.dialog({
+        title: 'Resolving dispute',
+        message: msg,
+        progress: true,
+        persistent: true,
+        ok: false,
+        color: 'brandblue',
+      })
+      return backend.post(`connecta/orders/${props.orderId}/dispute/`, data)
+        .then(response => {
+          orderDispute.value = OrderDispute.parse(response?.data)
+          dialog.hide()
+          return response
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          let errorMessage = errorParser.firstElementOrValue(data?.resolve_action) || 
+            errorParser.firstElementOrValue(data?.non_field_errors)
+
+          if (!errorMessage && typeof data?.detail === 'string') errorMessage = data?.detail
+          if (!errorMessage && typeof error?.message === 'string' && error?.message?.length < 250) {
+            errorMessage = error?.message
+          }
+          console.log('errorMessage', errorMessage)
+
+          dialog.update({
+            title: 'Resolve dispute error',
+            message: errorMessage || 'Unknown error occurred',
+          })
+          return Promise.reject(error)
+        })
+        .finally(() => {
+          dialog.update({ progress: false, persistent: false, ok: true })
+        })
+    }
+
     const variantInfoDIalog = ref({ show: false, variant: Variant.parse() })
     function displayVariant(variant = Variant.parse()) {
       variantInfoDIalog.value.variant = variant
       variantInfoDIalog.value.show = true
     }
 
-    const orderUpdateEventName = 'order_updates'
+
+    const rpcEventNames = Object.freeze({
+      orderUpdate: 'order_updates',
+      paymentUpdate: 'payment_updates',
+    })
+
+    onMounted(() => {
+      if(marketplaceRpc.client.onOpenHandlers.includes(subscribeUpdatesToRpc)) return
+      marketplaceRpc.client.onOpen(subscribeUpdatesToRpc)
+    })
+    onUnmounted(() => {
+      marketplaceRpc.client.onOpenHandlers = marketplaceRpc.client.onOpenHandlers
+        .filter(handler => handler !== subscribeUpdatesToRpc)
+    })
+    
     const onNotificationHandler = notification  => {
-      if (notification?.event != orderUpdateEventName) return
-      if (notification?.data?.id != props.orderId) return
-      fetchOrder()
+      const eventName = notification?.event
+      const data = notification?.data
+      if (eventName === rpcEventNames.orderUpdate) {
+        if (data?.id != props.orderId) return console.log('Not matching id')
+        fetchOrder.debounced()
+        if (typeof data?.has_ongoing_dispute === 'boolean') fetchOrderDispute()
+      }
+      if (eventName === rpcEventNames.paymentUpdate) {
+        if (data?.order_id != props.orderId) return
+        if (data?.status) fetchOrder.debounced()
+        fetchPayments()
+      }
     }
    
     watch(() => [props.orderId], () => {
@@ -994,7 +1181,8 @@ export default defineComponent({
     onDeactivated(() => unsubscribeUpdatesToRpc())
     async function subscribeUpdatesToRpc() {
       if (!marketplaceRpc.isConnected()) await marketplaceRpc.connect()
-      marketplaceRpc.client.call('subscribe', [orderUpdateEventName, { id: parseInt(props.orderId) }])
+      marketplaceRpc.client.call('subscribe', [rpcEventNames.orderUpdate, { id: parseInt(props.orderId) }])
+      marketplaceRpc.client.call('subscribe', [rpcEventNames.paymentUpdate, { order_id: parseInt(props.orderId) }])
 
       if (!marketplaceRpc.client.onNotification.includes(onNotificationHandler)) {
         marketplaceRpc.client.onNotification.push(onNotificationHandler)
@@ -1003,7 +1191,8 @@ export default defineComponent({
 
     async function unsubscribeUpdatesToRpc() {
       if (!marketplaceRpc.isConnected()) return
-      marketplaceRpc.client.call('unsubscribe', [orderUpdateEventName])
+      marketplaceRpc.client.call('unsubscribe', [rpcEventNames.orderUpdate])
+      marketplaceRpc.client.call('unsubscribe', [rpcEventNames.paymentUpdate])
       marketplaceRpc.client.onNotification = marketplaceRpc.client.onNotification
         .filter(handler => handler !== onNotificationHandler)
     }
@@ -1012,6 +1201,7 @@ export default defineComponent({
       try {
         await Promise.all([
           fetchOrder(),
+          fetchOrderDispute(),
           fetchDelivery(),
           fetchPayments(),
           chatButton.value?.refresh(),
@@ -1089,6 +1279,11 @@ export default defineComponent({
       fetchPayments,
       createPayment,
       onNewPayment,
+
+      orderDispute,
+      hasOngoingDispute,
+      disputeButtonOpts,
+      showOrderDisputeDialog,
 
       variantInfoDIalog,
       displayVariant,
