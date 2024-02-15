@@ -461,7 +461,7 @@ import { Delivery, Order, OrderDispute, Payment, Rider, Storefront, Variant } fr
 import { errorParser, formatOrderStatus, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useNotificationsStore } from 'src/stores/notifications'
-import { useQuasar } from 'quasar'
+import { debounce, useQuasar } from 'quasar'
 import { computed, defineComponent, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoDialog.vue'
@@ -521,6 +521,7 @@ export default defineComponent({
         return response
       })
     }
+    fetchOrder.debounced = debounce(fetchOrder, 500)
     const orderCurrency = computed(() => order.value?.currency?.symbol)
     const orderBchPrice = computed(() => order.value?.bchPrice?.price || undefined)
     const orderAmounts = computed(() => {
@@ -1141,15 +1142,34 @@ export default defineComponent({
       variantInfoDIalog.value.show = true
     }
 
-    const orderUpdateEventName = 'order_updates'
+
+    const rpcEventNames = Object.freeze({
+      orderUpdate: 'order_updates',
+      paymentUpdate: 'payment_updates',
+    })
+
+    onMounted(() => {
+      if(marketplaceRpc.client.onOpenHandlers.includes(subscribeUpdatesToRpc)) return
+      marketplaceRpc.client.onOpen(subscribeUpdatesToRpc)
+    })
+    onUnmounted(() => {
+      marketplaceRpc.client.onOpenHandlers = marketplaceRpc.client.onOpenHandlers
+        .filter(handler => handler !== subscribeUpdatesToRpc)
+    })
+    
     const onNotificationHandler = notification  => {
       const eventName = notification?.event
       const data = notification?.data
-      if (eventName != orderUpdateEventName) return
-      if (data?.id != props.orderId) return
-
-      fetchOrder()
-      if (typeof data?.has_ongoing_dispute === 'boolean') fetchOrderDispute()
+      if (eventName === rpcEventNames.orderUpdate) {
+        if (data?.id != props.orderId) return console.log('Not matching id')
+        fetchOrder.debounced()
+        if (typeof data?.has_ongoing_dispute === 'boolean') fetchOrderDispute()
+      }
+      if (eventName === rpcEventNames.paymentUpdate) {
+        if (data?.order_id != props.orderId) return
+        if (data?.status) fetchOrder.debounced()
+        fetchPayments()
+      }
     }
    
     watch(() => [props.orderId], () => {
@@ -1161,7 +1181,8 @@ export default defineComponent({
     onDeactivated(() => unsubscribeUpdatesToRpc())
     async function subscribeUpdatesToRpc() {
       if (!marketplaceRpc.isConnected()) await marketplaceRpc.connect()
-      marketplaceRpc.client.call('subscribe', [orderUpdateEventName, { id: parseInt(props.orderId) }])
+      marketplaceRpc.client.call('subscribe', [rpcEventNames.orderUpdate, { id: parseInt(props.orderId) }])
+      marketplaceRpc.client.call('subscribe', [rpcEventNames.paymentUpdate, { order_id: parseInt(props.orderId) }])
 
       if (!marketplaceRpc.client.onNotification.includes(onNotificationHandler)) {
         marketplaceRpc.client.onNotification.push(onNotificationHandler)
@@ -1170,7 +1191,8 @@ export default defineComponent({
 
     async function unsubscribeUpdatesToRpc() {
       if (!marketplaceRpc.isConnected()) return
-      marketplaceRpc.client.call('unsubscribe', [orderUpdateEventName])
+      marketplaceRpc.client.call('unsubscribe', [rpcEventNames.orderUpdate])
+      marketplaceRpc.client.call('unsubscribe', [rpcEventNames.paymentUpdate])
       marketplaceRpc.client.onNotification = marketplaceRpc.client.onNotification
         .filter(handler => handler !== onNotificationHandler)
     }
