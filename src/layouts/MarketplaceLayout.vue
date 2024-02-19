@@ -126,6 +126,7 @@ export default defineComponent({
     })
 
     const onUserActivity = throttle(async (event) => {
+      if (!userId.value) return
       await marketplaceHeartbeatStore.triggerHeartbeat()
     }, 5000)
 
