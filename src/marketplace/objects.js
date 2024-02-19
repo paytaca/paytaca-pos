@@ -1235,6 +1235,7 @@ export class StockRecountItem {
 export class CollectionCondition {
   static fields = {
     price: 'variants__price',
+    markupPrice: 'variants__markup_price',
     name: 'name',
     categories: 'categories__name',
     created: 'created_at',
@@ -1242,6 +1243,7 @@ export class CollectionCondition {
 
   static fieldOpts = [
     { label: 'Price', value: this.fields.price },
+    { label: 'Markup price', value: this.fields.markupPrice },
     { label: 'Name', value: this.fields.name, },
     { label: 'Categories', value: this.fields.categories, },
     { label: 'Created', value: this.fields.created, },
@@ -1250,6 +1252,7 @@ export class CollectionCondition {
   static getFieldExpressions(fieldValue) {
     switch(fieldValue) {
       case this.fields.price:
+      case this.fields.markupPrice:
         return [
           { label: 'Equals', value: '' },
           { label: 'Less than', value: 'lt' },

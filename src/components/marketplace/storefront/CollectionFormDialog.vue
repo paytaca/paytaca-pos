@@ -161,7 +161,7 @@
                         </template>
                       </q-select>
                       <q-input
-                        v-else-if="condition.field === CollectionCondition.fields.price"
+                        v-else-if="[CollectionCondition.fields.price, CollectionCondition.fields.markupPrice].includes(condition.field)"
                         dense
                         outlined
                         :disable="loading"
