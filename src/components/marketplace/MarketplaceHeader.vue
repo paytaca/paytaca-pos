@@ -7,7 +7,7 @@
     </slot>
     <div>
       <div class="user-icon" role="button" @click="() => openUserMenu = true">
-        <img :src="userImage" style="width:100%"/>
+        <q-img :src="userImage" style="width:100%;border-radius: 999px;" ratio="1"/>
       </div>
     </div>
     <q-dialog v-model="openUserMenu" position="bottom">
@@ -16,7 +16,7 @@
           <div class="row items-start">
             <img
               :src="userImage" style="width:50px"
-              class="rounded-borders q-mr-sm"
+              class="rounded-borders q-mr-sm self-center"
               @click="$router.push({ name: 'marketplace-user' })"
             />
             <div @click="$router.push({ name: 'marketplace-user' })">
@@ -72,7 +72,7 @@ export default defineComponent({
     const openUserMenu = ref(false)
 
     const userImage = computed(() => {
-      if (marketplaceStore.user.imageUrl) return marketplaceStore.user.imageUrl
+      if (marketplaceStore.user.profilePictureUrl) return marketplaceStore.user.profilePictureUrl
 
       if (marketplaceStore.user.firstName || marketplaceStore.user.lastName) {
         const fullName = `${marketplaceStore.user.firstName} ${marketplaceStore.user.lastName}`
@@ -109,7 +109,6 @@ export default defineComponent({
 .user-icon {
   height: 45px;
   width: 45px;
-  border-radius: 999px;
   overflow:hidden;
 }
 </style>

@@ -11,10 +11,12 @@ export const useMarketplaceStore = defineStore('marketplace', {
       fetchingUser: false,
       user: {
         id: 0,
+        profilePictureUrl: '',
         username: '',
         email: '',
         firstName: '',
         lastName: '',
+        phoneNumber: '',
         shopRoles: [{ shopId: 0, roles: [''] }],
       },
       fetchingMerchant: false,
@@ -291,19 +293,23 @@ export const useMarketplaceStore = defineStore('marketplace', {
      * 
      * @param {Object} data 
      * @param {Number} data.id
+     * @param {String} data.profile_picture_url
      * @param {String} data.first_name
      * @param {String} data.last_name
      * @param {String} data.username
      * @param {String} data.email
+     * @param {String} data.phone_number
      * @param {{ shop_id:Number, roles: String[] }[]} data.shop_roles
      */
     setUser(data) {
       this.user = {
         id: data?.id,
+        profilePictureUrl: data?.profile_picture_url,
         firstName: data?.first_name,
         lastName: data?.last_name,
         username: data?.username,
         email: data?.email,
+        phoneNumber: data?.phone_number,
         shopRoles: data?.shop_roles?.map?.(shopRole => {
           return { shopId: shopRole?.shop_id, roles: shopRole.roles }
         }),

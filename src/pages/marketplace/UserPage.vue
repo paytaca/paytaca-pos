@@ -10,28 +10,65 @@
       </template>
     </MarketplaceHeader>
     <q-card class="q-mb-md">
-      <q-card-section class="q-pb-none">
+      <q-card-section class="q-pb-none row items-center">
         <div class="text-h6">Profile</div>
+        <q-space/>
+        <q-btn
+          v-if="!profileEditMode"
+          flat
+          icon="edit"
+          padding="xs"
+          @click="() => profileEditMode = true"
+        />
       </q-card-section>
-      <q-card-section class="row q-r-mx-md q-pt-none">
-        <div class="col-6 q-py-xs q-px-sm">
-          <div>{{ marketplaceStore?.user?.firstName }}</div>
-          <div class="text-caption bottom">First name</div>
-        </div>
-        <div class="col-6 q-py-xs q-px-sm">
-          <div>{{ marketplaceStore?.user?.lastName }}</div>
-          <div class="text-caption bottom">Last name</div>
-        </div>
-        <div class="col-6 q-py-xs q-px-sm">
-          <div>{{ marketplaceStore?.user?.email }}</div>
-          <div class="text-caption bottom">Email</div>
-        </div>
-
-        <div class="col-6 q-py-xs q-px-sm">
-          <div>{{ marketplaceStore?.user?.username }}</div>
-          <div class="text-caption bottom">Username</div>
-        </div>
-      </q-card-section>
+      <q-slide-transition>
+        <q-card-section v-if="profileEditMode" class="q-pt-none">
+          <UserProfileForm :user="marketplaceStore.user" @updated="() => profileEditMode = false"/>
+          <q-btn
+            outline
+            no-caps label="Cancel"
+            color="grey"
+            class="full-width q-mt-sm"
+            @click="() => profileEditMode = false"
+          />
+        </q-card-section>  
+      </q-slide-transition>
+      <q-slide-transition>
+        <q-card-section v-if="!profileEditMode" class="row q-r-mx-md q-pt-none">
+          <div
+            v-if="marketplaceStore?.user?.profilePictureUrl"
+            class="col-12 q-px-sm row items-center justify-center"
+          >
+            <img
+              :src="marketplaceStore?.user?.profilePictureUrl"
+              style="max-height:200px;max-width:100%;object-fit: contain;"
+              class="rounded-borders"
+            />
+          </div>
+          <div class="col-6 q-py-xs q-px-sm">
+            <div>{{ marketplaceStore?.user?.firstName }}</div>
+            <div class="text-caption bottom">First name</div>
+          </div>
+          <div class="col-6 q-py-xs q-px-sm">
+            <div>{{ marketplaceStore?.user?.lastName }}</div>
+            <div class="text-caption bottom">Last name</div>
+          </div>
+          <div class="col-6 q-py-xs q-px-sm">
+            <div>{{ marketplaceStore?.user?.email }}</div>
+            <div class="text-caption bottom">Email</div>
+          </div>
+  
+          <div class="col-6 q-py-xs q-px-sm">
+            <div>{{ marketplaceStore?.user?.username }}</div>
+            <div class="text-caption bottom">Username</div>
+          </div>
+          <div class="col-6 q-py-xs q-px-sm">
+            <div v-if="marketplaceStore?.user?.phoneNumber">{{ marketplaceStore?.user?.phoneNumber }}</div>
+            <i v-else class="text-grey">None</i>
+            <div class="text-caption bottom">Phone number</div>
+          </div>
+        </q-card-section>
+      </q-slide-transition>
     </q-card>
     <q-card class="q-mb-md">
       <q-card-section>
@@ -98,21 +135,25 @@
   </q-page>
 </template>
 <script>
+import { backend } from 'src/marketplace/backend'
+import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useQuasar } from 'quasar'
 import { defineComponent, ref } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
-import { backend } from 'src/marketplace/backend'
-import { useQuasar } from 'quasar'
-import { errorParser } from 'src/marketplace/utils'
+import UserProfileForm from 'src/components/marketplace/UserProfileForm.vue'
 
 export default defineComponent({
   name: 'UserPage',
   components: {
     MarketplaceHeader,
+    UserProfileForm,
   },
   setup() {
     const $q = useQuasar()
     const marketplaceStore = useMarketplaceStore()
+
+    const profileEditMode = ref(false)
 
     const formData = ref({
       loading: false,
@@ -184,6 +225,7 @@ export default defineComponent({
 
     return {
       marketplaceStore,
+      profileEditMode,
       formData,
       form,
       formErrors,
