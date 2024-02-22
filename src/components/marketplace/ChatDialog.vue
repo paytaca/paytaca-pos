@@ -129,7 +129,7 @@
                 flat
                 icon="attach_file"
                 padding="sm"
-                @click="openFileAttachementField"
+                @click="selectAttachment"
               />
             </template>
           </q-input>
@@ -150,7 +150,7 @@
                 'max-height': 'min(10rem, 50vh)',
                 'max-width': 'calc(100% - 5rem)',
               }"
-              @click="openFileAttachementField"
+              @click="selectAttachment"
             >
             <q-btn
               flat icon="cancel"
@@ -168,9 +168,10 @@ import { backend } from 'src/marketplace/backend'
 import { ChatMember, ChatMessage, ChatSession } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils'
 import { connectWebsocket } from 'src/marketplace/webrtc/websocket-utils'
-import { resizeImage } from 'src/marketplace/chat/attachment'
+import { base64ImageToFile, dataUrlToFile, resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { updateOrCreateKeypair } from 'src/marketplace/chat'
+import { Camera } from '@capacitor/camera'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useDialogPluginComponent, debounce, useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -283,6 +284,11 @@ export default defineComponent({
             moveMessagesToBottom({ delay: 250 })
             fetchChatMember()
           }
+          if (opts?.append || opts?.prepend) {
+            parsedMessages.filter((msg, index, array) => {
+              return index === array.findIndex(_msg => msg?.chatIdentity?.id == _msg?.chatIdentity?.id)
+            }).forEach(setChatIdentityNicknameFromMessage)
+          }
           return response
         })
         .finally(() => {
@@ -318,6 +324,7 @@ export default defineComponent({
 
     function onNewMessage(newMessage=ChatMessage.parse()) {
       $emit('new-message', newMessage)
+      setChatIdentityNicknameFromMessage(newMessage)
       const index = messages.value.findIndex(msg => msg?.id === newMessage?.id)
       if (index < 0) {
         messages.value.unshift(newMessage)
@@ -349,6 +356,14 @@ export default defineComponent({
       messagesPanel.value?.scrollTo(0, messagesPanel.value?.scrollHeight)
     }
 
+    function setChatIdentityNicknameFromMessage(chatMessage=ChatMessage.parse()) {
+      if (!chatMessage.chatIdentity?.id) return
+      messages.value.forEach(message => {
+        if (message.chatIdentity?.id != chatMessage.chatIdentity?.id) return
+        message.memberNickname = chatMessage?.memberNickname
+      })
+    }
+
     const sendingMessage = ref(false)
     const message = ref('')
     const attachment = ref(null)
@@ -368,6 +383,62 @@ export default defineComponent({
         file: attachment.value,
         maxWidthHeight: 640, // based on recommended dimensions for mobile
       })
+    }
+
+    async function checkOrRequestCameraPermissions() {
+      let permission = await Camera.checkPermissions()
+      const promptStatuses = ['prompt','prompt-with-rationale', 'limited']
+      const request = promptStatuses.includes(permission.photos) || promptStatuses.includes(permission.camera)
+      if (request) permission = await Camera.requestPermissions()
+      return {
+        camera: permission.camera === 'granted',
+        photos: permission.photos === 'photos',
+      }
+    }
+
+    async function getPhotoFromCamera() {
+      const granted = await checkOrRequestCameraPermissions()
+      if (!granted.camera && !granted.photos) {
+        $q.dialog({
+          title: 'Select photo', message: 'Permission denied',
+          color: 'brandblue',
+          class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+        })
+        return Promise.reject(new Error('Permission Denied'))
+      }
+      return Camera.getPhoto({
+        presentationStyle: 'popover',
+        resultType: 'dataUrl',
+      })
+        .then(async (photo) => {
+          let file
+          if (photo?.base64String) file = base64ImageToFile(photo?.base64String)
+          else if (photo?.dataUrl) file = dataUrlToFile(photo?.dataUrl)
+          if (!file) return photo
+          const resized = await resizeImage({ file, maxWidthHeight: 640 })
+          attachment.value = resized
+          return photo
+        })
+    }
+
+    function selectAttachment(evt) {
+      return getPhotoFromCamera()
+        .catch(error => {
+          console.error(error)
+          let errorMsg = error?.message
+          if (typeof errorMsg !== 'string') return Promise.reject(error)
+          if (errorMsg?.includes('cancel')) return Promise.resolve()
+          if (errorMsg.match(/user.*denied.*access/i)) {
+            openFileAttachementField(evt)
+            return Promise.resolve()
+          }
+          if (errorMsg?.length < 250) return Promise.reject(error)
+          $q.dialog({
+            title: 'Select photo', message: errorMsg || 'Unknown error occurred',
+            color: 'brandblue',
+            class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+          })
+        })
     }
 
     const sendMessage = debounce(async function() {
@@ -569,6 +640,8 @@ export default defineComponent({
       fileAttachmentField,
       openFileAttachementField,
       resizeAttachment,
+      getPhotoFromCamera,
+      selectAttachment,
       sendMessage,
 
       chatMember,
@@ -601,5 +674,10 @@ export default defineComponent({
 .messages-panel .bottom-anchor {
   overflow-anchor: auto;
   height: 1px;
+}
+</style>
+<style>
+pwa-camera-modal-instance {
+  z-index: 10000
 }
 </style>
