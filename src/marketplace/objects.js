@@ -642,6 +642,7 @@ export class User {
    * @param {String} [data.username]
    * @param {String} data.first_name
    * @param {String} data.last_name
+   * @param {String} [data.phone_number]
    * @param {{ user_id:Number, shop_id:Number, roles:String[] }[]} [data.shop_roles]
    */
   set raw(data) {
@@ -651,6 +652,7 @@ export class User {
     this.username = data?.username
     this.firstName = data?.first_name
     this.lastName = data?.last_name
+    this.phoneNumber = data?.phone_number
     if (Array.isArray(data?.shop_roles)) {
       this.shopRoles = data.shop_roles.map(User.parseShopRole)
     } else {
@@ -1615,6 +1617,7 @@ export class Order {
    * @param {String | Number} [data.preparation_deadline]
    * @param {String | Number} [data.delivery_deadline]
    * @param {Boolean} data.has_ongoing_dispute
+   * @param {Object} data.assigned_staff
    * @param {Object} [data.dispute]
   */
   set raw(data) {
@@ -1650,6 +1653,9 @@ export class Order {
 
     if (data?.delivery_deadline) this.deliveryDeadline = new Date(data?.delivery_deadline)
     else if (this.deliveryDeadline) delete this.deliveryDeadline
+
+    if (data?.assigned_staff) this.assignedStaff = User.parse(data?.assigned_staff)
+    else if (this.assignedStaff) delete this.assignedStaff
 
     this.hasOngoingDispute = data?.has_ongoing_dispute
     if (data?.dispute) this.dispute = OrderDispute.parse(data?.dispute)
@@ -1865,6 +1871,7 @@ export class Storefront {
    * @param {Number} data.shop_id
    * @param {String} data.name
    * @param {String} data.image_url
+   * @param {String} [data.phone_number]
    * @param {{ code:String, symbol:String }} data.currency
    * @param {Object} data.location
    */
@@ -1874,6 +1881,7 @@ export class Storefront {
     this.shopId = data?.shop_id
     this.name = data?.name
     this.imageUrl = data?.image_url
+    this.phoneNumber = data?.phone_number
     this.currency = {
       code: data?.currency?.code,
       symbol: data?.currency?.symbol,

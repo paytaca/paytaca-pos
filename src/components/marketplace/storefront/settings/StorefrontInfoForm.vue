@@ -23,6 +23,16 @@
           />
         </div>
         <div>
+          <div>Phone number</div>
+          <q-input
+            dense outlined
+            :disable="loading"
+            v-model="formData.phoneNumber"
+            :error="Boolean(formErrors?.phoneNumber)"
+            :error-message="formErrors?.phoneNumber"
+          />
+        </div>
+        <div>
           <div>Receiving address</div>
           <q-input
             dense outlined
@@ -106,6 +116,7 @@ export default defineComponent({
     const formData = ref({
       imageUrl: marketplaceStore?.storefrontData?.image_url,
       name: marketplaceStore?.storefrontData?.name,
+      phoneNumber: marketplaceStore?.storefrontData?.phone_number,
       receivingAddress: marketplaceStore?.storefrontData?.receiving_address,
       autoSubscribeProducts: Boolean(marketplaceStore?.storefrontData?.auto_subscribe_products),
       subscribeProducts: [].map(Product.parse)
@@ -133,6 +144,7 @@ export default defineComponent({
     const formErrors = ref({
       detail: [],
       name: '',
+      phoneNumber: '',
       receivingAddress: '',
       subscribeProductIds: '',
     })
@@ -147,6 +159,7 @@ export default defineComponent({
         shop_id: marketplaceStore.activeShopId,
         image_url: formData.value.imageUrl,
         name: formData.value.name || undefined,
+        phone_number: formData.value.phoneNumber,
         receiving_address: formData.value.receivingAddress,
         auto_subscribe_products: formData.value.autoSubscribeProducts,
         subscribe_product_ids: formData.value.subscribeProducts.map(product => product?.id),
@@ -168,6 +181,7 @@ export default defineComponent({
           const data = error?.response?.data
           formErrors.value.detail = errorParser.toArray(data?.non_field_errors)
           formErrors.value.name = errorParser.firstElementOrValue(data?.name)
+          formErrors.value.phoneNumber = errorParser.firstElementOrValue(data?.phone_number)
           formErrors.value.receivingAddress = errorParser.firstElementOrValue(data?.receiving_address)
           formErrors.value.subscribeProductIds = errorParser.firstElementOrValue(data?.subscribe_product_ids)
           if (data?.detail) formErrors.value.detail.unshift(data?.detail)
