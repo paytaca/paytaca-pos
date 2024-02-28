@@ -475,9 +475,9 @@ import OrderUpdatesDialog from 'src/components/marketplace/storefront/OrderUpdat
 import OrderChatButton from 'src/components/marketplace/storefront/OrderChatButton.vue'
 import OrderDisputeFormDialog from 'src/components/marketplace/storefront/OrderDisputeFormDialog.vue'
 
-import customerLocationPin from 'src/assets/customer_map_marker.png'
-import riderLocationPin from 'src/assets/rider_map_marker.png'
-import merchantLocationPin from 'src/assets/merchant_map_marker.png'
+import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
+import riderLocationPin from 'src/assets/marketplace/rider_map_marker_2.png'
+import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
 
 export default defineComponent({
   name: 'OrderPage',
