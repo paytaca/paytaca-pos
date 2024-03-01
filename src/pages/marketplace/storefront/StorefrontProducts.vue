@@ -183,6 +183,27 @@
             </div>
           </q-td>
         </template>
+        <template v-slot:body-cell-reviews="props">
+          <q-td :props="props" @click="() => toggleProductSelection(props.row)">
+            <div
+              style="position:relative;" v-ripple
+              @click.stop="() => openProductReviewsDialog(props?.row)"
+            >
+              <q-rating
+                v-if="Number.isFinite(props?.row?.reviewSummary?.averageRating)"
+                readonly
+                max="5"
+                :model-value="props?.row?.reviewSummary?.averageRating * (5 / 100)"
+                color="brandblue"
+                class="no-wrap"
+              />
+              <div class="text-caption bottom">
+                {{ props?.row?.reviewSummary?.count }}
+                {{ props?.row?.reviewSummary?.count === 1 ? 'review' : 'reviews' }}
+              </div>
+            </div>
+          </q-td>
+        </template>
 
         <template v-slot:body-cell-available="props">
           <q-td :props="props" @click="() => toggleProductSelection(props.row)">
@@ -211,6 +232,10 @@
       v-model="productDetailDialog.show"
       :productObj="productDetailDialog.product"
     />
+    <ReviewsListDialog
+      v-model="reviewsListDialog.show"
+      :productId="reviewsListDialog?.product?.id"
+    />
   </q-page>
 </template>
 <script>
@@ -225,6 +250,7 @@ import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue';
 import ProductInventoryDialog from 'src/components/marketplace/inventory/ProductInventoryDialog.vue';
 import ProductSearchDialog from 'src/components/marketplace/ProductSearchDialog.vue';
 import JSONFormDialog from 'src/components/marketplace/jsonform/JSONFormDialog.vue';
+import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue';
 
 export default defineComponent({
   name: 'StorefrontProducts',
@@ -232,9 +258,11 @@ export default defineComponent({
     ProductInventoryDialog,
     LimitOffsetPagination,
     MarketplaceHeader,
+    ReviewsListDialog,
   },
   setup() {
     const $q = useQuasar()
+    window.$q = $q
     const marketplaceStore = useMarketplaceStore()
 
     const categoriesFilter = ref({
@@ -311,6 +339,7 @@ export default defineComponent({
     const productsTableColumns = [
       { name: 'product', align: 'left', label: 'Product', field: 'name', sortable: true },
       // { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks' },
+      { name: 'reviews', align: 'left', label: 'Reviews' },
       { name: 'available', align: 'left', label: 'Available', sortable: true },
       { name: 'markup-price', align: 'left', label: 'Markup Price', field: 'markupPriceRangeText', format: val => `${val} ${marketplaceStore?.currency}`, sortable: true },
       { name: 'cart-options', align: 'left', label: 'Cart Options' },
@@ -487,6 +516,12 @@ export default defineComponent({
       })
     }
 
+    const reviewsListDialog = ref({ show: false, product: Product.parse() })
+    function openProductReviewsDialog(product=Product.parse()) {
+      reviewsListDialog.value.product = product
+      reviewsListDialog.value.show = true
+    }
+
     const productDetailDialog = ref({
       show: false,
       product: Product.parse(),
@@ -534,6 +569,9 @@ export default defineComponent({
       updateSelectedProductsAvailability,
       updateCartOptions,
       openAddProductsDialog,
+
+      reviewsListDialog,
+      openProductReviewsDialog,
 
       productDetailDialog,
       viewProductDetail,

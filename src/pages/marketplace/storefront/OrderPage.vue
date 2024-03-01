@@ -148,6 +148,46 @@
         </div>
       </q-banner>
 
+      <q-banner
+        v-if="orderReview?.id"
+        class="q-my-sm q-pa-sm rounded-borders"
+        style="position:relative;" v-ripple
+        @click="() => openOrderReviewDialog = true"
+      >
+        <q-btn
+          v-if="customer?.id === orderReview?.createdByCustomer?.id"
+          flat icon="edit"
+          padding="xs"
+          class="float-right"
+          @click.stop="() => rateOrder()"
+        />
+        <div>Customer review</div>
+        <q-rating
+          readonly
+          max="5"
+          :model-value="orderReview?.rating * (5 / 100)"
+          color="brandblue"
+          icon-half="star_half"
+        />
+        <div v-if="orderReview?.imagesUrls?.length" class="text-caption text-grey top bottom">
+          {{ orderReview?.imagesUrls?.length }} {{ orderReview?.imagesUrls?.length === 1 ? 'image' : 'images' }}
+        </div>
+        <div class="text-grey text-caption ellipsis">
+          {{ orderReview?.text }}
+        </div>
+      </q-banner>
+      <q-dialog v-model="openOrderReviewDialog" position="bottom">
+        <q-card>
+          <q-card-section>
+            <div class="row items-center no-wrap">
+              <div class="text-h5 q-space">Order Review</div>
+              <q-btn flat icon="close" padding="sm" v-close-popup/>
+            </div>
+            <ReviewsListPanel :reviews="[orderReview]"/>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+
       <div class="row items-center q-gutter-sm q-mb-md">
         <q-btn
           v-if="nextStatus"
@@ -457,7 +497,7 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
-import { Delivery, Order, OrderDispute, Payment, Rider, Storefront, Variant } from 'src/marketplace/objects'
+import { Delivery, Order, OrderDispute, Payment, Review, Rider, Storefront, Variant } from 'src/marketplace/objects'
 import { errorParser, formatOrderStatus, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useNotificationsStore } from 'src/stores/notifications'
@@ -474,6 +514,7 @@ import UpdateOrderDeliveryAddressFormDialog from 'src/components/marketplace/sto
 import OrderUpdatesDialog from 'src/components/marketplace/storefront/OrderUpdatesDialog.vue'
 import OrderChatButton from 'src/components/marketplace/storefront/OrderChatButton.vue'
 import OrderDisputeFormDialog from 'src/components/marketplace/storefront/OrderDisputeFormDialog.vue'
+import ReviewsListPanel from 'src/components/marketplace/reviews/ReviewsListPanel.vue'
 
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import riderLocationPin from 'src/assets/marketplace/rider_map_marker_2.png'
@@ -490,6 +531,7 @@ export default defineComponent({
     UpdateOrderDeliveryAddressFormDialog,
     OrderUpdatesDialog,
     OrderChatButton,
+    ReviewsListPanel,
   },
   props: {
     orderId: [String, Number]
@@ -1136,6 +1178,28 @@ export default defineComponent({
         })
     }
 
+    const openOrderReviewDialog = ref(false)
+    watch(() => [order.value?.id, order.value?.customer?.id], () => fetchOrderReview())
+    const orderReview = ref([].map(Review.parse)[0])
+    function fetchOrderReview() {
+      if (!order.value?.id || !order.value?.customer?.id) {
+        orderReview.value = null
+        return Promise.resolve()
+      }
+      const params = {
+        order_id: order.value?.id || 0,
+        created_by_customer_id: order.value?.customer?.id || 0,
+        limit: 1,
+      }
+
+      return backend.get(`reviews/`, { params })
+        .then(response => {
+          const orderReviewObj = Review.parse(response?.data?.results?.[0])
+          orderReview.value = orderReviewObj?.id ? orderReviewObj : null
+          return response
+        })
+    }
+
     const variantInfoDIalog = ref({ show: false, variant: Variant.parse() })
     function displayVariant(variant = Variant.parse()) {
       variantInfoDIalog.value.variant = variant
@@ -1284,6 +1348,9 @@ export default defineComponent({
       hasOngoingDispute,
       disputeButtonOpts,
       showOrderDisputeDialog,
+
+      openOrderReviewDialog,
+      orderReview,
 
       variantInfoDIalog,
       displayVariant,
