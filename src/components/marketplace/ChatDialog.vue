@@ -39,6 +39,7 @@
               <q-chat-message
                 :bg-color="isOwnMessage(message) ? 'grey-7' : 'brandblue'"
                 text-color="white"
+                :avatar="message?.user?.profilePictureUrl"
                 :sent="!isOwnMessage(message)"
                 :stamp="formatDateRelative(message?.createdAt)"
                 v-element-visibility="(...args) => onMessageVisibility(message, ...args)"
@@ -674,6 +675,10 @@ export default defineComponent({
 .messages-panel .bottom-anchor {
   overflow-anchor: auto;
   height: 1px;
+}
+::v-deep .q-message-avatar {
+  object-position:center;
+  object-fit:cover;
 }
 </style>
 <style>
