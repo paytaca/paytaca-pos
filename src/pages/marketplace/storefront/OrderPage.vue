@@ -309,23 +309,34 @@
                 </q-menu>
               </template>
             </div>
-            <div v-if="delivery?.rider?.id" class="q-mt-xs">
-              <div class="text-subtitle2">Rider</div>
-              <div class="row items-start q-gutter-x-xs">
-                <div style="line-height:1.25;">
-                  <div>{{ delivery?.rider?.firstName }} {{ delivery?.rider?.lastName }}</div>
-                  <div>{{ delivery?.rider?.phoneNumber }}</div>
+            <div v-if="delivery?.rider?.id" class="q-mt-xs row items-start no-wrap">
+              <img
+                v-if="delivery?.rider?.profilePictureUrl"
+                :src="delivery?.rider?.profilePictureUrl"
+                class="rounded-borders q-my-xs q-mr-xs"
+                style="height:3rem;width:3rem;object-position:center;object-fit:cover;"
+                @click="() => openImage(
+                  delivery?.rider?.profilePictureUrl,
+                  delivery?.rider?.fullName || 'Rider',
+                )"
+              />
+              <div class="q-space">
+                <div class="text-subtitle2">Rider</div>
+                <div class="row items-start q-gutter-x-xs">
+                  <div style="line-height:1.25;">
+                    <div>{{ delivery?.rider?.fullName }}</div>
+                    <div>{{ delivery?.rider?.phoneNumber }}</div>
+                  </div>
                 </div>
-                <q-space/>
-                <q-btn
-                  v-if="delivery?.rider?.phoneNumber"
-                  flat
-                  icon="phone"
-                  padding="sm"
-                  class="float-right"
-                  :href="`tel:${delivery?.rider?.phoneNumber}`"
-                />
               </div>
+              <q-btn
+                v-if="delivery?.rider?.phoneNumber"
+                flat
+                icon="phone"
+                padding="sm"
+                class="float-right"
+                :href="`tel:${delivery?.rider?.phoneNumber}`"
+              />
             </div>
             <div v-else class="text-grey">No rider yet</div>
           </q-card-section>
@@ -519,6 +530,7 @@ import ReviewsListPanel from 'src/components/marketplace/reviews/ReviewsListPane
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import riderLocationPin from 'src/assets/marketplace/rider_map_marker_2.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
+import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 
 export default defineComponent({
   name: 'OrderPage',
@@ -1261,6 +1273,17 @@ export default defineComponent({
         .filter(handler => handler !== onNotificationHandler)
     }
 
+    function openImage(img, title) {
+      if (!img) return
+      $q.dialog({
+        component: ImageViewerDialog,
+        componentProps: {
+          image: img,
+          title: title,
+        }
+      })  
+    }
+
     async function refreshPage(done=() => {}) {
       try {
         await Promise.all([
@@ -1354,6 +1377,7 @@ export default defineComponent({
 
       variantInfoDIalog,
       displayVariant,
+      openImage,
 
       refreshPage,
 

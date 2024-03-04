@@ -55,6 +55,12 @@
           <LControl v-if="selected?.id">
             <div class="bg-white text-black q-px-sm text-weight-medium">
               <div class="row items-center">
+                <img
+                  v-if="selected?.profilePictureUrl"
+                  :src="selected?.profilePictureUrl"
+                  class="rounded-borders q-my-xs q-mr-xs"
+                  style="height:3rem;width:3rem;object-position:center;object-fit:cover;"
+                />
                 <span class="text-subtitle1 q-mr-xs">{{ selected?.firstName }} {{ selected?.lastName }}</span>
                 <span class="text-grey">({{ (selected?.distance / 1000).toPrecision(3) }} km)</span>
                 <q-btn
