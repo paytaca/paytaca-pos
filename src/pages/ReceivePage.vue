@@ -283,15 +283,13 @@ export default defineComponent({
     const qrData = computed(() => {
       if (!receiveAmount.value) return ''
       
-      const merchantVaultTokenAddress = vault.value?.tokenAddress
-      const voucherClaimerAddress = vault.value?.receiving?.address
+      const merchantVaultTokenAddress = vault.value?.tokenAddress.split(':')[1]
       const timestamp = Math.floor(Date.now() / 1000)
 
       let paymentUri = receivingAddress
       paymentUri += `?POS=${posId.value}`
       paymentUri += `&amount=${bchValue.value}`
       paymentUri += `&vault=${merchantVaultTokenAddress}`    // recipient of voucher NFT
-      paymentUri += `&merchant=${voucherClaimerAddress}`   // recipient of voucher BCH (always 0th index of merchant wallet)
       paymentUri += `&ts=${timestamp}`
 
       return paymentUri
