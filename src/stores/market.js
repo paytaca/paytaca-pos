@@ -48,12 +48,39 @@ export const useMarketStore = defineStore('market', {
       if (index >= 0) this.bchRates[index] = newRate
       else this.bchRates.push(newRate)
     },
+    refreshBchPrice(currency, opts) {
+      if (!currency) return Promise.reject()
+      if (!Array.isArray(this.bchRates)) return Promise.reject()
+
+      currency = currency.toUpperCase()
+
+      const rate = this.bchRates.find(_rate => _rate?.currency === currency)
+      if (rate?.timestamp && opts?.age && Date.now() - opts?.age <= rate?.timestamp) {
+        return Promise.resolve(rate)
+      }
+
+      return axios.get(`https://watchtower.cash/api/bch-prices`, { params: { currencies: currency }})
+        .catch(() => this.refreshBchPriceOld(currency, opts))
+        .then(response => {
+          const priceData = response?.data?.find?.(result => result?.relative_currency === 'BCH' && result?.currency === currency)
+          if (!priceData) return Promise.reject({ response })
+          const newRate = {
+            currency: priceData?.currency,
+            rate: parseFloat(priceData?.price_value),
+            timestamp: new Date(priceData?.timestamp) * 1,
+          }
+
+          if (!newRate?.rate) return Promise.reject({ response })
+          this.updateBchPrice(newRate)
+          return newRate
+        })
+    },
     /**
      * @param {String} currency 
      * @param {Object} opts 
      * @param {Number} opts.age will skip update when rate timestamp is less than age of 
      */
-    refreshBchPrice(currency, opts) {
+    refreshBchPriceOld(currency, opts) {
       if (!currency) return Promise.reject()
       if (!Array.isArray(this.bchRates)) return Promise.reject()
 
@@ -74,16 +101,18 @@ export const useMarketStore = defineStore('market', {
       }
 
       getUsdRates.map(this.refreshUsdPrice)
-      return axios.get(
-        'https://api.coingecko.com/api/v3/simple/price/',
-        {
-          params: { ids: 'bitcoin-cash', vs_currencies: vsCurrencies.join(',') }
-        }
-      )
+      let url = 'https://api.coingecko.com/api/v3/simple/price/'
+      const headers = {}
+      const params = { ids: 'bitcoin-cash', vs_currencies: vsCurrencies.join(',') }
+      if (process.env.COINGECKO_API_KEY) {
+        url = 'https://pro-api.coingecko.com/api/v3/simple/price/'
+        headers['x-cg-pro-api-key'] = process.env.COINGECKO_API_KEY
+      }
+      return axios.get(url, { headers, params })
         .then(response => {
           const bchRatesData = response?.data?.['bitcoin-cash']
           if (!bchRatesData) return Promise.reject({ response })
-          console.log(bchRatesData)
+
           const newRates = Object.getOwnPropertyNames(bchRatesData).forEach(_currency => {
            const rateValue = bchRatesData[_currency]
            if (!rateValue) return

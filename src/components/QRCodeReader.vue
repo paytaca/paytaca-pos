@@ -57,7 +57,6 @@ export default {
           errorMessage.value = ''
         })
         .catch(error => {
-          console.log('Error:', error)
           if (error.name === 'NotAllowedError') {
             errorMessage.value = 'Permission required to access to camera'
             // this.error = 'Hey! I need access to your camera'

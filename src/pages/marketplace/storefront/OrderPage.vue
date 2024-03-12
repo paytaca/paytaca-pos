@@ -1,0 +1,1397 @@
+<template>
+  <q-page class="q-pa-md q-pb-xl">
+    <q-pull-to-refresh @refresh="refreshPage">
+      <MarketplaceHeader>
+        <template v-slot:title>
+          <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
+          <div class="q-space">
+            <div class="text-h5">Order</div>
+            <div class="text-grey">Storefront</div>
+          </div>
+        </template>
+      </MarketplaceHeader>
+
+      <div class="row items-start no-wrap">
+        <div class="row items-center q-space">
+          <div class="text-h5 q-space">Order #{{ order?.id }}</div>
+          <div v-if="order?.id" style="margin-left:-4px;">
+            <q-chip
+              v-if="!order?.isCancelled"
+              :color="parsePaymentStatusColor(order?.paymentStatus)"
+              class="text-weight-medium text-white"
+              clickable
+              @click="() => showPaymentsDialog = true"
+            >
+              {{ formatOrderStatus(order?.paymentStatus) }}
+            </q-chip>
+            <q-chip :color="parseOrderStatusColor(order?.status)" class="text-weight-medium text-white">
+              {{ formatOrderStatus(order?.status) }}
+            </q-chip>
+          </div>
+        </div>
+        <div>
+          <q-btn flat icon="more_vert" padding="xs" class="q-r-mr-md">
+            <q-menu>
+              <q-item
+                v-if="payments?.length"
+                v-close-popup clickable
+                @click="() => showPaymentsDialog = true"
+              >
+                <q-item-section>
+                  <q-item-label>
+                    View Payments
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-if="order?.totalPayable > 0"
+                v-close-popup clickable
+                @click="() => createPayment()"
+              >
+                <q-item-section>
+                  <q-item-label>
+                    Create Payment
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-close-popup clickable
+                @click="() => openOrderUpdatesDialog = true"
+              >
+                <q-item-section>
+                  <q-item-label>
+                    View edit history
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-separator class="menu-separator"/>
+              <q-item
+                v-if="prevStatus"
+                v-close-popup clickable
+                @click="() => updateStatus({ status: prevStatus, errorMessage:'Unable to revert status'})"
+              >
+                <q-item-section>
+                  <q-item-label class="text-no-wrap">
+                    <template v-if="prevStatus === 'pending'">Unconfirm order</template>
+                    <template v-else-if="prevStatus === 'confirmed'">Revert to confirmed</template>
+                    <template v-else-if="prevStatus === 'preparing'">Revert as preparing</template>
+                    <template v-else>Revert to '{{ formatOrderStatus(prevStatus) }}'</template>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-if="!order?.isCancelled"
+                v-close-popup clickable
+                @click="() => confirmCancelOrder()"
+              >
+                <q-item-section>
+                  <q-item-label class="text-no-wrap">Cancel Order</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-menu>
+          </q-btn>
+        </div>
+      </div>
+      <div v-if="order?.createdAt" class="text-caption text-grey col-12">
+        {{ formatTimestampToText(order?.createdAt) }}
+      </div>
+      <div class="q-mb-md"></div>
+
+      <q-banner
+        v-if="preparationTimeRemaining"
+        rounded
+        :class="[
+          'q-mb-md',
+          preparationTimeLow ? 'bg-red text-white' : '',
+        ]"
+      >
+        <div class="row items-center">
+          <div>
+            <div class="text-caption top">Preparation timer:</div>
+            <div class="text-h5">{{ preparationTimeRemainingText }}</div>
+          </div>
+          <q-icon name="help" size="1.5em">
+            <q-menu class="q-pa-sm">
+              Complete items in the order and set as ready for pickup on or before timer expires
+            </q-menu>
+          </q-icon>
+          <q-space/>
+          <q-btn
+            rounded
+            :outline="preparationTimeLow"
+            no-caps label="Extend time"
+            :color="!preparationTimeLow ? 'brandblue' : undefined"
+            @click="() => extendPreparationTime()"
+          />
+        </div>
+      </q-banner>
+
+      <q-banner v-if="orderDispute?.id" rounded class="q-my-sm">
+        <div class="row items-center justify-between q-gutter-y-sm" style="gap:12px;">
+          <div>
+            <div class="text-subtitle1">
+              Order dispute
+            </div>
+            <div class="text-caption text-grey">Order is currently in dispute</div>
+          </div>
+          <q-btn
+            :outline="!$q.dark.isActive"
+            rounded
+            no-caps
+            :color="disputeButtonOpts.color"
+            padding="1px sm"
+            @click="() => showOrderDisputeDialog()"
+          >
+            Dispute
+            <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
+          </q-btn>
+        </div>
+      </q-banner>
+
+      <q-banner
+        v-if="orderReview?.id"
+        class="q-my-sm q-pa-sm rounded-borders"
+        style="position:relative;" v-ripple
+        @click="() => openOrderReviewDialog = true"
+      >
+        <q-btn
+          v-if="customer?.id === orderReview?.createdByCustomer?.id"
+          flat icon="edit"
+          padding="xs"
+          class="float-right"
+          @click.stop="() => rateOrder()"
+        />
+        <div>Customer review</div>
+        <q-rating
+          readonly
+          max="5"
+          :model-value="orderReview?.rating * (5 / 100)"
+          color="brandblue"
+          icon-half="star_half"
+        />
+        <div v-if="orderReview?.imagesUrls?.length" class="text-caption text-grey top bottom">
+          {{ orderReview?.imagesUrls?.length }} {{ orderReview?.imagesUrls?.length === 1 ? 'image' : 'images' }}
+        </div>
+        <div class="text-grey text-caption ellipsis">
+          {{ orderReview?.text }}
+        </div>
+      </q-banner>
+      <q-dialog v-model="openOrderReviewDialog" position="bottom">
+        <q-card>
+          <q-card-section>
+            <div class="row items-center no-wrap">
+              <div class="text-h5 q-space">Order Review</div>
+              <q-btn flat icon="close" padding="sm" v-close-popup/>
+            </div>
+            <ReviewsListPanel :reviews="[orderReview]"/>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+
+      <div class="row items-center q-gutter-sm q-mb-md">
+        <q-btn
+          v-if="nextStatus"
+          no-caps
+          :label="formatOrderStatus(nextStatus)"
+          :color="parseOrderStatusColor(nextStatus)"
+          class="q-space"
+          @click="() => {
+            nextStatus == 'confirmed'
+            ? confirmOrder()
+            : updateStatus({ status: nextStatus, errorMessage:'Unable to update order' })
+          }"
+        />
+      </div>
+      <q-card class="q-mb-md">
+        <q-card-section class="q-pt-sm">
+          <div class="row items-center q-mb-sm">
+            <div class="text-h6 q-space">Delivery</div>
+            <div class="row items-center">
+              <LeafletMapDialog v-model="showMap" :locations="mapLocations"/>
+              <q-btn
+                flat
+                padding="none"
+                no-caps
+                label="Open Map"
+                class="text-underline"
+                @click="() => showMap = true"
+              />
+              <q-btn
+                v-if="order?.editable"
+                flat
+                icon="edit"
+                padding="xs"
+                class="q-ml-sm"
+                @click="() => openUpdateDeliveryAddressDialog = true"
+              />
+            </div>
+          </div>
+          <div>
+            <q-btn
+              v-if="order?.id && order?.deliveryAddress?.phoneNumber"
+              flat
+              icon="phone"
+              padding="sm"
+              class="float-right"
+              :href="`tel:${order?.deliveryAddress?.phoneNumber}`"
+            />
+            <div>
+              {{ order?.deliveryAddress?.firstName }}
+              {{ order?.deliveryAddress?.lastName }}
+            </div>
+            <div>{{ order?.deliveryAddress?.phoneNumber }}</div>
+            <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
+          </div>
+        </q-card-section>
+        <template v-if="delivery?.id">
+          <q-separator/>
+          <q-card-section class="q-pt-sm">
+            <q-btn v-if="!delivery?.activeRiderId && !delivery?.completedAt && !order?.isCancelled" flat icon="more_vert" padding="xs" class="float-right">
+              <q-menu>
+                <q-list separator>
+                  <q-item
+                    v-if="!delivery?.activeRiderId && !delivery?.completedAt"
+                    clickable v-close-popup
+                    @click="() => searchRiderForDelivery()"
+                  >
+                    <q-item-section>Search for rider</q-item-section>
+                  </q-item>
+                  <q-item
+                    v-if="!delivery?.activeRiderId && delivery?.rider?.id"
+                    clickable v-close-popup
+                    @click="() => assignRider({id: null})"
+                  >
+                    <q-item-section>Unassign rider</q-item-section>
+                  </q-item>
+                  <q-item
+                    clickable v-close-popup
+                    @click="() => setDeliveryPublicity(!delivery.isPublic)"
+                  >
+                    <q-item-section>
+                      <q-item-label>Set {{ delivery?.isPublic ? 'Private' : 'Public' }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+            <div class="float-right q-my-xs">
+              <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.5em" color="green">
+                <q-menu class="q-pa-sm">
+                  Rider has accepted delivery
+                  <span v-if="delivery?.acceptedAt">({{  formatDateRelative(delivery?.acceptedAt) }})</span>
+                </q-menu>
+              </q-icon>
+              <q-icon
+                v-if="delivery?.pickedUpAt || delivery?.deliveredAt"
+                name="delivery_dining"
+                size="2em"
+                :color="delivery?.deliveredAt ? 'green' : 'amber'"
+                class="q-mx-sm"
+              >
+                <q-menu class="q-pa-sm">
+                  <div v-if="delivery.pickedUpAt">
+                    Picked up {{ formatDateRelative(delivery.pickedUpAt) }}
+                  </div>
+                  <div v-if="delivery.deliveredAt">
+                    Delivered {{ formatDateRelative(delivery.deliveredAt) }}
+                  </div>
+                </q-menu>
+              </q-icon>
+            </div>
+            <div class="text-subtitle1">Delivery status</div>
+            <div class="text-caption bottom">
+              Delivery #{{ delivery?.id }}
+              <template v-if="delivery.isPublic === false">
+                <span class="text-grey text-underline">(Private)</span>
+                <q-menu class="q-pa-sm">
+                  Delivery will not be visible to riders when searching deliveries.
+                  Assign a rider or set to public.
+                </q-menu>
+              </template>
+            </div>
+            <div v-if="delivery?.rider?.id" class="q-mt-xs row items-start no-wrap">
+              <img
+                v-if="delivery?.rider?.profilePictureUrl"
+                :src="delivery?.rider?.profilePictureUrl"
+                class="rounded-borders q-my-xs q-mr-xs"
+                style="height:3rem;width:3rem;object-position:center;object-fit:cover;"
+                @click="() => openImage(
+                  delivery?.rider?.profilePictureUrl,
+                  delivery?.rider?.fullName || 'Rider',
+                )"
+              />
+              <div class="q-space">
+                <div class="text-subtitle2">Rider</div>
+                <div class="row items-start q-gutter-x-xs">
+                  <div style="line-height:1.25;">
+                    <div>{{ delivery?.rider?.fullName }}</div>
+                    <div>{{ delivery?.rider?.phoneNumber }}</div>
+                  </div>
+                </div>
+              </div>
+              <q-btn
+                v-if="delivery?.rider?.phoneNumber"
+                flat
+                icon="phone"
+                padding="sm"
+                class="float-right"
+                :href="`tel:${delivery?.rider?.phoneNumber}`"
+              />
+            </div>
+            <div v-else class="text-grey">No rider yet</div>
+          </q-card-section>
+        </template>
+        <template v-else>
+          <q-card-section v-if="order?.id && !order?.isCancelled" class="q-pt-sm">
+            <q-btn
+              no-caps
+              label="Create delivery request"
+              color="brandblue"
+              class="full-width"
+              @click="() => createDeliveryRequest()"
+            />
+          </q-card-section>
+        </template>
+      </q-card>
+
+      <q-card class="q-mb-md">
+        <q-card-section class="q-pb-none q-pt-sm">
+          <div class="row items-center">
+            <div class="text-h6 q-space">Items</div>
+            <q-btn
+              v-if="order?.editable"
+              flat
+              icon="edit"
+              padding="xs"
+              @click="() => openUpdateItemsDialog = true"
+            />
+          </div>
+        </q-card-section>
+        <q-markup-table dense>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="orderItem in order?.items" :key="orderItem?.id">
+              <td class="text-weight-medium" @click="displayVariant(orderItem?.variant)">
+                <div class="row items-center justify-left no-wrap full-width text-left q-my-xs">
+                  <q-img
+                    v-if="orderItem?.variant?.itemImage"
+                    :src="orderItem?.variant?.itemImage"
+                    width="35px"
+                    ratio="1"
+                    class="rounded-borders q-mr-xs"
+                  />
+                  <div class="q-space">
+                    <div class="text-weight-medium">{{ orderItem?.variant?.itemName }}</div>
+                    <div class="text-caption bottom">{{ orderItem?.propertiesText }} </div>
+                  </div>
+                </div>
+              </td>
+              <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
+              <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price }} {{ orderCurrency }}</td>
+              <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price * orderItem?.quantity }} {{ orderCurrency }}</td>
+            </tr>
+          </tbody>
+        </q-markup-table>
+      </q-card>
+
+      <div class="q-px-xs" @click="toggleAmountsDisplay">
+        <div class="row items-start text-subtitle2">
+          <div class="q-space">Subtotal</div>
+          <div v-if="displayBch">{{ orderAmounts.subtotal.bch }} BCH</div>
+          <div v-else>{{ orderAmounts.subtotal.currency }} {{ orderCurrency }}</div>
+        </div>
+
+        <div class="row items-start text-subtitle2">
+          <div class="q-space">Markup</div>
+          <div v-if="displayBch">{{ orderAmounts.markupAmount.bch }} BCH</div>
+          <div v-else>{{ orderAmounts.markupAmount.currency }} {{ orderCurrency }}</div>
+        </div>
+        <div class="row items-start text-subtitle2">
+          <div class="q-space">Delivery fee</div>
+          <div v-if="displayBch">{{ orderAmounts.deliveryFee.bch }} BCH</div>
+          <div v-else>{{ orderAmounts.deliveryFee.currency }} {{ orderCurrency }}</div>
+        </div>
+        <div class="row items-start text-h6">
+          <div class="q-space">Total</div>
+          <div v-if="displayBch">{{ orderAmounts.total.bch }} BCH</div>
+          <div v-else>{{ orderAmounts.total.currency }} {{ orderCurrency }}</div>
+        </div>
+        <template v-if="orderAmounts.totalPaid.currency || orderAmounts.totalPendingPayment.currency">
+          <q-separator/>
+          <div class="row items-start text-body1">
+            <div class="q-space">Total Paid</div>
+            <div v-if="displayBch">{{ orderAmounts.totalPaid.bch || 0 }} BCH</div>
+            <div v-else>{{ orderAmounts.totalPaid.currency || 0 }} {{ orderCurrency }}</div>
+          </div>
+          <div
+            v-if="orderAmounts.totalPendingPayment.currency"
+            class="row items-start text-grey"
+            @click.stop
+          >
+            <div class="q-space">Pending amount</div>
+            <div v-if="displayBch">{{ orderAmounts.totalPendingPayment.bch }} BCH</div>
+            <div v-else>{{ orderAmounts.totalPendingPayment.currency }} {{ orderCurrency }}</div>
+            <q-menu class="q-pa-md">Amount sent by customer but not yet received</q-menu>
+          </div>
+
+          <template v-if="orderAmounts.totalRefunded.currency">
+            <div class="row items-start text-grey">
+              <div class="q-space">Total refunded</div>
+              <div v-if="displayBch">{{ orderAmounts.totalRefunded.bch }} BCH</div>
+              <div v-else>{{ orderAmounts.totalRefunded.currency }} {{ orderCurrency }}</div>
+            </div>
+            <div class="row items-start">
+              <div class="q-space">Net paid</div>
+              <div v-if="displayBch">{{ orderAmounts.netPaid.bch }} BCH</div>
+              <div v-else>{{ orderAmounts.netPaid.currency }} {{ orderCurrency }}</div>
+            </div>
+          </template>
+        </template>
+      </div>
+      <div class="fixed-bottom q-pl-sm q-pb-sm">
+        <OrderChatButton ref="chatButton" :order-id="orderId">
+          <template v-if="orderDispute?.id" v-slot:before-messages>
+            <div class="row item-center q-r-mt-sm q-pb-xs">
+              <q-btn
+                :outline="!$q.dark.isActive"
+                rounded
+                no-caps
+                :color="disputeButtonOpts.color"
+                padding="xs md"
+                @click="() => showOrderDisputeDialog()"
+              >
+                Dispute
+                <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
+              </q-btn>
+            </div>
+            <q-separator/>
+          </template>
+        </OrderChatButton>
+      </div>
+    </q-pull-to-refresh>
+    <OrderPaymentsDialog ref="paymentsDialog" v-model="showPaymentsDialog" :payments="payments" @updated="() => fetchOrder()">
+      <template v-slot:before>
+        <div class="row items-center justify-end">
+          <q-btn
+            flat
+            no-caps label="Add payment"
+            v-close-popup
+            @click="() => createPayment()"
+          />
+        </div>
+      </template>
+    </OrderPaymentsDialog>
+    <VariantInfoDialog v-model="variantInfoDIalog.show" :variant="variantInfoDIalog.variant"/>
+    <UpdateOrderDeliveryAddressFormDialog
+      v-model="openUpdateDeliveryAddressDialog"
+      :order="order"
+      @updated="onUpdateOrderData"
+    />
+    <UpdateOrderItemsFormDialog
+      v-model="openUpdateItemsDialog"
+      :order="order"
+      @updated-items="onUpdateOrderData"
+    />
+    <OrderUpdatesDialog
+      v-model="openOrderUpdatesDialog"
+      :order-id="orderId"
+    />
+  </q-page>
+</template>
+<script>
+import { backend } from 'src/marketplace/backend'
+import { marketplaceRpc } from 'src/marketplace/rpc'
+import { Delivery, Order, OrderDispute, Payment, Review, Rider, Storefront, Variant } from 'src/marketplace/objects'
+import { errorParser, formatOrderStatus, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative } from 'src/marketplace/utils'
+import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useNotificationsStore } from 'src/stores/notifications'
+import { debounce, useQuasar } from 'quasar'
+import { computed, defineComponent, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
+import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
+import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoDialog.vue'
+import CancelReasonFormDailog from 'src/components/marketplace/storefront/CancelReasonFormDailog.vue'
+import SearchDeliveryRiderDialog from 'src/components/marketplace/storefront/SearchDeliveryRiderDialog.vue'
+import LeafletMapDialog from 'src/components/marketplace/LeafletMapDialog.vue'
+import OrderPaymentsDialog from 'src/components/marketplace/storefront/OrderPaymentsDialog.vue'
+import UpdateOrderItemsFormDialog from 'src/components/marketplace/storefront/UpdateOrderItemsFormDialog.vue'
+import UpdateOrderDeliveryAddressFormDialog from 'src/components/marketplace/storefront/UpdateOrderDeliveryAddressFormDialog.vue'
+import OrderUpdatesDialog from 'src/components/marketplace/storefront/OrderUpdatesDialog.vue'
+import OrderChatButton from 'src/components/marketplace/storefront/OrderChatButton.vue'
+import OrderDisputeFormDialog from 'src/components/marketplace/storefront/OrderDisputeFormDialog.vue'
+import ReviewsListPanel from 'src/components/marketplace/reviews/ReviewsListPanel.vue'
+
+import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
+import riderLocationPin from 'src/assets/marketplace/rider_map_marker_2.png'
+import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
+import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
+
+export default defineComponent({
+  name: 'OrderPage',
+  components: {
+    MarketplaceHeader,
+    VariantInfoDialog,
+    LeafletMapDialog,
+    OrderPaymentsDialog,
+    UpdateOrderItemsFormDialog,
+    UpdateOrderDeliveryAddressFormDialog,
+    OrderUpdatesDialog,
+    OrderChatButton,
+    ReviewsListPanel,
+  },
+  props: {
+    orderId: [String, Number]
+  },
+  setup(props) {
+    const $q = useQuasar()
+    window.t = () => $q.dark.toggle()
+    const marketplaceStore = useMarketplaceStore()
+    const notificationsStore = useNotificationsStore()
+
+    /**
+     * @param {import("../../../node_modules/quasar/dist/types/").QDialogOptions} dialogOpts 
+     */
+     async function promiseDialog(dialogOpts) {
+      return new Promise((resolve, reject) => {
+        $q.dialog(dialogOpts)
+          .onOk(resolve)
+          .onDismiss(reject)
+      })
+    }
+
+    onMounted(() => refreshPage())
+    const order = ref(Order.parse())
+    const storefrontId = computed(() => order.value?.storefrontId)
+    function fetchOrder() {
+      return backend.get(`connecta/orders/${props.orderId}/`)
+      .then(response => {
+        order.value = Order.parse(response?.data)
+        return response
+      })
+    }
+    fetchOrder.debounced = debounce(fetchOrder, 500)
+    const orderCurrency = computed(() => order.value?.currency?.symbol)
+    const orderBchPrice = computed(() => order.value?.bchPrice?.price || undefined)
+    const orderAmounts = computed(() => {
+      const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
+      const data = {
+        subtotal: { currency: order.value?.subtotal || 0, bch: 0 },
+        markupAmount: { currency: order.value?.markupAmount || 0, bch: 0 },
+        deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
+        total: { currency: order.value.total, bch: 0 },
+        totalPaid: { currency: parseFloat(order.value?.totalPaid), bch: 0 },
+        totalPendingPayment: { currency: parseFloat(order.value?.totalPendingPayment), bch: 0 },
+        totalRefunded: { currency: parseFloat(order.value?.totalRefunded), bch: 0 },
+        netPaid: { currency: parseFloat(order.value?.netPaid), bch: 0 },
+      }
+
+      if(!isNaN(orderBchPrice.value)) {
+        data.subtotal.bch = parseBch(data.subtotal.currency / orderBchPrice.value)
+        data.markupAmount.bch = parseBch(data.markupAmount.currency / orderBchPrice.value)
+        data.deliveryFee.bch = parseBch(data.deliveryFee.currency / orderBchPrice.value)
+        data.total.bch = parseBch(data.total.currency / orderBchPrice.value)
+        data.totalPaid.bch = parseBch(data.totalPaid.currency / orderBchPrice.value)
+        data.totalPendingPayment.bch = parseBch(data.totalPendingPayment.currency / orderBchPrice.value)
+        data.totalRefunded.bch = parseBch(data.totalRefunded.currency / orderBchPrice.value)
+        data.netPaid.bch = parseBch(data.netPaid.currency / orderBchPrice.value)
+      } else {
+        data.subtotal.bch = null
+        data.markupAmount.bch = null
+        data.deliveryFee.bch = null
+        data.total.bch = null
+        data.totalPaid.bch = null
+        data.totalPendingPayment.bch = null
+        data.totalRefunded.bch = null
+        data.netPaid.bch = null
+      }
+
+      return data
+    })
+
+    const displayBch = ref(false)
+    function toggleAmountsDisplay() {
+      if (isNaN(orderBchPrice.value)) {
+        displayBch.value = false
+        return
+      }
+      displayBch.value = !displayBch.value
+    }
+
+    const storefront = ref(Storefront.parse())
+    watch(storefrontId, () => fetchStorefront())
+    function fetchStorefront() {
+      if (!storefrontId.value) return Promise.reject()
+      if (storefrontId.value == marketplaceStore.storefront?.id) {
+        storefront.value = marketplaceStore.storefront
+        return Promise.resolve()
+      }
+      return backend.get(`connecta/storefronts/${storefrontId.value}/`)
+        .then(response => {
+          storefront.value = Storefront.parse(response?.data)
+          return response
+        })
+    }
+
+    const openOrderUpdatesDialog = ref(false)
+    const openUpdateDeliveryAddressDialog = ref(false)
+    const openUpdateItemsDialog = ref(false)
+    function onUpdateOrderData(orderData) {
+      order.value.raw = orderData
+      openUpdateItemsDialog.value = false
+      openUpdateDeliveryAddressDialog.value = false
+    }
+
+    const chatButton = ref()
+    function openChatDialog() {
+      chatButton.value.openChatDialog = true
+    }
+
+    watch(() => [order.value.preparationDeadline, order.value.status], () => runPreparationTimeCountdown())
+    onActivated(() => runPreparationTimeCountdown())
+    onDeactivated(() => stopPreparationTimeCountdown())
+    onUnmounted(() => stopPreparationTimeCountdown())
+    const preparationTimeCountdownInterval = ref(null)
+    const preparationTimeRemaining = ref(0)    
+    const preparationTimeLow = computed(() => preparationTimeRemaining.value < 300 * 1000)
+    function shouldRunPreparationTimeCountdown() {
+      return ['confirmed', 'preparing'].includes(order.value.status)
+    }
+    const preparationTimeRemainingText = computed(() => {
+      const negative = preparationTimeRemaining.value < 0
+      const seconds = Math.abs(Math.round(preparationTimeRemaining.value / 1000))
+      if (Number.isNaN(seconds)) return ''
+
+      // const days = Math.floor(seconds / (3600 * 24));
+      const hours = Math.floor((seconds % (3600 * 24)) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+      // const milliseconds = Math.floor((seconds - Math.floor(seconds)) * 1000);
+
+      const pad = (value) => (value < 10 ? `0${value}` : `${value}`);
+
+      return `${negative ? '-' : ''}${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
+    })
+    function runPreparationTimeCountdown() {
+      stopPreparationTimeCountdown()
+      if (!shouldRunPreparationTimeCountdown()) return
+      preparationTimeCountdownInterval.value = setInterval(() => {
+        preparationTimeRemaining.value = order.value.preparationDeadline - Date.now()
+      }, 1000)
+    }
+    function stopPreparationTimeCountdown() {
+      clearInterval(preparationTimeCountdownInterval.value)
+      preparationTimeCountdownInterval.value = null
+      preparationTimeRemaining.value = 0
+    }
+    function extendPreparationTime() {
+      $q.dialog({
+        title: 'Preparation time',
+        message: 'Extend preparation time',
+        position: 'bottom',
+        prompt: {
+          model: 5,
+          dense: true,
+          outlined: true,
+          type: 'number',
+          suffix: 'min/s',
+        },
+        ok: { noCaps: true, label: 'Extend', color: 'brandblue' },
+        cancel: { flat: true, noCaps: true, color: 'grey' },
+      }).onOk(value => {
+        const extendMinutes = parseInt(value)
+        if (!extendMinutes) return
+
+        const timestamp = new Date(order.value.preparationDeadline)
+        timestamp.setMinutes(timestamp.getMinutes() + extendMinutes)
+        return updatePreparationDeadline(timestamp)
+      })
+    }
+    function updatePreparationDeadline(timestamp) {
+      const data = { preparation_deadline: timestamp }
+      return backend.patch(`connecta/orders/${props?.orderId}/`, data)
+        .then(response => {
+          order.value.raw = response?.data
+          return response
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          let errorMessage = errorParser.firstElementOrValue(data?.non_field_errors) ||
+                             errorParser.firstElementOrValue(data?.detail)
+          if (!errorMessage && error?.message?.length < 200) errorMessage = error?.message
+          $q.notify({
+            type: 'negative',
+            message: 'Unable to update preparation time',
+            captioN: errorMessage,
+          })
+          return Promise.reject(error)
+        })
+    }
+
+    const orderStatusSequence = [
+      'pending', 'confirmed', 'preparing', 'ready_for_pickup',
+    ]
+    const nextStatus = computed(() => {
+      const index = orderStatusSequence.indexOf(order.value?.status)
+      if (index < 0) return
+      return orderStatusSequence[index+1]
+    })
+    const prevStatus = computed(() => {
+      const index = orderStatusSequence.indexOf(order.value?.status)
+      if (index < 0) return
+      return orderStatusSequence[index-1]
+    })
+
+    function updateStatus(opts={ status: '', errorMessage: '', cancelReason: '', preparationDeadline: 0 }) {
+      const data = {
+        status: opts?.status,
+        cancel_reason: opts?.cancelReason || undefined,
+        preparation_deadline: opts?.preparationDeadline || undefined,
+      }
+      return backend.post(`connecta/orders/${order.value.id}/update_status/`, data)
+        .then(response => {
+          order.value.raw = response?.data
+        })
+        .catch(error => {
+          $q.notify({
+            type: 'negative',
+            message: opts?.errorMessage || 'Unable to update status',
+            caption: error?.response?.data?.detail ||
+                    errorParser.firstElementOrValue(error?.response?.data),
+          })
+        })
+    }
+
+    function confirmOrder() {
+      $q.dialog({
+        title: 'Confirm order',
+        message: 'Set a preparation time for the order',
+        position: 'bottom',
+        prompt: {
+          dense: true,
+          outlined: true,
+          type: 'number',
+          suffix: 'minute/s',
+          color: 'brandblue',
+        },
+        ok: {
+          flat: true,
+          color: 'brandblue',
+        },
+        cancel: {
+          flat: true,
+          color: 'grey',
+          noCaps: true,
+        }
+      }).onOk(duration => {
+        const prepTime = parseInt(duration) * 60 * 1000 // milliseconds
+        if (!prepTime) return
+        let preparationDeadline = new Date(Date.now() + prepTime)
+        updateStatus({
+          status: 'confirmed',
+          errorMessage: 'Unable to confirm order',
+          preparationDeadline: preparationDeadline,
+        })
+      })
+    }
+
+    function confirmCancelOrder() {
+      $q.dialog({
+        title: 'Cancel order',
+        message: 'Cancel order, are you sure?',
+        ok: { color: 'brandblue', flat: true },
+      }).onOk(() => cancelOrder())
+    }
+
+    function cancelOrder() {
+      $q.dialog({
+        component: CancelReasonFormDailog,
+      }).onOk(cancelReason => {
+        updateStatus({
+          status: 'cancelled',
+          errorMessage: 'Unable to cancel order',
+          cancelReason: cancelReason,
+        })
+      })
+    }
+
+    const delivery = ref(Delivery.parse())
+    const fetchingDelivery = ref(false)
+    function fetchDelivery() {
+      if (!props.orderId) return Promise.reject()
+      const params = { order_id: props.orderId }
+
+      fetchingDelivery.value = true
+      return backend.get(`connecta-express/deliveries/`, { params })
+        .then(response => {
+          const data = response?.data?.results?.[0]
+          delivery.value = Delivery.parse(data)
+          return response
+        })
+        .finally(() => {
+          fetchingDelivery.value = false
+        })
+    }
+
+    function createDeliveryRequest() {
+      const data = { order_id: order.value.id }
+      const dialog = $q.dialog({
+        title: 'Delivery request',
+        message: 'Creating delivery request',
+        progress: true,
+        persistent: true,
+        ok: false,
+      })
+
+      return backend.post(`connecta-express/deliveries/`, data)
+        .then(response => {
+          delivery.value = Delivery.parse(response?.data)
+          dialog.hide()
+          return response
+        })
+        .catch(error => {
+          const errorMessage = error?.response?.data?.detail ||
+              errorParser.firstElementOrValue(error?.response?.data?.non_field_errors) ||
+              errorParser.firstElementOrValue(error?.response?.data?.order_id)
+          dialog.update({ message: errorMessage || 'Unable to create delivery request' })
+        })
+        .finally(() => {
+          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+        })
+    }
+
+    function searchRiderForDelivery() {
+      $q.dialog({
+        component: SearchDeliveryRiderDialog,
+        componentProps: { delivery: delivery.value }
+      }).onOk(assignRider)
+    }
+    function assignRider(rider=Rider.parse()) {
+      const riderId = rider?.id
+      if (!riderId && riderId !== null) return Promise.reject('Invalid rider ID')
+      const data = { rider_id: riderId }
+
+      const dialog = $q.dialog({
+        title: 'Delivery request',
+        message: riderId ? 'Assigning rider' : 'Unassigning rider',
+        progress: true, persistent: true,
+        ok: false,
+      })
+      return backend.post(`connecta-express/deliveries/${delivery.value?.id}/assign_rider/`, data)
+        .then(response => {
+          delivery.value = Delivery.parse(response?.data)
+          dialog.hide()
+          return response
+        })
+        .catch(error => {
+          const defaultError = riderId ? 'Unable to assign rider' : 'Unable to unassign rider'
+          const errorMessage = error?.response?.data?.detail ||
+              errorParser.firstElementOrValue(error?.response?.data?.non_field_errors)
+          dialog.update({ message: errorMessage || defaultError })
+        })
+        .finally(() => {
+          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+        })
+    }
+
+    function setDeliveryPublicity(isPublic=false) {
+      const data = { is_public: isPublic }
+      const dialog = $q.dialog({
+        title: 'Updating delivery',
+        message: 'Updating delivery',
+        progress: true, persistent: true,
+        ok: false,
+      })
+      return backend.patch(`connecta-express/deliveries/${delivery.value?.id}/`, data)
+        .then(response => {
+          delivery.value = Delivery.parse(response?.data)
+          dialog.hide()
+          return response
+        })
+        .catch(error => {
+          const errorMessage = error?.response?.data?.detail ||
+              errorParser.firstElementOrValue(error?.response?.data?.non_field_errors) ||
+              errorParser.firstElementOrValue(error?.response?.data?.is_public)
+          dialog.update({ message: errorMessage || defaultError })
+        })
+        .finally(() => {
+          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+        })
+    }
+
+    const trackRiderInterval = ref(null)
+    function stopTrackRider () {
+      clearInterval(trackRiderInterval.value)
+      trackRiderInterval.value = null
+    }
+    function trackRider() {
+      stopTrackRider()
+      updateRiderLocation()
+      trackRiderInterval.value = setInterval(() => updateRiderLocation(), 5 * 1000)
+    }
+    async function updateRiderLocation() {
+      const riderId = delivery.value?.rider?.id
+      const activeRiderId = delivery.value?.activeRiderId
+      if (activeRiderId != riderId) return
+      if (!riderId) return
+      const params = { ids: riderId }
+      const response = await backend.get(`connecta-express/riders/get_locations/`, { params })
+      const currentLocation = response?.data?.results?.[0]?.coordinates
+      if (isNaN(currentLocation?.[0]) || isNaN(currentLocation?.[1])) return
+      delivery.value.rider.currentLocation = [currentLocation[1], currentLocation[0]]
+      delivery.value.rider.currentLocationTimestamp = Date.now()
+    }
+    onUnmounted(() => stopTrackRider())
+
+    const showMap = ref(false)
+    watch(showMap, () => showMap.value ? trackRider() : stopTrackRider())
+    const mapLocations = computed(() => {
+      const data = []
+      if (storefront.value?.location?.validCoordinates) {
+        data.push({
+          popup: ['Pickup location', storefront.value?.location?.formatted].filter(Boolean).join(': '),
+          lat: storefront.value?.location?.latitude,
+          lon: storefront.value?.location?.longitude,
+          icon: {
+            iconUrl: merchantLocationPin,
+            iconSize: [30, 45],
+            iconAnchor: [15, 45],
+            popupAnchor:  [0, -45],
+          },
+        })
+      }
+
+      const deliveryLoc = delivery.value?.deliveryLocation?.validCoordinates
+        ? delivery.value?.deliveryLocation
+        : order.value.deliveryAddress?.location
+
+      if (deliveryLoc?.validCoordinates) {
+        data.push({
+          lat: deliveryLoc?.latitude,
+          lon: deliveryLoc?.longitude,
+          popup: ['Delivery address', deliveryLoc?.formatted].filter(Boolean).join(': '),
+          icon: {
+            iconUrl: customerLocationPin,
+            iconSize: [30, 45],
+            iconAnchor: [15, 45],
+            popupAnchor:  [0, -45],
+          },
+        })
+      }
+
+      const rider = delivery.value?.rider
+      const riderLoc = rider?.currentLocation
+      const riderLocTimestamp = rider?.currentLocationTimestamp
+      if (!isNaN(riderLoc?.[0]) && !isNaN(riderLoc?.[1])) {
+        let timestampText = ''
+        if (!isNaN(riderLocTimestamp)) timestampText = `<br/>${formatDateRelative(riderLocTimestamp)}`
+        const riderName = [rider?.firstName, rider?.lastName].filter(Boolean).join(' ')
+        data.push({
+          popup: [`Rider`, riderName].filter(Boolean).join(': ') + timestampText,
+          lat: riderLoc[0],
+          lon: riderLoc[1],
+          icon: {
+            iconUrl: riderLocationPin,
+            iconSize: [30, 45],
+            iconAnchor: [15, 45],
+            popupAnchor:  [0, -45],
+          },
+        })
+      }
+
+      return data
+    })
+
+    const paymentsDialog = ref()
+    const showPaymentsDialog = ref(false)
+    const payments = ref([].map(Payment.parse))
+    const payment = computed(() => {
+      return payments.value.find(payment => {
+        return payment.status == 'pending' && payment.totalAmount == order.value.totalPayable
+      })
+    })
+    const fetchingPayments = ref(false)
+    function fetchPayments() {
+      const params = {
+        order_id: props?.orderId || null,
+      }
+      fetchingPayments.value = true
+      return backend.get(`connecta/payments/`, { params })
+        .then(response => {
+          if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+          payments.value = response?.data?.results?.map?.(Payment.parse)
+          return response
+        })
+        .finally(() => {
+          fetchingPayments.value = false
+        })
+    }
+
+    function createPayment() {
+      const orderId = order.value.id
+      const data = { order_id: orderId }
+      const dialog = $q.dialog({
+        title: 'Payment',
+        message: 'Creating payment request',
+        progress: true,
+        persistent: true,
+        ok: false,
+      })
+
+      return backend.post(`connecta/orders/${orderId}/payment/`, data)
+        .then(async (response) => {
+          const payment = Payment.parse(response?.data)
+          const index = payments.value.findIndex(_payment => _payment?.id == payment?.id)
+          if (index >= 0) payments.value[index] = payment
+          else payments.value.unshift(payment)
+          await Promise.allSettled([
+            fetchOrder(),
+            fetchPayments(),
+            payment.fetchEscrowContract(),
+          ])
+          dialog.hide()
+          showPaymentsDialog.value = true
+          paymentsDialog.value?.displayPaymentEscrowContract?.(payment)
+          return response
+        })
+        .catch(error => {
+          const errorMessage = error?.response?.data?.detail ||
+              errorParser.firstElementOrValue(error?.response?.data?.non_field_errors) ||
+              errorParser.firstElementOrValue(error?.response?.data?.order_id) ||
+              errorParser.firstElementOrValue(error?.response?.data)
+          dialog.update({
+            title: 'Error',
+            message: errorMessage || 'Unable to create payment request',
+          })
+        })
+        .finally(() => {
+          dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
+        })
+    }
+
+    function onNewPayment() {
+      fetchOrder()
+      fetchPayments()
+      showPaymentsDialog.value = true
+    }
+
+    const orderDispute = ref([].map(OrderDispute.parse)[0])
+    const hasOngoingDispute = computed(() => {
+      if (!orderDispute.value?.id) return order.value?.hasOngoingDispute
+      return !orderDispute.value?.resolvedAt
+    })
+    const disputeButtonOpts = computed(() => {
+      if (orderDispute.value.id) {
+        if (orderDispute.value.resolvedAt) return { color: 'green', icon: 'done' }
+        else return { color: 'red', icon: undefined }
+      }
+      return { color: 'grey', icon: undefined }
+    })
+    function fetchOrderDispute() {
+      return backend.get(`connecta/orders/${props.orderId}/dispute/`)
+        .then(response => {
+          orderDispute.value = OrderDispute.parse(response?.data)
+          return response
+        })
+        .catch(error => {
+          if (error?.response?.status === 404 && error?.response?.data?.detail) {
+            orderDispute.value = undefined
+          }
+          return Promise.reject(error)
+        })
+    }
+    function showOrderDisputeDialog() {
+      if (!orderDispute.value?.id) return
+      $q.dialog({
+        component: OrderDisputeFormDialog,
+        componentProps: {
+          readonly: true,
+          editable: false,
+          orderDispute: orderDispute.value,
+        }
+      })
+        .onOk(result => {
+          if (result?.action === 'submit') createOrUpdateDispute(result?.data)
+          else if (result?.action === 'resolve') resolveDispute(result?.data)
+        })
+    }
+
+    async function resolveDispute(opts = { resolveAction: ''}) {
+      const resolveAction = opts?.resolveAction
+      if (!OrderDispute.resolveActionsList.includes(resolveAction)) return
+      let msg
+      if (resolveAction == OrderDispute.resolveActions.completeOrder) {
+        msg = 'Completing order'
+        if (order.value?.status !== 'delivered') {
+          await promiseDialog({
+            title: 'Resolve dispute',
+            message: 'Order will be set as completed after resolving dispute. Continue?',
+            color: 'brandblue',
+            persistent: true,
+            ok: { noCaps: true, label: 'Complete order', color: 'green', flat: true },
+            cancel: { noCaps: true, label: 'Close', flat: true, color: $q.dark.isActive ? 'white' : 'black' },
+            stackButtons: true,
+          })
+        }
+      } else if (resolveAction == OrderDispute.resolveActions.cancelOrder) {
+        msg = 'Cancelling order'
+        if (order.value?.status !== 'cancelled') {
+          await promiseDialog({
+            title: 'Resolve dispute',
+            message: 'Order will be cancelled after resolving dispute. Continue?',
+            color: 'brandblue',
+            persistent: true,
+            ok: { noCaps: true, label: 'Cancel order', color: 'red', flat: true },
+            cancel: { noCaps: true, label: 'Close', flat: true, color: $q.dark.isActive ? 'white' : 'black' },
+            stackButtons: true,
+          })
+        }
+      }
+
+      const data = { resolve_action: resolveAction }
+      const dialog = $q.dialog({
+        title: 'Resolving dispute',
+        message: msg,
+        progress: true,
+        persistent: true,
+        ok: false,
+        color: 'brandblue',
+      })
+      return backend.post(`connecta/orders/${props.orderId}/dispute/`, data)
+        .then(response => {
+          orderDispute.value = OrderDispute.parse(response?.data)
+          dialog.hide()
+          return response
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          let errorMessage = errorParser.firstElementOrValue(data?.resolve_action) || 
+            errorParser.firstElementOrValue(data?.non_field_errors)
+
+          if (!errorMessage && typeof data?.detail === 'string') errorMessage = data?.detail
+          if (!errorMessage && typeof error?.message === 'string' && error?.message?.length < 250) {
+            errorMessage = error?.message
+          }
+          console.log('errorMessage', errorMessage)
+
+          dialog.update({
+            title: 'Resolve dispute error',
+            message: errorMessage || 'Unknown error occurred',
+          })
+          return Promise.reject(error)
+        })
+        .finally(() => {
+          dialog.update({ progress: false, persistent: false, ok: true })
+        })
+    }
+
+    const openOrderReviewDialog = ref(false)
+    watch(() => [order.value?.id, order.value?.customer?.id], () => fetchOrderReview())
+    const orderReview = ref([].map(Review.parse)[0])
+    function fetchOrderReview() {
+      if (!order.value?.id || !order.value?.customer?.id) {
+        orderReview.value = null
+        return Promise.resolve()
+      }
+      const params = {
+        order_id: order.value?.id || 0,
+        created_by_customer_id: order.value?.customer?.id || 0,
+        limit: 1,
+      }
+
+      return backend.get(`reviews/`, { params })
+        .then(response => {
+          const orderReviewObj = Review.parse(response?.data?.results?.[0])
+          orderReview.value = orderReviewObj?.id ? orderReviewObj : null
+          return response
+        })
+    }
+
+    const variantInfoDIalog = ref({ show: false, variant: Variant.parse() })
+    function displayVariant(variant = Variant.parse()) {
+      variantInfoDIalog.value.variant = variant
+      variantInfoDIalog.value.show = true
+    }
+
+
+    const rpcEventNames = Object.freeze({
+      orderUpdate: 'order_updates',
+      paymentUpdate: 'payment_updates',
+    })
+
+    onMounted(() => {
+      if(marketplaceRpc.client.onOpenHandlers.includes(subscribeUpdatesToRpc)) return
+      marketplaceRpc.client.onOpen(subscribeUpdatesToRpc)
+    })
+    onUnmounted(() => {
+      marketplaceRpc.client.onOpenHandlers = marketplaceRpc.client.onOpenHandlers
+        .filter(handler => handler !== subscribeUpdatesToRpc)
+    })
+    
+    const onNotificationHandler = notification  => {
+      const eventName = notification?.event
+      const data = notification?.data
+      if (eventName === rpcEventNames.orderUpdate) {
+        if (data?.id != props.orderId) return console.log('Not matching id')
+        fetchOrder.debounced()
+        if (typeof data?.has_ongoing_dispute === 'boolean') fetchOrderDispute()
+      }
+      if (eventName === rpcEventNames.paymentUpdate) {
+        if (data?.order_id != props.orderId) return
+        if (data?.status) fetchOrder.debounced()
+        fetchPayments()
+      }
+    }
+   
+    watch(() => [props.orderId], () => {
+      unsubscribeUpdatesToRpc().finally(() => subscribeUpdatesToRpc())
+    })
+    onMounted(() => subscribeUpdatesToRpc())
+    onUnmounted(() => unsubscribeUpdatesToRpc())
+    onActivated(() => subscribeUpdatesToRpc())
+    onDeactivated(() => unsubscribeUpdatesToRpc())
+    async function subscribeUpdatesToRpc() {
+      if (!marketplaceRpc.isConnected()) await marketplaceRpc.connect()
+      marketplaceRpc.client.call('subscribe', [rpcEventNames.orderUpdate, { id: parseInt(props.orderId) }])
+      marketplaceRpc.client.call('subscribe', [rpcEventNames.paymentUpdate, { order_id: parseInt(props.orderId) }])
+
+      if (!marketplaceRpc.client.onNotification.includes(onNotificationHandler)) {
+        marketplaceRpc.client.onNotification.push(onNotificationHandler)
+      }
+    }
+
+    async function unsubscribeUpdatesToRpc() {
+      if (!marketplaceRpc.isConnected()) return
+      marketplaceRpc.client.call('unsubscribe', [rpcEventNames.orderUpdate])
+      marketplaceRpc.client.call('unsubscribe', [rpcEventNames.paymentUpdate])
+      marketplaceRpc.client.onNotification = marketplaceRpc.client.onNotification
+        .filter(handler => handler !== onNotificationHandler)
+    }
+
+    function openImage(img, title) {
+      if (!img) return
+      $q.dialog({
+        component: ImageViewerDialog,
+        componentProps: {
+          image: img,
+          title: title,
+        }
+      })  
+    }
+
+    async function refreshPage(done=() => {}) {
+      try {
+        await Promise.all([
+          fetchOrder(),
+          fetchOrderDispute(),
+          fetchDelivery(),
+          fetchPayments(),
+          chatButton.value?.refresh(),
+        ])
+      } finally {
+        done()
+      }
+    }
+
+    onMounted(() => handleOpenedNotification())
+    function handleOpenedNotification() {
+      const openedNotification = notificationsStore.openedNotification
+      const notificationTypes = notificationsStore.types
+      const openContractTypes = [
+        notificationTypes.MARKETPLACE_ORDER_CREATE,
+        notificationTypes.MARKETPLACE_ORDER_STATUS_UPDATE,
+      ]
+
+      if (openContractTypes.includes(openedNotification?.data?.type)) {
+        const orderId = openedNotification?.data?.order_id
+        if (parseInt(props.orderId) == parseInt(orderId)) {
+          notificationsStore.clearOpenedNotification()
+        }
+      } else if (notificationTypes.MARKETPLACE_CHAT_UNREAD_MESSAGES == openedNotification?.data?.type) {
+        openChatDialog()
+        notificationsStore.clearOpenedNotification()
+      }
+    }
+
+    return {
+      order,
+      fetchOrder,
+      orderCurrency,
+      orderBchPrice,
+      orderAmounts,
+      displayBch,
+      toggleAmountsDisplay,
+      storefront,
+
+      openOrderUpdatesDialog,
+      openUpdateDeliveryAddressDialog,
+      openUpdateItemsDialog,
+      onUpdateOrderData,
+
+      chatButton,
+
+      nextStatus,
+      prevStatus,
+
+      preparationTimeRemaining,
+      preparationTimeLow,
+      preparationTimeRemainingText,
+      extendPreparationTime,
+      updatePreparationDeadline,
+
+      updateStatus,
+      confirmOrder,
+      confirmCancelOrder,
+
+      delivery,
+      fetchingDelivery,
+      createDeliveryRequest,
+      searchRiderForDelivery,
+      assignRider,
+      setDeliveryPublicity,
+
+      showMap,
+      mapLocations,
+
+      paymentsDialog,
+      showPaymentsDialog,
+      payments,
+      payment,
+      fetchingPayments,
+      fetchPayments,
+      createPayment,
+      onNewPayment,
+
+      orderDispute,
+      hasOngoingDispute,
+      disputeButtonOpts,
+      showOrderDisputeDialog,
+
+      openOrderReviewDialog,
+      orderReview,
+
+      variantInfoDIalog,
+      displayVariant,
+      openImage,
+
+      refreshPage,
+
+      // utils funcs
+      formatOrderStatus, parseOrderStatusColor,
+      parsePaymentStatusColor,
+      formatTimestampToText,
+      formatDateRelative,
+    }
+  },
+})
+</script>
+<style lang="scss" scoped>
+.menu-separator:first-child, .menu-separator:last-child {
+  display: none;
+}
+</style>

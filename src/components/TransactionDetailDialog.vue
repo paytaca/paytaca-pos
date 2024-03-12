@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide">
+  <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide">
     <q-card style="min-width:300px;">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm"> Transaction </div>
@@ -61,6 +61,12 @@
         </q-item>
         <q-item v-if="transaction?.txid" clickable v-ripple @click="copyToClipboard(transaction?.txid)" style="overflow-wrap: anywhere;">
           <q-item-section>
+            <q-item-label caption class="text-grey">Reference ID</q-item-label>
+            <q-item-label>{{ transaction?.txid.substring(0, 6).toUpperCase() }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item v-if="transaction?.txid" clickable v-ripple @click="copyToClipboard(transaction?.txid)" style="overflow-wrap: anywhere;">
+          <q-item-section>
             <q-item-label caption class="text-grey">Transaction ID</q-item-label>
             <q-item-label>{{ transaction?.txid }}</q-item-label>
           </q-item-section>
@@ -87,6 +93,12 @@
             <q-item-label >{{ transaction?.tx_fee / (10**8) }} BCH</q-item-label>
           </q-item-section>
         </q-item>
+        <q-item v-if="commerceHubSalesOrderId" v-ripple clickable @click="() => displayCommerceHubSalesOrder()">
+          <q-item-section>
+            <q-item-label caption class="text-grey">Sale</q-item-label>
+            <q-item-label class="text-underline">View Info</q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item v-if="transaction?.txid" clickable>
           <q-item-section>
             <q-item-label class="text-gray" caption>Explorer Link</q-item-label>
@@ -106,20 +118,26 @@
   </q-dialog>
 </template>
 <script>
-import { useDialogPluginComponent } from 'quasar'
-import { defineComponent, ref } from 'vue'
+import { SalesOrder } from 'src/marketplace/objects'
+import { resolveTransactionSalesOrderId } from 'src/marketplace/utils'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { computed, defineComponent, ref, watch } from 'vue'
 import { useWalletStore } from 'src/stores/wallet'
+import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
 
 const walletStore = useWalletStore()
 
 export default defineComponent({
   name: 'TransactionDetailDialog',
   emits: [
+    'update:model-value',
+
     // REQUIRED; need to specify some events that your
     // component will emit through useDialogPluginComponent()
     ...useDialogPluginComponent.emits
   ],
   props: {
+    modelValue: Boolean,
     transaction: Object,
   },
   computed: {
@@ -177,13 +195,37 @@ export default defineComponent({
   setup(props, ctx, ) {
     // dialog plugins requirement
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+    const $q = useQuasar()
+
+    const innerVal = ref(props.modelValue)
+    watch(innerVal, () => ctx.emit('update:model-value', innerVal.value))
+    watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
 
     const actionMap = ref({ incoming: 'RECEIVED', outgoing: 'SENT'})
     const iconMap = ref({ incoming: 'arrow_downward', outgoing: 'arrow_upward'})
+
+    const salesOrder = ref(SalesOrder.parse())
+    const commerceHubSalesOrderId = computed(() => resolveTransactionSalesOrderId(props.transaction))
+    function displayCommerceHubSalesOrder() {
+      if (salesOrder.value.id != commerceHubSalesOrderId.value) {
+        salesOrder.value = SalesOrder.parse({ id: commerceHubSalesOrderId.value })
+        salesOrder.value.refetch()
+      }
+
+      $q.dialog({
+        component: SalesOrderDetailDialog,
+        componentProps: { salesOrder: salesOrder.value },
+      })
+    }
+
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
+      innerVal,
       actionMap,
       iconMap,
+
+      commerceHubSalesOrderId,
+      displayCommerceHubSalesOrder,
     }
   },
 })

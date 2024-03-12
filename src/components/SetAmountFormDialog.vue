@@ -1,9 +1,9 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" no-refocus position="bottom">
     <q-card class="q-dialog-plugin">
-      <q-form @submit="onDialogOK(amount)">
+      <q-form @submit="onDialogOK({ amount })">
         <q-card-section>
-          <div class="text-h5 q-mb-md">{{ title || 'Set amount' }}</div>
+          <div class="text-h5 q-mb-md">Set Amount</div>
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
           </div>
@@ -25,25 +25,17 @@
             />
           </div>
         </q-card-section>
+
         <q-card-actions class="row items-center justify-around q-gutter-x-md">
-          <q-btn
-            outline
-            no-caps
-            size="1rem"
-            padding="sm md"
-            color="grey"
-            label="Cancel"
-            class="q-space"
-            @click="onDialogCancel"
-          />
           <q-btn
             no-caps
             color="brandblue"
             size="1rem"
             padding="sm md"
-            label="Set amount"
+            label="Show Payment QR"
             class="q-space"
             type="submit"
+            icon="mdi-qrcode"
           />
         </q-card-actions>
       </q-form>
@@ -51,7 +43,7 @@
   </q-dialog>
 </template>
 <script>
-import { computed, defineComponent, ref } from 'vue'
+import { computed, defineComponent, ref, watch } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 
 
@@ -77,14 +69,13 @@ export default defineComponent({
     })
     const currencyOpts = computed(() => {
       const initialCurrency = props?.initialValue?.currency
-      let opts = ['BCH', 'PHP']
+      let opts = ['BCH']
       if (Array.isArray(props.currencies)) opts = [...props.currencies]
       if (initialCurrency && opts.indexOf(initialCurrency) < 0) {
         opts.unshift(initialCurrency)
       }
       return opts
     })
-    
     
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,

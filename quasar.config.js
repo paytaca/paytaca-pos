@@ -27,7 +27,9 @@ module.exports = configure(function (ctx) {
     // https://v2.quasar.dev/quasar-cli-webpack/boot-files
     boot: [
       'clipboard',
+      'leaflet',
       'network-detect',
+      'push-notifications',
       'qrcodereader',
       'websocket'
     ],
@@ -95,6 +97,13 @@ module.exports = configure(function (ctx) {
         const nodePolyfillWebpackPlugin = require('node-polyfill-webpack-plugin')
           chain.plugin('node-polyfill').use(nodePolyfillWebpackPlugin)
           chain.resolve.alias.set('fs', require.resolve('browserfs'))
+        
+        chain.module
+          .rule('raw')
+          .test(/\.cash$/)
+          .use('raw-loader')
+          .loader('raw-loader')
+          .end()
       }
       
     },
@@ -126,6 +135,7 @@ module.exports = configure(function (ctx) {
       plugins: [
         'Notify',
         'Dialog',
+        'Loading',
       ]
     },
 

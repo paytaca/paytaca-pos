@@ -49,7 +49,7 @@ import { aes, getPubkeyAt } from 'src/wallet/utils'
 import QRCodeReader from 'src/components/QRCodeReader.vue';
 import { Device } from '@capacitor/device'
 import { defineComponent, onMounted, ref } from 'vue'
-import { useQuasar } from 'quasar' 
+import { useQuasar } from 'quasar'
 
 export default defineComponent({
   components: {
@@ -103,7 +103,6 @@ export default defineComponent({
     }
 
     function onQrError (error) {
-      console.log(error)
       toggleQrScanner()
       $q.notify({
         message: 'QR Scanner error',
@@ -144,11 +143,12 @@ export default defineComponent({
           dialog.update({ title: 'Link device error', message: 'Unable to decode QR data' })
           return { skip: true }
         })
+        // encryptedData = xpubkey
         .then(async (qrCodeData) => {
           if (qrCodeData?.skip) return { skip: true }
           dialog.update({ message: 'Retrieving link code data' })
           const response = await watchtower.BCH._api.get(`paytacapos/devices/link_code_data/`, { params: { code: qrCodeData.code } })
-          return { qrCodeData, encryptedXpubkey: response?.data }
+          return { qrCodeData, encryptedData: response?.data }
         })
         .catch(error => {
           console.error(error)
@@ -157,15 +157,17 @@ export default defineComponent({
           dialog.update({ title: 'Link device error', message: message })
           return { skip: true }
         })
-        .then(({ skip, qrCodeData, encryptedXpubkey }) => {
+        .then(({ skip, qrCodeData, encryptedData }) => {
           if (skip) return { skip }
           dialog.update({ message: 'Decrypting xpubkey' })
-          const decryptedData = aes.decrypt(
-            encryptedXpubkey, qrCodeData.decryptKey.password, qrCodeData.decryptKey.iv)
 
-          const xpubkey = decryptedData.split('@')[0]
+          let xpubkey = aes.decrypt(
+            encryptedData,
+            qrCodeData.decryptKey.password,
+            qrCodeData.decryptKey.iv
+          )
 
-          return { qrCodeData, encryptedXpubkey, xpubkey }
+          return { qrCodeData, encryptedData, xpubkey }
         })
         .catch(error => {
           console.error(error)
@@ -206,7 +208,6 @@ export default defineComponent({
             os: deviceInfo?.operatingSystem,
             device_id: deviceInfo?.uuid,
           }
-          console.log(data)
           const response = await watchtower.BCH._api.post('paytacapos/devices/redeem_link_device_code/', data)
           walletStore.$patch((walletStoreState) => {
             if (response?.data?.wallet_hash) {

@@ -2,11 +2,12 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card class="q-dialog-plugin">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
-        <div class="text-h5 q-space q-mt-sm"> Received </div>
+        <div class="text-h5 text-brandblue q-space q-mt-sm"> Received </div>
         <q-btn
           flat
           padding="sm"
           icon="close"
+          class="text-brandblue"
           v-close-popup
         />
       </div>
@@ -22,9 +23,13 @@
             {{ marketValue }} {{ marketValueCurrency }}
           </div>
         </div>
+        <div class="text-grey text-center" style="margin-bottom:-0.5em;">Reference ID</div>
+        <p class="text-center" style="font-size: 22px; margin-top: 7px;">
+          {{ txid.substring(0, 6).toUpperCase() }}
+        </p>
 
-        <div class="text-grey" style="margin-bottom:-0.5em;">Transaction ID</div>
-        <div class="row items-center no-wrap text-subtitle1">
+        <div class="text-grey text-center" style="margin-bottom:-0.5em;">Transaction ID</div>
+        <div class="row items-center no-wrap text-subtitle1" style="margin-top: 7px;">
           <div class="ellipsis">{{txid}}</div>
           <div class="row no-wrap">
             <q-btn
@@ -42,6 +47,7 @@
             />
           </div>
         </div>
+        <!--
         <q-separator class="q-my-md"/>
         <div class="q-mt-sm">
           <q-btn
@@ -49,16 +55,17 @@
             label="Okay"
             color="brandblue"
             class="full-width"
-            @click="onDialogOK()"
+            @click="onOk()"
           />
         </div>
+        -->
       </q-card-section>
     </q-card>
   </q-dialog>
 </template>
 <script>
 import { defineComponent } from 'vue'
-import { useDialogPluginComponent } from 'quasar'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
 
 export default defineComponent({
   name: 'ReceiveUpdateDialog',
@@ -75,6 +82,7 @@ export default defineComponent({
     marketValue: [String, Number],
     marketValueCurrency: String,
     logo: [String, null],
+    expectedAmount: [String, Number],
   },
   methods: {
     copyText(value, message='Copied address') {
@@ -90,11 +98,33 @@ export default defineComponent({
         .catch(() => {})
     }
   },
-  setup() {
+  setup(props) {
+    const $q = useQuasar()
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+
+    function onOk() {
+      if (!props.expectedAmount) return onDialogOK()
+
+      const expectedAmount = parseFloat(props.expectedAmount)
+      const amount = parseFloat(props?.amount)
+      const errorAmount = Math.abs(expectedAmount - amount)
+      const allowedErrorAmount = 1000 / 10 ** 8
+      if (errorAmount > allowedErrorAmount ) {
+        $q.dialog({
+          title: 'Amount does not match',
+          message: 'Amount does not match with expected amount. Continue?',
+          ok: { color: 'brandblue' },
+          cancel: true,
+        }).onOk(() => onDialogOK())
+          .onDismiss(() => onDialogHide())
+      } else {
+        onDialogOK()
+      }
+    }
 
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
+      onOk,
     }
   },
 })

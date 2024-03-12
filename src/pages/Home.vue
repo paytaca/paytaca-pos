@@ -24,6 +24,9 @@
         <SalesReportCard title="Last 7 days" :sales-report="walletStore.salesReportSummary.last7Days" class="col-5"/>
         <SalesReportCard title="This month" :sales-report="walletStore.salesReportSummary.lastMonth" class="col-5"/>
       </div>
+
+      <MarketplaceWidget class="q-mx-md q-mt-md"/>
+
       <q-card class="q-mx-md q-mt-md home-transactions-list-container" style="border-radius:25px;">
         <q-card-section class="text-h6">
           Transactions
@@ -58,6 +61,7 @@ import { useWalletStore } from 'stores/wallet'
 import { defineAsyncComponent } from 'vue'
 import { defineComponent, markRaw, nextTick, onMounted, ref, watch } from 'vue'
 import MainFooter from 'src/components/MainFooter.vue'
+import MarketplaceWidget from 'src/components/marketplace/MarketplaceWidget.vue'
 import { paymentUriHasMatch, findMatchingPaymentLink } from 'src/wallet/utils'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useQuasar } from 'quasar'
@@ -71,6 +75,7 @@ export default defineComponent({
     SalesReportCard: defineAsyncComponent(() => import('src/components/SalesReportCard.vue')),
     TransactionsList: defineAsyncComponent(() => import('src/components/TransactionsList.vue')),
     WalletLink: defineAsyncComponent(() => import('src/components/WalletLink.vue')),
+    MarketplaceWidget,
     MainFooter,
   },
   props: {
@@ -114,8 +119,6 @@ export default defineComponent({
     watch(() => [walletStore.walletHash, walletStore.posId], () => fetchTransactions())
 
     async function searchUnconfirmedPaymentsTransaction() {
-      console.log("Finding transaction of unconfirmed payments")
-      console.log(txCacheStore.unconfirmedTxsFromQrData)
       txCacheStore.unconfirmedTxsFromQrData.forEach(async (qrData) => {
           let hasMatch = false
 
