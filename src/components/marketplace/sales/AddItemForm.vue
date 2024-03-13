@@ -93,6 +93,7 @@
       label="Cost price"
       :suffix="marketplaceStore?.currency"
       type="number"
+      step="0.001"
       :placeholder="formData?.variant?.price ? `Price: ${formData?.variant?.price}`: ''"
       v-model.number="formData.costPrice"
       bottom-slots

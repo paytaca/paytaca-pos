@@ -69,7 +69,11 @@ export default defineComponent({
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
 
     onMounted(() => fetchReviews())
-    watch(() => [props?.productId, props?.orderId], () => fetchReviews())
+    watch(() => [props?.productId, props?.orderId], () => {
+      reviews.value = []
+      reviewsPagination.value = { count: 0, limit: 0, offset: 0 }
+      fetchReviews()
+    })
 
     const fetchingReviews = ref(false)
     const reviewsPagination = ref({ count: 0, limit: 0, offset: 0})
