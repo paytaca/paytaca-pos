@@ -53,8 +53,12 @@ export class Vault {
 
   async claim ({ category, voucherClaimerAddress }) {
     const contract = this.getContract()
-    const utxos = await this.provider.getUtxos(contract.address)
-    const voucherUtxos = utxos.filter(utxo => utxo?.token?.category === category)
+    let voucherUtxos = []
+    
+    while (voucherUtxos.length !== 2) {
+      const utxos = await this.provider.getUtxos(contract.address)
+      voucherUtxos = utxos.filter(utxo => utxo?.token?.category === category)
+    }
 
     if (voucherUtxos.length === 0) throw new Error(`No category ${category} utxos found`)
 
