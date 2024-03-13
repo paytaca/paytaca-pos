@@ -549,7 +549,9 @@ export default defineComponent({
     function displayReceivedTransaction (data) {
       if (data?.voucher) return
 
-      transactionsReceived.value.push(data)
+      if(!transactionsReceived.value?.includes?.(data)) {
+        transactionsReceived.value?.push?.(data)
+      }
 
       console.log('transactions received: ', transactionsReceived.value)
 
