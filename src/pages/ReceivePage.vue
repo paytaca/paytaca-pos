@@ -594,13 +594,15 @@ export default defineComponent({
 
     onBeforeRouteLeave(async (to, from, next) => {
       if (!qrData.value || !promptOnLeave.value) return next()
-      if (promptOnLeave.value) {
+      const isPaid = remainingPaymentRounded.value < 1000 / 1e8 // provide margin
+      if (promptOnLeave.value && !isPaid) {
         const proceed = await new Promise((resolve) => {
           $q.dialog({
             title: 'Leave Page',
             message: 'Are you sure you want to leave this page without receiving a payment?',
             cancel: true,
             ok: true,
+            color: 'brandblue',
           }).onOk(() => resolve(true)).onDismiss(() => resolve(false))
         })
         return next(proceed)
