@@ -109,6 +109,28 @@
             </div>
           </q-td>
         </template>
+        <template v-slot:body-cell-reviews="props">
+          <q-td :props="props" @click="() => toggleProductSelection(props.row)">
+            <div
+              style="position:relative;" v-ripple
+              @click.stop="() => props?.row?.reviewSummary?.count ? openProductReviewsDialog(props?.row) : undefined"
+            >
+              <q-rating
+                v-if="Number.isFinite(props?.row?.reviewSummary?.averageRating)"
+                readonly
+                max="5"
+                icon-half="star_half"
+                :model-value="props?.row?.reviewSummary?.averageRating * (5 / 100)"
+                color="brandblue"
+                class="no-wrap"
+              />
+              <div class="text-caption bottom">
+                {{ props?.row?.reviewSummary?.count }}
+                {{ props?.row?.reviewSummary?.count === 1 ? 'review' : 'reviews' }}
+              </div>
+            </div>
+          </q-td>
+        </template>
         <template v-slot:body-cell-actions="props">
           <q-td :props="props">
             <q-btn flat icon="more_vert" padding="sm">
@@ -171,6 +193,10 @@
         </q-btn>
       </template>
     </ProductInventoryDialog>
+    <ReviewsListDialog
+      v-model="reviewsListDialog.show"
+      :productId="reviewsListDialog?.product?.id"
+    />
   </q-page>
 </template>
 <script>
@@ -180,14 +206,16 @@ import { Product } from 'src/marketplace/objects'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
 import { defineComponent, onMounted, ref, watch } from 'vue'
-import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import ProductInventoryDialog from 'src/components/marketplace/inventory/ProductInventoryDialog.vue'
+import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue';
+import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 
 export default defineComponent({
   name: 'ProductsPage',
   components: {
     ProductInventoryDialog,
+    ReviewsListDialog,
     LimitOffsetPagination,
     MarketplaceHeader,
   },
@@ -271,6 +299,7 @@ export default defineComponent({
     const table = ref()
     const productsTableColumns = [
       { name: 'product', align: 'left', label: 'Product', field: 'name', sortable: true },
+      { name: 'reviews', align: 'left', label: 'Reviews' },
       { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks', sortable: true },
       { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText, sortable: true },
       // { name: 'actions', align: 'center', label: '' },
@@ -301,6 +330,12 @@ export default defineComponent({
       productDetailDialog.value.show = true
     }
 
+    const reviewsListDialog = ref({ show: false, product: Product.parse() })
+    function openProductReviewsDialog(product=Product.parse()) {
+      reviewsListDialog.value.product = product
+      reviewsListDialog.value.show = true
+    }
+
     async function refreshPage(done){
       try {
         await Promise.all([
@@ -326,6 +361,8 @@ export default defineComponent({
       productsTableState,
       productDetailDialog,
       viewProductDetail,
+      reviewsListDialog,
+      openProductReviewsDialog,
 
       refreshPage,
     }

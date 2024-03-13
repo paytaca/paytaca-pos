@@ -193,6 +193,7 @@
                 v-if="Number.isFinite(props?.row?.reviewSummary?.averageRating)"
                 readonly
                 max="5"
+                icon-half="star_half"
                 :model-value="props?.row?.reviewSummary?.averageRating * (5 / 100)"
                 color="brandblue"
                 class="no-wrap"
