@@ -1,39 +1,32 @@
 <template>
   <q-form ref="form" @submit="onSubmit">
-    <div v-if="formData?.profilePicture" class="row items-center justify-center q-mb-sm">
-      <img
-        :src="formData.profilePicture?.objectUrl || formData?.profilePicture"
-        style="max-height:200px;max-width:100%;object-fit: contain;"
+    <PhotoSelector v-model="formData.profilePicture" v-slot="{ selectPhoto }">
+      <div v-if="formData?.profilePicture" class="row items-center justify-center q-mb-sm">
+        <img
+          :src="formData.profilePicture?.objectUrl || formData?.profilePicture"
+          style="max-height:200px;max-width:100%;object-fit: contain;"
+        />
+        <q-menu touch-position>
+          <q-item clickable v-close-popup @click="() => formData.profilePicture = ''">
+            <q-item-section>
+              <q-item-label>Remove image</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="selectPhoto">
+            <q-item-section>
+              <q-item-label>Replace image</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-menu>
+      </div>
+      <q-btn
+        v-else
+        flat
+        no-caps label="Select image"
+        class="q-mb-sm"
+        @click="selectPhoto"
       />
-      <q-menu touch-position>
-        <q-item clickable v-close-popup @click="() => formData.profilePicture = ''">
-          <q-item-section>
-            <q-item-label>Remove image</q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable v-close-popup @click="selectProfilePicture">
-          <q-item-section>
-            <q-item-label>Replace image</q-item-label>
-          </q-item-section>
-        </q-item>
-      </q-menu>
-    </div>
-    <q-btn
-      v-else
-      flat
-      no-caps label="Select image"
-      class="q-mb-sm"
-      @click="selectProfilePicture"
-    />
-    <q-file
-      v-if="(typeof formData.profilePicture !== 'string')"
-      v-show="false"
-      ref="fileAttachmentField"
-      borderless
-      v-model="formData.profilePicture"
-      :filter="files => files.filter(file => file.type?.match(/image\/.*/))"
-      @update="() => resizeProfilePicture()"
-    />
+    </PhotoSelector>
     <q-input
       dense
       outlined
@@ -87,14 +80,16 @@
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
-import { base64ImageToFile, dataUrlToFile, resizeImage } from 'src/marketplace/chat/attachment'
 import { errorParser } from 'src/marketplace/utils'
-import { Camera } from '@capacitor/camera'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { defineComponent, onMounted, ref, watch } from 'vue'
+import PhotoSelector from 'src/components/marketplace/PhotoSelector.vue'
 
 export default defineComponent({
   name: 'UserProfileForm',
+  components: {
+    PhotoSelector,
+  },
   emits: [
     'submit',
     'updated',
@@ -120,10 +115,6 @@ export default defineComponent({
       lastName: '',
       email: '',
       phoneNumber: '',
-    })
-    watch(() => formData.value.profilePicture, (newVal, oldVal) => {
-      if (oldVal instanceof File) URL.revokeObjectURL(oldVal)
-      if (newVal instanceof File) newVal.objectUrl = URL.createObjectURL(newVal)
     })
 
     function resetFormData() {
@@ -152,76 +143,6 @@ export default defineComponent({
     const formErrors = ref(emptyFormErrors())
     function clearFormErrors() {
       formErrors.value = emptyFormErrors()
-    }
-
-    const fileAttachmentField = ref()
-    function openFileAttachementField(evt) {
-      fileAttachmentField.value?.pickFiles?.(evt)
-    }
-
-    async function resizeProfilePicture() {
-      const isFile = formData.value.profilePicture instanceof File
-      if (!isFile) return
-      formData.value.profilePicture = await resizeImage({
-        file: formData.value.profilePicture,
-        maxWidthHeight: 640, // based on recommended dimensions for mobile
-      })
-    }
-
-    async function checkOrRequestCameraPermissions() {
-      let permission = await Camera.checkPermissions()
-      const promptStatuses = ['prompt','prompt-with-rationale', 'limited']
-      const request = promptStatuses.includes(permission.photos) || promptStatuses.includes(permission.camera)
-      if (request) permission = await Camera.requestPermissions()
-      return {
-        camera: permission.camera === 'granted',
-        photos: permission.photos === 'photos',
-      }
-    }
-
-    async function getPhotoFromCamera() {
-      const granted = await checkOrRequestCameraPermissions()
-      if (!granted.camera && !granted.photos) {
-        $q.dialog({
-          title: 'Select photo', message: 'Permission denied',
-          color: 'brandblue',
-          class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-        })
-        return Promise.reject(new Error('Permission Denied'))
-      }
-      return Camera.getPhoto({
-        presentationStyle: 'popover',
-        resultType: 'dataUrl',
-      })
-        .then(async (photo) => {
-          let file
-          if (photo?.base64String) file = base64ImageToFile(photo?.base64String)
-          else if (photo?.dataUrl) file = dataUrlToFile(photo?.dataUrl)
-          if (!file) return photo
-          const resized = await resizeImage({ file, maxWidthHeight: 640 })
-          formData.value.profilePicture = resized
-          return photo
-        })
-    }
-
-    function selectProfilePicture() {
-      return getPhotoFromCamera()
-        .catch(error => {
-          console.error(error)
-          let errorMsg = error?.message
-          if (typeof errorMsg !== 'string') return Promise.reject(error)
-          if (errorMsg?.includes('cancel')) return Promise.resolve()
-          if (errorMsg.match(/user.*denied.*access/i)) {
-            openFileAttachementField(evt)
-            return Promise.resolve()
-          }
-          if (errorMsg?.length < 250) return Promise.reject(error)
-          $q.dialog({
-            title: 'Select photo', message: errorMsg || 'Unknown error occurred',
-            color: 'brandblue',
-            class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-          })
-        })
     }
 
     async function defaultOnSubmit() {
@@ -288,8 +209,6 @@ export default defineComponent({
       formData,
       resetFormData,
       formErrors,
-      resizeProfilePicture,
-      selectProfilePicture,
       onSubmit,
     }
   },

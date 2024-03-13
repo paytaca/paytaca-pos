@@ -36,30 +36,36 @@
               color="brandblue"
             />
           </div>
-          <q-input
-            dense
-            outlined
-            :disable="loading"
-            autogrow
-            label="Message"
-            v-model="formData.text"
-            type="textarea"
-            input-style="min-height:4rem;"
-            :error="Boolean(formErrors?.text)"
-            :error-message="formErrors?.text"
-            bottom-slots
+          <PhotoSelector
+            :model-value="null"
+            @update:modelValue="photo => photo ? formData.images.push(photo) : null"
+            v-slot="{ selectPhoto }"
           >
-            <template v-slot:append>
-              <q-btn
-                flat
-                :disable="loading"
-                icon="camera_alt"
-                padding="sm"
-                class="q-mt-sm q-r-mr-md"
-                @click="addPhoto"
-              />
-            </template>
-          </q-input>
+            <q-input
+              dense
+              outlined
+              :disable="loading"
+              autogrow
+              label="Message"
+              v-model="formData.text"
+              type="textarea"
+              input-style="min-height:4rem;"
+              :error="Boolean(formErrors?.text)"
+              :error-message="formErrors?.text"
+              bottom-slots
+            >
+              <template v-slot:append>
+                <q-btn
+                  flat
+                  :disable="loading"
+                  icon="camera_alt"
+                  padding="sm"
+                  class="q-mt-sm q-r-mr-md"
+                  @click="selectPhoto"
+                />
+              </template>
+            </q-input>
+          </PhotoSelector>
 
           <div class="row items-start q-gutter-md no-wrap q-mt-sm" style="overflow:auto;">
             <TransitionGroup name="slide-group">
@@ -115,14 +121,16 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { Review } from 'src/marketplace/objects'
-import { base64ImageToFile, dataUrlToFile, resizeImage } from 'src/marketplace/chat/attachment'
 import { errorParser } from 'src/marketplace/utils'
-import { Camera } from '@capacitor/camera'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { defineComponent, onMounted, ref, watch } from 'vue'
+import PhotoSelector from 'src/components/marketplace/PhotoSelector.vue'
 
 export default defineComponent({
   name: 'ReviewFormDialog',
+  components: {
+    PhotoSelector,
+  },
   emits: [
     'update:modelValue',
     'created',
@@ -193,50 +201,6 @@ export default defineComponent({
         text: '',
         images: '',
       }
-    }
-
-    async function checkOrRequestCameraPermissions() {
-      let permission = await Camera.checkPermissions()
-      const promptStatuses = ['prompt','prompt-with-rationale', 'limited']
-      const request = promptStatuses.includes(permission.photos) || promptStatuses.includes(permission.camera)
-      if (request) permission = await Camera.requestPermissions()
-      return {
-        camera: permission.camera === 'granted',
-        photos: permission.photos === 'photos',
-      }
-    }
-
-    async function getPhotoFromCamera() {
-      const granted = await checkOrRequestCameraPermissions()
-      if (!granted.camera && !granted.photos) {
-        $q.dialog({
-          title: 'Select photo', message: 'Permission denied',
-          color: 'brandblue',
-        })
-        return Promise.reject(new Error('Permission Denied'))
-      }
-      return Camera.getPhoto({
-        presentationStyle: 'popover',
-        resultType: 'dataUrl',
-      })
-        .then(async (photo) => {
-          let file
-          if (photo?.base64String) file = base64ImageToFile(photo?.base64String)
-          else if (photo?.dataUrl) file = dataUrlToFile(photo?.dataUrl)
-          if (!file) return
-
-          const resized = await resizeImage({ file, maxWidthHeight: 640 })
-          resized.objectUrl = URL.createObjectURL(resized)
-          return resized
-        })
-    }
-
-    function addPhoto(evt) {
-      return getPhotoFromCamera()
-        .then(file => {
-          formData.value.images.push(file)
-          return file
-        })
     }
 
     function serializeFormData() {
@@ -317,8 +281,6 @@ export default defineComponent({
       loading,
       formData,
       formErrors,
-
-      addPhoto,
 
       onSubmit,
     }
