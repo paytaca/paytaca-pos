@@ -17,17 +17,17 @@
           </template>
         </template>
         <q-slide-transition :duration="100">
-          <div v-if="focused" class="row items-center no-wrap q-space">
-            <input
+          <div class="row items-center no-wrap q-space q-ml-xs">
+            <textarea
               :id="id"
+              rows="1"
               v-model="inputValue"
               placeholder="Input option"
-              class="tags-field-input"
+              class="tags-field-input q-space"
               style="min-height:24px;"
               @keydown="onKeyPress"
               @input="() => (inputValue?.includes?.(',') && !disableAddOnComma) ? addInputValue() : undefined"
             />
-            <q-space/>
             <q-btn
               v-if="inputValue"
               flat
