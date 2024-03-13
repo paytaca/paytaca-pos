@@ -44,10 +44,10 @@
                   />
                 </q-btn-group>
               </div>
-              <div class="row items-center q-gutter-sm">
+              <div>
+                <div class="q-mb-xs">Name</div>
                 <q-input
                   dense outlined
-                  label="Name"
                   class="q-space"
                   v-model="fieldData.name"
                   :rules="[
@@ -67,29 +67,27 @@
                     />
                   </template>
                 </q-input>
-                <q-select
-                  :readonly="!Array.isArray(fieldData.options.enum)"
-                  dense outlined
-                  hide-dropdown-icon
-                  label="Options"
-                  class="q-space"
-                  multiple
-                  use-chips
-                  use-input
+                <div class="row items-center q-mb-xs">
+                  <div>Options</div>
+                  <q-space/>
+                  <q-toggle
+                    dense
+                    size="md"
+                    :model-value="Array.isArray(fieldData?.options?.enum)"
+                    @update:model-value="val => {
+                      fieldData.options.enum = val ? [] : undefined
+                    }"
+                  />
+                </div>
+                <OptionsField
                   v-model="fieldData.options.enum"
-                  bottom-slots
-                  @new-value="(newVal, doneFn)  => doneFn?.(newVal, 'add-unique')"
-                >
-                  <template v-slot:append>
-                    <q-toggle
-                      size="md"
-                      :model-value="Array.isArray(fieldData?.options?.enum)"
-                      @update:model-value="val => {
-                        fieldData.options.enum = val ? [] : undefined
-                      }"
-                    />
-                  </template>
-                </q-select>
+                  :fieldProps="{
+                    dense: true,
+                    outlined: true,
+                    bottomSlots: true,
+                    readonly: !Array.isArray(fieldData.options.enum),
+                  }"
+                />
               </div>
               <q-separator/>
             </div>
@@ -156,6 +154,7 @@ import { createUnserializedSchemaField, schemaToUISchema, serializeSchemaFields 
 import { useDialogPluginComponent } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import JSONFormPreview from './JSONFormPreview.vue';
+import OptionsField from './OptionsField.vue';
 
 import { defaultStyles, mergeStyles, vanillaRenderers } from '@jsonforms/vue-vanilla'
 
@@ -164,6 +163,7 @@ export default defineComponent({
   name: 'JSONFormDialog',
   components: {
     JSONFormPreview,
+    OptionsField,
   },
   emits: [
     'update:modelValue',
@@ -246,6 +246,24 @@ export default defineComponent({
 
     const fieldOptsForm = ref({ show: false, data: createUnserializedSchemaField() })
 
+    /**
+     * @param {String} val
+     * @param {String[]} list
+     */
+    function onInputValue(val, list) {
+      if (!val.includes(',')) return
+
+      const tokenized = val.split(',')
+        .filter(Boolean)
+        .filter((element, index, array) => array.indexOf(element) === index)
+
+      tokenized.forEach(token => {
+        if (list.includes(token)) return
+        list.push(token)
+      })
+      val = ''
+    }
+
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
@@ -259,6 +277,7 @@ export default defineComponent({
       cleanSchemaFieldOpts,
 
       fieldOptsForm,
+      onInputValue,
     }
   },
 })
