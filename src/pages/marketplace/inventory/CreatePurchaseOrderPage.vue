@@ -55,6 +55,7 @@
                       dense
                       :suffix="marketplaceStore?.currency"
                       type="number"
+                      step="0.001"
                       v-model.number="props.value"
                       @keypress.enter="props.set"
                     />
