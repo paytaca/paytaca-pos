@@ -16,8 +16,14 @@
         v-ripple
         @click="copyText(qrData, 'Copied payment URI')"
       >
-        <div v-if="loading"><q-skeleton height="200px" width="200px" /></div>
-        <div v-if="paid" class="bg-dark">
+        <div
+          v-if="loading || qrLoading"
+          class="row items-center justify-center"
+          style="width: 200px; height: 200px"
+        >
+          <q-spinner size="50px" color="blue-9" />
+        </div>
+        <div v-else-if="paid" class="bg-dark">
           <img src="~assets/success-check.gif" height="200" />
         </div>
         <template v-else>
@@ -52,6 +58,18 @@
           @keyup.enter="scope.set"
         />
       </q-popup-edit>-->
+    </div>
+
+    <div v-if="!loading || !paid" class="text-center full-width">
+      <div class="text-caption text-grey">
+        Include Amount in QR
+        <q-toggle
+          v-model="qrHasAmount"
+          color="red-9"
+          size="sm"
+          keep-color
+        />
+      </div>
     </div>
 
     <div v-if="canViewTransactionsReceived" class="q-px-md q-mt-md">
@@ -190,6 +208,8 @@ export default defineComponent({
     const vault = ref(walletStore.merchantInfo?.vault)
     const generatingAddress = ref(false)
     const promptOnLeave = ref(true)
+    const qrHasAmount = ref(true)
+    const qrLoading = ref(false)
 
     onMounted(() => {
       generatingAddress.value = true
@@ -288,7 +308,11 @@ export default defineComponent({
 
       let paymentUri = receivingAddress
       paymentUri += `?POS=${posId.value}`
-      paymentUri += `&amount=${bchValue.value}`
+
+      if (qrHasAmount.value) {
+        paymentUri += `&amount=${bchValue.value}`
+      }
+
       paymentUri += `&vault=${merchantVaultTokenAddress}`    // recipient of voucher NFT
       paymentUri += `&ts=${timestamp}`
 
@@ -299,7 +323,13 @@ export default defineComponent({
       // walletStore.cacheQrData(qrData.value)
       walletStore.removeOldQrDataCache(86400*2) // remove qr data older than 2 days
     }
-    watch(qrData, () => cacheQrData())
+    watch(qrData, async () => {
+      cacheQrData()
+      qrLoading.value = true
+      // NOTE: added timeout here to let user know that QR is being updated
+      await new Promise(r => setTimeout(r, 2000))
+      qrLoading.value = false
+    })
     onMounted(() => cacheQrData())
     
     const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
@@ -651,6 +681,8 @@ export default defineComponent({
       currencyAmountRemaining,
       paid,
       showRemainingCurrencyAmount,
+      qrHasAmount,
+      qrLoading,
     }
   },
 })
