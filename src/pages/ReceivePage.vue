@@ -285,10 +285,11 @@ export default defineComponent({
       
       const merchantVaultTokenAddress = vault.value?.tokenAddress.split(':')[1]
       const timestamp = Math.floor(Date.now() / 1000)
+      const unusedVar = bchValue.value  // trigger only for setting of total payment
 
       let paymentUri = receivingAddress
       paymentUri += `?POS=${posId.value}`
-      paymentUri += `&amount=${bchValue.value}`
+      paymentUri += `&amount=${remainingPaymentRounded.value}`
       paymentUri += `&vault=${merchantVaultTokenAddress}`    // recipient of voucher NFT
       paymentUri += `&ts=${timestamp}`
 
