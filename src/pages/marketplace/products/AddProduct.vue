@@ -48,25 +48,18 @@
             :error-message="formErrors?.description"
           />
           <div>Categories</div>
-          <q-select
-            dense
-            outlined
-            multiple
-            use-chips
-            use-input
-            new-value-mode="add-unique"
-            behavior="menu"
-            :options="categoriesOpts"
+          <CategoriesField
             v-model="formData.categories"
-            :error="Boolean(formErrors?.categories)"
-            :error-message="formErrors?.categories"
-            @new-value="(inputValue, done) => done(inputValue)"
-            @filter="categoriesFilter"
-          >
-            <template v-slot:before-options="props">
-              {{ props }}
-            </template>
-          </q-select>
+            :filterOpts="{
+              shop_id: marketplaceStore.activeShopId,
+            }"
+            :fieldProps="{
+              outlined: true,
+              dense: true,
+              error: Boolean(formErrors?.categories),
+              errorMessage: formErrors?.categories,
+            }"
+          />
           <div class="row items-center">
             <div class="text-subtitle1">Cart options</div>
             <q-space/>
@@ -279,6 +272,7 @@ import UploadImageField from 'src/components/marketplace/UploadImageField.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import JSONFormDialog from 'src/components/marketplace/jsonform/JSONFormDialog.vue'
 import JSONFormPreview from 'src/components/marketplace/jsonform/JSONFormPreview.vue'
+import CategoriesField from 'src/components/marketplace/inventory/CategoriesField.vue'
 
 
 export default defineComponent({
@@ -287,6 +281,7 @@ export default defineComponent({
     UploadImageField,
     MarketplaceHeader,
     JSONFormPreview,
+    CategoriesField,
   },
   setup() {
     const marketplaceStore = useMarketplaceStore()
@@ -315,28 +310,6 @@ export default defineComponent({
       cartOptions: undefined,
       variants: [createEmptyVariant()],
     })
-    const categoriesOpts = ref([].map(String))
-    function categoriesFilter(val, done) {
-      const params = {
-        s: val,
-        shop_id: marketplaceStore.activeShopId,
-        limit: 5,
-      }
-
-      backend.get(`product-categories/`, { params })
-        .then(response => {
-          if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
-          done(() => {
-            categoriesOpts.value = response?.data?.results.map(category => category?.name).filter(Boolean)
-          })
-          return response
-        })
-        .catch(() => {
-          done(() => {
-            categoriesOpts.value = []
-          })
-        })
-    }
 
     const formErrors = ref({
       detail: [],
@@ -461,8 +434,6 @@ export default defineComponent({
       form,
       loading,
       formData,
-      categoriesOpts,
-      categoriesFilter,
       formErrors,
       variantErrorAt,
 

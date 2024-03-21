@@ -40,23 +40,18 @@
             :error-message="errors?.description"
             bottom-slots
           />
-          <q-select
-            dense
-            outlined
-            :disable="loading"
-            label="Categories"
-            multiple
-            use-chips
-            use-input
-            new-value-mode="add-unique"
-            behavior="menu"
-            :options="categoriesOpts"
+          <CategoriesField
             v-model="formData.categories"
-            @new-value="(inputValue, done) => done(inputValue)"
-            @filter="categoriesFilter"
-            :error="Boolean(errors?.categories)"
-            :error-message="errors?.categories"
-            bottom-slots
+            :filterOpts="{
+              shop_id: marketplaceStore.activeShopId,
+            }"
+            :fieldProps="{
+              label: 'Categories',
+              outlined: true,
+              dense: true,
+              error: Boolean(errors?.categories),
+              errorMessage: errors?.categories,
+            }"
           />
           <div class="row items-center q-mb-md">
             <div class="text-subtitle1 text-grey q-space">Variants</div>
@@ -166,11 +161,13 @@ import { defineComponent, ref, watch } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import UploadImageField from '../UploadImageField.vue'
+import CategoriesField from './CategoriesField.vue'
 
 export default defineComponent({
   name: 'ProductFormDialog',
   components: {
     UploadImageField,
+    CategoriesField,
   },
   emits: [
     'update:modelValue',
@@ -191,29 +188,6 @@ export default defineComponent({
     const innerVal = ref(props.modelValue)
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
-
-    const categoriesOpts = ref([].map(String))
-    function categoriesFilter(val, done) {
-      const params = {
-        s: val,
-        shop_id: marketplaceStore.activeShopId,
-        limit: 5,
-      }
-
-      backend.get(`product-categories/`, { params })
-        .then(response => {
-          if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
-          done(() => {
-            categoriesOpts.value = response?.data?.results.map(category => category?.name).filter(Boolean)
-          })
-          return response
-        })
-        .catch(() => {
-          done(() => {
-            categoriesOpts.value = []
-          })
-        })
-    }
 
     let variantsRowGenCounter = 0
     function createEmptyVariantRow() {
@@ -264,8 +238,6 @@ export default defineComponent({
 
       marketplaceStore,
       innerVal,
-      categoriesOpts,
-      categoriesFilter,
       formData,
       loading,
 
