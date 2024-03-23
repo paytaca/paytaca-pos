@@ -1,6 +1,6 @@
 {
   "name": "paytaca-pos",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Point-of-Sale system with inventory for Bitcoin Cash-accepting merchants",
   "author": "joemar@paytaca.com",
   "private": true,

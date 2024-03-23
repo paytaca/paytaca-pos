@@ -16,20 +16,22 @@
         v-ripple
         @click="copyText(qrData, 'Copied payment URI')"
       >
-        <div v-if="loading"><q-skeleton height="200px" width="200px" /></div>
         <div v-if="paid" class="bg-dark">
           <img src="~assets/success-check.gif" height="200" />
         </div>
         <template v-else>
-          <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
-          <QRCode
-            :text="qrData"
-            color="#253933"
-            :size="200"
-            error-level="H"
-            class="q-mb-sm"
-            :style="qrData ? '' : 'opacity:0;'"
-          />
+          <div v-if="!websocketsReady" class="bg-dark"><q-skeleton height="200px" width="200px" /></div>
+          <template v-else>
+            <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
+            <QRCode
+              :text="qrData"
+              color="#253933"
+              :size="200"
+              error-level="H"
+              class="q-mb-sm"
+              :style="qrData ? '' : 'opacity:0;'"
+            />
+          </template>
         </template>
       </div>
     </div>
