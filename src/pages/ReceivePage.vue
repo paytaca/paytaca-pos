@@ -282,8 +282,8 @@ export default defineComponent({
 
     const qrData = computed(() => {
       if (!receiveAmount.value) return ''
-      
-      const merchantVaultTokenAddress = vault.value?.tokenAddress.split(':')[1]
+
+      const merchantVaultTokenAddress = vault.value?.tokenAddress?.split?.(':')?.[1]
       const timestamp = Math.floor(Date.now() / 1000)
 
       let paymentUri = receivingAddress
