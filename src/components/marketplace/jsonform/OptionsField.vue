@@ -1,5 +1,6 @@
 <template>
   <q-field v-model="innerVal" v-bind="fieldProps">
+    <slot v-bind="{ addInputValue, inputValue }"></slot>
     <template v-slot:control="{ id, modelValue, focused }">
       <div v-show="focused || modelValue?.length" class="row full-width" tabindex="0">
         <template v-if="Array.isArray(modelValue)">
@@ -22,7 +23,7 @@
               :id="id"
               rows="1"
               v-model="inputValue"
-              placeholder="Input option"
+              :placeholder="placeholder"
               class="tags-field-input q-space"
               style="min-height:24px;"
               @keydown="onKeyPress"
@@ -48,16 +49,22 @@ export default defineComponent({
   name: 'OptionsField',
   emits: [
     'update:modelValue',
+    'update:input',
     'added',
     'removed',
   ],
   props: {
     modelValue: Array,
+    input: String,
     fieldProps: Object,
+    placeholder: { type: String, default: 'Input option' },
     disableAddOnComma: Boolean,
   },
   setup(props, { emit: $emit }) {
     const inputValue = ref('')
+    watch(() => props.input, () => inputValue.value = props.input)
+    watch(inputValue, () => $emit('update:input', inputValue.value))
+
     const innerVal = ref(props.modelValue?.map?.(String) || [])
     watch(() => props.modelValue, () => syncInnerVal())
     // watch(innerVal, () => $emit('update:modelValue', innerVal.value?.map?.(String)), { deep: true })
