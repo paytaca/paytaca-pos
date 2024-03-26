@@ -310,19 +310,18 @@ export default defineComponent({
     const voucherClaimerAddress  = vault.value?.receiving?.address
     const vaultTokenAddress = vault.value?.address
     const websocketInits = [
-      {
-        instance: { readyState: 0 },
-        url: `${websocketUrl}/${merchantReceivingAddress}/`,
-      },
-      {
-        instance: { readyState: 0 },
-        url: `${websocketUrl}/${vaultTokenAddress}/`,
-      },
-      {
-        instance: { readyState: 0 },
-        url: `${websocketUrl}/${voucherClaimerAddress}/`,
-      },
+      merchantReceivingAddress,
+      vaultTokenAddress,
+      voucherClaimerAddress,
     ]
+      .filter(Boolean)
+      .map(address => {
+        return {
+          instance: { readyState: 0 },
+          url: `${websocketUrl}/${address}/`,
+        }
+      })
+
     const isZerothAddress = voucherClaimerAddress === merchantReceivingAddress
     const websockets = ref(isZerothAddress ? websocketInits.slice(0,2) : websocketInits)
     const websocketsReady = computed(() => {
