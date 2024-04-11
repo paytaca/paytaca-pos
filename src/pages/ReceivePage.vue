@@ -489,7 +489,12 @@ export default defineComponent({
       const parsedData = parseWebsocketDataReceived(data)
       checkVoucherClaim(parsedData)
 
-      if (parsedData.tokenName === 'bch') {
+      let proceedPayment = ['CashToken NFT', 'bch'].includes(parsedData.tokenName)
+      if (parsedData.tokenName === 'CashToken NFT') {
+        proceedPayment = parsedData.voucher !== null
+      }
+
+      if (proceedPayment) {
         const paidBchValue = data.value / 1e8
         const paidBch = Number((paidBchValue).toFixed(8))
         paymentsStore.addPayment(paidBch)
@@ -549,7 +554,7 @@ export default defineComponent({
     }
 
     function displayReceivedTransaction (data) {
-      if (data?.voucher) return
+      if (!data?.voucher) return
 
       if(!transactionsReceived.value?.includes?.(data)) {
         transactionsReceived.value?.push?.(data)
