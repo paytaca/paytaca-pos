@@ -445,7 +445,7 @@ export default defineComponent({
         .then(response => console.log('Added transaction attribute as voucher claim: ', response))
         .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
     }
-    function checkVoucherClaim (data) {
+    function claimVoucher (data) {
       if (!data.voucher) return
 
       const merchantReceiverPk = vault.value?.receiving?.pubkey
@@ -487,15 +487,22 @@ export default defineComponent({
       if (!data?.value) return
 
       const parsedData = parseWebsocketDataReceived(data)
-      checkVoucherClaim(parsedData)
+      const tokenName = parsedData.tokenName.toLowerCase()
+      const cashtokenNftName = 'cashtoken nft'
 
-      if (parsedData.tokenName === 'bch') {
+      claimVoucher(parsedData)
+
+      let proceedPayment = [cashtokenNftName, 'bch'].includes(tokenName)
+      if (tokenName === cashtokenNftName) {
+        proceedPayment = parsedData.voucher !== null
+      }
+
+      if (proceedPayment) {
         const paidBchValue = data.value / 1e8
         const paidBch = Number((paidBchValue).toFixed(8))
         paymentsStore.addPayment(paidBch)
         
         promptOnLeave.value = false
-        console.log('on websocket received: ', promptOnLeave.value)
         displayReceivedTransaction(parsedData)
       }
     }
@@ -543,13 +550,16 @@ export default defineComponent({
       }
 
       if (!response?.amount && response?.value) response.amount = Math.round(response?.value) / 10 ** 8
-      if (typeof response.tokenSymbol === 'string') response.tokenSymbol = response.tokenSymbol.toUpperCase()
+      if (typeof response.tokenSymbol === 'string') {
+        response.tokenSymbol = response.tokenSymbol.toUpperCase()
+        if (response.voucher !== null) response.tokenSymbol = 'BCH'
+      }
       if (response.tokenSymbol === 'BCH') response.logo = 'bch-logo.png'
       return response
     }
 
     function displayReceivedTransaction (data) {
-      if (data?.voucher) return
+      if (!data?.voucher) return
 
       if(!transactionsReceived.value?.includes?.(data)) {
         transactionsReceived.value?.push?.(data)
