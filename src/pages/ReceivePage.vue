@@ -129,8 +129,9 @@ import { usePaymentsStore } from 'stores/payments'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useAddressesStore } from 'stores/addresses'
 import { useMarketStore } from 'src/stores/market'
-import { defineComponent, ref, onMounted, computed, watch, onUnmounted, markRaw, inject, provide } from 'vue'
+import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, markRaw, inject, provide } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
+import { useWakeLock } from '@vueuse/core'
 import { useQuasar } from 'quasar'
 import QRCode from 'vue-qrcode-component'
 import { sha256 } from 'src/wallet/utils'
@@ -176,6 +177,9 @@ export default defineComponent({
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
 
+    // const { isSupported, isActive, request, release } = useWakeLock()
+    const wakeLock = reactive(useWakeLock())
+
     const addressSet = computed(() => addressesStore.currentAddressSet)
     const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
     
@@ -193,6 +197,7 @@ export default defineComponent({
     const generatingAddress = ref(false)
     const promptOnLeave = ref(true)
 
+    onMounted(async () => await wakeLock.request('screen'))
     onMounted(() => {
       generatingAddress.value = true
       addressesStore.fillAddressSets()
@@ -355,6 +360,7 @@ export default defineComponent({
         closeWebsocket()
       }
     })
+    onUnmounted(async () => await wakeLock.release())
     onUnmounted(() => {
       enableReconnect.value = false
       closeWebsocket()
