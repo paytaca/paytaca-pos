@@ -469,17 +469,10 @@ export default defineComponent({
 
       __vault.claim(claimPayload)
         .then(transaction => {
-          $q.notify({
-            message: 'Voucher claimed!',
-            timeout: 1500,
-            icon: 'mdi-check-circle',
-            color: 'green-6'
-          })
-
-        const txid = transaction.txid
-        flagVoucher(txid, category)
-        updateClaimTxnAttr(txid)
-      })
+          const txid = transaction.txid
+          flagVoucher(txid, category)
+          updateClaimTxnAttr(txid)
+        })
     }
     function onWebsocketReceive(data) {
       console.log(data)
