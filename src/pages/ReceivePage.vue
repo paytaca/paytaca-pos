@@ -183,11 +183,14 @@ export default defineComponent({
     const addressSet = computed(() => addressesStore.currentAddressSet)
     const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
     
-    const paymentProgress = computed(() => paymentsStore.paid / paymentsStore.total)
     const remainingPayment = computed(() => {
       const remaining = paymentsStore.total - paymentsStore.paid
-      if (remaining < 0) return 0
+      if (remaining < 0 || (remaining <= 546 && paymentsStore.paid !== 0)) return 0
       return remaining
+    })
+    const paymentProgress = computed(() => {
+      if (remainingPayment.value === 0) return 1
+      return paymentsStore.paid / paymentsStore.total
     })
     const remainingPaymentRounded = computed(() => Number(remainingPayment.value.toFixed(8)))
     const paid = computed(() => remainingPayment.value === 0)
