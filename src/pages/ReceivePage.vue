@@ -176,16 +176,15 @@ export default defineComponent({
     const marketStore = useMarketStore()
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
-
-    // const { isSupported, isActive, request, release } = useWakeLock()
     const wakeLock = reactive(useWakeLock())
+    const dustBch = 546e-8
 
     const addressSet = computed(() => addressesStore.currentAddressSet)
     const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
     
     const remainingPayment = computed(() => {
       const remaining = paymentsStore.total - paymentsStore.paid
-      if (remaining < 0 || (remaining <= 546 && paymentsStore.paid !== 0)) return 0
+      if (remaining < 0 || (remaining <= dustBch && paymentsStore.paid !== 0)) return 0
       return remaining
     })
     const paymentProgress = computed(() => {
@@ -405,8 +404,32 @@ export default defineComponent({
         })
       }
     }
+
+    function updateTransactionList (transaction) {
+      const transactionExists = transactionsReceived.value?.some?.(
+        obj => (
+          obj.txid === transaction.txid &&
+          obj.index === transaction.index
+        )
+      )
+      if (transactionExists) return false
+
+      transactionsReceived.value?.push?.(transaction)
+      return true
+    }
+
+    function updatePayment (transaction) {
+      if (!updateTransactionList(transaction)) return
+
+      const paidBchValue = transaction.value / 1e8
+      const paidBch = Number((paidBchValue).toFixed(8))
+      paymentsStore.addPayment(paidBch)
+      promptOnLeave.value = false
+      displayReceivedTransaction(transaction)
+    }
+
     function flagVoucher (txid, category) {
-      const payload = { txid, category: category }
+      const payload = { txid, category }
 
       // for purelypeer only
       const prefix = process.env.NODE_ENV === 'production' ? 'backend' : 'backend-staging'
@@ -438,6 +461,7 @@ export default defineComponent({
         err => console.error('Error on updating watchtower regarding claim: ', err)
       )
     }
+
     function updateClaimTxnAttr (txid) {
       const posId = walletStore.posId
       const key = `voucher_claim_${posId}`
@@ -454,8 +478,9 @@ export default defineComponent({
         .then(response => console.log('Added transaction attribute as voucher claim: ', response))
         .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
     }
+
     function claimVoucher (data) {
-      if (!data.voucher) return
+      if (!data.voucher) return false
 
       const merchantReceiverPk = vault.value?.receiving?.pubkey
       const voucherClaimerAddress = vault.value?.receiving?.address
@@ -482,7 +507,10 @@ export default defineComponent({
           flagVoucher(txid, category)
           updateClaimTxnAttr(txid)
         })
+
+      return true
     }
+    
     function onWebsocketReceive(data) {
       console.log(data)
       
@@ -492,21 +520,12 @@ export default defineComponent({
       const tokenName = parsedData.tokenName.toLowerCase()
       const cashtokenNftName = 'cashtoken nft'
 
-      claimVoucher(parsedData)
+      let proceed = [cashtokenNftName, 'bch'].includes(tokenName)
+      if (tokenName === cashtokenNftName) proceed = parsedData.voucher !== null
+      if (!proceed) return
 
-      let proceedPayment = [cashtokenNftName, 'bch'].includes(tokenName)
-      if (tokenName === cashtokenNftName) {
-        proceedPayment = parsedData.voucher !== null
-      }
-
-      if (proceedPayment) {
-        const paidBchValue = data.value / 1e8
-        const paidBch = Number((paidBchValue).toFixed(8))
-        paymentsStore.addPayment(paidBch)
-        
-        promptOnLeave.value = false
-        displayReceivedTransaction(parsedData)
-      }
+      const isVoucher = claimVoucher(parsedData)
+      if (!isVoucher) updatePayment(parsedData)
     }
 
     /**
@@ -561,10 +580,6 @@ export default defineComponent({
     }
 
     function displayReceivedTransaction (data) {
-      if(!transactionsReceived.value?.includes?.(data)) {
-        transactionsReceived.value?.push?.(data)
-      }
-
       console.log('transactions received: ', transactionsReceived.value)
 
       const _qrData = qrData.value
