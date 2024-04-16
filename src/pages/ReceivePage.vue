@@ -558,8 +558,6 @@ export default defineComponent({
     }
 
     function displayReceivedTransaction (data) {
-      if (!data?.voucher) return
-
       if(!transactionsReceived.value?.includes?.(data)) {
         transactionsReceived.value?.push?.(data)
       }
