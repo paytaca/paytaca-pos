@@ -63,8 +63,16 @@
         </div>
         <div class="text-caption">
           <div v-if="paid" class="text-green">Payment Complete</div>
-          <div v-else style="color: #ed5f59">
+          <div v-if="!paid" style="color: #ed5f59">
+            <q-icon
+              v-if="currencyBchRate.status !== 2"
+              :name="bchRateStatus.icon"
+              :color="bchRateStatus.color"
+              size="xs"
+            />
+
             {{ remainingPaymentRounded }} BCH left
+            
             <q-btn v-if="showRemainingCurrencyAmount" color="grey" icon="info" flat size="xs" class="q-px-xs" style="width: 20px">
               <q-menu>
                 <q-list style="min-width: 100px">
@@ -177,6 +185,7 @@ export default defineComponent({
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
     const wakeLock = reactive(useWakeLock())
+
     const dustBch = 546e-8
 
     const addressSet = computed(() => addressesStore.currentAddressSet)
@@ -224,7 +233,7 @@ export default defineComponent({
     const currencyRateUpdateRate = 60 * 1000
     const currencyBchRate = computed(() => {
       if (!currency.value) return
-      if (currency.value === 'BCH') return { currency: 'BCH', rate: 1, timestamp: Date.now() }
+      if (currency.value === 'BCH') return { currency: 'BCH', rate: 1, timestamp: Date.now(), status: 2 }
       return marketStore.getRate(currency.value)
     })
     const currencyBchRateUpdateInterval = ref(null)
@@ -234,13 +243,22 @@ export default defineComponent({
     })
     // 0.02ms - 0.026ms
     onMounted(() => {
-      clearTimeout(currencyBchRateUpdateInterval.value)
       currencyBchRateUpdateInterval.value = setInterval(
-        () => updateSelectedCurrencyRate(), currencyRateUpdateRate)
-      updateSelectedCurrencyRate()
+        () => updateSelectedCurrencyRate(),
+        currencyRateUpdateRate
+      )
     })
     onUnmounted(() => clearInterval(currencyBchRateUpdateInterval.value))
     watch(currency, () => updateSelectedCurrencyRate())
+
+
+    const status = {
+      '0': { icon: 'mdi-equal', color: 'blue-9' },
+      '1': { icon: 'mdi-arrow-up', color: 'green-6' },
+      '-1': { icon: 'mdi-arrow-down', color: 'red-9' },
+    }
+    const bchRateStatus = computed(() => status[currencyBchRate.value.status.toString()])
+
 
     function updateSelectedCurrencyRate() {
       if (!currency.value || currency.value === 'BCH') return
@@ -269,7 +287,6 @@ export default defineComponent({
 
       if (props.setAmount) receiveAmount.value = props.setAmount
       if (props.setCurrency) currency.value = props.setCurrency
-
       if (props.setAmount && props.lockAmount) disableAmount.value = true
     })
 
@@ -293,14 +310,16 @@ export default defineComponent({
       if (!receiveAmount.value) return ''
 
       const merchantVaultTokenAddress = vault.value?.tokenAddress?.split?.(':')?.[1]
-      const timestamp = Math.floor(Date.now() / 1000)
+      const currentTimestamp = Date.now() / 1000
+      const expiryDuration = currencyBchRateUpdateInterval.value / 1000
+      const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
       const unusedVar = bchValue.value  // trigger only for setting of total payment
 
       let paymentUri = receivingAddress
       paymentUri += `?POS=${posId.value}`
       paymentUri += `&amount=${remainingPaymentRounded.value}`
       paymentUri += `&vault=${merchantVaultTokenAddress}`    // recipient of voucher NFT
-      paymentUri += `&ts=${timestamp}`
+      paymentUri += `&expires=${expirationTimestamp}`
 
       return paymentUri
     })
@@ -678,6 +697,7 @@ export default defineComponent({
       currencyAmountRemaining,
       paid,
       showRemainingCurrencyAmount,
+      bchRateStatus,
     }
   },
 })

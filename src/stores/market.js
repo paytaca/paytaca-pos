@@ -1,6 +1,5 @@
 import axios from 'axios'
 import { defineStore } from 'pinia';
-import { useWalletStore } from './wallet';
 
 export const useMarketStore = defineStore('market', {
   state: () => ({
@@ -9,34 +8,65 @@ export const useMarketStore = defineStore('market', {
     ],
     bchRates: [
       { currency: '', rate: 0, timestamp: 0 },
-    ]
+    ],
+    lastRate: 0
   }),
 
   getters: {
-    selectedCurrencyPrice() {
-      const walletStore = useWalletStore()
-      const selectedCurrency = walletStore.preferences.selectedCurrency || 'USD'
-      return this.getRate(selectedCurrency)
-    },
     getRate() {
-      return (currency) => {
+      return (currency, resetLastRate = false) => {
         const bchRate = this.bchRates.find(rate => rate.currency === currency)
-        if (bchRate && currency !== 'ARS') return bchRate
+        const bchRateUsed = bchRate && currency !== 'ARS'
+        let rate = 0
 
-        const bchUsdRate = this.bchRates.find(rate => rate.currency === 'USD')
-        if (!bchUsdRate) return
-        const usdRate = this.usdRates.find(rate => rate.currency === currency)
-        if (!usdRate) return
+        if (bchRateUsed) {
+          rate = bchRate.rate
+        } else {
+          const bchUsdRate = this.bchRates.find(rate => rate.currency === 'USD')
+          if (!bchUsdRate) return
+          const usdRate = this.usdRates.find(rate => rate.currency === currency)
+          if (!usdRate) return
+          
+          rate = bchUsdRate.rate * usdRate.rate
+        }
+
+        const status = this.getRateStatus(rate)
+        if (resetLastRate) this.lastRate = 0
+
+        if (bchRateUsed) {
+          return {
+            ...bchRate,
+            status,
+            rate,
+          }
+        }
         return {
           currency: usdRate.currency,
-          rate: bchUsdRate.rate * usdRate.rate,
-          timestamp: usdRate.timestamp
+          timestamp: usdRate.timestamp,
+          status,
+          rate
         }
       }
     }
   },
 
   actions: {
+    getRateStatus (rate) {
+      const status = {
+        increased: 1,
+        decreased: -1,
+        unchanged: 0
+      }
+      let finalStatus = status.unchanged
+
+      if (this.lastRate !== 0) {
+        if (this.lastRate < rate) finalStatus = status.increased
+        else if (this.lastRate > rate) finalStatus = status.decreased
+      }
+      this.lastRate = rate
+
+      return finalStatus
+    },
     /**
      * @param {Object} newRate 
      * @param {String} newRate.currency

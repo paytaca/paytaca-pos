@@ -13,6 +13,7 @@ export const usePaymentsStore = defineStore('payments', {
   actions: {
     resetPayment () {
       this.paid = 0
+      this.total = 0
     },
     addPayment (amount) {
       this.paid += amount
