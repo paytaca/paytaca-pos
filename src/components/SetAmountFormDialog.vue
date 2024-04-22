@@ -32,7 +32,7 @@
             color="brandblue"
             size="1rem"
             padding="sm md"
-            label="Show Payment QR"
+            label="Create Payment QR"
             class="q-space"
             type="submit"
             icon="mdi-qrcode"

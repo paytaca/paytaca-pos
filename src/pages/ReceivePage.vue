@@ -311,7 +311,7 @@ export default defineComponent({
 
       const merchantVaultTokenAddress = vault.value?.tokenAddress?.split?.(':')?.[1]
       const currentTimestamp = Date.now() / 1000
-      const expiryDuration = currencyBchRateUpdateInterval.value / 1000
+      const expiryDuration = currencyRateUpdateRate / 1000
       const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
       const unusedVar = bchValue.value  // trigger only for setting of total payment
 
@@ -445,6 +445,9 @@ export default defineComponent({
       paymentsStore.addPayment(paidBch)
       promptOnLeave.value = false
       displayReceivedTransaction(transaction)
+
+      // stop updating bch rate when transaction is received
+      clearInterval(currencyBchRateUpdateInterval.value)
     }
 
     function flagVoucher (txid, category) {
