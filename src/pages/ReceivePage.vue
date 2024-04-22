@@ -245,7 +245,7 @@ export default defineComponent({
     onMounted(() => {
       currencyBchRateUpdateInterval.value = setInterval(
         () => updateSelectedCurrencyRate(),
-        currencyRateUpdateRate
+        currencyRateUpdateRate + (3 * 1000)
       )
     })
     onUnmounted(() => clearInterval(currencyBchRateUpdateInterval.value))
@@ -262,7 +262,7 @@ export default defineComponent({
 
     function updateSelectedCurrencyRate() {
       if (!currency.value || currency.value === 'BCH') return
-      marketStore.refreshBchPrice(currency.value, { age: currencyRateUpdateRate })
+      marketStore.refreshBchPrice(currency.value)
     }
 
     const showRemainingCurrencyAmount = computed(() => {
