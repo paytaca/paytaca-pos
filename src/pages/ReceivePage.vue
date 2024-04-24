@@ -39,7 +39,7 @@
     <div v-if="showExpirationTimer && !isBchMode" class="flex flex-center">
       <q-linear-progress
         :value="qrExpirationTimer"
-        class="text-red-9 q-my-md"
+        class="text-blue-9 q-my-md"
         style="width:250px"
       />
     </div>
