@@ -36,6 +36,28 @@
       </div>
     </div>
 
+    <div v-if="showExpirationTimer && !isBchMode" class="flex flex-center">
+      <q-linear-progress
+        :value="qrExpirationTimer"
+        class="text-red-9 q-my-md"
+        style="width:250px"
+      />
+    </div>
+
+    <q-dialog v-model="refreshQr" persistent>
+      <q-card>
+        <q-card-section class="row items-center">
+          <h6 class="q-mt-none q-mb-md q-ml-sm">QR Expired</h6>
+          <span class="q-ml-sm">The QR has expired due to BCH price update, do you wish to refresh it?</span>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Close" color="brandblue" @click="$router.go(-1)" v-close-popup />
+          <q-btn flat label="Refresh" color="brandblue" @click="refreshQrCountdown" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
         <div>{{ receiveAmount }} {{ currency }}</div>
@@ -168,7 +190,7 @@ export default defineComponent({
             message: message || 'Copied to clipboard',
             timeout: 800,
             icon: 'mdi-clipboard-check',
-            color: 'blue-9'
+            color: 'brandblue'
           })
         })
         .catch(() => {})
@@ -187,6 +209,8 @@ export default defineComponent({
     const wakeLock = reactive(useWakeLock())
 
     const dustBch = 546e-8
+
+    const isBchMode = ref(props.setCurrency === 'BCH')
 
     const addressSet = computed(() => addressesStore.currentAddressSet)
     const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
@@ -207,6 +231,9 @@ export default defineComponent({
     const vault = ref(walletStore.merchantInfo?.vault)
     const generatingAddress = ref(false)
     const promptOnLeave = ref(true)
+    const refreshQr = ref(false)
+    const qrExpirationTimer = ref(1)
+    const showExpirationTimer = ref(true)
 
     onMounted(async () => await wakeLock.request('screen'))
     onMounted(() => {
@@ -233,27 +260,22 @@ export default defineComponent({
     const currencyRateUpdateRate = 60 * 1000
     const currencyBchRate = computed(() => {
       if (!currency.value) return
-      if (currency.value === 'BCH') return { currency: 'BCH', rate: 1, timestamp: Date.now(), status: 2 }
+      if (isBchMode.value) return { currency: 'BCH', rate: 1, timestamp: Date.now(), status: 2 }
       return marketStore.getRate(currency.value)
     })
-    const currencyBchRateUpdateInterval = ref(null)
     const currencyAmountRemaining = computed(() => {
       const currencyRemaining = currencyBchRate?.value?.rate * remainingPaymentRounded.value
       return Number(currencyRemaining.toFixed(2))
     })
-    // 0.02ms - 0.026ms
-    onMounted(() => {
-      currencyBchRateUpdateInterval.value = setInterval(
-        () => updateSelectedCurrencyRate(),
-        currencyRateUpdateRate + (3 * 1000)
-      )
-    })
-    onUnmounted(() => clearInterval(currencyBchRateUpdateInterval.value))
+    let qrExpirationPrompt = null
+    let qrExpirationCountdown = null
+
+    onMounted(() => refreshQrCountdown())
     watch(currency, () => updateSelectedCurrencyRate())
 
 
     const status = {
-      '0': { icon: 'mdi-equal', color: 'blue-9' },
+      '0': { icon: 'mdi-equal', color: 'brandblue' },
       '1': { icon: 'mdi-arrow-up', color: 'green-6' },
       '-1': { icon: 'mdi-arrow-down', color: 'red-9' },
     }
@@ -261,16 +283,37 @@ export default defineComponent({
 
 
     function updateSelectedCurrencyRate() {
-      if (!currency.value || currency.value === 'BCH') return
+      if (isBchMode.value) return
       marketStore.refreshBchPrice(currency.value)
     }
 
+    function refreshQrCountdown () {
+      if (isBchMode.value) return
+
+      updateSelectedCurrencyRate()
+      clearInterval(qrExpirationCountdown)
+      clearTimeout(qrExpirationPrompt)
+
+      qrExpirationTimer.value = 1
+      
+      const milliseconds = 1000
+      qrExpirationCountdown = setInterval(
+        () => qrExpirationTimer.value -= 1 / (currencyRateUpdateRate / milliseconds),
+        milliseconds
+      )
+
+      qrExpirationPrompt = setTimeout(
+        () => refreshQr.value = true,
+        currencyRateUpdateRate + (3 * milliseconds)
+      )
+    }
+
     const showRemainingCurrencyAmount = computed(() => {
-      return currency.value !== 'BCH' && !paid.value
+      return !isBchMode.value && !paid.value
     })
 
     const bchValue = computed(() => {
-      if (!currency.value || currency.value === 'BCH') {
+      if (isBchMode.value) {
         paymentsStore.setTotalPayment(receiveAmount.value)
         return receiveAmount.value
       }
@@ -446,8 +489,9 @@ export default defineComponent({
       promptOnLeave.value = false
       displayReceivedTransaction(transaction)
 
-      // stop updating bch rate when transaction is received
-      clearInterval(currencyBchRateUpdateInterval.value)
+      showExpirationTimer.value = false
+      clearInterval(qrExpirationCountdown)
+      clearTimeout(qrExpirationPrompt)
     }
 
     function flagVoucher (txid, category) {
@@ -701,6 +745,11 @@ export default defineComponent({
       paid,
       showRemainingCurrencyAmount,
       bchRateStatus,
+      refreshQr,
+      refreshQrCountdown,
+      qrExpirationTimer,
+      showExpirationTimer,
+      isBchMode,
     }
   },
 })
