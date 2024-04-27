@@ -20,7 +20,7 @@
           <img src="~assets/success-check.gif" height="200" />
         </div>
         <template v-else>
-          <div v-if="!websocketsReady" class="bg-dark"><q-skeleton height="200px" width="200px" /></div>
+          <div v-if="!websocketsReady || refreshingQr" class="bg-dark"><q-skeleton height="200px" width="200px" /></div>
           <template v-else>
             <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
             <QRCode
@@ -48,12 +48,12 @@
       <q-card>
         <q-card-section class="row items-center">
           <h6 class="q-mt-none q-mb-md q-ml-sm">QR Expired</h6>
-          <span class="q-ml-sm">The QR has expired due to BCH price update, do you wish to refresh it?</span>
+          <span class="q-ml-sm">The QR has expired due to BCH price update. Do you wish to refresh it?</span>
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Close" color="brandblue" @click="$router.go(-1)" v-close-popup />
-          <q-btn flat label="Refresh" color="brandblue" @click="refreshQrCountdown" v-close-popup />
+          <q-btn flat label="Close" color="brandblue" @click="() => { promptOnLeave = false; $router.go(-1)}" v-close-popup />
+          <q-btn flat label="Refresh" color="brandblue" @click="() => { refreshingQr = true; refreshQrCountdown() }" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -232,6 +232,7 @@ export default defineComponent({
     const generatingAddress = ref(false)
     const promptOnLeave = ref(true)
     const refreshQr = ref(false)
+    const refreshingQr = ref(false)
     const qrExpirationTimer = ref(1)
     const showExpirationTimer = ref(true)
 
@@ -285,6 +286,7 @@ export default defineComponent({
     function updateSelectedCurrencyRate() {
       if (isBchMode.value) return
       marketStore.refreshBchPrice(currency.value)
+      setTimeout(() => {refreshingQr.value = false}, 3000)
     }
 
     function refreshQrCountdown () {
@@ -746,6 +748,7 @@ export default defineComponent({
       showRemainingCurrencyAmount,
       bchRateStatus,
       refreshQr,
+      refreshingQr,
       refreshQrCountdown,
       qrExpirationTimer,
       showExpirationTimer,
