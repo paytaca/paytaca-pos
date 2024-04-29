@@ -47,7 +47,7 @@ export default defineComponent({
     onMounted(() => loadApp())
 
     async function loadApp() {
-      if (marketplaceStore.appRefreshScopePromise) {
+      if (marketplaceStore.appRefreshScopePromise instanceof Promise) {
         return marketplaceStore.appRefreshScopePromise
       }
       marketplaceStore.appRefreshScopePromise = _loadApp()
