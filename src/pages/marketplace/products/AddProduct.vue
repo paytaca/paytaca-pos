@@ -60,6 +60,10 @@
               errorMessage: formErrors?.categories,
             }"
           />
+        </q-card-section>
+      </q-card>
+      <q-card>
+        <q-card-section>
           <div class="row items-center">
             <div class="text-subtitle1">Cart options</div>
             <q-space/>
@@ -119,6 +123,24 @@
               </q-dialog>
             </template>
           </div>
+          <q-separator spaced/>
+          <div class="row items-center">
+            <div class="text-subtitle1">Addon Options</div>
+          </div>
+          <q-btn
+            v-if="!formData.addons?.length"
+            flat
+            no-caps label="Set Addons"
+            icon="edit"
+            class="full-width"
+            @click="() => openAddonsFormDialog()"
+          />
+          <AddonsInfoPanel
+            v-else
+            :addons="formData.addons"
+            :currency="marketplaceStore.currency"
+            @click="() => openAddonsFormDialog()"
+          />
         </q-card-section>
       </q-card>
       <q-card>
@@ -263,6 +285,7 @@
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
+import { parseProductAddon } from 'src/marketplace/product-addons'
 import { errorParser } from 'src/marketplace/utils'
 import { defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -273,6 +296,8 @@ import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import JSONFormDialog from 'src/components/marketplace/jsonform/JSONFormDialog.vue'
 import JSONFormPreview from 'src/components/marketplace/jsonform/JSONFormPreview.vue'
 import CategoriesField from 'src/components/marketplace/inventory/CategoriesField.vue'
+import AddonsFormDialog from 'src/components/marketplace/cartoptions/AddonsFormDialog.vue'
+import AddonsInfoPanel from 'src/components/marketplace/cartoptions/AddonsInfoPanel.vue'
 
 
 export default defineComponent({
@@ -282,6 +307,7 @@ export default defineComponent({
     MarketplaceHeader,
     JSONFormPreview,
     CategoriesField,
+    AddonsInfoPanel,
   },
   setup() {
     const marketplaceStore = useMarketplaceStore()
@@ -308,6 +334,7 @@ export default defineComponent({
       description: '',
       categories: [],
       cartOptions: undefined,
+      addons: [].map(parseProductAddon),
       variants: [createEmptyVariant()],
     })
 
@@ -350,6 +377,18 @@ export default defineComponent({
       })
     }
 
+    function openAddonsFormDialog() {
+      $q.dialog({
+        component: AddonsFormDialog,
+        componentProps: {
+          initialValue: formData.value.addons,
+          clearable: true,
+        }
+      }).onOk(addonsList => {
+        formData.value.addons = addonsList
+      })
+    }
+
     function addVariant() {
       if (!Array.isArray(formData.value.variants)) formData.value.variants = []
       formData.value.variants.push(createEmptyVariant())
@@ -363,6 +402,20 @@ export default defineComponent({
         description: formData.value.description,
         categories: [],
         cart_options: formData.value.cartOptions?.map?.(data => Object.assign({}, data, { _index: undefined })),
+        addons: formData.value.addons.map(addon => {
+          return {
+            label: addon.label,
+            min_opts: addon.minOpts,
+            max_opts: addon.maxOpts,
+            options: addon.options.map(option => {
+              return {
+                label: option.label,
+                price: option.price,
+                require_input: option.requireInput,
+              }
+            })
+          }
+        }),
         variants: [],
       }
       if (!data?.cart_options?.length) data.cart_options = null
@@ -439,6 +492,8 @@ export default defineComponent({
 
       showCartOptionsPreview,
       openPropertiesSchemaOptions,
+
+      openAddonsFormDialog,
 
       addVariant,
       addProduct,

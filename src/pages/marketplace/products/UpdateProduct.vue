@@ -72,6 +72,11 @@
               errorMessage: formErrors?.categories,
             }"
           />
+        </q-card-section>
+      </q-card>
+
+      <q-card class="q-mt-md">
+        <q-card-section>
           <div class="row items-center">
             <div class="text-subtitle1">Cart options</div>
             <q-space/>
@@ -131,6 +136,24 @@
               </q-dialog>
             </template>
           </div>
+          <q-separator/>
+          <div class="row items-center">
+            <div class="text-subtitle1">Addon Options</div>
+          </div>
+          <q-btn
+            v-if="!formData.addons?.length"
+            flat
+            no-caps label="Set Addons"
+            icon="edit"
+            class="full-width"
+            @click="() => openAddonsFormDialog()"
+          />
+          <AddonsInfoPanel
+            v-else
+            :addons="formData.addons"
+            :currency="marketplaceStore.currency"
+            @click="() => openAddonsFormDialog()"
+          />
         </q-card-section>
       </q-card>
 
@@ -342,6 +365,7 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { Product, Variant } from 'src/marketplace/objects'
+import { parseProductAddon } from 'src/marketplace/product-addons'
 import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
@@ -352,6 +376,8 @@ import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import JSONFormDialog from 'src/components/marketplace/jsonform/JSONFormDialog.vue'
 import JSONFormPreview from 'src/components/marketplace/jsonform/JSONFormPreview.vue'
 import CategoriesField from 'src/components/marketplace/inventory/CategoriesField.vue'
+import AddonsFormDialog from 'src/components/marketplace/cartoptions/AddonsFormDialog.vue'
+import AddonsInfoPanel from 'src/components/marketplace/cartoptions/AddonsInfoPanel.vue'
 
 /**
  * For constructing update payload.
@@ -367,6 +393,7 @@ export default defineComponent({
     UploadImageField,
     JSONFormPreview,
     CategoriesField,
+    AddonsInfoPanel,
   },
   props: {
     productId: [Number, String]
@@ -419,6 +446,7 @@ export default defineComponent({
       description: '',
       categories: [],
       cartOptions: undefined,
+      addons: [].map(parseProductAddon),
       variants: [{
         obj: Variant.parse(null),
         remove: false,
@@ -494,6 +522,11 @@ export default defineComponent({
           price: variant.price,
         }
       })
+      if (!Array.isArray(product.value.addons)) {
+        formData.value.addons = []
+      } else {
+        formData.value.addons = product.value.addons.map(parseProductAddon)
+      }
 
       formData.value.newVariants = []
       resetFormErrors()
@@ -547,6 +580,19 @@ export default defineComponent({
       })
     }
 
+    function openAddonsFormDialog() {
+      $q.dialog({
+        component: AddonsFormDialog,
+        componentProps: {
+          initialValue: formData.value.addons,
+          clearable: true,
+          promptClear: true,
+        }
+      }).onOk(addonsList => {
+        formData.value.addons = addonsList
+      })
+    }
+
     function addVariant() {
       formData.value.newVariants.push(createEmptyNewVariant())
     }
@@ -560,6 +606,20 @@ export default defineComponent({
         image_url: undefinedOrUpdated(formData.value.imageUrl || "", product.value.imageUrl),
         update_variants: computedFormData.value.variants.update,
         add_variants: computedFormData.value.variants.add,
+        addons: formData.value.addons.map(addon => {
+          return {
+            label: addon.label,
+            min_opts: addon.minOpts,
+            max_opts: addon.maxOpts,
+            options: addon.options.map(option => {
+              return {
+                label: option.label,
+                price: option.price,
+                require_input: option.requireInput,
+              }
+            })
+          }
+        })
       }
       if (!data?.cart_options?.length) data.cart_options = null
 
@@ -685,6 +745,8 @@ export default defineComponent({
 
       showCartOptionsPreview,
       openPropertiesSchemaOptions,
+
+      openAddonsFormDialog,
 
       addVariant,
       updateProduct,
