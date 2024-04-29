@@ -37,8 +37,8 @@
           <thead>
             <tr>
               <th colspan="2">Item</th>
-              <th>Qty</th>
               <th>Price</th>
+              <th>Qty</th>
               <th>Subtotal</th>
             </tr>
           </thead>
@@ -57,8 +57,8 @@
                     <div>{{ orderItem?.variant?.itemName }}</div>
                   </div>
                 </td>
-                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
                 <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
                 <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price * orderItem?.quantity }} {{ orderCurrency }}</td>
               </tr>
               <tr v-for="(addon, index) in orderItem.addons" :key="`${orderItem?.id}-${index}`">

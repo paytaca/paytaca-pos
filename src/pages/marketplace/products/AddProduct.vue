@@ -127,18 +127,18 @@
           <div class="row items-center">
             <div class="text-subtitle1">Addon Options</div>
           </div>
-          <q-btn
-            v-if="!formData.addons?.length"
-            flat
-            no-caps label="Set Addons"
-            icon="edit"
-            class="full-width"
-            @click="() => openAddonsFormDialog()"
-          />
           <AddonsInfoPanel
-            v-else
+            v-if="formData.addons?.length"
             :addons="formData.addons"
             :currency="marketplaceStore.currency"
+          />
+          <q-btn
+            :flat="!formData.addons?.length"
+            :outline="Boolean(formData.addons?.length)"
+            :color="(formData.addons?.length && !$q.dark.isActive) ? 'brandblue' : ''"
+            no-caps :label="formData.addons?.length ? 'Edit' : 'Set Addons'"
+            icon="edit"
+            class="full-width"
             @click="() => openAddonsFormDialog()"
           />
         </q-card-section>
