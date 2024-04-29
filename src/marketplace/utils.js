@@ -1,6 +1,12 @@
 import ago from 's-ago'
 import { capitalize } from 'vue'
 
+
+export function round(value, decimals) {
+  const multiplier = 10 ** decimals
+  return Math.round(Number(value) * multiplier) / multiplier
+}
+
 export function lineItemPropertiesToText(data) {
   if (!data) return ''
   return Object.getOwnPropertyNames(data).map(name => {

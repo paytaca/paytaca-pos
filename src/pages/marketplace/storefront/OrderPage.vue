@@ -370,33 +370,48 @@
         <q-markup-table dense>
           <thead>
             <tr>
-              <th>Item</th>
-              <th>Qty</th>
+              <th colspan="2">Item</th>
               <th>Price</th>
+              <th>Qty</th>
               <th>Subtotal</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="orderItem in order?.items" :key="orderItem?.id">
-              <td class="text-weight-medium" @click="displayVariant(orderItem?.variant)">
-                <div class="row items-center justify-left no-wrap full-width text-left q-my-xs">
-                  <q-img
-                    v-if="orderItem?.variant?.itemImage"
-                    :src="orderItem?.variant?.itemImage"
-                    width="35px"
-                    ratio="1"
-                    class="rounded-borders q-mr-xs"
-                  />
-                  <div class="q-space">
-                    <div class="text-weight-medium">{{ orderItem?.variant?.itemName }}</div>
-                    <div class="text-caption bottom">{{ orderItem?.propertiesText }} </div>
+            <template v-for="orderItem in order?.items" :key="orderItem?.id">
+              <tr>
+                <td
+                  colspan="2"
+                  class="text-weight-medium" @click="displayVariant(orderItem?.variant)"
+                >
+                  <div class="row items-center justify-left no-wrap full-width text-left q-my-xs">
+                    <q-img
+                      v-if="orderItem?.variant?.itemImage"
+                      :src="orderItem?.variant?.itemImage"
+                      width="35px"
+                      ratio="1"
+                      class="rounded-borders q-mr-xs"
+                    />
+                    <div class="q-space">
+                      <div class="text-weight-medium">{{ orderItem?.variant?.itemName }}</div>
+                      <div class="text-caption bottom">{{ orderItem?.propertiesText }} </div>
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
-              <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price }} {{ orderCurrency }}</td>
-              <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price * orderItem?.quantity }} {{ orderCurrency }}</td>
-            </tr>
+                </td>
+                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price * orderItem?.quantity }} {{ orderCurrency }}</td>
+              </tr>
+              <tr v-for="(addon, index) in orderItem.addons" :key="`${orderItem?.id}-${index}`">
+                <td></td>
+                <td>
+                  <div>{{ addon?.label }}</div>
+                  <div v-if="addon?.inputValue" class="text-caption bottom">{{ addon?.inputValue }}</div>
+                </td>
+                <td class="text-center" style="white-space:nowrap;">{{ addon?.price }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ addon?.quantity }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ round(addon?.price * orderItem?.quantity, 3) }} {{ orderCurrency }}</td>
+              </tr>
+            </template>
           </tbody>
         </q-markup-table>
       </q-card>
@@ -509,7 +524,7 @@
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { Delivery, Order, OrderDispute, Payment, Review, Rider, Storefront, Variant } from 'src/marketplace/objects'
-import { errorParser, formatOrderStatus, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative } from 'src/marketplace/utils'
+import { errorParser, formatOrderStatus, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative, round } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useNotificationsStore } from 'src/stores/notifications'
 import { debounce, useQuasar } from 'quasar'
@@ -531,6 +546,7 @@ import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import riderLocationPin from 'src/assets/marketplace/rider_map_marker_2.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
+
 
 export default defineComponent({
   name: 'OrderPage',
@@ -1382,6 +1398,7 @@ export default defineComponent({
       refreshPage,
 
       // utils funcs
+      round,
       formatOrderStatus, parseOrderStatusColor,
       parsePaymentStatusColor,
       formatTimestampToText,

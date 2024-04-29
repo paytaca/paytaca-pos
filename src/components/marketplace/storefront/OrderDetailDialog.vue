@@ -36,30 +36,42 @@
         <table class="items-table full-width q-mt-md">
           <thead>
             <tr>
-              <th>Item</th>
+              <th colspan="2">Item</th>
               <th>Qty</th>
               <th>Price</th>
               <th>Subtotal</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="orderItem in order?.items" :key="orderItem?.id">
-              <td class="text-weight-medium">
-                <div class="row items-center justify-left no-wrap full-width text-left q-my-xs">
-                  <q-img
-                    v-if="orderItem?.variant?.itemImage"
-                    :src="orderItem?.variant?.itemImage"
-                    width="35px"
-                    ratio="1"
-                    class="rounded-borders q-mr-xs"
-                  />
-                  <div>{{ orderItem?.variant?.itemName }}</div>
-                </div>
-              </td>
-              <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
-              <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price }} {{ orderCurrency }}</td>
-              <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price * orderItem?.quantity }} {{ orderCurrency }}</td>
-            </tr>
+            <template v-for="orderItem in order?.items" :key="orderItem?.id">
+              <tr>
+                <td colspan="2" class="text-weight-medium order-item-cell">
+                  <div class="row items-center justify-left no-wrap full-width text-left q-my-xs">
+                    <q-img
+                      v-if="orderItem?.variant?.itemImage"
+                      :src="orderItem?.variant?.itemImage"
+                      width="35px"
+                      ratio="1"
+                      class="rounded-borders q-mr-xs"
+                    />
+                    <div>{{ orderItem?.variant?.itemName }}</div>
+                  </div>
+                </td>
+                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price * orderItem?.quantity }} {{ orderCurrency }}</td>
+              </tr>
+              <tr v-for="(addon, index) in orderItem.addons" :key="`${orderItem?.id}-${index}`">
+                <td></td>
+                <td>
+                  <div>{{ addon?.label }}</div>
+                  <div v-if="addon?.inputValue" class="text-caption bottom">{{ addon?.inputValue }}</div>
+                </td>
+                <td class="text-center" style="white-space:nowrap;">{{ addon?.price }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ addon?.quantity }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ round(addon?.price * orderItem?.quantity, 3) }} {{ orderCurrency }}</td>
+              </tr>
+            </template>
           </tbody>
         </table>
         <q-separator spaced/>
@@ -99,7 +111,7 @@
 import { Order } from 'src/marketplace/objects'
 import { useDialogPluginComponent } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
-import { formatTimestampToText } from 'src/marketplace/utils'
+import { formatTimestampToText, round } from 'src/marketplace/utils'
 
 export default defineComponent({
   name: 'OrderDetailDialog',
@@ -128,6 +140,7 @@ export default defineComponent({
 
       orderCurrency,
 
+      round,
       formatTimestampToText,
     }
   },
@@ -140,7 +153,7 @@ table.items-table {
 table.items-table tr td:last-child {
   text-align: end;
 }
-table.items-table tr td:first-child {
+table.items-table tr td.order-item-cell:first-child {
  width: 100%;
 }
 </style>
