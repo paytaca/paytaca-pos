@@ -227,6 +227,40 @@
             />
           </q-td>
         </template>
+        <template v-slot:body-cell-addons="props">
+          <q-td :props="props">
+            <div class="row items-center no-wrap">
+              <template v-if="props.row?.addonsCount">
+                <q-btn
+                  :disable="props.row?.$state?.updatingAddons"
+                  :loading="props.row?.$state?.updatingAddons"
+                  flat
+                  no-caps
+                  label="View"
+                  no-wrap
+                  padding="xs"
+                  size="1em"
+                  dense
+                  @click="() => viewAddons(props.row)"
+                />
+                <q-separator vertical spaced/>
+              </template>
+              <q-btn
+                :disable="props.row?.$state?.updatingAddons"
+                :loading="props.row?.$state?.updatingAddons"
+                flat
+                no-caps
+                :label="props.row?.addonsCount ? 'Edit' : 'Add'"
+                :icon-right="props.row?.addonsCount ? undefined : 'add'"
+                no-wrap
+                :padding="props.row?.addonsCount ? 'xs' :'xs sm'"
+                :size="props.row?.addonsCount ? '1em' : undefined"
+                dense
+                @click="() => updateAddons(props.row)"
+              />
+            </div>
+          </q-td>
+        </template>
       </q-table>
     </q-pull-to-refresh>
     <ProductInventoryDialog
@@ -252,6 +286,8 @@ import ProductInventoryDialog from 'src/components/marketplace/inventory/Product
 import ProductSearchDialog from 'src/components/marketplace/ProductSearchDialog.vue';
 import JSONFormDialog from 'src/components/marketplace/jsonform/JSONFormDialog.vue';
 import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue';
+import AddonsFormDialog from 'src/components/marketplace/cartoptions/AddonsFormDialog.vue';
+import AddonsInfoDialog from 'src/components/marketplace/cartoptions/AddonsInfoDialog.vue';
 
 export default defineComponent({
   name: 'StorefrontProducts',
@@ -344,6 +380,7 @@ export default defineComponent({
       { name: 'available', align: 'left', label: 'Available', sortable: true },
       { name: 'markup-price', align: 'left', label: 'Markup Price', field: 'markupPriceRangeText', format: val => `${val} ${marketplaceStore?.currency}`, sortable: true },
       { name: 'cart-options', align: 'left', label: 'Cart Options' },
+      { name: 'addons', align: 'left', label: 'Addon Options' },
       { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText, sortable: true },
       // { name: 'actions', align: 'center', label: '' },
     ]
@@ -478,6 +515,62 @@ export default defineComponent({
       })
     }
 
+    async function viewAddons(product=Product.parse()) {
+      if (product.addons === undefined) await product.fetchAddons()
+      $q.dialog({
+        component: AddonsInfoDialog,
+        componentProps: {
+          title: `${product.name} - Addon Options`,
+          addons: product.addons,
+          currency: marketplaceStore?.currency,
+        }
+      })
+    }
+
+    async function updateAddons(product=Product.parse()) {
+      if (product.addons === undefined) await product.fetchAddons()
+      $q.dialog({
+        component: AddonsFormDialog,
+        componentProps: {
+          title: `${product.name} - Addon Options`,
+          initialValue: product.addons,
+          clearable: true,
+          promptClear: true,
+        }
+      }).onOk(addonsList => {
+        const data = {
+          addons: addonsList.map(addon => {
+            return {
+              label: addon.label,
+              min_opts: addon.minOpts,
+              max_opts: addon.maxOpts,
+              options: addon.options.map(option => {
+                return {
+                  label: option.label,
+                  price: option.price,
+                  require_input: option.requireInput,
+                }
+              })
+            }
+          })
+        }
+        product.$state.updatingAddons = true
+        backend.patch(`products/${product.id}/`, data)
+          .then(response => {
+            product.raw = Object.assign({}, product.raw, response.data)
+            $q.notify({
+              message: 'Addon options updated',
+              icon: 'check',
+              color: 'brandblue',
+            })
+            return response
+          })
+          .finally(() => {
+            product.$state.updatingAddons = false
+          })
+      })
+    }
+
     function openAddProductsDialog() {
       $q.dialog({
         component: ProductSearchDialog,
@@ -569,6 +662,8 @@ export default defineComponent({
       confirmRemoveSelectedProducts,
       updateSelectedProductsAvailability,
       updateCartOptions,
+      viewAddons,
+      updateAddons,
       openAddProductsDialog,
 
       reviewsListDialog,
