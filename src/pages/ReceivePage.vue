@@ -493,10 +493,12 @@ export default defineComponent({
       paymentsStore.addPayment(paidBch)
       promptOnLeave.value = false
       displayReceivedTransaction(transaction)
-
-      showExpirationTimer.value = false
-      clearInterval(qrExpirationCountdown)
-      clearTimeout(qrExpirationPrompt)
+      
+      if (!isBchMode.value) {
+        showExpirationTimer.value = false
+        clearInterval(qrExpirationCountdown)
+        clearTimeout(qrExpirationPrompt)
+      }
     }
 
     function flagVoucher (txid, category) {
