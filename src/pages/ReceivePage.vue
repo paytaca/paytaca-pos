@@ -356,15 +356,18 @@ export default defineComponent({
 
       const merchantVaultTokenAddress = vault.value?.tokenAddress?.split?.(':')?.[1]
       const currentTimestamp = Date.now() / 1000
-      const expiryDuration = currencyRateUpdateRate / 1000
-      const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
       const unusedVar = bchValue.value  // trigger only for setting of total payment
 
       let paymentUri = receivingAddress
       paymentUri += `?POS=${posId.value}`
       paymentUri += `&amount=${remainingPaymentRounded.value}`
       paymentUri += `&vault=${merchantVaultTokenAddress}`    // recipient of voucher NFT
-      paymentUri += `&expires=${expirationTimestamp}`
+
+      if (!isBchMode.value) {
+        const expiryDuration = currencyRateUpdateRate / 1000
+        const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
+        paymentUri += `&expires=${expirationTimestamp}`
+      }
 
       return paymentUri
     })
@@ -490,10 +493,12 @@ export default defineComponent({
       paymentsStore.addPayment(paidBch)
       promptOnLeave.value = false
       displayReceivedTransaction(transaction)
-
-      showExpirationTimer.value = false
-      clearInterval(qrExpirationCountdown)
-      clearTimeout(qrExpirationPrompt)
+      
+      if (!isBchMode.value) {
+        showExpirationTimer.value = false
+        clearInterval(qrExpirationCountdown)
+        clearTimeout(qrExpirationPrompt)
+      }
     }
 
     function flagVoucher (txid, category) {
