@@ -1812,6 +1812,12 @@ export class Order {
     return parseOrderStatusColor(this.status)
   }
 
+  get formattedDeliveryType() {
+    if (typeof this.deliveryType !== 'string') return this.deliveryType
+
+    return capitalize(this.deliveryType).replace('_', ' ')
+  }
+
   get markupAmount() {
     const markupAmount = parseFloat(this.markupSubtotal - this.subtotal)
     return Math.round(markupAmount * 10 ** 3) / 10 ** 3
