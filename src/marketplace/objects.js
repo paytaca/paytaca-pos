@@ -1699,6 +1699,12 @@ export class OrderItem {
 
 
 export class Order {
+  static DeliveryTypes = Object.freeze({
+    LOCAL_DELIVERY: 'local_delivery',
+    STORE_PICKUP: 'store_pickup',
+    SHIPPING: 'shipping',
+  })
+
   static parse(data) {
     return new Order(data) 
   }
@@ -1720,6 +1726,7 @@ export class Order {
    * @param {{ code:String, symbol:String }} data.currency
    * @param {Object} data.bch_price
    * @param {Object} [data.customer]
+   * @param {'local_delivery' | 'store_pickup' | 'shipping'} data.delivery_type
    * @param {Object} data.delivery_address
    * @param {Object[]} data.items
    * @param {Number} data.subtotal
@@ -1746,6 +1753,7 @@ export class Order {
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.bchPrice = BchPrice.parse(data?.bch_price)
     if (data?.customer) this.customer = Customer.parse(data?.customer)
+    this.deliveryType = data?.delivery_type
     this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
     this.items = data?.items?.map?.(OrderItem.parse)
     this.subtotal = data?.subtotal
@@ -1778,14 +1786,22 @@ export class Order {
     if (data?.dispute) this.dispute = OrderDispute.parse(data?.dispute)
   }
 
+  get isStorePickup() {
+    return this.deliveryType === Order.DeliveryTypes.STORE_PICKUP
+  }
+
   get isCancelled() {
     return this.status == 'cancelled'
   }
 
+  get isReadyForPickup() {
+    return this.status == 'ready_for_pickup'
+  }
+
   get editable() {
-    return this.id &&
-          !['on_delivery', 'delivered', 'completed', 'cancelled'].includes(this.status)
-          && !this.isCancelled
+    const nonEditableStatuses = ['on_delivery', 'delivered', 'completed', 'cancelled']
+    if (this.isStorePickup) nonEditableStatuses.push('ready_for_pickup')
+    return this.id && !nonEditableStatuses.includes(this.status) && !this.isCancelled
   }
 
   get formattedStatus() {
