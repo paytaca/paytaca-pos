@@ -242,7 +242,6 @@
           <div class="row items-center q-mb-sm">
             <div v-if="order?.isStorePickup" class="text-h6 q-space">Store pickup</div>
             <div v-else class="text-h6 q-space">Delivery</div>
-            <q-btn @click="() => $q.dark.toggle()"/>
             <div class="row items-center">
               <LeafletMapDialog v-model="showMap" :locations="mapLocations"/>
               <q-btn

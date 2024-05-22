@@ -105,6 +105,13 @@
           Status: {{ filterOpts?.statuses?.map?.(formatOrderStatus)?.join(', ') }}
         </div>
         <div
+          v-if="filterOpts?.deliveryTypes?.length" style="max-width:45vw;"
+          class="ellipsis filter-opt q-px-xs"
+          @click="openFilterOptsForm = true"
+        >
+          Delivery Type: {{ filterOpts?.deliveryTypes?.map?.(formatStatusGeneric)?.join(', ') }}
+        </div>
+        <div
           v-if="(typeof filterOpts?.hasOngoingDispute === 'boolean')"
           class="ellipsis filter-opt q-px-xs"
           @click="openFilterOptsForm = true"
@@ -180,6 +187,7 @@ export default defineComponent({
     s: String,
     statuses: String,
     dispute: String,
+    deliveryTypes: String,
   },
   setup(props) {
     const $route = useRoute()
@@ -209,8 +217,8 @@ export default defineComponent({
       }
       if (useProps) {
         data.statuses = props.statuses?.split?.(',')?.filter(status => statusOpts.includes(status)) || []
+        data.deliveryTypes = props.deliveryTypes?.split?.(',')?.filter(deliveryType => deliveryTypeOpts.includes(deliveryType)) || []
         data.search = props.search || ''
-        console.log('props.dispute', props.dispute)
         if (props.dispute == 'true') data.hasOngoingDispute = true
         if (props.dispute == 'false') data.hasOngoingDispute = false
       }
@@ -256,6 +264,7 @@ export default defineComponent({
         query: Object.assign({}, $route.query, {
           s: filterOpts.value.search || undefined,
           statuses: filterOpts.value?.statuses?.join(',') || undefined,
+          deliveryTypes: filterOpts.value?.deliveryTypes?.join(',') || undefined,
           dispute: typeof filterOpts.value?.hasOngoingDispute === 'boolean'
             ? String(filterOpts.value?.hasOngoingDispute) : undefined,
         }),
