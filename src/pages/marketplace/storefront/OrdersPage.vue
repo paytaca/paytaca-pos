@@ -58,6 +58,19 @@
                 </div>
               </div>
               <div class="q-mb-sm">
+                <div class="text-subtitle1">Delivery Types</div>
+                <div>
+                  <q-checkbox
+                    v-for="deliveryType in deliveryTypeOpts" :key="deliveryType"
+                    dense
+                    :label="formatStatusGeneric(deliveryType)"
+                    :val="deliveryType"
+                    v-model="tempFilterOpts.deliveryTypes"
+                    class="q-pa-xs"
+                  />
+                </div>
+              </div>
+              <div class="q-mb-sm">
                 <div class="text-subtitle1">Has ongoing dispute</div>
                 <q-btn-toggle
                   v-model="tempFilterOpts.hasOngoingDispute"
@@ -90,6 +103,13 @@
           @click="openFilterOptsForm = true"
         >
           Status: {{ filterOpts?.statuses?.map?.(formatOrderStatus)?.join(', ') }}
+        </div>
+        <div
+          v-if="filterOpts?.deliveryTypes?.length" style="max-width:45vw;"
+          class="ellipsis filter-opt q-px-xs"
+          @click="openFilterOptsForm = true"
+        >
+          Delivery Type: {{ filterOpts?.deliveryTypes?.map?.(formatStatusGeneric)?.join(', ') }}
         </div>
         <div
           v-if="(typeof filterOpts?.hasOngoingDispute === 'boolean')"
@@ -150,7 +170,7 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { Order } from 'src/marketplace/objects'
-import { formatOrderStatus, parseOrderStatusColor } from 'src/marketplace/utils'
+import { formatOrderStatus, formatStatusGeneric, parseOrderStatusColor } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useRoute, useRouter } from 'vue-router'
 import { defineComponent, onMounted, watch, ref } from 'vue'
@@ -167,6 +187,7 @@ export default defineComponent({
     s: String,
     statuses: String,
     dispute: String,
+    deliveryTypes: String,
   },
   setup(props) {
     const $route = useRoute()
@@ -180,17 +201,24 @@ export default defineComponent({
       'completed', 'cancelled',
     ]
 
+    const deliveryTypeOpts = [
+      Order.DeliveryTypes.LOCAL_DELIVERY,
+      Order.DeliveryTypes.STORE_PICKUP,
+      // Order.DeliveryTypes.SHIPPING,
+    ]
+
     function createDefaultFilterOpts(useProps=false) {
       const data = {
         sort: undefined,
         search: '',
         statuses: [],
+        deliveryTypes: [],
         hasOngoingDispute: [].map(Boolean)[0],
       }
       if (useProps) {
         data.statuses = props.statuses?.split?.(',')?.filter(status => statusOpts.includes(status)) || []
+        data.deliveryTypes = props.deliveryTypes?.split?.(',')?.filter(deliveryType => deliveryTypeOpts.includes(deliveryType)) || []
         data.search = props.search || ''
-        console.log('props.dispute', props.dispute)
         if (props.dispute == 'true') data.hasOngoingDispute = true
         if (props.dispute == 'false') data.hasOngoingDispute = false
       }
@@ -207,6 +235,15 @@ export default defineComponent({
         filterOpts.value.statuses = [].concat(tempFilterOpts.value.statuses)
       }
 
+      const hasAddedDeliveryTypes = tempFilterOpts.value.deliveryTypes
+        .some(deliveryType => !filterOpts.value.deliveryTypes.includes(deliveryType))
+      const hasRemovedDeliveryTypes = filterOpts.value.deliveryTypes
+        .some(deliveryType => !tempFilterOpts.value.deliveryTypes.includes(deliveryType))
+      
+      if (hasAddedDeliveryTypes || hasRemovedDeliveryTypes) {
+        filterOpts.value.deliveryTypes = [].concat(tempFilterOpts.value.deliveryTypes)
+      }
+
       filterOpts.value.hasOngoingDispute = tempFilterOpts.value.hasOngoingDispute
     }
     function syncFilterOptsToTemp() {
@@ -214,6 +251,7 @@ export default defineComponent({
         sort: filterOpts.value.sort,
         search: filterOpts.value.search,
         statuses: filterOpts.value.statuses.map(e => e),
+        deliveryTypes: filterOpts.value.deliveryTypes.map(e => e),
         hasOngoingDispute: filterOpts.value.hasOngoingDispute,
       }
     }
@@ -226,6 +264,7 @@ export default defineComponent({
         query: Object.assign({}, $route.query, {
           s: filterOpts.value.search || undefined,
           statuses: filterOpts.value?.statuses?.join(',') || undefined,
+          deliveryTypes: filterOpts.value?.deliveryTypes?.join(',') || undefined,
           dispute: typeof filterOpts.value?.hasOngoingDispute === 'boolean'
             ? String(filterOpts.value?.hasOngoingDispute) : undefined,
         }),
@@ -242,6 +281,7 @@ export default defineComponent({
         offset: opts?.offset || undefined,
         ordering: filterOpts.value?.sort || undefined,
         statuses: filterOpts.value?.statuses?.join(',') || undefined,
+        delivery_types: filterOpts.value?.deliveryTypes?.join(',') || undefined,
         s: filterOpts.value.search || undefined,
       }
       if (typeof filterOpts.value.hasOngoingDispute == 'boolean') {
@@ -269,12 +309,14 @@ export default defineComponent({
       { name: 'id', align: 'left', label: 'Order', field: 'id', format: val => val ? `#${val}` : '', sortable: true },
       { name: 'status', align: 'left', label: 'Status', field: 'formattedStatus', sortable: true },
       { name: 'payment-status', align: 'left', label: 'Payment Status', field: 'formattedPaymentStatus', sortable: true },
+      { name: 'delivery-type', align: 'left', label: 'Delivery', field: 'formattedDeliveryType', sortable: true },
       { name: 'subtotal', align: 'left', label: 'Subtotal', field: obj => obj?.subtotal ? `${obj.subtotal} ${obj?.currency?.symbol}` : '', sortable: true },
       { name: 'customer', align: 'left', label: 'Customer', field: obj => `${obj?.customer?.firstName} ${obj?.customer?.lastName}`, sortable: true },
     ]
     const sortFieldNameMap = {
       customer: 'customer_name',
       'payment-status': 'paid_pctg',
+      'delivery-type': 'delivery_type',
     }
     function sortMethod(rows, sortBy, descending) {
       const fieldName = sortFieldNameMap[sortBy] || sortBy
@@ -300,6 +342,7 @@ export default defineComponent({
       openFilterOptsForm,
       filterOpts,
       statusOpts,
+      deliveryTypeOpts,
 
       orders,
       fetchingOrders,
@@ -314,6 +357,7 @@ export default defineComponent({
 
       // utils funcs
       formatOrderStatus, parseOrderStatusColor,
+      formatStatusGeneric,
     }
   },
 })
