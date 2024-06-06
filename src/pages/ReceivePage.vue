@@ -154,6 +154,7 @@
   </q-page>
 </template>
 <script>
+import { getNetworkTimeDiff } from 'src/utils/time.js'
 import { useWalletStore } from 'stores/wallet'
 import { usePaymentsStore } from 'stores/payments'
 import { useTxCacheStore } from 'src/stores/tx-cache'
@@ -235,6 +236,13 @@ export default defineComponent({
     const refreshingQr = ref(false)
     const qrExpirationTimer = ref(1)
     const showExpirationTimer = ref(true)
+    const networkTimeDiff = ref(0)
+    onMounted(() => updateNetworkTimeDiff())
+    function updateNetworkTimeDiff() {
+      getNetworkTimeDiff().then(result => {
+        networkTimeDiff.value = result?.timeDifference
+      })
+    }
 
     onMounted(async () => await wakeLock.request('screen'))
     onMounted(() => {
@@ -366,7 +374,9 @@ export default defineComponent({
       if (!isBchMode.value) {
         const expiryDuration = currencyRateUpdateRate / 1000
         const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
-        paymentUri += `&expires=${expirationTimestamp}`
+        const diffSeconds = networkTimeDiff.value / 1000
+        const adjustedExpirationTimestamp = expirationTimestamp + diffSeconds  
+        paymentUri += `&expires=${adjustedExpirationTimestamp}`
       }
 
       return paymentUri
