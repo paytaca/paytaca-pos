@@ -42,6 +42,19 @@
         class="text-blue-9 q-my-md"
         style="width:250px"
       />
+      <q-icon v-if="networkTimeDiff" name="info" class="q-ml-xs">
+        <q-menu class="q-pa-sm">
+          <div>
+            Detected that device does not match server time.
+            QR code expiration is adjusted
+          </div>
+          <div class="text-caption text-grey">
+            Device is {{ Math.round(Math.abs(networkTimeDiff/1000)) }}
+            second{{ Math.round(Math.abs(networkTimeDiff/1000)) == 1 ? '' : 's' }}
+            {{ networkTimeDiff > 0 ? 'behind' : 'ahead' }}
+          </div>
+        </q-menu>
+      </q-icon>
     </div>
 
     <q-dialog v-model="refreshQr" persistent>
@@ -374,7 +387,7 @@ export default defineComponent({
       if (!isBchMode.value) {
         const expiryDuration = currencyRateUpdateRate / 1000
         const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
-        const diffSeconds = networkTimeDiff.value / 1000
+        const diffSeconds = networkTimeDiff.value ? networkTimeDiff.value / 1000 : 0
         const adjustedExpirationTimestamp = expirationTimestamp + diffSeconds  
         paymentUri += `&expires=${adjustedExpirationTimestamp}`
       }
@@ -767,6 +780,7 @@ export default defineComponent({
       refreshQrCountdown,
       qrExpirationTimer,
       showExpirationTimer,
+      networkTimeDiff,
       isBchMode,
     }
   },
