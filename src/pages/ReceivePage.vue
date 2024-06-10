@@ -3,10 +3,9 @@
     <MainHeader title="Payment"/>
     <div class="text-center text-h4" style="margin-bottom: 50px;">
       <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
-      <!-- <div v-if="!loading" class="text-h6">#{{ addressSet?.index }}</div> -->
     </div>
     <q-banner v-if="!isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-lg rounded-borders">
-      The app offline, you will not receive payment notifications.
+      {{ $t('AppOfflineMessage') }}
     </q-banner>
     <div class="row items-center justify-center">
       <div
@@ -14,7 +13,7 @@
         :class="paid ? 'bg-dark border-green' : 'border-red'"
         style="position:relative;"
         v-ripple
-        @click="copyText(qrData, 'Copied payment URI')"
+        @click="copyText(qrData, $t('CopyPaymentUri'))"
       >
         <div v-if="paid" class="bg-dark">
           <img src="~assets/success-check.gif" height="200" />
@@ -47,13 +46,13 @@
     <q-dialog v-model="refreshQr" persistent>
       <q-card>
         <q-card-section class="row items-center">
-          <h6 class="q-mt-none q-mb-md q-ml-sm">QR Expired</h6>
-          <span class="q-ml-sm">The QR has expired due to BCH price update. Do you wish to refresh it?</span>
+          <h6 class="q-mt-none q-mb-md q-ml-sm">{{ $t('QrExpired') }}</h6>
+          <span class="q-ml-sm">{{ $t('QrRefreshMessage') }}</span>
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Close" color="brandblue" @click="() => { promptOnLeave = false; $router.go(-1)}" v-close-popup />
-          <q-btn flat label="Refresh" color="brandblue" @click="() => { refreshingQr = true; refreshQrCountdown() }" v-close-popup />
+          <q-btn flat :label="$t('Close')" color="brandblue" @click="() => { promptOnLeave = false; $router.go(-1)}" v-close-popup />
+          <q-btn flat :label="$t('Refresh')" color="brandblue" @click="() => { refreshingQr = true; refreshQrCountdown() }" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -65,26 +64,15 @@
           {{ bchValue }} BCH
         </div>
       </div>
-      <!-- <q-popup-edit v-model="receiveAmount" v-slot="scope">
-        <q-input
-          label="Amount"
-          type="number"
-          v-model.number="scope.value"
-          dense
-          suffix="BCH"
-          autofocus
-          @keyup.enter="scope.set"
-        />
-      </q-popup-edit>-->
     </div>
 
     <div v-if="canViewTransactionsReceived" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
-          Payments
+          {{ $t('Payments') }}
         </div>
         <div class="text-caption">
-          <div v-if="paid" class="text-green">Payment Complete</div>
+          <div v-if="paid" class="text-green">{{ $t('PaymentComplete') }}</div>
           <div v-if="!paid" style="color: #ed5f59">
             <q-icon
               v-if="currencyBchRate.status !== 2"
@@ -93,6 +81,7 @@
               size="xs"
             />
 
+            <!-- TODO: -->
             {{ remainingPaymentRounded }} BCH left
             
             <q-btn v-if="showRemainingCurrencyAmount" color="grey" icon="info" flat size="xs" class="q-px-xs" style="width: 20px">
@@ -144,11 +133,11 @@
       <div v-else-if="websocketsReady" class="row items-center justify-center">
         <div class="text-grey text-center q-mt-xs q-pt-xs">
           <q-spinner size="30px"/>
-          <div>Waiting for payment ... </div>
+          <div>{{ $t('WaitingForPayment') }}</div>
         </div>
       </div>
       <div v-else>
-        No transactions received
+        {{ $t('NoTransactionsReceived') }}
       </div>
     </div>
   </q-page>
@@ -163,6 +152,7 @@ import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useWakeLock } from '@vueuse/core'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import QRCode from 'vue-qrcode-component'
 import { sha256 } from 'src/wallet/utils'
 import MainHeader from 'src/components/MainHeader.vue'
@@ -187,7 +177,7 @@ export default defineComponent({
       this.$copyText(value)
         .then(() => {
           this.$q.notify({
-            message: message || 'Copied to clipboard',
+            message: message || this.$t('CopiedToClipboard'),
             timeout: 800,
             icon: 'mdi-clipboard-check',
             color: 'brandblue'
@@ -200,6 +190,7 @@ export default defineComponent({
     const $networkDetect = inject('$networkDetect')
     const isOnline = inject('$isOnline')
     const $q = useQuasar()
+    const { t } = useI18n()
     const $router = useRouter()
     const walletStore = useWalletStore()
     const txCacheStore = useTxCacheStore()
@@ -698,8 +689,8 @@ export default defineComponent({
       if (promptOnLeave.value && !isPaid) {
         const proceed = await new Promise((resolve) => {
           $q.dialog({
-            title: 'Leave Page',
-            message: 'Are you sure you want to leave this page without receiving a payment?',
+            title: t('LeavePage'),
+            message: t('LeavePagePromptMsg'),
             cancel: true,
             ok: true,
             color: 'brandblue',
@@ -717,11 +708,10 @@ export default defineComponent({
           .then(_isOnline => {
             if (!_isOnline) {
               $q.dialog({
-                title: 'Detected offline',
-                message: 'Detected device is offline. Leaving page',
+                title: t('DetectedOffline'),
+                message: t('OfflineDetectionMsg'),
                 ok: true,
-              })
-                .onDismiss(() => $router.go(-1))
+              }).onDismiss(() => $router.go(-1))
             }
           })
       }

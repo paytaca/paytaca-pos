@@ -234,6 +234,7 @@ import { useDialogPluginComponent } from 'quasar'
 import { computed, ref, defineComponent } from 'vue'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { errorParser } from 'src/marketplace/utils'
+import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
   name: 'AddShopUserRoleFormDialog',
@@ -246,13 +247,14 @@ export default defineComponent({
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
     const marketplaceStore = useMarketplaceStore()
+    const { t } = useI18n()
 
     const roleOpts = computed(() => {
       const roles = marketplaceStore.roles
       return [
-        { value: roles.admin, label: 'Admin' },
-        { value: roles.inventory, label: 'Inventory manager' },
-        { value: roles.cashier, label: 'Cashier' },
+        { value: roles.admin, label: t('Admin') },
+        { value: roles.inventory, label: t('InventoryManager') },
+        { value: roles.cashier, label: t('Cashier') },
       ]
     })
     
@@ -373,15 +375,15 @@ export default defineComponent({
             formErrors.value.user = errorParser.firstElementOrValue(data?.user_id)
             formErrors.value.roles = errorParser.firstElementOrValue(data?.roles)
 
-            if (formErrors.value.user?.match?.(/.*does not exist.*/)) formErrors.value.user = 'User not found'
-            if (formErrors.value.roles?.match?.(/.*does not exist.*/)) formErrors.value.roles = 'Role/s not found'
+            if (formErrors.value.user?.match?.(/.*does not exist.*/)) formErrors.value.user = t('UserNotFound')
+            if (formErrors.value.roles?.match?.(/.*does not exist.*/)) formErrors.value.roles = t('RoleSNotFound')
 
             if (Array.isArray(data)) formErrors.value.detail = data
             if (data?.detail) formErrors.value.detail = [data?.detail]
           }
 
           if (!formErrors.value.detail?.length) {
-            formErrors.value.detail = ['Encountered error in adding user']
+            formErrors.value.detail = [t('AddingUserErrorMsg')]
           }
           return Promise.reject(error)
         })
@@ -406,8 +408,8 @@ export default defineComponent({
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
           $q.dialog({
-            title: 'Registered!',
-            message: 'Registration successful!',
+            title: t('Registered'),
+            message: t('RegistrationSuccessful'),
             ok: true,
           })
             .onDismiss(() => {
@@ -429,7 +431,7 @@ export default defineComponent({
             if (Array.isArray(data)) formErrors.value.detail = data
             if (data?.detail) formErrors.value.detail = [data?.detail]
             if (!formErrors.value.detail?.length) {
-              formErrors.value.detail = ['Encountered errors in registering new user']
+              formErrors.value.detail = [t('RegisteringUserErrorMsg')]
             }
           }
           return Promise.reject(error)

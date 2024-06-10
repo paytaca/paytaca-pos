@@ -1,39 +1,53 @@
 <template>
-  <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
+  <q-dialog
+    v-model="innerVal"
+    ref="dialogRef"
+    @hide="onDialogHide"
+    position="bottom"
+  >
     <q-card>
       <q-card-section>
         <div class="row items-center q-pb-sm">
-          <div class="text-subtitle1 text-grey q-space">Product</div>
-          <q-btn flat icon="close" padding="sm" v-close-popup/>
+          <div class="text-subtitle1 text-grey q-space">
+            {{ $t("Product") }}
+          </div>
+          <q-btn flat icon="close" padding="sm" v-close-popup />
         </div>
-        <q-separator class="q-mb-sm"/>
-        <q-form @submit="submit" style="max-height:70vh;overflow:auto;">
-          <q-banner v-if="errors?.detail?.length" class="bg-red text-white rounded-borders">
+        <q-separator class="q-mb-sm" />
+        <q-form @submit="submit" style="max-height: 70vh; overflow: auto">
+          <q-banner
+            v-if="errors?.detail?.length"
+            class="bg-red text-white rounded-borders"
+          >
             <div v-if="errors?.detail?.length === 1">
               {{ errors.detail[0] }}
             </div>
             <ul v-else class="q-pl-md">
-              <li v-for="(err, index) in errors?.detail" :key="index">{{err}}</li>
+              <li v-for="(err, index) in errors?.detail" :key="index">
+                {{ err }}
+              </li>
             </ul>
           </q-banner>
-          <UploadImageField v-model="formData.imageUrl" :loading="loading" :disable="loading"/>
-          <q-input
-            dense
-            outlined
+          <UploadImageField
+            v-model="formData.imageUrl"
+            :loading="loading"
             :disable="loading"
-            label="Name"
-            v-model="formData.name"
-            :error="Boolean(errors?.name)"
-            :error-message="errors?.name"
-            :rules="[
-              val => Boolean(val) || 'Required',
-            ]"
           />
           <q-input
             dense
             outlined
             :disable="loading"
-            label="Description"
+            :label="$t('Name')"
+            v-model="formData.name"
+            :error="Boolean(errors?.name)"
+            :error-message="errors?.name"
+            :rules="[(val) => Boolean(val) || $t('Required')]"
+          />
+          <q-input
+            dense
+            outlined
+            :disable="loading"
+            :label="$t('Description')"
             type="textarea"
             v-model="formData.description"
             :error="Boolean(errors?.description)"
@@ -46,7 +60,7 @@
               shop_id: marketplaceStore.activeShopId,
             }"
             :fieldProps="{
-              label: 'Categories',
+              label: $t('Categories'),
               outlined: true,
               dense: true,
               error: Boolean(errors?.categories),
@@ -54,56 +68,66 @@
             }"
           />
           <div class="row items-center q-mb-md">
-            <div class="text-subtitle1 text-grey q-space">Variants</div>
-            <q-btn flat no-caps label="Add variant" @click="addVariant"/>
+            <div class="text-subtitle1 text-grey q-space">
+              {{ $t("Variants") }}
+            </div>
+            <q-btn flat no-caps :label="$t('AddVariant')" @click="addVariant" />
           </div>
           <TransitionGroup name="fade">
-            <div v-for="(variant, index) in formData.variants" :key="variant._index">
+            <div
+              v-for="(variant, index) in formData.variants"
+              :key="variant._index"
+            >
               <template v-if="formData.variants?.length > 1">
                 <div class="row">
+                  <!--TODO:-->
                   <div class="text-grey q-space">Variant {{ index + 1 }}</div>
-                  <q-btn flat icon="delete" padding="xs" color="red" @click="() => removeVariant(variant)"/>
+                  <q-btn
+                    flat
+                    icon="delete"
+                    padding="xs"
+                    color="red"
+                    @click="() => removeVariant(variant)"
+                  />
                 </div>
-                <UploadImageField v-model="variant.imageUrl" :loading="loading" :disable="loading"/>
+                <UploadImageField
+                  v-model="variant.imageUrl"
+                  :loading="loading"
+                  :disable="loading"
+                />
                 <q-input
                   dense
                   outlined
                   :disable="loading"
-                  label="Name"
+                  :label="$t('Name')"
                   v-model="variant.name"
                   :error="Boolean(errors?.variants?.[index]?.name)"
                   :error-message="errors?.variants?.[index]?.name"
-                  :rules="[
-                    val => Boolean(val) || 'Required',
-                  ]"
+                  :rules="[(val) => Boolean(val) || $t('Required')]"
                 />
               </template>
               <q-input
                 dense
                 outlined
                 :disable="loading"
-                label="Code"
+                :label="$t('Code')"
                 v-model="variant.code"
                 :error="Boolean(errors?.variants?.[index]?.code)"
                 :error-message="errors?.variants?.[index]?.code"
-                :rules="[
-                  val => Boolean(val) || 'Required',
-                ]"
+                :rules="[(val) => Boolean(val) || $t('Required')]"
               />
               <q-input
                 outlined
                 dense
                 :disable="loading"
-                label="Price"
+                :label="$t('Price')"
                 type="number"
                 step="0.001"
                 :suffix="marketplaceStore?.currency"
                 v-model.number="variant.price"
                 :error="Boolean(errors?.variants?.[index]?.price)"
                 :error-message="errors?.variants?.[index]?.price"
-                :rules="[
-                  val => val && val >= 0 || 'Invalid',
-                ]"
+                :rules="[(val) => (val && val >= 0) || $t('Invalid')]"
               />
               <div class="row">
                 <div class="col-6 q-pr-sm">
@@ -111,14 +135,12 @@
                     outlined
                     dense
                     :loading="loading"
-                    label="Initial Stock"
+                    :label="$t('InitialStock')"
                     type="number"
                     v-model.number="variant.initialStock"
                     :error="Boolean(errors?.variants?.[index]?.initialStock)"
                     :error-message="errors?.variants?.[index]?.initialStock"
-                    :rules="[
-                      val => !val || val >= 0 || 'Invalid',
-                    ]"
+                    :rules="[(val) => !val || val >= 0 || $t('Invalid')]"
                   />
                 </div>
                 <div class="col-6">
@@ -126,17 +148,17 @@
                     outlined
                     dense
                     :loading="loading"
-                    :disable="!variant.initialStock || variant.initialStock <= 0"
-                    label="Cost price"
+                    :disable="
+                      !variant.initialStock || variant.initialStock <= 0
+                    "
+                    :label="$t('CostPrice')"
                     type="number"
                     step="0.001"
                     :suffix="marketplaceStore?.currency"
                     v-model.number="variant.costPrice"
                     :error="Boolean(errors?.variants?.[index]?.costPrice)"
                     :error-message="errors?.variants?.[index]?.costPrice"
-                    :rules="[
-                      val => val >= 0 || 'Invalid',
-                    ]"
+                    :rules="[(val) => val >= 0 || $t('Invalid')]"
                   />
                 </div>
               </div>
@@ -144,7 +166,7 @@
           </TransitionGroup>
           <q-btn
             no-caps
-            label="Save"
+            :label="$t('Save')"
             color="brandblue"
             class="full-width"
             type="submit"
@@ -186,8 +208,11 @@ export default defineComponent({
     const marketplaceStore = useMarketplaceStore()
 
     const innerVal = ref(props.modelValue)
-    watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
-    watch(innerVal, () => $emit('update:modelValue', innerVal.value))
+    watch(
+      () => [props.modelValue],
+      () => (innerVal.value = props.modelValue)
+    )
+    watch(innerVal, () => $emit("update:modelValue", innerVal.value))
 
     let variantsRowGenCounter = 0
     function createEmptyVariantRow() {
@@ -208,17 +233,17 @@ export default defineComponent({
       imageUrl: props.initialData?.imageUrl,
       description: props.initialData?.description,
       categories: props.initialData?.categories || [],
-      variants: props.initialData.variants?.map?.(variant => Object.assign(
-        createEmptyVariantRow(),
-        {
-          imageUrl: variant?.image_url || variant?.imageUrl,
-          code: variant?.code,
-          name: variant?.name,
-          price: variant?.price,
-          initialStock: variant?.initialStock,
-          costPrice: variant?.costPrice,
-        }
-      )) || []
+      variants:
+        props.initialData.variants?.map?.((variant) =>
+          Object.assign(createEmptyVariantRow(), {
+            imageUrl: variant?.image_url || variant?.imageUrl,
+            code: variant?.code,
+            name: variant?.name,
+            price: variant?.price,
+            initialStock: variant?.initialStock,
+            costPrice: variant?.costPrice,
+          })
+        ) || [],
     })
 
     function addVariant() {
@@ -226,7 +251,9 @@ export default defineComponent({
     }
 
     function removeVariant(variant) {
-      formData.value.variants = formData.value.variants.filter(_variant => variant !== _variant)
+      formData.value.variants = formData.value.variants.filter(
+        (_variant) => variant !== _variant
+      )
     }
 
     function submit() {
@@ -234,7 +261,10 @@ export default defineComponent({
     }
 
     return {
-      dialogRef, onDialogHide, onDialogOK, onDialogCancel,
+      dialogRef,
+      onDialogHide,
+      onDialogOK,
+      onDialogCancel,
 
       marketplaceStore,
       innerVal,
@@ -247,7 +277,7 @@ export default defineComponent({
       submit,
     }
   },
-})
+});
 </script>
 <style scoped>
 /* 1. declare transition */

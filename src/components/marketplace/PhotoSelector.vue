@@ -16,6 +16,7 @@
 import { base64ImageToFile, dataUrlToFile, resizeImage } from 'src/marketplace/chat/attachment'
 import { Camera } from '@capacitor/camera'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { defineComponent, ref, watch } from 'vue'
 
 export default defineComponent({
@@ -27,6 +28,7 @@ export default defineComponent({
     modelValue: [String, File],
   },
   setup(props, { emit: $emit }) {
+    const { t } = useI18n()
     const $q = useQuasar()
 
     const innerVal = ref(props?.modelValue)
@@ -41,7 +43,7 @@ export default defineComponent({
     function openFileAttachementField(evt) {
       if (!fileAttachmentField.value?.pickFiles) {
         $q.dialog({
-          title: 'Unable to access photo selector',
+          title: t('UnableToAccessPhotoSelector'),
           color: 'brandblue',
         })
       }
@@ -72,11 +74,11 @@ export default defineComponent({
       const granted = await checkOrRequestCameraPermissions()
       if (!granted.camera && !granted.photos) {
         $q.dialog({
-          title: 'Select photo', message: 'Permission denied',
+          title: t('SelectPhoto'), message: t('PermissionDenied'),
           color: 'brandblue',
           class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         })
-        return Promise.reject(new Error('Permission Denied'))
+        return Promise.reject(new Error(t('PermissionDenied')))
       }
       return Camera.getPhoto({
         presentationStyle: 'popover',
@@ -106,7 +108,7 @@ export default defineComponent({
           }
           if (errorMsg?.length < 250) return Promise.reject(error)
           $q.dialog({
-            title: 'Select photo', message: errorMsg || 'Unknown error occurred',
+            title: t('SelectPhoto'), message: errorMsg || t('UnknownErrorOccurred'),
             color: 'brandblue',
             class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
           })

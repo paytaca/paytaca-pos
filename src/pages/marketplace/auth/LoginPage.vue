@@ -2,12 +2,12 @@
   <q-page class="q-pa-md">
     <div class="row items-center q-mt-lg q-mb-md">
       <div class="q-space">
-        <div class="text-h4">Marketplace</div>
+        <div class="text-h4">{{ $t('Marketplace') }}</div>
       </div>
     </div>
     <q-card>
       <q-card-section>
-        <div class="text-h5">Sign-in</div>
+        <div class="text-h5">{{ $t('SignIn') }}</div>
         <div class="q-pb-md q-pt-sm">
           <q-separator/>
         </div>
@@ -23,7 +23,7 @@
             dense
             outlined
             :disable="loading"
-            label="Username or email"
+            :label="$t('UsernameOrEmail')"
             v-model="formData.username"
             :error="Boolean(errors?.username)"
             :error-message="errors?.username"
@@ -33,7 +33,7 @@
             outlined
             :disable="loading"
             type="password"
-            label="Password"
+            :label="$t('Password')"
             v-model="formData.password"
             autocomplete="on"
             :error="Boolean(errors?.password)"
@@ -46,7 +46,7 @@
               type="submit"
               no-caps
               color="brandblue"
-              label="Sign-in"
+              :label="$t('SignIn')"
               class="full-width"
             />
           </div>
@@ -58,7 +58,7 @@
             no-caps
             outline
             color="brandblue"
-            label="Register"
+            :label="$t('Register')"
             class="full-width"
             :to="{ name: 'marketplace-register' }"
           />
@@ -74,6 +74,7 @@ import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { capitalize, defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
   name: 'LoginPage',
@@ -81,6 +82,7 @@ export default defineComponent({
     redirectTo: String,
   },
   setup(props) {
+    const { t } = useI18n()
     const $q = useQuasar()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
@@ -119,7 +121,7 @@ export default defineComponent({
             marketplaceStore.refreshUser({ silent: false })
               .catch(() => {
                 $q.notify({
-                  message: 'Failed to fetch user data',
+                  message: t('FailedToFetchUserData'),
                   type: 'negative',
                 })
               })
@@ -143,6 +145,7 @@ export default defineComponent({
           const isThrottled = error?.response?.status === 429
           const retryAfter = error?.response?.headers?.['Retry-After']
           if (isThrottled && !errors.value.detail?.length) {
+            // TODO:
             let msg = 'You are making frequent actions'
             if (retryAfter) msg += `. Try again after ${retryAfter} seconds`
             else msg += `. Try again later`

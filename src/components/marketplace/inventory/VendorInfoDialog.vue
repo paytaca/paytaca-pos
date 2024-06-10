@@ -10,25 +10,25 @@
             <div class="text-body1">
               {{ vendor?.name }}
             </div>
-            <div class="text-caption bottom">Name</div>
+            <div class="text-caption bottom">{{ $t('Name') }}</div>
           </div>
           <div class="col-12 col-sm-6 q-pa-xs">
             <div class="text-body1">
               <template v-if="vendor?.phoneNumber">
                 {{ vendor?.phoneNumber }}
               </template>
-              <span v-else class="text-grey">None</span>
+              <span v-else class="text-grey">{{ $t('None') }}</span>
             </div>
-            <div class="text-caption bottom">Phone number</div>
+            <div class="text-caption bottom">{{ $t('PhoneNumber') }}</div>
           </div>
           <div class="col-12 q-pa-xs">
             <div class="text-body1">
               <template v-if="vendor?.location?.formatted">
                 {{ vendor?.location?.formatted }}
               </template>
-              <span v-else class="text-grey">None</span>
+              <span v-else class="text-grey">{{ $t('None') }}</span>
             </div>
-            <div class="text-caption bottom">Address</div>
+            <div class="text-caption bottom">{{ $t('Address') }}</div>
           </div>
         </div>
         <slot name="bottom"></slot>

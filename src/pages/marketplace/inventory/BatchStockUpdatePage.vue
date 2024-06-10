@@ -4,8 +4,8 @@
       <template v-slot:title>
         <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
         <div class="q-space">
-          <div class="text-h5">Stock Update</div>
-          <div class="text-grey">Marketplace</div>
+          <div class="text-h5">{{ $t('StockUpdate') }}</div>
+          <div class="text-grey">{{ $t('Marketplace') }}</div>
         </div>
       </template>
     </MarketplaceHeader>
@@ -14,6 +14,7 @@
         no-caps rounded
         padding="2px 0.75em"
       >
+        <!--TODO:-->
         {{ formDataList?.length }}
         {{ formDataList?.length === 1 ? 'stock' : 'stocks' }}
       </q-chip>
@@ -26,7 +27,7 @@
         @click="() => openStockSearchDialog()"
       >
         <q-icon name="add"/>
-        <span class="text-underline">Edit more stocks</span>
+        <span class="text-underline">{{ $t('EditMoreStocks') }}</span>
       </q-btn>
     </div>
     <q-form @submit="() => updateStocks()">
@@ -41,14 +42,15 @@
       <div :class="{ dark: $q.dark.isActive }" class="row stocks-table-container" style="overflow:auto;">
         <table class="stocks-table full-width" :class="{ dark: $q.dark.isActive }">
           <tr>
-            <th>Stock</th>
-            <th>Quantity</th>
-            <th>Cost Price</th>
-            <th>Expires At</th>
+            <th>{{ $t('Stock') }}</th>
+            <th>{{ $t('Quantity') }}</th>
+            <th>{{ $t('CostPrice') }}</th>
+            <th>{{ $t('ExpiresAt') }}</th>
             <th></th>
           </tr>
           <tr v-for="(formData, index) in formDataList" :key="index">
             <td class="text-weight-medium" @click="() => displayStock(formData.stock)">
+              <!--TODO:-->
               <div>Stock#
                 {{ formData?.stock?.id }}
                 <template v-if="serializedFormDataList[index]?.$edited">
@@ -78,7 +80,7 @@
                   </span>
                 </template>
                 <q-menu no-focus class="q-pa-sm">
-                  <div class="text-grey text-subtitle2">Adjust type</div>
+                  <div class="text-grey text-subtitle2">{{ $t('AdjustType') }}</div>
                   <q-btn-toggle
                     :disable="loading"
                     no-caps
@@ -86,11 +88,11 @@
                     v-model="formData.adjustment.adjustType"
                     toggle-color="brandblue"
                     :options="[
-                      {label: 'Set', value: 'set'},
-                      {label: 'Add', value: 'add'},
+                      {label: $t('Set'), value: 'set'},
+                      {label: $t('Add'), value: 'add'},
                     ]"
                     @update:model-value="val => {
-                      formData.adjustment.quantity = val === 'set' ? (formData.stock.quantity + formData.adjustment.quantity) : (formData.adjustment.quantity - formData.stock.quantity)
+                      formData.adjustment.quantity = val === 'set' ?(formData.stock.quantity + formData.adjustment.quantity) : (formData.adjustment.quantity - formData.stock.quantity)
                     }"
                   />
                 </q-menu>
@@ -124,7 +126,7 @@
                     <q-popup-proxy breakpoint="0">
                       <q-date v-model="formData.expiresAt" mask="YYYY-MM-DD">
                         <div class="row items-center justify-end">
-                          <q-btn v-close-popup label="Close" color="brandblue" flat />
+                          <q-btn v-close-popup :label="$t('Close')" color="brandblue" flat />
                         </div>
                       </q-date>
                     </q-popup-proxy>
@@ -149,7 +151,7 @@
           :disable="loading || serializedFormDataList.every(d => !d.$edited)"
           :loading="loading"
           no-caps
-          label="Update"
+          :label="$t('Update')"
           color="brandblue"
           class="full-width"
           type="submit"
@@ -164,6 +166,7 @@ import { Stock } from 'src/marketplace/objects'
 import { backend } from 'src/marketplace/backend'
 import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -182,6 +185,7 @@ export default defineComponent({
   },
   setup(props) {
     const $q = useQuasar()
+    const { t } = useI18n()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
 
@@ -299,11 +303,11 @@ export default defineComponent({
       const data = { stocks: dataList }
       data.stocks.forEach(d => delete d.$edited)
       if (!dataList?.length) {
-        return $q.dialog({ title: 'No stocks to update' })
+        return $q.dialog({ title: t('NoStocksToUpdate') })
       }
 
       const dialog = $q.dialog({
-        title: 'Updating stocks',
+        title: t('UpdatingStocks'),
         progress: true,
         persistent: true,
         ok: false,
@@ -321,9 +325,9 @@ export default defineComponent({
           })
           resetFormDataList()
           dialog.update({
-            title: 'Stocks updated',
-            ok: { noCaps: true, label: 'Return', flat: true, color: 'brandblue' },
-            cancel: { noCaps: true, label: 'Stay on page', flat: true, color: 'grey' },
+            title: t('StocksUpdated'),
+            ok: { noCaps: true, label: t('Return'), flat: true, color: 'brandblue' },
+            cancel: { noCaps: true, label: t('StayOnPage'), flat: true, color: 'grey' },
           }).onOk(() => $router.go(-1))
           return response
         })
@@ -333,8 +337,8 @@ export default defineComponent({
           let msg = errorParser.firstElementOrValue(data?.non_field_errors)
           if (!msg) msg = data?.detail
           dialog.update({
-            title: 'Stocks update error',
-            message: msg || 'Encountered error in updating stocks',
+            title: t('StocksUpdateError'),
+            message: msg || t('EncounteredErrorInUpdatingStocks'),
           })
           return Promise.reject(error)
         })
@@ -358,7 +362,7 @@ export default defineComponent({
           if (Array.isArray(data)) formErrors.value.detail = data
           if (data?.detail) formErrors.value.detail = [data?.detail]
           if (!formErrors.value.detail?.length) {
-            formErrors.value.detail = ['Encountered errors in updating stocks']
+            formErrors.value.detail = [t('EncounteredErrorsInUpdatingStocks')]
           }
         })
         .finally(() => {

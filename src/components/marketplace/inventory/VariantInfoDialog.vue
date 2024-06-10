@@ -20,27 +20,27 @@
                 {{ variant?.product?.name }}
                 <template v-if="variant?.name">- {{ variant?.name }}</template>
               </div>
-              <div class="text-caption bottom">Product</div>
+              <div class="text-caption bottom">{{ $t('Product') }}</div>
             </div>
 
             <div v-if="variant?.code">
               <div class="text-body1">{{ variant?.code }}</div>
-              <div class="text-caption bottom">Code</div>
+              <div class="text-caption bottom">{{ $t('Code') }}</div>
             </div>
             <div>
               <div class="text-body1">{{ variant?.price }} {{ marketplaceStore?.currency }}</div>
-              <div class="text-caption bottom">Price</div>
+              <div class="text-caption bottom">{{ $t('Price') }}</div>
             </div>
             <div v-if="variant?.markupPrice">
               <div class="text-body1">{{ variant?.markupPrice }} {{ marketplaceStore?.currency }}</div>
-              <div class="text-caption bottom">Markup Price</div>
+              <div class="text-caption bottom">{{ $t('MarkupPrice') }}</div>
             </div>
             <div>
               <div class="text-body1">
                 <template v-if="variant?.totalStocks">{{ variant?.totalStocks }}</template>
-                <span v-else class="text-grey text-body2">No Inventory</span>
+                <span v-else class="text-grey text-body2">{{ $t('NoInventory') }}</span>
               </div>
-              <div class="text-caption bottom">In stock</div>
+              <div class="text-caption bottom">{{ $t('InStock') }}</div>
             </div>
           </div>
         </div>
@@ -54,6 +54,9 @@ import { Variant } from 'src/marketplace/objects'
 import { useDialogPluginComponent } from 'quasar'
 import { defineComponent, ref, watch } from 'vue'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 export default defineComponent({
   name: 'VariantInfoDialog',
@@ -64,7 +67,7 @@ export default defineComponent({
     ...useDialogPluginComponent.emits
   ],
   props: {
-    title: { type: String, default: 'Product Variant' },
+    title: { type: String, default: t('ProductVariant') },
     modelValue: Boolean,
     variant: Variant
   },

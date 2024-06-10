@@ -15,12 +15,12 @@
       Paytaca<span class="q-ml-sm" style="font-weight:575;">POS</span>
     </div>
     <q-card-actions v-if="displayLinkButton || !walletStore.walletHash" vertical align="center" class="q-gutter-y-sm q-mt-md">
-      <div class="text-h6 text-weight-light">Link to Wallet</div>
+      <div class="text-h6 text-weight-light">{{ $t('LinkToWallet') }}</div>
       <q-btn
         color="primary"
         icon="mdi-link-variant"
         class="full-width q-mb-xs"
-        label="Input link"
+        :label="$t('InputLink')"
         @click="linkCodePrompt()"
       />
 
@@ -28,14 +28,14 @@
         color="primary"
         icon="mdi-qrcode-scan"
         class="full-width q-mb-xs"
-        label="Scan"
+        :label="$t('Scan')"
         @click="toggleQrScanner"
       />
     </q-card-actions>
   </div>
   <QRCodeReader
     v-if="showQrScanner"
-    text="Scan QR code for wallet link"
+    :text="$t('ScanQrCodeForWalletLink')"
     :toggle="toggleQrScanner"
     @decode="onQrDecode"
     @error="onQrError"
@@ -49,6 +49,7 @@ import { aes, getPubkeyAt } from 'src/wallet/utils'
 import QRCodeReader from 'src/components/QRCodeReader.vue';
 import { Device } from '@capacitor/device'
 import { defineComponent, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
 
 export default defineComponent({
@@ -63,6 +64,7 @@ export default defineComponent({
   },
   setup(props, { emit }) {
     const $q = useQuasar()
+    const { t } = useI18n()
     const watchtower = new Watchtower()
 
     const walletStore = useWalletStore()
@@ -86,8 +88,8 @@ export default defineComponent({
 
     function linkCodePrompt() {
       $q.dialog({
-        title: 'Wallet link',
-        message: 'Input wallet link code',
+        title: t('WalletLink'),
+        message: t('InputWalletLinkCode'),
         prompt: { outlined: true },
         // ok: { color: 'brandblue', flat: true },
         position: 'bottom',
@@ -105,7 +107,7 @@ export default defineComponent({
     function onQrError (error) {
       toggleQrScanner()
       $q.notify({
-        message: 'QR Scanner error',
+        message: t('QrScannerError'),
         caption: typeof error === 'string' ? error : '',
       })
     }
@@ -117,8 +119,8 @@ export default defineComponent({
     function onQrDecode(content='') {
       showQrScanner.value = false
       const dialog = $q.dialog({
-        title: 'Link device',
-        message:'Linking device',
+        title: t('LinkDevice'),
+        message:t('LinkingDevice'),
         persistent: true,
         progress: true,
       })
@@ -128,7 +130,7 @@ export default defineComponent({
           return parseLinkCode(content) || content
         })
         .then(content => {
-            dialog.update({ message: 'Decoding content'})
+            dialog.update({ message: t('DecodingContent') })
             const decodedContent = JSON.parse(content)
             const code = decodedContent.code
             const decryptKey = {
@@ -140,26 +142,29 @@ export default defineComponent({
         })
         .catch(error => {
           console.error(error)
-          dialog.update({ title: 'Link device error', message: 'Unable to decode QR data' })
+          dialog.update({ title: t('LinkDeviceError'), message: t('UnableToDecodeQrData') })
           return { skip: true }
         })
         // encryptedData = xpubkey
         .then(async (qrCodeData) => {
           if (qrCodeData?.skip) return { skip: true }
-          dialog.update({ message: 'Retrieving link code data' })
-          const response = await watchtower.BCH._api.get(`paytacapos/devices/link_code_data/`, { params: { code: qrCodeData.code } })
+          dialog.update({ message: t('RetrievingLinkCodeData') })
+          const response = await watchtower.BCH._api.get(
+            `paytacapos/devices/link_code_data/`,
+            { params: { code: qrCodeData.code }
+          })
           return { qrCodeData, encryptedData: response?.data }
         })
         .catch(error => {
           console.error(error)
-          let message = 'Link code data invalid'
-          if (error?.response.status === 400) message = 'Link code data not found'
-          dialog.update({ title: 'Link device error', message: message })
+          let message = t('LinkCodeDataInvalid')
+          if (error?.response.status === 400) message = t('LinkCodeDataNotFound')
+          dialog.update({ title: t('LinkDeviceError'), message: message })
           return { skip: true }
         })
         .then(({ skip, qrCodeData, encryptedData }) => {
           if (skip) return { skip }
-          dialog.update({ message: 'Decrypting xpubkey' })
+          dialog.update({ message: t('DecryptingXpubkey') })
 
           let xpubkey = aes.decrypt(
             encryptedData,
@@ -171,18 +176,18 @@ export default defineComponent({
         })
         .catch(error => {
           console.error(error)
-          dialog.update({ title: 'Link device error', message: 'Unable to decrypt xpubkey' })
+          dialog.update({ title: t('LinkDeviceError'), message: t('UnableToDecryptXpubkey') })
           return { skip: true }
         })
         .then(({ skip, qrCodeData, xpubkey }) => {
           if (skip) return { skip }
-          dialog.update({ message: 'Generating verifying xpubkey' })
+          dialog.update({ message: t('GeneratingVerifyingXpubkey') })
           const verifyingPubkey = getPubkeyAt(xpubkey, qrCodeData.nonce)
           return { qrCodeData, xpubkey, verifyingPubkey }
         })
         .catch(error => {
           console.error(error)
-          dialog.update({ title: 'Link device error', message: 'Unable to generate verifying pubkey' })
+          dialog.update({ title: t('LinkDeviceError'), message: 'Unable to generate verifying pubkey' })
           return { skip: true }
         })
         .then(async ({ skip, qrCodeData, xpubkey, verifyingPubkey }) => {  
@@ -194,12 +199,12 @@ export default defineComponent({
         })
         .catch(error => {
           console.error(error)
-          dialog.update({ title: 'Link device error', message: 'Failed to retrieve device information' })
+          dialog.update({ title: t('LinkDeviceError'), message: t('FailedToRetrieveDeviceInformation') })
           return { skip: true }
         })
         .then(async ({ skip, qrCodeData, xpubkey, verifyingPubkey, deviceInfo }) => {
           if (skip) return { skip }
-          dialog.update({ message: 'Updating server' })
+          dialog.update({ message: t('UpdatingServer') })
           const data = {  
             link_code: qrCodeData.code,
             verifying_pubkey: verifyingPubkey,
@@ -219,15 +224,15 @@ export default defineComponent({
           })
 
           console.log(emit('device-linked'))
-          dialog.update({ title: 'Device Linked', message: 'POS device linked successfully!'})
+          dialog.update({ title: t('DeviceLinked'), message: t('PosDeviceLinkedSuccessfully')})
         })
         .catch(error => {
           console.error(error)
-          let message = 'Failed to update server'
+          let message = t('FailedToUpdateServer')
           if (Array.isArray(error?.response?.data?.non_field_errors) && error?.response?.data?.non_field_errors?.length) {
             message = error?.response?.data?.non_field_errors.join('<br/>')
           }
-          dialog.update({ title: 'Link device error', message: message, html: true })
+          dialog.update({ title: t('LinkDeviceError'), message: message, html: true })
         })
         .then(() => {
           addressesStore.fillAddressSets()

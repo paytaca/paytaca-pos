@@ -23,7 +23,8 @@
                 v-if="clearable && formData?.length > 0"
                 :outline="$q.dark.isActive"
                 :flat="!$q.dark.isActive"
-                no-caps label="Clear"
+                no-caps
+                :label="$t('Clear')"
                 color="grey"
                 padding="none md"
                 @click="() => clearForm({ submit: true, prompt: promptClear })"
@@ -40,7 +41,7 @@
             </q-banner>
       
             <div v-if="!formData.length" class="text-center text-grey text-subtitle1">
-              No addons
+              {{ $t('NoAddons') }}
             </div>
             <q-list separator>
               <TransitionGroup name="slide">
@@ -69,12 +70,12 @@
                       {{ addon?.label }}
                       <q-icon v-if="!addon.hasOptions && addon?.hasInputRequired" name="keyboard" size="1.2em">
                         <q-menu class="q-pa-sm">
-                          Some option/s for this addon has textbox enabled
+                          {{ $t('AddonOptionsEnabled') }}
                         </q-menu>
                       </q-icon>
                     </q-item-label>
                     <q-item-label caption>
-                      Selections required:
+                      {{ $t('SelectionsRequired') }}:
                       {{ addon?.minOpts }}
                       <template v-if="addon?.minOpts !== addon?.maxOpts">
                         - {{ addon?.maxOpts }}
@@ -91,7 +92,7 @@
                       {{ addon?.options?.map?.(opt => opt?.label)?.filter?.(Boolean)?.join(', ') }}
                       <q-icon v-if="addon?.hasInputRequired" name="keyboard" size="1.2em">
                         <q-menu class="q-pa-sm">
-                          Some option/s for this addon has textbox enabled
+                          {{ $t('AddonOptionsEnabled') }}
                         </q-menu>
                       </q-icon>
                     </q-item-label>
@@ -117,7 +118,8 @@
             </q-list>
             <div class="q-pt-md">
               <q-btn
-                no-caps label="Save"
+                no-caps
+                :label="$t('Save')"
                 color="brandblue"
                 class="full-width q-mt-sm"
                 @click="() => submit()"
@@ -128,12 +130,12 @@
             <q-form @submit="() => onAddonFormSubmit()">
               <q-input
                 dense
-                label="Name"
+                :label="$t('Name')"
                 v-model="addonFormData.label"
                 counter
                 maxlength="30"
                 :rules="[
-                  val => Boolean(val) || 'Required',
+                  val => Boolean(val) || $t('Required'),
                 ]"
               />
               <q-slide-transition>
@@ -144,13 +146,13 @@
                   <div class="q-pa-xs">
                     <q-input
                       dense
-                      label="Minimum select"
+                      :label="$t('MinimumSelect')"
                       type="number"
                       v-model.number="addonFormData.minOpts"
                       reactive-rules
                       :rules="[
-                        val => (val >= 0 && val <= addonFormData?.options?.length) || 'Invalid',
-                        val => val <= addonFormData?.maxOpts || 'Must be less than max',
+                        val => (val >= 0 && val <= addonFormData?.options?.length) || $t('Invalid'),
+                        val => val <= addonFormData?.maxOpts || $t('MustBeLessThanMax'),
                       ]"
                     />
                   </div>
@@ -158,12 +160,12 @@
                   <div class="q-pa-xs">
                     <q-input
                       dense
-                      label="Maximum select"
+                      :label="$t('MaximumSelect')"
                       type="number"
                       v-model.number="addonFormData.maxOpts"
                       reactive-rules
                       :rules="[
-                        val => (val >= 0 && val <= addonFormData?.options?.length) || 'Invalid',
+                        val => (val >= 0 && val <= addonFormData?.options?.length) || $t('Invalid'),
                       ]"
                     />
                   </div>
@@ -171,14 +173,14 @@
               </q-slide-transition>
               <div class="row items-center justify-end q-mt-sm">
                 <div v-if="addonFormData?.options?.length !== 1" class="text-subtitle1 q-space">
-                  Choices
+                  {{ $t('Choices') }}
                 </div>
                 <q-btn
                   flat
                   padding="xs"
                   icon-right="add"
                   no-caps
-                  :label="addonFormData?.options?.length !== 1 ? '' : 'Add choices'"
+                  :label="addonFormData?.options?.length !== 1 ? '' : $t('AddChoices')"
                   @click="() => addOptionToAddon()"
                 />
               </div>
@@ -201,37 +203,37 @@
                     <div v-if="addonFormData?.options?.length !== 1" class="col-8 q-pa-xs">
                       <q-input
                         dense
-                        label="Label"
+                        :label="$t('Label')"
                         v-model="option.label"
                         counter
                         maxlength="30"
                         reactive-rules
                         :rules="[
-                          val => Boolean(val) || 'Required',
-                          val => !addonFormData.options.find((opt, idx) => opt?.label === val && idx !== index) || 'Duplicate values'
+                          val => Boolean(val) || $t('Required'),
+                          val => !addonFormData.options.find((opt, idx) => opt?.label === val && idx !== index) || $t('DuplicateValues')
                         ]"
                       />
                     </div>
                     <div class="q-space q-pa-xs">
                       <q-input
                         dense
-                        label="Price"
+                        :label="$t('Price')"
                         :suffix="marketplaceStore?.currency"
                         v-model.number="option.price"
                         :rules="[
-                          val => val >= 0 || 'Invalid',
+                          val => val >= 0 || $t('Invalid'),
                         ]"
                       />
                     </div>
                   </div>
                   <div>
                     <q-checkbox flat dense v-model="option.requireInput">
-                      Include textbox
+                      {{ $t('IncludeTextbox') }}
                       <q-icon name="keyboard" color="grey"/>
                     </q-checkbox>
                     <q-icon name="help" size="1.25em" class="q-ml-sm">
                       <q-menu class="q-pa-sm">
-                        A textbox will be provided to the customer for additional details when selecting this addon
+                        {{ $t('IncludeTextboxDescription') }}
                       </q-menu>
                     </q-icon>
                   </div>
@@ -240,14 +242,15 @@
               <div class="q-mt-md q-gutter-x-sm">
                 <q-btn
                   no-caps
-                  :label="addonFormDataExists ? 'Update' : 'Add'"
+                  :label="addonFormDataExists ? $t('Update') : $t('Add')"
                   color="brandblue"
                   class="full-width q-mt-md"
                   type="submit"
                 />
                 <q-btn
                   outline
-                  no-caps label="Cancel"
+                  no-caps:
+                  :label="$t('Cancel')"
                   color="grey"
                   class="full-width q-mt-md"
                   @click="() => addonFormData = null"
@@ -265,6 +268,7 @@ import { parseProductAddon } from 'src/marketplace/product-addons.js'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { computed, defineComponent, onMounted, ref, watch, watchEffect } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
   name: 'AddonsFormDialog',
@@ -274,13 +278,14 @@ export default defineComponent({
   ],
   props: {
     modelValue: Boolean,
-    title: { type: String, default: 'Addons Form' },
+    title: { type: String, default: t('AddonsForm') },
     initialValue: Array,
     clearable: Boolean,
     promptClear: Boolean,
   },
   setup(props, { emit: $emit }) {
     const $q = useQuasar()
+    const { t } = useI18n()
     const { dialogRef, onDialogCancel, onDialogHide, onDialogOK } = useDialogPluginComponent()
     const innerVal = ref(props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
@@ -327,8 +332,8 @@ export default defineComponent({
     function removeAddonConfirm(addon) {
       if (!formData.value?.includes?.(addon)) return 
       $q.dialog({
-        title: `Remove addon`,
-        message: `Remove addon '${addon?.label}'. Are you sure?`,
+        title: t('RemoveAddon'),
+        message: `Remove addon '${addon?.label}'. Are you sure?`, // TODO:
         color: 'brandblue',
         ok: true,
         cancel: true,
@@ -362,8 +367,8 @@ export default defineComponent({
 
     function clearFormPrompt(opts={ submit: false }) {
       $q.dialog({
-        title: 'Clear list',
-        message: 'Are you sure?',
+        title: t('ClearList'),
+        message: t('AreYouSure'),
         color: 'brandblue',
         ok: true,
         cancel: true,
@@ -430,7 +435,7 @@ export default defineComponent({
     function submit() {
       const data = formData.value.map(parseProductAddon)
       if (formValidation.value.duplicates.length > 0) {
-        formError.value = 'Duplicate names found'
+        formError.value = t('DuplicateNamesFound')
         return
       }
       onDialogOK(data)

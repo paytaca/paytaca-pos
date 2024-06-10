@@ -5,10 +5,10 @@
         <template v-slot:title>
           <div class="q-space">
             <div class="text-h5 ellipsis" style="max-width:calc(100vw - 6rem);">
-              {{ marketplaceStore.shop?.name || 'Marketplace' }}
+              {{ marketplaceStore.shop?.name || $t('Marketplace') }}
             </div>
             <div v-if="marketplaceStore.shop?.name" class="text-subtitle2 text-grey">
-              Marketplace
+              {{ $t('Marketplace') }}
             </div>
           </div>
         </template>
@@ -17,7 +17,7 @@
         <q-btn
           :ripple="false"
           flat no-caps
-          :label="marketplaceStore.dashboard.showSummary ? 'Hide summary' : 'Show summary'"
+          :label="marketplaceStore.dashboard.showSummary ? $t('HideSummary') : $t('ShowSummary')"
           class="text-underline"
           padding="xs sm"
           @click="() => marketplaceStore.dashboard.showSummary = !marketplaceStore.dashboard.showSummary"
@@ -31,14 +31,19 @@
           <DashboardCard
             :ref="el => dashboarCardRefs.inventory = el"
             v-if="marketplaceStore.userPermissions.inventory"
-            title="Inventory" :loading="salesToday?.loading" ripple class="q-space dashboard-card"
+            :title="$t('Inventory')"
+            :loading="salesToday?.loading"
+            ripple
+            class="q-space dashboard-card"
             :class="[(tabs.active && tabs.active === 'inventory') ? 'col-12' : '']"
             @click="onDashboardCardClick('inventory')"
           >
             <div v-if="Number.isFinite(productsCount)">
+              <!--TODO:-->
               {{ productsCount }} product{{ productsCount == 1 ? '' : 's' }}
             </div>
             <div v-if="Number.isFinite(toReviewPurchaseOrdersCount)" class="ellipsis">
+              <!--TODO:-->
               {{ toReviewPurchaseOrdersCount }} pending purchase orders
             </div>
           </DashboardCard>
@@ -52,11 +57,12 @@
           >
             <template v-if="marketplaceStore.storefrontData?.id">
               <div v-if="typeof storefrontHours?.isOpen === 'boolean'" class="row">
-                <div v-if="storefrontHours?.isOpen" class="text-green">OPEN</div>
+                <div v-if="storefrontHours?.isOpen" class="text-green">{{ $t('OPEN') }}</div>
                 <template v-else>
-                  <div class="text-red q-pr-xs">CLOSED</div>
+                  <div class="text-red q-pr-xs">{{ $t('CLOSED') }}</div>
                   <template v-if="storefrontHours?.nextOpenTimestamp">
                     <span class="text-grey">
+                      <!--TODO:-->
                       Opens {{ formatDateRelative(storefrontHours?.nextOpenTimestamp) }}
                     </span>
                   </template>
@@ -64,26 +70,32 @@
               </div>
               <template v-if="Number.isFinite(pendingOrdersCount)">
                 <div v-if="pendingOrdersCount">
+                  <!--TODO:-->
                   {{ pendingOrdersCount }} pending order{{ pendingOrdersCount === 1 ? '' : 's' }}
                 </div>
-                <div v-else class="text-grey">No pending orders</div>
+                <div v-else class="text-grey">{{ $t('NoPendingOrders') }}</div>
               </template>
               <div v-if="orderDisputesCount > 0">
+                <!--TODO:-->
                 {{ orderDisputesCount }} order dispute{{ orderDisputesCount === 1 ? '' : 's' }}
               </div>
               <div v-if="paymentsInEscrowCount">
+                <!--TODO:-->
                 {{ paymentsInEscrowCount }} payment{{ paymentsInEscrowCount === 1 ? '' : 's' }} in escrow
               </div>
             </template>
             <div v-else class="text-grey">
-              Storefront not setup
+              {{ $t('StoreFrontNotSetup') }}
             </div>
           </DashboardCard>
   
           <DashboardCard
             :ref="el => dashboarCardRefs.sales = el"
             v-if="marketplaceStore.userPermissions.cashier"
-            title="Sales" :loading="salesToday?.loading" ripple class="q-space dashboard-card"
+            :title="$t('Sales')"
+            :loading="salesToday?.loading"
+            ripple
+            class="q-space dashboard-card"
             :class="[(tabs.active && tabs.active === 'sales') ? 'col-12' : '']"
             @click="onDashboardCardClick('sales')"
           >
@@ -92,17 +104,22 @@
                 {{ report?.total }} {{ report?.currency }}
               </div>
             </template>
-            <div v-else class="text-grey">None</div>
+            <div v-else class="text-grey">{{ $t('None') }}</div>
           </DashboardCard>
   
           <DashboardCard
             :ref="el => dashboarCardRefs.shop = el"
             v-if="marketplaceStore.userPermissions.admin"
-            title="Shop" ripple class="q-space dashboard-card"
+            :title="$t('Shop')"
+            ripple
+            class="q-space dashboard-card"
             :class="[(tabs.active && tabs.active === 'shop') ? 'col-12' : '']"
             @click="onDashboardCardClick('shop')"
           >
-            <div v-if="staffCount !== undefined">{{ staffCount }} staff</div>
+            <div v-if="staffCount !== undefined">
+              <!--TODO:-->
+              {{ staffCount }} staff
+            </div>
           </DashboardCard>
         </div>
       </q-slide-transition>
@@ -116,7 +133,7 @@
         ]"
       >
         <q-icon name="warning" class="q-mr-sm"/>
-        You do not have access to the shop. Contact a shop admin to grant access.
+        {{ $t('ShopAccessWarningMsg') }}
       </div>
       <div>
         <div v-for="(pageGroup, name) in pageGroups" :key="name">
@@ -179,6 +196,7 @@ import { useMarketplaceStore } from 'src/stores/marketplace'
 import { formatDateRelative, formatDateToText } from 'src/marketplace/utils'
 import { debounce } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import DashboardCard from 'src/components/marketplace/dashboard/DashboardCard.vue'
 import MainFooter from 'src/components/MainFooter.vue'
@@ -195,6 +213,7 @@ export default defineComponent({
     MarketplaceHeader,
   },
   setup(props) {
+    const { t } = useI18n()
     const $route = useRoute()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
@@ -228,59 +247,68 @@ export default defineComponent({
     const pageGroups = computed(() => {
       const data = {
         sales: {
-          name: 'Sales',
+          name: t('Sales'),
           pages: [],
         },
         inventory: {
-          name: 'Inventory',
+          name: t('Inventory'),
           pages: [],
         },
         shop: {
-          name: 'Shop',
+          name: t('Shop'),
           pages: [],
         },
       }
 
-      data.sales.pages.push({ name: 'Sales Report', icon: 'query_stats', route: { name: 'marketplace-sales-reports' } })
+      data.sales.pages.push(
+        {
+          name: t('SalesReport'),
+          icon: 'query_stats',
+          route: {
+            name: 'marketplace-sales-reports'
+          }
+        }
+      )
+
       if (marketplaceStore.userPermissions.cashier) {
         data.sales.pages.push(
-          { name: 'Sale', icon: 'point_of_sale', route: { name: 'marketplace-sale' } },
-          { name: 'Sales', icon: 'receipt', route: { name: 'marketplace-sales' } },
+          { name: t('Sale'), icon: 'point_of_sale', route: { name: 'marketplace-sale' } },
+          { name: t('Sales'), icon: 'receipt', route: { name: 'marketplace-sales' } },
         )
       }
 
       if (marketplaceStore.userPermissions.inventory) {
         data.inventory.pages.push(
-          { name: 'Products', icon: 'local_mall', route: { name: 'marketplace-products' } },
-          { name: 'Stocks', icon: 'inventory', route: { name: 'marketplace-stocks' } },
-          { name: 'Purchase Orders', icon: 'assignment_returned', badge: toReviewPurchaseOrdersCount.value, route: { name: 'marketplace-purchase-orders' } },
+          { name: t('Products'), icon: 'local_mall', route: { name: 'marketplace-products' } },
+          { name: t('Stocks'), icon: 'inventory', route: { name: 'marketplace-stocks' } },
+          { name: t('PurchaseOrders'), icon: 'assignment_returned', badge: toReviewPurchaseOrdersCount.value, route: { name: 'marketplace-purchase-orders' } },
         )
       }
 
 
       if (marketplaceStore.userPermissions.admin) {
         data.shop.pages.push(
-          { name: 'Staff', icon: 'supervisor_account', route: { name: 'marketplace-staff' } },
+          { name: t('Staff'), icon: 'supervisor_account', route: { name: 'marketplace-staff' } },
         )
       }
-      data.shop.pages.push({ name: 'Shop info', icon: 'store', route: { name: 'marketplace-settings' } })
+      data.shop.pages.push({ name: t('ShopInfo'), icon: 'store', route: { name: 'marketplace-settings' } })
       if (marketplaceStore.userPermissions.storefront) {
-        data.shop.pages.push({ name: 'Storefront', icon: 'storefront', route: { name: 'marketplace-storefront' } })
+        data.shop.pages.push({ name: t('Storefront'), icon: 'storefront', route: { name: 'marketplace-storefront' } })
 
         if (tabs.value.active === 'storefront') {
           data.storefront = {
-            name: 'Storefront',
+            name: t('Storefront'),
             pages: [
-              { name: 'Products', icon: 'local_mall', route: { name: 'marketplace-storefront-products' } },
-              { name: 'Collections', icon: 'collections', route: { name: 'marketplace-storefront-collections' } },
-              { name: 'Orders', icon: 'pending_actions', badge: pendingOrdersCount.value, route: { name: 'marketplace-storefront-orders' } },
-              { name: 'Payments', icon: 'payments', badge: paymentsInEscrowCount.value, route: { name: 'marketplace-storefront-payments' } },
-              { name: 'Settings', icon: 'settings', route: { name: 'marketplace-storefront-settings' } },
+              { name: t('Products'), icon: 'local_mall', route: { name: 'marketplace-storefront-products' } },
+              { name: t('Collections'), icon: 'collections', route: { name: 'marketplace-storefront-collections' } },
+              { name: t('Orders'), icon: 'pending_actions', badge: pendingOrdersCount.value, route: { name: 'marketplace-storefront-orders' } },
+              { name: t('Payments'), icon: 'payments', badge: paymentsInEscrowCount.value, route: { name: 'marketplace-storefront-payments' } },
+              { name: t('Settings'), icon: 'settings', route: { name: 'marketplace-storefront-settings' } },
             ]
           }
           if (!marketplaceStore.storefrontData?.id) {
             data.storefront.pages = [
-              { name: 'Setup storefront', icon: 'settings', route: { name: 'marketplace-storefront-settings' } }, 
+              { name: t('SetupStorefront'), icon: 'settings', route: { name: 'marketplace-storefront-settings' } }, 
             ]
           }
         }

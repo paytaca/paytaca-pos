@@ -6,7 +6,7 @@
           dense
           outlined
           :loading="loading"
-          placeholder="Item name / PO#"
+          :placeholder="$t('PoItemName2')"
           v-model="searchVal"
           debounce="500"
           @update:model-value="() => updateStockSearchList()"
@@ -32,8 +32,9 @@
             <q-item-section top>
               <q-item-label v-if="isSingleVariant">
                 <template v-if="stock?.purchaseOrderNumber">{{ stock?.purchaseOrderNumber }}</template>
-                <i v-else class="text-grey">No purchase order</i>
+                <i v-else class="text-grey">{{ $t('NoPurchaseOrder') }}</i>
               </q-item-label>
+              <!--TODO:-->
               <q-item-label v-else>{{ stock?.itemName }}</q-item-label>
               <q-item-label class="text-caption">#{{ stock?.id }}</q-item-label>
             </q-item-section>
@@ -51,10 +52,10 @@
           </q-item>
         </template>
         <div v-else-if="!searchVal" class="q-pa-md text-grey text-center">
-          Search stocks
+          {{ $t('SearchStocks') }}
         </div>
         <div v-else class="q-pa-md text-grey text-center">
-          No data
+          {{ $t('NoData') }}
         </div>
 
         <q-item
@@ -66,7 +67,7 @@
         >
           <q-item-section class="text-center">
             <q-item-label :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'">
-              Show more
+              {{ $t('ShowMore') }}
               <q-spinner v-if="loading"/>
             </q-item-label>
           </q-item-section>
@@ -76,7 +77,7 @@
         <q-btn
           v-if="cancel"
           flat
-          label="Cancel"
+          :label="$t('Cancel')"
           v-bind="cancel"
           class="q-space"
           @click="onDialogCancel"
@@ -84,7 +85,7 @@
         <q-btn
           v-if="ok"
           color="brandblue"
-          label="OK"
+          :label="$t('OK')"
           v-bind="ok"
           class="q-space"
           @click="submit"

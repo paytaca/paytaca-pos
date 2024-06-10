@@ -17,6 +17,7 @@
         <q-card-section>
           <div class="row items-center">
             <div class="text-h5">
+              <!--TODO:-->
               <template v-if="salesOrder?.draft">Draft</template>
               Sale
               <template v-if="salesOrder?.number">#{{ salesOrder?.number }}</template>

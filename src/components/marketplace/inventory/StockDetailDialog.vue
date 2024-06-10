@@ -2,6 +2,7 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card style="width: max(90vw, 500px)">
       <q-card-section>
+        <!--TODO:-->
         <div class="text-h5">{{ stock?.itemName || `Stock#${stock?.id}` }}</div>
         <div class="text-caption bottom text-grey">stock#{{ stock?.id }}</div>
       </q-card-section>
@@ -16,26 +17,26 @@
             class="col-6 col-sm-4 q-pa-sm"
             @click="() => showStockPurchaseOrder()"
           >
-            <q-item-label class="text-caption top text-grey">Purchase Order</q-item-label>
+            <q-item-label class="text-caption top text-grey">{{ $t('PurchaseOrder') }}</q-item-label>
             <q-item-label>
               {{ stock.purchaseOrderNumber }}
             </q-item-label>
           </div>
 
           <div class="col-6 col-sm-4 q-pa-sm">
-            <q-item-label class="text-caption top text-grey">Quantity</q-item-label>
+            <q-item-label class="text-caption top text-grey">{{ $t('Quantity') }}</q-item-label>
             <q-item-label>{{ stock.quantity || 0 }}</q-item-label>
           </div>
           <div v-if="stock.costPrice" class="col-6 col-sm-4 q-pa-sm">
-            <q-item-label class="text-caption top text-grey">Cost Price</q-item-label>
+            <q-item-label class="text-caption top text-grey">{{ $t('CostPrice') }}</q-item-label>
             <q-item-label>{{ stock.costPrice }} {{ marketplaceStore?.currency }}</q-item-label>
           </div>
           <div v-if="stock.shop?.name && displayShop" class="col-6 col-sm-4 q-pa-sm">
-            <q-item-label class="text-caption top text-grey">Shop</q-item-label>
+            <q-item-label class="text-caption top text-grey">{{ $t('Shop') }}</q-item-label>
             <q-item-label>{{ stock.shop?.name }}</q-item-label>
           </div>
           <div v-if="stock.expiresAt" class="col-6 col-sm-4 q-pa-sm">
-            <q-item-label class="text-caption top text-grey">Expires</q-item-label>
+            <q-item-label class="text-caption top text-grey">{{ $t('Expires') }}</q-item-label>
             <q-item-label>{{ formatDateRelative(stock.expiresAt) }}</q-item-label>
             <q-menu class="q-pa-sm">
               {{ formatTimestampToText(stock.expiresAt) }}
@@ -45,7 +46,7 @@
 
         <div class="row items-center">
           <div class="text-subtitle1 q-space">
-            Stock changes
+            {{ $t('StockChanges') }}
             <q-spinner v-if="stock?.$state?.fetchingAdjustments" size="1.25em"/>
           </div>
           <q-btn
@@ -65,6 +66,7 @@
             <q-item-section>
               <q-item-label>
                 <template v-if="adjustment?.adjustType === 'set'">
+                  <!--TODO:-->
                   Changed
                   <template v-if="adjustment?.previousQuantity">
                     from {{ adjustment?.previousQuantity }}
@@ -126,7 +128,7 @@
           <q-btn
             flat
             no-caps
-            label="View more"
+            :label="$t('ViewMore')"
             padding="sm md"
             class="full-width"
             @click="() => viewMoreAdjustments()"

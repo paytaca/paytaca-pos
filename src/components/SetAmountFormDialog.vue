@@ -3,13 +3,13 @@
     <q-card class="q-dialog-plugin">
       <q-form @submit="onDialogOK({ amount })">
         <q-card-section>
-          <div class="text-h5 q-mb-md">Set Amount</div>
+          <div class="text-h5 q-mb-md">{{ $t('SetAmount') }}</div>
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
           </div>
           <div class="row items-center no-wrap q-gutter-x-sm">
             <q-input
-              label="Amount"
+              :label="$t('Amount')"
               type="number"
               step="0.00000001"
               v-model.number="amount.value"
@@ -32,7 +32,7 @@
             color="brandblue"
             size="1rem"
             padding="sm md"
-            label="Create Payment QR"
+            :label="$t('CreatePaymentQR')"
             class="q-space"
             type="submit"
             icon="mdi-qrcode"

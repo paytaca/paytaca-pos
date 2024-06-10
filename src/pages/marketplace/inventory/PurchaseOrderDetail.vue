@@ -5,8 +5,8 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Purchase Order</div>
-            <div class="text-grey">Marketplace</div>
+            <div class="text-h5">{{ $t('PurchaseOrder') }}</div>
+            <div class="text-grey">{{ $t('Marketplace') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
@@ -14,7 +14,7 @@
         <q-btn
           flat
           no-caps
-          label="Edits"
+          :label="$t('Edits')"
           icon-right="history"
           padding="none sm"
           class="q-r-mr-sm"
@@ -25,6 +25,7 @@
         <q-card-section>
           <div class="row items-center">
             <div v-if="purchaseOrder?.number" class="row items-center text-h5">
+              <!--TODO:-->
               <div>PO#{{ purchaseOrder?.number }}</div>
             </div>
             <q-icon v-if="purchaseOrder?.reviewedAt" name="check_circle" color="green" size="1.5rem" class="q-mx-xs">
@@ -48,6 +49,7 @@
             <div v-if="purchaseOrder?.createdAt" class="text-caption bottom text-grey">
               {{ formatTimestampToText(purchaseOrder?.createdAt) }}
               <q-menu class="q-pa-sm">
+                <!--TODO:-->
                 Created at {{ formatTimestampToText(purchaseOrder?.createdAt) }}
               </q-menu>
             </div>
@@ -63,7 +65,7 @@
       </q-card>
       <q-card class="q-mb-md">
         <q-card-section>
-          <div class="text-h6">Supplier</div>
+          <div class="text-h6">{{ $t('Supplier') }}</div>
           <div class="text-subtitle1">{{ purchaseOrder.vendor.name }}</div>
           <div class="text-body2">{{ purchaseOrder.vendor.phoneNumber }}</div>
           <div v-if="purchaseOrder.vendor?.location?.formatted" class="text-caption">
@@ -73,33 +75,33 @@
       </q-card>
       <q-card v-if="!purchaseOrder?.reviewedAt" class="q-mb-md">
         <q-card-section>
-          <div class="text-h6">Review</div>
+          <div class="text-h6">{{ $t('Review') }}</div>
           <div class="q-pb-md" @click="() => assignReviewerFormDialog.show = true">
             <div class="text-body2 text-underline">
               <template v-if="purchaseOrder?.reviewedBy?.id">
                 {{ purchaseOrder?.reviewedBy?.fullName }}
               </template>
               <span v-else class="text-grey">
-                Assign reviewer
+                {{ $t('AssignReviewer') }}
               </span>
             </div>
-            <div class="text-caption bottom">Reviewer</div>
+            <div class="text-caption bottom">{{ $t('Reviewer') }}</div>
           </div>
           <div>
             <q-btn
               :disable="purchaseOrder.$state.loading || !allItemsReceived || !canReviewPurchaseOrder"
               :loading="purchaseOrder.$state.loading"
               no-caps
-              label="Mark reviewed"
+              :label="$t('MarkReviewed')"
               color="brandblue"
               class="full-width"
               @click="() => purchaseOrder.markReviewed()"
             />
             <q-menu v-if="!allItemsReceived" class="q-py-sm q-px-md">
-              All items must be marked as delivered before reviewing
+              {{ $t('MarkReviewedMsg1') }}
             </q-menu>
             <q-menu v-else-if="!canReviewPurchaseOrder" class="q-py-sm q-px-md">
-              Reviewing purchase is assigned to another user
+              {{ $t('MarkReviewedMsg2') }}
             </q-menu>
           </div>
         </q-card-section>
@@ -107,7 +109,7 @@
       <q-card class="q-mb-md">
         <q-card-section>
           <div class="row items-center">
-            <div class="text-h6 q-space">Items</div>
+            <div class="text-h6 q-space">{{ $t('Items') }}</div>
             <q-btn
               v-if="editable"
               icon="add"
@@ -119,7 +121,7 @@
           </div>
           <div v-if="addItemsForm.items?.length">
             <div class="row items-center">
-              <div class="text-subtitle1">Add items</div>
+              <div class="text-subtitle1">{{ $t('AddItems') }}</div>
               <q-spinner v-if="addItemsForm.loading" class="q-ml-sm"/>
             </div>
             <q-form @submit="submitAddItems">
@@ -145,7 +147,7 @@
                     {{ item.costPrice }} {{ purchaseOrder?.currency?.symbol }}
                   </template>
                   <span v-else class="text-grey">
-                    Set cost price
+                    {{ $t('SetCostPrice') }}
                   </span>
   
                   <q-popup-edit
@@ -186,7 +188,8 @@
                 <q-btn
                   :loading="addItemsForm.loading"
                   :disable="addItemsForm.loading"
-                  no-caps label="Add items"
+                  no-caps
+                  :label="$t('AddItems')"
                   color="brandblue"
                   type="submit"
                   class="full-width"
@@ -209,7 +212,7 @@
                 :outline="$q.dark.isActive"
                 :disable="!selectedItemIds.length"
                 no-caps
-                label="Mark received"
+                :label="$t('MarkReceived')"
                 padding="2px md"
                 @click="() => showReceiveItemsDialog = true"
               />
@@ -217,7 +220,7 @@
                 :outline="$q.dark.isActive"
                 :disable="!selectedItemIds.length"
                 no-caps
-                label="Remove"
+                :label="$t('Remove')"
                 padding="2px md"
                 @click="confirmRemoveSelectedItems"
               />
@@ -253,13 +256,14 @@
             <template v-if="itemsViewMode === 'delivery_status'">
               <div class="col-5 col-sm-3">
                 <div v-if="item?.deliveredAt">
+                  <!--TODO:-->
                   Delivered {{ formatDateRelative(item.deliveredAt) }}
                   <q-menu class="q-py-sm q-px-md">
                     {{ formatTimestampToText(item.deliveredAt) }}
                   </q-menu>
                 </div>
                 <div v-else class="text-grey" @click="() => showReceiveItemsDialog = !allItemsReceived">
-                  Not yet delivered
+                  {{ $t('NotYetDelivered') }}
                 </div>
               </div>
             </template>
@@ -269,18 +273,18 @@
                 class="text-weight-medium text-underline"
                 @click="() => displayItemStock(item)" 
               >
-                View stocks
+                {{ $t('ViewStocks') }}
               </div>
               <div v-else-if="item?.deliveredAt">
                 <span v-if="!item?.expiresAt" class="text-grey text-underline">
-                  Set expiration date
+                  {{ $t('SetExpirationDate') }}
                 </span>
                 <div v-else>
                   <div>
                     {{ item?.expiresAt.toLocaleDateString() }}
                     <q-icon name="edit" size="1.1em"/>
                   </div>
-                  <div class="text-caption bottom">Expiration date</div>
+                  <div class="text-caption bottom">{{ $t('ExpirationDate') }}</div>
                 </div>
                 <q-popup-edit
                   :model-value="item.expiresAt?.toISOString()"
@@ -292,14 +296,14 @@
                 >
                   <q-date v-model="scope.value" flat mask="YYYY-MM-DD">
                     <div class="row items-center justify-end">
-                      <q-btn v-close-popup no-caps label="Close" flat/>
-                      <q-btn v-close-popup no-caps label="Set" color="brandblue" @click="() => scope.set()"/>
+                      <q-btn v-close-popup no-caps :label="$t('Close')" flat/>
+                      <q-btn v-close-popup no-caps :label="$t('Set')" color="brandblue" @click="() => scope.set()"/>
                     </div>
                   </q-date>
                 </q-popup-edit>
               </div>
               <div v-else class="text-grey">
-                Not yet delivered
+                {{ $t('NotYetDelivered') }}
               </div>
             </div>
             <template v-else>
@@ -308,7 +312,7 @@
                   {{ item.costPrice }} {{ purchaseOrder?.currency?.symbol }}
                 </template>
                 <span v-else class="text-grey">
-                  No cost price
+                  {{ $t('NoCostPrice') }}
                 </span>
               </div>
               <div class="col-2 col-sm-1">
@@ -320,7 +324,7 @@
           </div>
           <q-separator class="q-my-sm"/>
           <div class="row q-px-sm">
-            <div class="q-space">Subtotal</div>
+            <div class="q-space">{{ $t('Subtotal') }}</div>
             <div>{{ purchaseOrder?.calculatedSubtotal}} {{ purchaseOrder?.currency?.symbol }}</div>
           </div>
           </q-card-section>
@@ -331,7 +335,7 @@
           :disable="purchaseOrder.$state.loading"
           :loading="purchaseOrder.$state.loading"
           no-caps
-          label="Complete"
+          :label="$t('Complete')"
           color="brandblue"
           class="full-width"
           @click="() => completePurchaseOrder()"
@@ -351,7 +355,7 @@
           :outline="$q.dark.isActive"
           no-caps
           :disable="Boolean(!props.variant?.product?.id || !props.variant?.id)"
-          label="Go to inventory"
+          :label="$t('GoToInventory')"
           padding="none md"
           :to="{ name: 'marketplace-stocks', query: { productId: props.variant?.product?.id, variantId: props.variant?.id }}"
         />
@@ -360,7 +364,7 @@
     <q-dialog v-model="addItemsForm.showAddItemFormDialog" position="bottom">
       <q-card>
         <q-card-section>
-          <div class="text-h6">Add item</div>
+          <div class="text-h6">{{ $t('AddItem') }}</div>
           <AddItemForm
             :exludeVariantIds="addItemsForm?.items?.map(item => item?.variant?.id).filter(Boolean)"
             with-cost-price
@@ -374,7 +378,7 @@
     <q-dialog v-model="assignReviewerFormDialog.show" position="bottom" :persistent="assignReviewerFormDialog.loading">
       <q-card>
         <q-card-section>
-          <div class="text-h6">Assign reviewer</div>
+          <div class="text-h6">{{ $t('AssignReviewer') }}</div>
           <q-form @submit="() => assignReviewer()">
 
             <q-banner v-if="assignReviewerFormDialog.errors?.length" class="bg-red text-white rounded-borders q-mb-sm">
@@ -385,7 +389,7 @@
                 <li v-for="(err, index) in assignReviewerFormDialog.errors" :key="index">{{err}}</li>
               </ul>
             </q-banner>
-            <div>User</div>
+            <div>{{ $t('User') }}</div>
             <q-select
               dense
               outlined
@@ -393,7 +397,7 @@
               fill-input
               clearable
               :disable="assignReviewerFormDialog.loading"
-              placeholder="name / email / username"
+              :placeholder="$t('NameEmailUsername')"
               :options="assignReviewerFormDialog.userOpts"
               :option-label="obj => obj?.fullName || obj?.username || obj?.email"
               option-value="id"
@@ -422,7 +426,7 @@
                 :disable="assignReviewerFormDialog.loading"
                 :loading="assignReviewerFormDialog.loading"
                 no-caps
-                label="Assign"
+                :label="$t('Assign')"
                 type="submit"
                 color="brandblue"
                 class="full-width"

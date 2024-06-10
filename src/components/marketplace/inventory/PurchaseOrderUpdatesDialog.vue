@@ -3,7 +3,7 @@
     <q-card>
       <q-card-section class="q-pb-none">
         <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Purchase order history</div>
+          <div class="text-h5 q-space">{{ $t('PurchaseOrderHistory') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <div class="row items-center">
@@ -18,7 +18,7 @@
       </q-card-section>
       <q-list style="max-height: 65vh;overflow: auto;">
         <q-item-label v-if="purchaseOrderUpdates?.length <= 0 && !fetchingPurchaseOrderUpdates" header class="text-center">
-          No records
+          {{ $t('NoRecords') }}
         </q-item-label>
         <q-item v-for="purchaseOrderUpdate in purchaseOrderUpdates" :key="purchaseOrderUpdate?.id">
           <q-item-section top>
@@ -28,6 +28,7 @@
               </q-item-label>
             </template>
             <template v-else>
+              <!--TODO:-->
               <q-item-label> {{ capitalize(purchaseOrderUpdate?.updateType?.replaceAll('_', ' ')) }}</q-item-label>
               <q-item-label> Previous: {{ purchaseOrderUpdate?.prevValue }}</q-item-label>
               <q-item-label> New: {{ purchaseOrderUpdate?.newValue }}</q-item-label>
@@ -47,12 +48,13 @@
           <q-spinner size="1.5em"/>
         </div>
         <div v-if="hasMoreRecords" class="row justify-center items-center q-mt-sm">
-          <q-btn flat no-caps label="Load more" @click="fetchPurchaseOrderUpdates({ append: true })"/>
+          <q-btn flat no-caps :label="$t('LoadMore')" @click="fetchPurchaseOrderUpdates({ append: true })"/>
         </div>
       </q-list>
     </q-card>
   </q-dialog>
 </template>
+
 <script>
 import { backend } from 'src/marketplace/backend'
 import { PurchaseOrderUpdates } from 'src/marketplace/objects'

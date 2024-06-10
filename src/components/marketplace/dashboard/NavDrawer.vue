@@ -29,6 +29,7 @@
 <script>
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { computed, defineComponent, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
   emits: [
@@ -41,6 +42,7 @@ export default defineComponent({
     pendingOrdersCount: Number,
   },
   setup(props, { emit: $emit }) {
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
     const innerVal = ref(props.modelValue)
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
@@ -53,42 +55,42 @@ export default defineComponent({
     const pageGroups = computed(() => {
       const data = {
         sales: {
-          name: 'Sales',
+          name: t('Sales'),
           pages: [],
         },
         inventory: {
-          name: 'Inventory',
+          name: t('Inventory'),
           pages: [],
         },
         shop: {
-          name: 'Shop',
+          name: t('Shop'),
           pages: [],
         },
         storefront: {
-          name: 'Storefront',
+          name: t('Storefront'),
           pages: [],
         }
       }
 
-      data.sales.pages.push({ name: 'Sales Report', icon: 'query_stats', route: { name: 'marketplace-sales-reports' } })
+      data.sales.pages.push({ name: t('SalesReport'), icon: 'query_stats', route: { name: 'marketplace-sales-reports' } })
       if (marketplaceStore.userPermissions.cashier) {
         data.sales.pages.push(
-          { name: 'Sale', icon: 'point_of_sale', route: { name: 'marketplace-sale' } },
-          { name: 'Sales', icon: 'receipt', route: { name: 'marketplace-sales' } },
+          { name: t('Sale'), icon: 'point_of_sale', route: { name: 'marketplace-sale' } },
+          { name: t('Sales'), icon: 'receipt', route: { name: 'marketplace-sales' } },
         )
       }
 
       if (marketplaceStore.userPermissions.inventory) {
         data.inventory.pages.push(
-          { name: 'Products', icon: 'local_mall', route: { name: 'marketplace-products' } },
-          { name: 'Stocks', icon: 'inventory', route: { name: 'marketplace-stocks' } },
-          { name: 'Purchase Orders', icon: 'assignment_returned', badge: props.toReviewPurchaseOrdersCount, route: { name: 'marketplace-purchase-orders' } },
+          { name: t('Products'), icon: 'local_mall', route: { name: 'marketplace-products' } },
+          { name: t('Stocks'), icon: 'inventory', route: { name: 'marketplace-stocks' } },
+          { name: t('PurchaseOrders'), icon: 'assignment_returned', badge: props.toReviewPurchaseOrdersCount, route: { name: 'marketplace-purchase-orders' } },
         )
       }
 
       if (marketplaceStore.userPermissions.admin) {
         data.shop.pages.push(
-          { name: 'Staff', icon: 'supervisor_account', route: { name: 'marketplace-staff' } },
+          { name: t('Staff'), icon: 'supervisor_account', route: { name: 'marketplace-staff' } },
         )
       }
 
@@ -96,15 +98,15 @@ export default defineComponent({
       if (marketplaceStore.userPermissions.storefront) {
         if (marketplaceStore.storefrontData?.id) {
           data.storefront.pages.push(
-            { name: 'Products', icon: 'local_mall', route: { name: 'marketplace-storefront-products' } },
-            { name: 'Collections', icon: 'collections', route: { name: 'marketplace-storefront-collections' } },
-            { name: 'Orders', icon: 'pending_actions', badge: props.pendingOrdersCount, route: { name: 'marketplace-storefront-orders' } },
-            { name: 'Payments', icon: 'payments', route: { name: 'marketplace-storefront-payments' } },
+            { name: t('Products'), icon: 'local_mall', route: { name: 'marketplace-storefront-products' } },
+            { name: t('Collections'), icon: 'collections', route: { name: 'marketplace-storefront-collections' } },
+            { name: t('Orders'), icon: 'pending_actions', badge: props.pendingOrdersCount, route: { name: 'marketplace-storefront-orders' } },
+            { name: t('Payments'), icon: 'payments', route: { name: 'marketplace-storefront-payments' } },
           )
         }
 
         data.storefront.pages.push(
-          { name: 'Settings', icon: 'settings', route: { name: 'marketplace-storefront-settings' } },
+          { name: t('Settings'), icon: 'settings', route: { name: 'marketplace-storefront-settings' } },
         )
       }
 

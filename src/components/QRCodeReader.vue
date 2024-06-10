@@ -39,7 +39,7 @@ export default {
   props: {
     text: {
       type: String,
-      default: 'Scan QR code',
+      default: this.$t('ScanQrCode'),
     },
     toggle: Function
   },

@@ -23,11 +23,12 @@
       <q-tab-panels v-model="tabs.active" keep-alive animated>
         <q-tab-panel name="conf" class="q-pa-none">
           <div v-if="!formSchemaData?.length" class="text-grey text-center text-subtitle1 q-py-lg">
-            No fields
+            {{ $t('NoFields') }}
           </div>
           <TransitionGroup name="slide">
             <div v-for="(fieldData, index) in formSchemaData" :key="fieldData?._index">
               <div class="row items-center q-my-sm">
+                <!--TODO:-->
                 <div class="text-subtitle1">Field {{ index+1 }}</div>
                 <div v-if="fieldTypeLabelMap[fieldData?.options?.type]" class="text-grey q-ml-xs">
                   ({{ fieldTypeLabelMap[fieldData?.options?.type] }})
@@ -45,13 +46,13 @@
                 </q-btn-group>
               </div>
               <div>
-                <div class="q-mb-xs">Name</div>
+                <div class="q-mb-xs">{{ $t('Name') }}</div>
                 <q-input
                   dense outlined
                   class="q-space"
                   v-model="fieldData.name"
                   :rules="[
-                    val => Boolean(val) || 'Required',
+                    val => Boolean(val) || $t('Required'),
                   ]"
                   bottom-slots
                 >
@@ -68,7 +69,7 @@
                   </template>
                 </q-input>
                 <div class="row items-center q-mb-xs">
-                  <div>Options</div>
+                  <div>{{ $t('Options') }}</div>
                   <q-space/>
                   <q-toggle
                     dense
@@ -95,7 +96,7 @@
           <q-btn
             no-caps
             color="brandblue"
-            label="Add field"
+            :label="$t('AddField')"
             class="full-width"
             @click="() => addField({ options: { type: 'string' }})"
           />
@@ -107,7 +108,7 @@
       <slot name="bottom" v-bind="{ tabs, formSchemaData }">
         <div class="row items-center justify-end q-my-md">
           <q-btn
-            label="OK"
+            :label="$t('OK')"
             color="brandblue"
             class="full-width"
             @click="() => onDialogOK(formSchemaData)"
@@ -119,16 +120,16 @@
       <q-card>
         <q-card-section>
           <div class="row items-center q-mb-md">
-            <div class="text-h6">Field Settings</div>
+            <div class="text-h6">{{ $t('FieldSettings') }}</div>
             <q-space/>
             <q-btn flat padding="sm" icon="close" class="q-r-mr-sm" v-close-popup/>
           </div>
           <div v-if="fieldOptsForm?.data" class="row items-center">
-            <div class="col-4 q-space">Required</div>
+            <div class="col-4 q-space">{{ $t('Required') }}</div>
             <q-toggle v-model="fieldOptsForm.data.required"/>
           </div>
           <div v-if="fieldOptsForm?.data?.options" class="row items-center">
-            <div class="col-4 q-space">Field type</div>
+            <div class="col-4 q-space">{{ $t('FieldType') }}</div>
             <q-select
               dense
               borderless
@@ -136,9 +137,9 @@
               map-options
               emit-value
               :options="[
-                { label: 'Text', value: 'string' },
-                { label: 'Number', value: 'number' },
-                { label: 'Checkbox', value: 'boolean' },
+                { label: $t('Text'), value: 'string' },
+                { label: $t('Number'), value: 'number' },
+                { label: $t('Checkbox'), value: 'boolean' },
               ]"
               @update:model-value="() => cleanSchemaFieldOpts(fieldOptsForm.data.options)"
             />
@@ -155,9 +156,10 @@ import { useDialogPluginComponent } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import JSONFormPreview from './JSONFormPreview.vue';
 import OptionsField from './OptionsField.vue';
-
+import { useI18n } from 'vue-i18n'
 import { defaultStyles, mergeStyles, vanillaRenderers } from '@jsonforms/vue-vanilla'
 
+const { t } = useI18n()
 
 export default defineComponent({
   name: 'JSONFormDialog',
@@ -175,14 +177,14 @@ export default defineComponent({
   ],
   props: {
     modelValue: Boolean,
-    title: { type: String, required: false, default: 'JSON Form' },
+    title: { type: String, required: false, default: t('JSONForm') },
     schemaData: {
       type: Array,
       required: false,
       default: () => {
         return [
-          { name: 'Property 1', options: { type: 'string', enum: ['Option1', 'Option2', 'Option3'] } },
-          { name: 'Property 2', options: { type: 'string' } },
+          { name: t('Property1'), options: { type: 'string', enum: ['Option1', 'Option2', 'Option3'] } },
+          { name: t('Property2'), options: { type: 'string' } },
         ]
       }
     },
@@ -197,15 +199,15 @@ export default defineComponent({
     const tabs = ref({
       active: 'conf',
       opts: [
-        { label: 'Fields', name: 'conf' },
-        { label: 'Form (Preview)', name: 'form' },
+        { label: t('Fields'), name: 'conf' },
+        { label: t('FormPreview2'), name: 'form' },
       ],
     })
 
     const fieldTypeLabelMap = {
-      string: 'Text',
-      number: 'Number',
-      boolean: 'Checkbox',
+      string: t('Text'),
+      number: t('Number'),
+      boolean: t('Checkbox'),
     }
 
     const formSchemaData = ref((Array.isArray(props.schemaData) ? props.schemaData : []).map(createUnserializedSchemaField))

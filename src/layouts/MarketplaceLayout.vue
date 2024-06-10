@@ -5,9 +5,9 @@
         <div class="row items-center text-white q-pa-md">
           <q-spinner size="3em" class="q-mr-sm"/>
           <div>
-            <div v-if="marketplaceStore.fetchingMerchant">Fetching merchant...</div>
-            <div v-if="marketplaceStore.fetchingShop">Fetching shop...</div>
-            <div v-if="marketplaceStore.fetchingUser">Fetching user...</div>
+            <div v-if="marketplaceStore.fetchingMerchant">{{ $t('FetchingMerchant') }}</div>
+            <div v-if="marketplaceStore.fetchingShop">{{ $t('FetchingShop') }}</div>
+            <div v-if="marketplaceStore.fetchingUser">{{ $t('FetchingUser') }}</div>
           </div>
         </div>
       </q-dialog>
@@ -27,12 +27,14 @@ import { useWalletStore } from 'src/stores/wallet'
 import { throttle } from 'quasar'
 import { computed, defineComponent, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
   name: 'MarketplaceLayout',
   setup() {
     const $router = useRouter()
     const $route = useRoute()
+    const { t } = useI18n()
     const marketplaceHeartbeatStore = useMarketplaceHeartbeatStore()
     const marketplaceStore = useMarketplaceStore()
     const walletStore = useWalletStore()
@@ -95,7 +97,7 @@ export default defineComponent({
     async function subscribePushNotifications(id) {
       if (!window.promptedPushNotificationsSettings) {
         const promptResponse = await promptEnablePushNotificationSetting(
-          'Enable notifications to receive updates'
+          t('EnableNotifsToReceiveUpdates')
         ).catch(console.error)
         window.promptedPushNotificationsSettings = promptResponse.prompted
       }

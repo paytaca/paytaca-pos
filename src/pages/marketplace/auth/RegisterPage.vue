@@ -2,12 +2,12 @@
   <q-page class="q-pa-md">
     <div class="row items-center q-mt-lg q-mb-md">
       <div class="q-space">
-        <div class="text-h4">Marketplace</div>
+        <div class="text-h4">{{ $t('Marketplace') }}</div>
       </div>
     </div>
     <q-card>
       <q-card-section>
-        <div class="text-h5">Register</div>
+        <div class="text-h5">{{ $t('Register') }}</div>
         <div>{{ marketplaceStore?.shop?.name }}</div>
         <div class="q-pb-md q-pt-sm">
           <q-separator/>
@@ -37,7 +37,7 @@
             dense
             outlined
             :disable="loading"
-            label="Username"
+            :label="$t('Username')"
             v-model="formData.username"
             :error="Boolean(errors?.username)"
             :error-message="errors?.username"
@@ -46,7 +46,7 @@
             dense
             outlined
             :disable="loading"
-            label="Password"
+            :label="$t('Password')"
             type="password"
             v-model="formData.password"
             autocomplete="on"
@@ -57,13 +57,13 @@
             dense
             outlined
             :disable="loading"
-            label="Confirm password"
+            :label="$t('ConfirmPassword')"
             type="password"
             v-model="formData.confirmPassword"
             autocomplete="on"
             reactive-rules
             :rules="[
-              val => val === formData.password || 'Password does not match',
+              val => val === formData.password || $t('PasswordDoesntMatch'),
             ]"
           />
 
@@ -73,7 +73,7 @@
             dense
             outlined
             :disable="loading"
-            label="Email"
+            :label="$t('Email')"
             v-model="formData.email"
             :error="Boolean(errors?.email)"
             :error-message="errors?.email"
@@ -82,7 +82,7 @@
             dense
             outlined
             :disable="loading"
-            label="First name"
+            :label="$t('FirstName')"
             v-model="formData.firstName"
             :error="Boolean(errors?.firstName)"
             :error-message="errors?.firstName"
@@ -91,7 +91,7 @@
             dense
             outlined
             :disable="loading"
-            label="Last name"
+            :label="$t('LastName')"
             v-model="formData.lastName"
             :error="Boolean(errors?.lastName)"
             :error-message="errors?.lastName"
@@ -103,7 +103,7 @@
               type="submit"
               no-caps
               color="brandblue"
-              label="Register"
+              :label="$t('Register')"
               class="full-width"
             />
           </div>
@@ -119,11 +119,13 @@ import { useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
   name: 'RegisterPage',
   setup() {
     const $q = useQuasar()
+    const { t } = useI18n()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
     onMounted(() => marketplaceStore.refetchShop())
@@ -131,9 +133,9 @@ export default defineComponent({
     const roleOpts = computed(() => {
       const roles = marketplaceStore.roles
       return [
-        { value: roles.admin, label: 'Admin' },
-        { value: roles.inventory, label: 'Inventory manager' },
-        { value: roles.cashier, label: 'Cashier' },
+        { value: roles.admin, label: t('Admin') },
+        { value: roles.inventory, label: t('InventoryManager') },
+        { value: roles.cashier, label: t('Cashier') },
       ]
     })
 

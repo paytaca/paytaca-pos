@@ -4,8 +4,8 @@
       <template v-slot:title>
         <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
         <div class="q-space">
-          <div class="text-h5">Purchase Order</div>
-          <div class="text-grey">Marketplace</div>
+          <div class="text-h5">{{ $t('PurchaseOrder') }}</div>
+          <div class="text-grey">{{ $t('Marketplace') }}</div>
         </div>
       </template>
     </MarketplaceHeader>
@@ -16,9 +16,8 @@
     <q-tab-panels v-model="tab" animated keep-alive>
       <q-tab-panel name="items" class="q-pa-none">        
         <q-card-section class="q-pb-none">
-          <div class="text-h6">Items</div>
+          <div class="text-h6">{{  $t('Items') }}</div>
         </q-card-section>
-        <!-- <q-separator/> -->
         <q-card-section>
           <template v-if="formData.items?.length">
             <table class="items-table full-width">
@@ -44,7 +43,7 @@
                     {{ item.costPrice }} {{ marketplaceStore?.currency }}
                   </template>
                   <span v-else class="text-grey">
-                    Set cost price
+                    {{ $t('SetCostPrice') }}
                   </span>
                   <q-popup-edit
                     v-model="item.costPrice" v-slot="props"
@@ -81,7 +80,7 @@
             </table>
           </template>
           <div v-else class="text-center text-grey">
-            No items
+            {{ $t('NoItems') }}
           </div>
           <div class="q-mt-md">
             <q-separator/>
@@ -90,7 +89,7 @@
                 <q-btn
                   flat
                   no-caps
-                  label="Add Item"
+                  :label="$t('AddItem')"
                   icon="add"
                   class="full-width"
                   @click="() => displayAddItemForm = true"
@@ -99,7 +98,7 @@
             </q-slide-transition>
             <q-slide-transition>
               <div v-if="displayAddItemForm">
-                <div class="text-subtitle1 q-my-sm">Add Item</div>
+                <div class="text-subtitle1 q-my-sm">{{ $t('AddItem') }}</div>
                 <AddItemForm
                   :exludeVariantIds="formData?.items?.map(item => item?.variant?.id)"
                   with-cost-price
@@ -113,7 +112,7 @@
         </q-card-section>
         <q-card-section v-if="formData?.items?.length" class="q-pt-none">
           <q-btn
-            no-caps label="Next"
+            no-caps :label="$t('Next')"
             color="brandblue"
             class="full-width"
             @click="() => nextTab()"
@@ -122,20 +121,20 @@
       </q-tab-panel>
       <q-tab-panel name="vendor" class="q-pa-none">
         <q-card-section >
-          <div class="text-h6">Supplier</div>
+          <div class="text-h6">{{  $t('Supplier') }}</div>
         </q-card-section>
         <q-card-section class="q-pt-none">
           <q-slide-transition>
             <div v-if="formData.vendor.id" class="row items-center q-mb-sm">
               <div class="q-space">#{{ formData.vendor.id }}</div>
-              <q-btn flat no-caps label="Clear" padding="none sm" @click="() => resetVendor()"/>
+              <q-btn flat no-caps :label="$t('Clear')" padding="none sm" @click="() => resetVendor()"/>
             </div>
           </q-slide-transition>
           <q-input
             dense
             outlined
             :readonly="Boolean(formData.vendor.id)"
-            label="Name"
+            :label="$t('Name')"
             v-model="formData.vendor.name"
             bottom-slots
             debounce="500"
@@ -169,7 +168,7 @@
                 dense
                 outlined
                 class="q-mt-sm q-mx-md"
-                placeholder="Search ..."
+                :placeholder="`${$t('Search')}...`"
                 v-model="vendorSearch.search"
                 :loading="vendorSearch.loading"
                 debounce="500"
@@ -194,7 +193,7 @@
               <q-item v-else>
                 <q-item-section>
                   <q-item-label>
-                    No data
+                    {{ $t('NoData') }}
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -203,28 +202,28 @@
           <q-input
             dense
             outlined
-            label="Contact"
+            :label="$t('Contact')"
             :readonly="Boolean(formData.vendor.id)"
             v-model="formData.vendor.phoneNumber"
             bottom-slots
           />
 
-          <div class="text-subtitle1">Address</div>
+          <div class="text-subtitle1">{{  $t('Address') }}</div>
 
           <q-input
             dense
             outlined
             :readonly="Boolean(formData.vendor.id)"
-            label="Address 1"
-            placeholder="Building name / Lot number"
+            :label="$t('Address1')"
+            :placeholder="$t('BuildingNo')"
             v-model="formData.vendor.location.address1"
             bottom-slots
           />
           <q-input
             dense
             outlined
-            label="Address 2"
-            placeholder="Unit No. / Floor No."
+            :label="$t('Address2')"
+            :placeholder="$t('UnitNo')"
             :readonly="Boolean(formData.vendor.id)"
             v-model="formData.vendor.location.address2"
             bottom-slots
@@ -233,7 +232,7 @@
           <q-input
             dense
             outlined
-            label="Street"
+            :label="$t('Street')"
             :readonly="Boolean(formData.vendor.id)"
             v-model="formData.vendor.location.street"
             bottom-slots
@@ -242,7 +241,7 @@
           <q-input
             dense
             outlined
-            label="City"
+            :label="$t('City')"
             :readonly="Boolean(formData.vendor.id)"
             v-model="formData.vendor.location.city"
             bottom-slots
@@ -251,7 +250,7 @@
           <q-input
             dense
             outlined
-            label="Province"
+            :label="$t('Province')"
             :readonly="Boolean(formData.vendor.id)"
             v-model="formData.vendor.location.state"
             bottom-slots
@@ -260,7 +259,7 @@
           <q-input
             dense
             outlined
-            label="Country"
+            :label="$t('Country')"
             :readonly="Boolean(formData.vendor.id)"
             v-model="formData.vendor.location.country"
             bottom-slots
@@ -268,7 +267,7 @@
         </q-card-section>
         <q-card-section v-if="formData?.vendor" class="q-pt-none">
           <q-btn
-            no-caps label="Next"
+            no-caps :label="$t('Next')"
             color="brandblue"
             class="full-width"
             @click="() => nextTab()"
@@ -277,28 +276,28 @@
       </q-tab-panel>
       <q-tab-panel name="review" class="q-pa-none">
         <q-card-section>
-          <div class="text-subtitle1">Supplier</div>
+          <div class="text-subtitle1">{{  $t('Supplier') }}</div>
           <q-separator/>
           <div>
-            <div class="text-caption top text-grey">Name</div>
+            <div class="text-caption top text-grey">{{  $t('Name') }}</div>
             <div class="text-body1">{{ formData?.vendor?.name }}</div>
           </div>
           <div>
-            <div class="text-caption top text-grey">Contact</div>
+            <div class="text-caption top text-grey">{{  $t('Contact') }}</div>
             <div class="text-body2">
               <span v-if="formData?.vendor?.phoneNumber">
                 {{ formData?.vendor?.phoneNumber }}
               </span>
-              <span v-else class="text-grey">No contact</span>
+              <span v-else class="text-grey">{{ $t('NoContact') }}</span>
             </div>
           </div>
           <div v-if="formData?.vendor?.location?.formatted">
-            <div class="text-caption top text-grey">Address</div>
+            <div class="text-caption top text-grey">{{  $t('Address') }}</div>
             <div class="text-body2">{{ formData?.vendor?.location?.formatted }}</div>
           </div>
         </q-card-section>
         <q-card-section>
-          <div class="text-subtitle1">Items</div>
+          <div class="text-subtitle1">{{  $t('Items') }}</div>
           <q-separator class="q-mb-sm"/>
           <table class="items-table full-width">
             <tr v-for="item in formData.items" :key="item?.variant?.id">
@@ -323,7 +322,7 @@
                   {{ item.costPrice }} {{ marketplaceStore?.currency }}
                 </template>
                 <span v-else class="text-grey">
-                  No cost price
+                  {{ $t('NoCostPrice') }}
                 </span>
               </td>
               <td class="text-right" style="text-wrap:nowrap">
@@ -333,7 +332,7 @@
           </table>
           <q-separator/>
           <div class="row q-px-sm text-subtitle1 q-pt-sm">
-            <div class="q-space">Subtotal</div>
+            <div class="q-space">{{  $t('Subtotal') }}</div>
             <div>
               {{ formComputedData.subtotal }}
               {{ marketplaceStore?.currency  }}
@@ -344,7 +343,7 @@
           <q-btn
             color="brandblue"
             no-caps
-            label="Create"
+            :label="$t('Create')"
             class="full-width"
             @click="() => createPurchaseOrder()"
           />
@@ -359,7 +358,7 @@
         <q-input
           dense
           outlined
-          label="Cost Price"
+          :label="$t('CostPrice')"
           :suffix="marketplaceStore?.currency"
           v-model.number="variantInfoDialog.item.costPrice"
           class="q-mb-sm"
@@ -367,7 +366,7 @@
         <q-input
           dense
           outlined
-          label="Quantity"
+          :label="$t('Quantity')"
           v-model.number="variantInfoDialog.item.quantity"
         >
           <template v-slot:prepend>
@@ -390,6 +389,7 @@ import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoD
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import { backend } from 'src/marketplace/backend'
 import { debounce, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 export default defineComponent({
@@ -402,6 +402,7 @@ export default defineComponent({
 
   setup() {
     const $q = useQuasar()
+    const { t } = useI18n()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
 
@@ -441,9 +442,9 @@ export default defineComponent({
 
     const tab = ref('items')
     const tabs = ref([
-      { label: 'Items', name: 'items', disable: false, },
-      { label: 'Supplier', name: 'vendor', disable: true, },
-      { label: 'Review', name: 'review', disable: true, },
+      { label: t('Items'), name: 'items', disable: false, },
+      { label: t('Supplier'), name: 'vendor', disable: true, },
+      { label: t('Review'), name: 'review', disable: true, },
     ])
     watch(tab, () => {
       // tabs will be disabled by default, then be enabled when visited once
@@ -566,8 +567,8 @@ export default defineComponent({
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
           $q.dialog({
-            title: 'Success',
-            message: 'Purchase Order created',
+            title: t('Success'),
+            message: t('PurchaseOrderCreated'),
           }).onDismiss(() => {
             $router.replace({
               name: 'marketplace-purchase-order',
@@ -579,8 +580,8 @@ export default defineComponent({
         .catch(error => {
           let errorMsg = error?.response?.data?.detail
           $q.notify({
-            message: 'Failed to create purchase order',
-            caption: errorMsg || 'Encountered error',
+            message: t('FailedToCreatePurchaseOrder'),
+            caption: errorMsg || t('EncounteredError'),
             type: 'negative',
           })
           return Promise.reject(error)

@@ -29,6 +29,7 @@
             @click="() => ctx?.addInputValue?.()"
           >
             <q-item-section>
+              <!--TODO:-->
               <q-item-label>Add '{{ ctx?.inputValue }}'</q-item-label>
             </q-item-section>
           </q-item>
@@ -56,6 +57,9 @@
 import { computed, defineComponent, ref, watch } from 'vue'
 import OptionsField from '../jsonform/OptionsField.vue'
 import CategoriesSearchWrapper from './CategoriesSearchWrapper.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 export default defineComponent({
   name: 'CategoriesField',
@@ -71,7 +75,7 @@ export default defineComponent({
     filterOpts: Object,
     fieldProps: Object,
     disableAddOnComma: Boolean,
-    placeholder: { type: String, default: 'Input categories' },
+    placeholder: { type: String, default: t('InputCategories') },
   },
   setup(props, { emit: $emit }) {
     const inputVal = ref('')

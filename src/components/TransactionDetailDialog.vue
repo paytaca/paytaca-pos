@@ -2,7 +2,7 @@
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide">
     <q-card style="min-width:300px;">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
-        <div class="text-h5 q-space q-mt-sm"> Transaction </div>
+        <div class="text-h5 q-space q-mt-sm"> {{ $t('Transaction') }} </div>
         <q-btn
           flat
           padding="sm"
@@ -21,7 +21,7 @@
           >
             <q-popup-proxy :breakpoint="0">
               <div class="q-pa-md">
-                Transaction was confirmed offline
+                {{ $t('TransactionWasConfirmedOffline') }}
               </div>
             </q-popup-proxy>
           </q-icon>
@@ -52,7 +52,7 @@
         </q-item>
         <q-item clickable v-ripple @click="copyToClipboard(formatDate(transaction.tx_timestamp || transaction.date_created))">
           <q-item-section>
-            <q-item-label class="text-grey" caption>Date</q-item-label>
+            <q-item-label class="text-grey" caption>{{ $t('Date') }}</q-item-label>
             <q-item-label>
               <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
               <template v-else>{{ formatDate(transaction.date_created) }}</template>
@@ -61,20 +61,20 @@
         </q-item>
         <q-item v-if="transaction?.txid" clickable v-ripple @click="copyToClipboard(transaction?.txid)" style="overflow-wrap: anywhere;">
           <q-item-section>
-            <q-item-label caption class="text-grey">Reference ID</q-item-label>
+            <q-item-label caption class="text-grey">{{ $t('ReferenceID') }}</q-item-label>
             <q-item-label>{{ transaction?.txid.substring(0, 6).toUpperCase() }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item v-if="transaction?.txid" clickable v-ripple @click="copyToClipboard(transaction?.txid)" style="overflow-wrap: anywhere;">
           <q-item-section>
-            <q-item-label caption class="text-grey">Transaction ID</q-item-label>
+            <q-item-label caption class="text-grey">{{ $t('TransactionID') }}</q-item-label>
             <q-item-label>{{ transaction?.txid }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item v-if="transaction.record_type === 'incoming' && transaction?.senders?.length" style="overflow-wrap: anywhere;">
           <q-item-section>
             <q-item-label caption class="text-grey">
-              {{ transaction?.senders?.length > 1 ? 'Senders' : 'Sender' }}
+              {{ transaction?.senders?.length > 1 ? $t('Senders') : $t('Sender') }}
             </q-item-label>
             <q-item-label>{{ concatenate(transaction?.senders) }}</q-item-label>
           </q-item-section>
@@ -82,33 +82,33 @@
         <q-item v-if="transaction.record_type === 'outgoing' && transaction?.recipients?.length" style="overflow-wrap: anywhere;">
           <q-item-section>
             <q-item-label caption class="text-grey">
-              {{ transaction?.recipients?.length > 1 ? 'Recipients' : 'Recipient' }}
+              {{ transaction?.recipients?.length > 1 ? $t('Recipients') : $t('Recipient') }}
             </q-item-label>
             <q-item-label>{{ concatenate(transaction?.recipients) }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item v-if="transaction?.tx_fee">
           <q-item-section>
-            <q-item-label caption class="text-grey">Miner fee</q-item-label>
+            <q-item-label caption class="text-grey">{{ $t('MinerFee') }}</q-item-label>
             <q-item-label >{{ transaction?.tx_fee / (10**8) }} BCH</q-item-label>
           </q-item-section>
         </q-item>
         <q-item v-if="commerceHubSalesOrderId" v-ripple clickable @click="() => displayCommerceHubSalesOrder()">
           <q-item-section>
-            <q-item-label caption class="text-grey">Sale</q-item-label>
-            <q-item-label class="text-underline">View Info</q-item-label>
+            <q-item-label caption class="text-grey">{{ $t('Sale') }}</q-item-label>
+            <q-item-label class="text-underline">{{ $t('ViewInfo') }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item v-if="transaction?.txid" clickable>
           <q-item-section>
-            <q-item-label class="text-gray" caption>Explorer Link</q-item-label>
+            <q-item-label class="text-gray" caption>{{ $t('ExplorerLink') }}</q-item-label>
             <q-item-label>
               <a
                 :href="'https://blockchair.com/bitcoin-cash/transaction/' + transaction?.txid"
                 :class="$q.dark.isActive ? 'text-blue-5' : 'text-blue-9'" style="text-decoration: none;"
                 target="_blank"
               >
-                View in explorer
+                {{ $t('ViewInExplorer') }}
               </a>
             </q-item-label>
           </q-item-section>
@@ -124,6 +124,7 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import { useWalletStore } from 'src/stores/wallet'
 import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
+import { useI18n } from 'vue-i18n'
 
 const walletStore = useWalletStore()
 
@@ -183,7 +184,7 @@ export default defineComponent({
       this.$copyText(value)
         .then(() => {
           this.$q.notify({
-            message: message || 'Copied to clipboard',
+            message: message || this.$t('Copied to clipboard'),
             timeout: 800,
             icon: 'mdi-clipboard-check',
             color: 'blue-9'
@@ -196,12 +197,13 @@ export default defineComponent({
     // dialog plugins requirement
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
     const $q = useQuasar()
+    const { t } = useI18n()
 
     const innerVal = ref(props.modelValue)
     watch(innerVal, () => ctx.emit('update:model-value', innerVal.value))
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
 
-    const actionMap = ref({ incoming: 'RECEIVED', outgoing: 'SENT'})
+    const actionMap = ref({ incoming: t('RECEIVED'), outgoing: t('SENT')})
     const iconMap = ref({ incoming: 'arrow_downward', outgoing: 'arrow_upward'})
 
     const salesOrder = ref(SalesOrder.parse())

@@ -5,8 +5,8 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Collections</div>
-            <div class="text-grey">Storefront</div>
+            <div class="text-h5">{{ $t('Collections') }}</div>
+            <div class="text-grey">{{ $t('Storefront') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
@@ -15,7 +15,7 @@
           <q-input
             dense
             v-model="filterOpts.search"
-            placeholder="Name"
+            :placeholder="$t('Name')"
             debounce="500"
           >
             <template v-slot:prepend><q-icon name="search"/></template>
@@ -25,7 +25,8 @@
             <q-menu v-model="openFilterOptsForm" class="q-pa-md">
               <q-btn
                 flat
-                no-caps label="Reset"
+                no-caps
+                :label="$t('Reset')"
                 color="brandblue"
                 padding="xs md"
                 class="text-underline q-r-mt-md q-r-mr-lg float-right"
@@ -34,7 +35,7 @@
               />
               <div class="q-py-xs"></div>
               <div class="q-mb-sm" style="min-width:100%;">
-                <div class="text-subtitle1">Collection type</div>
+                <div class="text-subtitle1">{{ $t('CollectionType') }}</div>
                 <q-btn-toggle
                   v-model="filterOpts.auto"
                   no-caps
@@ -43,9 +44,9 @@
                   toggle-color="primary"
                   padding="xs lg"
                   :options="[
-                    {label: 'Auto', value: true },
-                    {label: 'Manual', value: false },
-                    {label: 'All', value: null}
+                    {label: $t('Auto'), value: true },
+                    {label: $t('Manual'), value: false },
+                    {label: $t('All'), value: null}
                   ]"
                 />
               </div>
@@ -66,6 +67,7 @@
             class="ellipsis filter-opt q-px-xs"
             @click="openFilterOptsForm = true"
           >
+            <!--TODO:-->
             Collection Type: {{ filterOpts?.auto ? 'Auto' : 'Manual' }}
           </div>
         </div>
@@ -81,7 +83,10 @@
         hide-pagination
         binary-state-sort
         :sort-method="sortMethod"
-        @row-click="(evt, row) => $router.push({ name: 'marketplace-storefront-collection', params: { collectionId: row.id } })"
+        @row-click="(evt, row) => $router.push({
+          name: 'marketplace-storefront-collection',
+          params: { collectionId: row.id }
+        })"
       >
         <template v-slot:bottom>
           <div class="row items-center full-width">
@@ -122,6 +127,7 @@ import { Collection } from 'src/marketplace/objects'
 import { backend } from 'src/marketplace/backend'
 import { formatTimestampToText } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import CollectionFormDialog from 'src/components/marketplace/storefront/CollectionFormDialog.vue'
@@ -136,6 +142,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
 
     const openFilterOptsForm = ref(false)
@@ -179,10 +186,10 @@ export default defineComponent({
 
     const table = ref()
     const collectionsTableColumns = [
-      { name: 'name', align: 'left', label: 'Name', field: 'name', classes: 'text-weight-medium', sortable: true },
-      { name: 'auto', align: 'center', label: 'Type', field: 'auto', format: val => val ? 'Auto' : 'Manual', sortable: true },
-      { name: 'count', align: 'center', label: 'Products', field: 'productsCount', sortable: true },
-      { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText, sortable: true },
+      { name: 'name', align: 'left', label: t('Name') , field: 'name', classes: 'text-weight-medium', sortable: true },
+      { name: 'auto', align: 'center', label: t('Type') , field: 'auto', format: val => val ? t('Auto') : t('Manual'), sortable: true },
+      { name: 'count', align: 'center', label: t('Products') , field: 'productsCount', sortable: true },
+      { name: 'created', align: 'center', label: t('Created') , field: 'createdAt', format: formatTimestampToText, sortable: true },
     ]
     const sortFieldNameMap = {
       count: 'products_count',

@@ -19,7 +19,7 @@
         :disable="uploading || disable"
         :loading="uploading || loading"
         padding="xs sm"
-        label="Select Image"
+        :label="$t('Select Image')"
         @click="pickFile"
       />
     </slot>
@@ -41,12 +41,12 @@
       <q-card>
         <q-item clickable @click="pickFile" v-close-popup>
           <q-item-section>
-            <q-item-label>Select another image</q-item-label>
+            <q-item-label>{{ $t('SelectAnotherImage') }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item clickable @click="() => innerValue = null" v-close-popup>
           <q-item-section>
-            <q-item-label>Remove image</q-item-label>
+            <q-item-label>{{ $t('RemoveImage') }}</q-item-label>
           </q-item-section>
         </q-item>
       </q-card>

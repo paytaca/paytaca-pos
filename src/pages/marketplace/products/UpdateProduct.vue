@@ -4,8 +4,8 @@
       <template v-slot:title>
         <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
         <div class="q-space">
-          <div class="text-h5">Edit Product</div>
-          <div class="text-grey">Marketplace</div>
+          <div class="text-h5">{{ $t('EditProduct') }}</div>
+          <div class="text-grey">{{ $t('Marketplace') }}</div>
         </div>
       </template>
     </MarketplaceHeader>
@@ -13,13 +13,14 @@
       <q-spinner size="5em"/>
     </div>
     <div v-else-if="fetchProductSuccess === false" class="text-center">
-      Unable to fetch product
+      {{ $t('UnableToFetchProduct') }}
     </div>
     <q-form v-else ref="form" @submit="() => updateProduct()" class="q-mt-lg q-gutter-y-lg">
       <div class="row items-center justify-end">
         <q-btn
           :outline="$q.dark.isActive"
-          label="Delete product" color="red"
+          :label="$t('DeleteProduct')"
+          color="red"
           @click="() => confirmDeleteProduct()"
         />
       </div>
@@ -33,9 +34,9 @@
       </q-banner>
       <q-card>
         <q-card-section class="q-gutter-y-xs">
-          <div class="text-subtitle1 q-mb-sm">Product description</div>
+          <div class="text-subtitle1 q-mb-sm">{{ $t('ProductDescription') }}</div>
           <UploadImageField v-model="formData.imageUrl" :disable="loading" :loading="loading"/> 
-          <div>Name*</div>
+          <div>{{ $t('Name') }}*</div>
           <q-input
             dense
             outlined
@@ -45,10 +46,10 @@
             :error="Boolean(formErrors?.name)"
             :error-message="formErrors?.name"
             :rules="[
-              val => Boolean(val) || 'Required',
+              val => Boolean(val) || $t('Required'),
             ]"
           />
-          <div>Description</div>
+          <div>{{ $t('Description') }}</div>
           <q-input
             dense
             outlined
@@ -59,7 +60,7 @@
             :error="Boolean(formErrors?.name)"
             :error-message="formErrors?.name"
           />
-          <div>Categories</div>
+          <div>{{ $t('Categories') }}</div>
           <CategoriesField
             v-model="formData.categories"
             :filterOpts="{
@@ -78,21 +79,22 @@
       <q-card class="q-mt-md">
         <q-card-section>
           <div class="row items-center">
-            <div class="text-subtitle1">Cart options</div>
+            <div class="text-subtitle1">{{ $t('CartOptions') }}</div>
             <q-space/>
             <q-icon
               size="1.5em"
               name="help"
             >
               <q-menu class="q-pa-sm text-body2">
-                Additional details customers must provide when adding to cart
+                {{ $t('CartOptionsMsg') }}
               </q-menu>
             </q-icon>
           </div>
           <div class="row items-center q-r-mx-sm">
             <div class="full-width q-pa-xs q-mb-sm">
               <q-btn
-                no-caps label="Configure"
+                no-caps 
+                :label="$t('Configure')"
                 icon="edit"
                 color="brandblue"
                 class="full-width"
@@ -103,7 +105,8 @@
               <div class="col-6 q-pa-xs">
                 <q-btn
                   outline
-                  no-caps label="Preview"
+                  no-caps
+                  :label="$t('Preview')"
                   icon="preview"
                   color="brandblue"
                   class="full-width"
@@ -114,7 +117,8 @@
               <div class="col-6 q-pa-xs">
                 <q-btn
                   outline
-                  no-caps label="Remove"
+                  no-caps
+                  :label="$t('Remove')"
                   icon="delete"
                   color="red"
                   class="full-width"
@@ -125,7 +129,7 @@
                 <q-card>
                   <q-card-section>
                     <div class="row items-center">
-                      <div class="text-h6">Form Preview</div>
+                      <div class="text-h6">{{ $t('FormPreview') }}</div>
                       <q-space/>
                       <q-btn v-close-popup flat icon="close" padding="sm"/>
                     </div>
@@ -138,7 +142,7 @@
           </div>
           <q-separator/>
           <div class="row items-center">
-            <div class="text-subtitle1">Addon Options</div>
+            <div class="text-subtitle1">{{ $t('AddonOptions') }}</div>
           </div>
           <AddonsInfoPanel
             v-if="formData.addons?.length"
@@ -149,7 +153,7 @@
             :flat="!formData.addons?.length"
             :outline="Boolean(formData.addons?.length)"
             :color="(formData.addons?.length && !$q.dark.isActive) ? 'brandblue' : ''"
-            no-caps :label="formData.addons?.length ? 'Edit' : 'Set Addons'"
+            no-caps :label="formData.addons?.length ? $t('Edit') : $t('SetAddons')"
             icon="edit"
             class="full-width"
             @click="() => openAddonsFormDialog()"
@@ -161,7 +165,7 @@
         <q-card-section>
           <q-slide-transition>
             <div v-if="formData.variants.length > 1" class="text-subtitle1 q-mb-sm">
-              Variants
+              {{ $t('Variants') }}
               <span class="text-grey">[{{ computedFormData.variants.count }}]</span>
             </div>
           </q-slide-transition>
@@ -178,7 +182,8 @@
               <div v-if="(formData.variants.length > 1 || computedFormData.variants.add.length > 0)">
                 <div class="row items-center">
                   <div class="text-grey q-space" :class="{ 'text-strike': variant.remove }">
-                    <template v-if="variant.remove">(Delete)</template>
+                    <template v-if="variant.remove">({{ $t('Delete') }})</template>
+                    <!--TODO:-->
                     Variant {{ index + 1 }}
                     <template v-if="variant.obj.name">
                       - {{ variant.obj.name }}
@@ -193,7 +198,7 @@
                 </div>
                 <template v-if="!variant.remove">
                   <UploadImageField v-model="variant.imageUrl" :loading="loading" :disable="loading"/> 
-                  <div>Variant Name*</div>
+                  <div>{{ $t('VariantName') }}*</div>
                   <q-input
                     outlined
                     dense
@@ -203,14 +208,14 @@
                     :error="Boolean(variantErrorAt(index)?.name)"
                     :error-message="variantErrorAt(index)?.name"
                     :rules="[
-                      val => Boolean(val) || 'Required',
+                      val => Boolean(val) || $t('Required'),
                     ]"
                   />
                 </template>
               </div>
             </q-slide-transition>
             <template v-if="!variant.remove">
-              <div>Code</div>
+              <div>{{ $t('Code') }}</div>
               <q-input
                 outlined
                 dense
@@ -221,7 +226,7 @@
                 :error-message="variantErrorAt(index)?.code"
               />
 
-              <div>Price*</div>
+              <div>{{ $t('Price') }}*</div>
               <q-input
                 outlined
                 dense
@@ -233,7 +238,7 @@
                 :error="Boolean(variantErrorAt(index)?.price)"
                 :error-message="variantErrorAt(index)?.price"
                 :rules="[
-                  val => val > 0 || 'Invalid price',
+                  val => val > 0 || $t('InvalidPrice'),
                 ]"
               />
             </template>
@@ -245,6 +250,7 @@
                 <div v-if="computedFormData.variants.count > 1">
                   <div class="row items-center">
                     <div class="text-grey q-space">
+                      <!--TODO:-->
                       New Variant {{ index + 1 }}
                     </div>
                     <q-btn
@@ -255,7 +261,7 @@
                     />
                   </div>
                   <UploadImageField v-model="variant.imageUrl" :loading="loading" :disable="loading"/> 
-                  <div>Variant Name*</div>
+                  <div>{{ $t('VariantName') }}*</div>
                   <q-input
                     outlined
                     dense
@@ -265,12 +271,12 @@
                     :error="Boolean(newVariantErrorAt(index)?.name)"
                     :error-message="newVariantErrorAt(index)?.name"
                     :rules="[
-                      val => Boolean(val) || 'Required',
+                      val => Boolean(val) || $t('Required'),
                     ]"
                   />
                 </div>
               </q-slide-transition>
-              <div>Code</div>
+              <div>{{ $t('Code') }}</div>
               <q-input
                 outlined
                 dense
@@ -281,7 +287,7 @@
                 :error-message="newVariantErrorAt(index)?.code"
               />
 
-              <div>Price*</div>
+              <div>{{ $t('Price') }}*</div>
               <q-input
                 outlined
                 dense
@@ -293,13 +299,13 @@
                 :error="Boolean(newVariantErrorAt(index)?.price)"
                 :error-message="newVariantErrorAt(index)?.price"
                 :rules="[
-                  val => val > 0 || 'Invalid price',
+                  val => val > 0 || $t('InvalidPrice'),
                 ]"
               />
 
               <div class="row">
                 <div class="col-6 q-pr-sm">
-                  <div>Initial Stock</div>
+                  <div>{{ $t('Initial Stock') }}</div>
                   <q-input
                     outlined
                     dense
@@ -310,12 +316,12 @@
                     :error="Boolean(newVariantErrorAt(index)?.initialStock)"
                     :error-message="newVariantErrorAt(index)?.initialStock"
                     :rules="[
-                      val => val >= 0 || 'Invalid',
+                      val => val >= 0 || $t('Invalid'),
                     ]"
                   />
                 </div>
                 <div class="col-6">
-                  <div>Cost Price</div>
+                  <div>{{ $t('Cost Price') }}</div>
                   <q-input
                     outlined
                     dense
@@ -327,7 +333,7 @@
                     :error="Boolean(newVariantErrorAt(index)?.costPrice)"
                     :error-message="newVariantErrorAt(index)?.costPrice"
                     :rules="[
-                      val => val >= 0 || 'Invalid',
+                      val => val >= 0 || $t('Invalid'),
                     ]"
                   />
                 </div>
@@ -340,7 +346,7 @@
             <q-btn
               no-caps
               color="brandblue"
-              label="Add Variant"
+              :label="$t('Add Variant')"
               class="full-width"
               @click="() => addVariant()"
             />
@@ -354,7 +360,7 @@
           :disable="loading"
           color="brandblue"
           no-caps
-          label="Update Product"
+          :label="$t('UpdateProduct')"
           type="submit"
           class="full-width"
         />
@@ -370,6 +376,7 @@ import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, ref } from 'vue'
 import UploadImageField from 'src/components/marketplace/UploadImageField.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
@@ -401,6 +408,7 @@ export default defineComponent({
   setup(props) {
     const marketplaceStore = useMarketplaceStore()
     const $q = useQuasar()
+    const { t } = useI18n()
     const $router = useRouter()
 
     const product = ref(Product.parse())
@@ -572,7 +580,7 @@ export default defineComponent({
       $q.dialog({
         component: JSONFormDialog,
         componentProps: {
-          title: 'Cart options',
+          title: t('CartOptions'),
           schemaData: formData.value.cartOptions,
         }
       }).onOk(updatedSchemaData => {
@@ -634,7 +642,7 @@ export default defineComponent({
         .finally(() => resetFormErrors())
         .then(() => {
           $q.dialog({
-            title: 'Product updated!',
+            title: t('ProductUpdated'),
             ok: true,
           }).onOk(() => {
             $router.back()
@@ -678,7 +686,7 @@ export default defineComponent({
           }
 
           if (!formData.value.detail?.length) {
-            formData.value.detail = ['Encountered errors in updating product']
+            formData.value.detail = [t('UpdatingProductErrMsg')]
           }
         })
         .finally(() => {
@@ -688,11 +696,11 @@ export default defineComponent({
 
     function confirmDeleteProduct() {
       $q.dialog({
-        title: `Delete '${product.value?.name}'`,
-        message: `Delete product '${product.value.name}'. Are you sure?`,
+        title: `Delete '${product.value?.name}'`, // TODO:
+        message: `Delete product '${product.value.name}'. Are you sure?`, // TODO:
         ok: {
           noCaps: true,
-          label: 'Delete',
+          label: t('Delete'),
           color: 'red',
           padding: 'xs lg',
         },
@@ -708,20 +716,20 @@ export default defineComponent({
 
     function deleteProduct() {
       const dialog = $q.dialog({
-        title: 'Deleting product',
+        title: t('DeletingProduct'),
         progress: true,
         persistent: true,
         ok: false,
       })
       backend.delete(`products/${product.value.id}/`)
         .then(() => {
-          dialog.update({ title: 'Product deleted' })
+          dialog.update({ title: t('ProductDeleted') })
             .onDismiss(() => $router.go(-1))
         })
         .catch(error => {
           dialog.update({
-            title: 'Error',
-            message: error?.response?.data?.detail || 'Encountered error in deleting product',
+            title: t('Error'),
+            message: error?.response?.data?.detail || t('DeletingProductErrMsg'),
           })
         })
         .finally(() => {

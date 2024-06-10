@@ -5,7 +5,7 @@
       outlined
       :disable="disable"
       :loading="loading"
-      placeholder="Product name / code"
+      :placeholder="$t('ProductNameOrCode')"
       v-model="searchVal"
       debounce="500"
       @update:model-value="() => updateProductSearchList()"
@@ -48,10 +48,10 @@
           </TransitionGroup>
         </div>
         <div v-else-if="!searchVal" class="q-pa-md text-grey text-center">
-          Search products
+          {{ $t('SearchProducts') }}
         </div>
         <div v-else class="q-pa-md text-grey text-center">
-          No data
+          {{ $t('NoData') }}
         </div>
 
         <q-item
@@ -63,7 +63,7 @@
         >
           <q-item-section class="text-center">
             <q-item-label :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'">
-              Show more
+              {{ $t('ShowMore') }}
               <q-spinner v-if="loading"/>
             </q-item-label>
           </q-item-section>

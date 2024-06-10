@@ -4,8 +4,8 @@
       <template v-slot:title>
         <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
         <div class="q-space">
-          <div class="text-h5">Sale</div>
-          <div class="text-grey">Marketplace</div>
+          <div class="text-h5">{{ $t('Sale') }}</div>
+          <div class="text-grey">{{ $t('Marketplace') }}</div>
         </div>
       </template>
     </MarketplaceHeader>
@@ -15,7 +15,7 @@
           v-if="draftSalesOrders?.length"
           no-caps
           flat
-          label="Drafts"
+          :label="$t('Drafts')"
           padding="xs sm"
           menu-self="top start"
           menu-anchor="bottom start"
@@ -554,6 +554,7 @@ import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { debounce, useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import AddItemPanel from 'src/components/marketplace/sales/AddItemPanel.vue'
 import VariantInfoDialog from 'src/components/marketplace/inventory/VariantInfoDialog.vue'
@@ -580,6 +581,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    const { t } = useI18n()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
     const addressesStore = useAddressesStore()
@@ -665,10 +667,10 @@ export default defineComponent({
 
     const tab = ref('items')
     const tabs = ref([
-      { name: 'items', label: 'Items', disable: false },
-      { name: 'stocks', label: 'Stocks', disable: true },
-      { name: 'payment', label: 'Payment', disable: true },
-      { name: 'review', label: 'Review', disable: true },
+      { name: 'items', label: t('Items'), disable: false },
+      { name: 'stocks', label: t('Stocks'), disable: true },
+      { name: 'payment', label: t('Payment'), disable: true },
+      { name: 'review', label: t('Review'), disable: true },
     ])
     watch(tab, () => {
       // tabs will be disabled by default, then be enabled when visited once
@@ -867,7 +869,7 @@ export default defineComponent({
 
     function updateBchPrice(opts={ checkPaymentMode: true }) {
       if (opts?.checkPaymentMode && formData.value.paymentMode != 'BCH') return Promise.resolve()
-      if (formData.value?.bchPayment?.txid) return Promise.reject('Payment already sent')
+      if (formData.value?.bchPayment?.txid) return Promise.reject(t('PaymentAlreadySent'))
 
       const currencyCode = marketplaceStore.currency
       return backend.get(`prices/bch/${currencyCode}/`)
@@ -881,7 +883,7 @@ export default defineComponent({
     }
 
     function updateRecipient() {
-      if (formData.value.bchPayment.txid) return Promise.reject('Has existing transaction')
+      if (formData.value.bchPayment.txid) return Promise.reject(t('HasExistingTransaction'))
       const addresses = addressesStore.addressSets
         .map(addressSet => addressSet?.receiving)
         .filter(Boolean)
@@ -904,7 +906,7 @@ export default defineComponent({
     watch(tab, ()=> updateTxListenerState())
     watch(() => [formData.value.bchPayment.recipient], () => updateTxListenerState())
     function updateTxListenerState() {
-      if (tab.value != 'payment') return Promise.resolve('Not in payment tab')
+      if (tab.value != 'payment') return Promise.resolve(t('NotInPaymentTab'))
       return runListener()
     }
     function runListener() {
@@ -1025,8 +1027,8 @@ export default defineComponent({
 
           if (!opts?.silent) {
             $q.dialog({
-              title: 'Success',
-              message: data.draft ? 'Draft saved' : 'Sale Created',
+              title: t('Success'),
+              message: data.draft ? t('DraftSaved') : t('SaleCreated'),
             }).onDismiss(() => {
               $router.replace({
                   name: 'marketplace-sales-order',
@@ -1040,8 +1042,8 @@ export default defineComponent({
           let errorMsg = error?.response?.data?.detail
           if (!opts?.silent) {
             $q.notify({
-              message: data.draft ? 'Failed to save draft' : 'Failed to create sale',
-              caption: errorMsg || 'Encountered error',
+              message: data.draft ? t('FailedToSaveDraft') : t('FailedToCreateSale'),
+              caption: errorMsg || t('EncounteredError'),
               type: 'negative',
             })
           }
@@ -1056,12 +1058,10 @@ export default defineComponent({
       const salesOrder = formData.value.salesOrder
       if (!salesOrder?.id) return
       $q.dialog({
-        title: 'Delete draft',
-        message: salesOrder?.bchTxid
-          ? 'Draft sales order has payment received. Continue?'
-          : 'Removing draft sales order. Are you sure?',
-        ok: { color: 'red', noCaps: true, label: 'Delete' },
-        cancel: { color: 'grey', noCaps: true, label: 'Cancel', flat: true },
+        title: t('DeleteDraft'),
+        message: salesOrder?.bchTxid ? t('DeleteDraftMsg1') : t('DeleteDraftMsg2'),
+        ok: { color: 'red', noCaps: true, label: t('Delete') },
+        cancel: { color: 'grey', noCaps: true, label: t('Cancel'), flat: true },
       })
         .onOk(() => deleteDraftSalesOrder(salesOrder))
     }
@@ -1122,7 +1122,7 @@ export default defineComponent({
       this.$copyText(value)
         .then(() => {
           this.$q.notify({
-            message: message || 'Copied to clipboard',
+            message: message || t('CopiedToClipboard'),
             timeout: 800,
             icon: 'mdi-clipboard-check',
             color: 'blue-9'

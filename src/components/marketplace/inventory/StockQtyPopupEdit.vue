@@ -1,6 +1,6 @@
 <template>
   <q-popup-edit ref="popupEdit" v-bind="popupEditProps" :model-value="0" :cover="false" self="top middle">
-    <div>Quantity</div>
+    <div>{{ $t('Quantity') }}</div>
     <q-input
       dense outlined
       autofocus
@@ -9,15 +9,15 @@
       v-model.number="quantity"
       bottom-slots
     />
-    <div>Adjust type</div>
+    <div>{{ $t('AdjustType') }}</div>
     <q-btn-toggle
       no-caps
       :disable="loading"
       v-model="adjustType"
       toggle-color="brandblue"
       :options="[
-        {label: 'Set', value: 'set'},
-        {label: 'Add', value: 'add'},
+        {label: $t('Set'), value: 'set'},
+        {label: $t('Add'), value: 'add'},
       ]"
       class="q-mt-sm"
       bottom-slots
@@ -28,7 +28,7 @@
       :disable="loading"
       :loading="loading"
       no-caps
-      label="Update"
+      :label="$t('Update')"
       color="brandblue"
       class="full-width"
       @click="adjustInventoryQuantity()"
@@ -39,6 +39,9 @@
 import { backend } from 'src/marketplace/backend'
 import { Stock } from 'src/marketplace/objects'
 import { defineComponent } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 export default defineComponent({
   name: 'StockQtyPopupEdit',
@@ -78,11 +81,11 @@ export default defineComponent({
         let errorMsg = error?.response?.data?.detail
 
         if (error?.response?.status === 403 && !errorMsg) {
-          errorMsg = 'Sorry, you do not have sufficient permissions to access the inventory.'
+          errorMsg = t('InsufficientPermissionToAccessInventory')
         }
 
         this.$q.notify({
-          message: errorMsg || 'Error encountered in updating stock',
+          message: errorMsg || t('UpdateStockErrorMsg'),
           type: 'negative',
         })
       } finally {

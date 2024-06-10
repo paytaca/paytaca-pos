@@ -9,12 +9,12 @@
         <q-menu touch-position>
           <q-item clickable v-close-popup @click="() => formData.profilePicture = ''">
             <q-item-section>
-              <q-item-label>Remove image</q-item-label>
+              <q-item-label>{{ $t('RemoveImage') }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-item clickable v-close-popup @click="selectPhoto">
             <q-item-section>
-              <q-item-label>Replace image</q-item-label>
+              <q-item-label>{{ $t('ReplaceImage') }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-menu>
@@ -22,7 +22,8 @@
       <q-btn
         v-else
         flat
-        no-caps label="Select image"
+        no-caps
+        :label="$t('SelectImage')"
         class="q-mb-sm"
         @click="selectPhoto"
       />
@@ -31,7 +32,7 @@
       dense
       outlined
       :loading="loading"
-      label="First name*"
+      :label="`${$t('FirstName')}*`"
       v-model="formData.firstName"
       bottom-slots
       :error="Boolean(formErrors?.firstName)"
@@ -41,7 +42,7 @@
       dense
       outlined
       :loading="loading"
-      label="Last name*"
+      :label="`${$t('LastName')}*`"
       v-model="formData.lastName"
       bottom-slots
       :error="Boolean(formErrors?.lastName)"
@@ -52,7 +53,7 @@
       dense
       outlined
       :loading="loading"
-      label="Email*"
+      :label="`${$t('Email')}*`"
       v-model="formData.email"
       bottom-slots
       :error="Boolean(formErrors?.email)"
@@ -62,7 +63,7 @@
       dense
       outlined
       :loading="loading"
-      label="Phone number"
+      :label="$t('PhoneNumber')"
       v-model="formData.phoneNumber"
       bottom-slots
       :error="Boolean(formErrors?.phoneNumber)"
@@ -72,7 +73,8 @@
     <q-separator spaced/>
     <q-btn
       color="brandblue"
-      no-caps label="Update"
+      no-caps
+      :label="$t('Update')"
       class="full-width"
       type="submit"
     />

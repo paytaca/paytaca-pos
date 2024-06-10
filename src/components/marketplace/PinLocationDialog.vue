@@ -2,7 +2,7 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom" full-height full-width>
     <q-card style="height:100%;width:100%;">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-h6 q-space q-mt-sm">{{ headerText || 'Pin location' }}</div>
+        <div class="text-h6 q-space q-mt-sm">{{ headerText || $t('PinLocation') }}</div>
         <q-btn
           flat
           padding="sm"
@@ -18,7 +18,7 @@
       <q-card-actions>
         <q-btn
           no-caps
-          label="Cancel"
+          :label="$t('Cancel')"
           outline
           color="grey"
           class="col"
@@ -26,7 +26,7 @@
         />
         <q-btn
           no-caps
-          label="OK"
+          :label="$t('OK')"
           color="brandblue"
           class="col"
           @click="onDialogOK(coordinates)"

@@ -2,7 +2,7 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card class="q-dialog-plugin">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
-        <div class="text-h5 text-brandblue q-space q-mt-sm"> Received </div>
+        <div class="text-h5 text-brandblue q-space q-mt-sm"> {{ $t('Received') }} </div>
         <q-btn
           flat
           padding="sm"
@@ -23,12 +23,12 @@
             {{ marketValue }} {{ marketValueCurrency }}
           </div>
         </div>
-        <div class="text-grey text-center" style="margin-bottom:-0.5em;">Reference ID</div>
+        <div class="text-grey text-center" style="margin-bottom:-0.5em;">{{ $t('ReferenceID') }}</div>
         <p class="text-center" style="font-size: 22px; margin-top: 7px;">
           {{ txid.substring(0, 6).toUpperCase() }}
         </p>
 
-        <div class="text-grey text-center" style="margin-bottom:-0.5em;">Transaction ID</div>
+        <div class="text-grey text-center" style="margin-bottom:-0.5em;">{{ $t('TransactionID') }}</div>
         <div class="row items-center no-wrap text-subtitle1" style="margin-top: 7px;">
           <div class="ellipsis">{{txid}}</div>
           <div class="row no-wrap">
@@ -36,7 +36,7 @@
               rounded
               padding="xs"
               icon="content_copy"
-              @click="copyText(txid, 'Transaction ID copied')"
+              @click="copyText(txid, $t('TransactionIdCopied'))"
             />
             <q-btn
               rounded
@@ -52,7 +52,7 @@
         <div class="q-mt-sm">
           <q-btn
             no-caps
-            label="Okay"
+            :label="$t('Okay')"
             color="brandblue"
             class="full-width"
             @click="onOk()"
@@ -64,6 +64,7 @@
   </q-dialog>
 </template>
 <script>
+import { useI18n } from 'vue-i18n'
 import { defineComponent } from 'vue'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 
@@ -89,7 +90,7 @@ export default defineComponent({
       this.$copyText(value)
         .then(() => {
           this.$q.notify({
-            message: message || 'Copied to clipboard',
+            message: message || this.$t('CopiedToClipboard'),
             timeout: 800,
             icon: 'mdi-clipboard-check',
             color: 'blue-9'
@@ -100,6 +101,8 @@ export default defineComponent({
   },
   setup(props) {
     const $q = useQuasar()
+    const { t } = useI18n()
+
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
     function onOk() {
@@ -111,8 +114,8 @@ export default defineComponent({
       const allowedErrorAmount = 1000 / 10 ** 8
       if (errorAmount > allowedErrorAmount ) {
         $q.dialog({
-          title: 'Amount does not match',
-          message: 'Amount does not match with expected amount. Continue?',
+          title: t('AmountErrTitle'),
+          message: t('AmountErrMsg'),
           ok: { color: 'brandblue' },
           cancel: true,
         }).onOk(() => onDialogOK())

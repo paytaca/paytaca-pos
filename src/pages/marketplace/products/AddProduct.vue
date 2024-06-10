@@ -4,8 +4,8 @@
       <template v-slot:title>
         <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
         <div class="q-space">
-          <div class="text-h5">Add Product</div>
-          <div class="text-grey">Marketplace</div>
+          <div class="text-h5">{{ $t('AddProduct') }}</div>
+          <div class="text-grey">{{ $t('Marketplace') }}</div>
         </div>
       </template>
     </MarketplaceHeader>
@@ -15,15 +15,15 @@
           {{ formErrors.detail[0] }}
         </div>
         <ul v-else class="q-pl-md">
-          <li v-for="(err, index) in formErrors?.detail" :key="index">{{err}}</li>
+          <li v-for="(err, index) in formErrors?.detail" :key="index">{{ err }}</li>
         </ul>
       </q-banner>
       <q-card>
         <q-card-section class="q-gutter-y-xs">
-          <div class="text-subtitle1 q-mb-sm">Product description</div>
+          <div class="text-subtitle1 q-mb-sm">{{ $t('ProductDescription') }}</div>
 
           <UploadImageField v-model="formData.imageUrl" :loading="loading" :disable="loading"/>
-          <div>Name*</div>
+          <div>{{ $t('Name') }}*</div>
           <q-input
             dense
             outlined
@@ -33,10 +33,10 @@
             :error="Boolean(formErrors?.name)"
             :error-message="formErrors?.name"
             :rules="[
-              val => Boolean(val) || 'Required',
+              val => Boolean(val) || $t('Required'),
             ]"
           />
-          <div>Description</div>
+          <div>{{ $t('Description') }}</div>
           <q-input
             dense
             outlined
@@ -47,7 +47,7 @@
             :error="Boolean(formErrors?.description)"
             :error-message="formErrors?.description"
           />
-          <div>Categories</div>
+          <div>{{ $t('Categories') }}</div>
           <CategoriesField
             v-model="formData.categories"
             :filterOpts="{
@@ -65,21 +65,22 @@
       <q-card>
         <q-card-section>
           <div class="row items-center">
-            <div class="text-subtitle1">Cart options</div>
+            <div class="text-subtitle1">{{ $t('CartOptions') }}</div>
             <q-space/>
             <q-icon
               size="1.5em"
               name="help"
             >
               <q-menu class="q-pa-sm text-body2">
-                Additional details customers must provide when adding to cart
+                {{ $t('CartOptionsMsg') }}
               </q-menu>
             </q-icon>
           </div>
           <div class="row items-center q-r-mx-sm">
             <div class="full-width q-pa-xs q-mb-sm">
               <q-btn
-                no-caps label="Configure"
+                no-caps
+                :label="$t('Configure')"
                 icon="edit"
                 color="brandblue"
                 class="full-width"
@@ -90,7 +91,8 @@
               <div class="col-6 q-pa-xs">
                 <q-btn
                   outline
-                  no-caps label="Preview"
+                  no-caps
+                  :label="$t('Preview')"
                   icon="preview"
                   color="brandblue"
                   class="full-width"
@@ -101,7 +103,8 @@
               <div class="col-6 q-pa-xs">
                 <q-btn
                   outline
-                  no-caps label="Remove"
+                  no-caps
+                  :label="$t('Remove')"
                   icon="delete"
                   color="red"
                   class="full-width"
@@ -112,12 +115,12 @@
                 <q-card>
                   <q-card-section>
                     <div class="row items-center">
-                      <div class="text-h6">Form Preview</div>
+                      <div class="text-h6">{{ $t('FormPreview') }}</div>
                       <q-space/>
                       <q-btn v-close-popup flat icon="close" padding="sm"/>
                     </div>
                     <JSONFormPreview :schemaData="formData.cartOptions"/>
-                    <q-btn label="OK" color="brandblue" v-close-popup/>
+                    <q-btn :label="$t('OK')" color="brandblue" v-close-popup/>
                   </q-card-section>
                 </q-card>
               </q-dialog>
@@ -125,7 +128,7 @@
           </div>
           <q-separator spaced/>
           <div class="row items-center">
-            <div class="text-subtitle1">Addon Options</div>
+            <div class="text-subtitle1">{{ $t('AddonOptions') }}</div>
           </div>
           <AddonsInfoPanel
             v-if="formData.addons?.length"
@@ -136,7 +139,8 @@
             :flat="!formData.addons?.length"
             :outline="Boolean(formData.addons?.length)"
             :color="(formData.addons?.length && !$q.dark.isActive) ? 'brandblue' : ''"
-            no-caps :label="formData.addons?.length ? 'Edit' : 'Set Addons'"
+            no-caps
+            :label="formData.addons?.length ? $t('Edit') : $t('SetAddons')"
             icon="edit"
             class="full-width"
             @click="() => openAddonsFormDialog()"
@@ -147,7 +151,7 @@
         <q-card-section v-if="formData.variants?.length">
           <q-slide-transition>
             <div v-if="formData.variants?.length > 1" class="text-subtitle1 q-mb-sm">
-              Variants
+              {{ $t('Variants') }}
               <span class="text-grey">[{{ formData.variants?.length }}]</span>
             </div>
           </q-slide-transition>
@@ -168,28 +172,29 @@
                 <div v-if="formData.variants.length > 1">
                   <div class="row items-center">
                     <div class="text-grey q-space">
+                      <!--TODO:-->
                       Variant {{ index + 1 }}
                     </div>
                     <q-btn flat icon="delete" @click="() => formData.variants.splice(index, 1)"/>
                   </div>
                   <UploadImageField v-model="variant.imageUrl" :loading="loading" :disable="loading"/>
-                  <div>Variant Name*</div>
+                  <div>{{ $t('VariantName') }}*</div>
                   <q-input
                     outlined
                     dense
                     :loading="loading"
                     :disable="loading"
-                    placeholder="Large / Red / etc."
+                    :placeholder="$t('LargeRedEtc')"
                     v-model.number="variant.name"
                     :error="Boolean(variantErrorAt(index)?.name)"
                     :error-message="variantErrorAt(index)?.name"
                     :rules="[
-                      val => Boolean(val) || 'Required',
+                      val => Boolean(val) || $t('Required'),
                     ]"
                   />
                 </div>
               </q-slide-transition>
-              <div>Code</div>
+              <div>{{ $t('Code') }}</div>
               <q-input
                 outlined
                 dense
@@ -200,7 +205,7 @@
                 :error-message="variantErrorAt(index)?.code"
               />
 
-              <div>Price*</div>
+              <div>{{ $t('Price') }}*</div>
               <q-input
                 outlined
                 dense
@@ -213,13 +218,13 @@
                 :error="Boolean(variantErrorAt(index)?.price)"
                 :error-message="variantErrorAt(index)?.price"
                 :rules="[
-                  val => val > 0 || 'Invalid price',
+                  val => val > 0 || $t('InvalidPrice'),
                 ]"
               />
 
               <div class="row">
                 <div class="col-6 q-pr-sm">
-                  <div>Initial Stock</div>
+                  <div>{{ $t('InitialStock') }}</div>
                   <q-input
                     outlined
                     dense
@@ -230,12 +235,12 @@
                     :error="Boolean(variantErrorAt(index)?.initialStock)"
                     :error-message="variantErrorAt(index)?.initialStock"
                     :rules="[
-                      val => val >= 0 || 'Invalid',
+                      val => val >= 0 || $t('Invalid'),
                     ]"
                   />
                 </div>
                 <div class="col-6">
-                  <div>Cost Price</div>
+                  <div>{{ $t('CostPrice') }}</div>
                   <q-input
                     outlined
                     dense
@@ -248,7 +253,7 @@
                     :error="Boolean(variantErrorAt(index)?.costPrice)"
                     :error-message="variantErrorAt(index)?.costPrice"
                     :rules="[
-                      val => val >= 0 || 'Invalid',
+                      val => val >= 0 || $t('Invalid'),
                     ]"
                   />
                 </div>
@@ -261,7 +266,7 @@
             <q-btn
               no-caps
               color="brandblue"
-              label="Add Variant"
+              :label="$t('AddVariant')"
               class="full-width"
               @click="() => addVariant()"
             />
@@ -275,7 +280,7 @@
           :disable="loading"
           color="brandblue"
           no-caps
-          label="Add Product"
+          :label="$t('AddProduct')"
           type="submit"
           class="full-width"
         />
@@ -290,6 +295,7 @@ import { errorParser } from 'src/marketplace/utils'
 import { defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import UploadImageField from 'src/components/marketplace/UploadImageField.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
@@ -312,6 +318,7 @@ export default defineComponent({
   setup() {
     const marketplaceStore = useMarketplaceStore()
     const $q = useQuasar()
+    const { t } = useI18n()
     const $router = useRouter()
 
     let variantRowGenCounter = 0
@@ -369,7 +376,7 @@ export default defineComponent({
       $q.dialog({
         component: JSONFormDialog,
         componentProps: {
-          title: 'Cart options',
+          title: t('CartOptions'),
           schemaData: formData.value.cartOptions,
         }
       }).onOk(updatedSchemaData => {
@@ -442,7 +449,7 @@ export default defineComponent({
         .finally(() => clearFormErrors())
         .then(() => {
           $q.dialog({
-            title: 'Product added!',
+            title: t('ProductAdded'),
             ok: true,
           }).onOk(() => {
             $router.back()
@@ -473,7 +480,7 @@ export default defineComponent({
             if (data?.detail) formErrors.value.detail = [data?.detail]
 
             if (!formErrors.value.detail?.length) {
-              formErrors.value.detail = ['Encountered errors in adding product']
+              formErrors.value.detail = [t('AddingProductErrMsg')]
             }
           }
         })

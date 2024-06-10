@@ -15,7 +15,7 @@
         />
         <q-btn
           no-caps
-          label="OK"
+          :label="$t('OK')"
           color="brandblue"
           class="full-width"
           @click="() => submit()"
@@ -28,6 +28,9 @@
 import { useDialogPluginComponent } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import JSONFormPreview from './JSONFormPreview.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 export default defineComponent({
   name: 'JSONFormDataDialog',
@@ -45,7 +48,7 @@ export default defineComponent({
   ],
   props: {
     modelValue: Boolean,
-    title: { type: String, required: false, default: 'JSON Form' },
+    title: { type: String, required: false, default: t('JSONForm') },
     schemaData: Array,
     schemaFormData: Object,
   },

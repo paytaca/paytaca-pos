@@ -5,15 +5,15 @@
       <q-list separator>
         <q-item v-if="walletStore?.branchInfo?.id" clickable v-ripple :to="{ name: 'marketplace' }">
           <q-item-section :class="$q.dark.isActive ? 'text-white' : 'text-brandblue'">
-            <q-item-label>Marketplace</q-item-label>
+            <q-item-label>{{ $t('Marketplace') }}</q-item-label>
           </q-item-section>
           <q-item-section avatar>
-            <q-item-label class="text-caption text-underline">Go to marketplace</q-item-label>
+            <q-item-label class="text-caption text-underline">{{ $t('GoToMarketPlace') }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item clickable v-ripple @click="$q.dark.toggle()">
           <q-item-section :class="$q.dark.isActive ? 'text-white' : 'text-brandblue'">
-            <q-item-label>Dark Mode</q-item-label>
+            <q-item-label>{{ $t('DarkMode') }}</q-item-label>
           </q-item-section>
           <q-item-section avatar>
             <q-toggle
@@ -27,7 +27,7 @@
         <q-item v-if="walletStore.walletHash" :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'">
           <q-item-section>
             <q-item-label>
-              POS Device
+              {{ $t('POSDevice') }}
             </q-item-label>
           </q-item-section>
           <q-item-section avatar>
@@ -46,7 +46,7 @@
         >
           <q-item-section>
             <q-item-label>
-              Currency
+              {{ $t('Currency') }}
             </q-item-label>
           </q-item-section>
           <q-item-section avatar>
@@ -55,7 +55,7 @@
               <q-icon name="info" class="" size="1.5em">
                 <q-popup-proxy :breakpoint="0">
                   <div class="q-pa-md">
-                    Currency is set by the wallet owner in Paytaca App
+                    {{ $t('CurrencySettingNote') }}
                   </div>
                 </q-popup-proxy>
               </q-icon>
@@ -68,14 +68,14 @@
       <q-card-section class="q-pb-xs">
         <div class="text-h6">
           <q-icon name="storefront" size="1.5em" class="q-mr-xs"/>
-          Merchant details
+          {{ $t('MerchantDetails') }}
         </div>
       </q-card-section>
       <q-separator/>
       <q-list separator dense class="q-pb-md">
         <q-item class="">
           <q-item-section class="text-grey">
-            <q-item-label>Name</q-item-label>
+            <q-item-label>{{ $t('Name') }}</q-item-label>
           </q-item-section>
           <q-item-section>
             <q-item-label>
@@ -85,7 +85,7 @@
         </q-item>
         <q-item v-if="walletStore.branchInfo.id && walletStore.branchInfo.name" class="">
           <q-item-section class="text-grey">
-            <q-item-label>Branch</q-item-label>
+            <q-item-label>{{ $t('Branch') }}</q-item-label>
           </q-item-section>
           <q-item-section>
             <q-item-label>
@@ -95,7 +95,7 @@
         </q-item>
         <q-item class="">
           <q-item-section class="text-grey">
-            <q-item-label>Phone number</q-item-label>
+            <q-item-label>{{ $t('PhoneNumber') }}</q-item-label>
           </q-item-section>
           <q-item-section>
             <q-item-label>
@@ -105,7 +105,7 @@
         </q-item>
         <q-item class="">
           <q-item-section class="text-grey">
-            <q-item-label>Address</q-item-label>
+            <q-item-label>{{ $t('Address') }}</q-item-label>
           </q-item-section>
           <q-item-section>
             <q-item-label>
@@ -115,7 +115,7 @@
         </q-item>
         <q-item v-if="walletStore.formattedBranchAddress" class="">
           <q-item-section class="text-grey">
-            Branch address
+            {{ $t('BranchAddress') }}
           </q-item-section>
           <q-item-section>
             <q-item-label>
@@ -129,7 +129,7 @@
       <q-list>
         <q-item>
           <q-item-section class="text-grey">
-            App version
+            {{ $t('AppVersion') }}
           </q-item-section>
           <q-item-section>
             <q-item-label>
@@ -139,7 +139,7 @@
         </q-item>
         <q-item>
           <q-item-section class="text-grey">
-            Source code repository
+            {{ $t('Repository') }}
           </q-item-section>
           <q-item-section>
             <q-item-label>
@@ -155,6 +155,7 @@
 </template>
 
 <script>
+import { useI18n } from 'vue-i18n'
 import { computed, defineComponent } from 'vue'
 import MainHeader from 'src/components/MainHeader.vue'
 import { useWalletStore } from 'src/stores/wallet'

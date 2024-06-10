@@ -4,7 +4,7 @@
       <q-card-section class="q-pb-none">
         <div class="row items-center q-pb-sm">
           <div class="q-space">
-            <div class="text-h5">Chat</div>
+            <div class="text-h5">{{ $t('Chat') }}</div>
             <div class="text-caption text-grey bottom">{{ chatRef }}</div>
           </div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
@@ -65,13 +65,13 @@
                   v-if="message?.encrypted && !message?.decryptedMessage"
                   @click="() => decryptMessage(message, true)"
                 >
-                  Message is encrypted
+                  {{ $t('MessageIsEncrypted') }}
                 </span>
                 <span v-else-if="message?.decryptedMessage">
                   {{ message?.decryptedMessage }}
                 </span>
                 <i v-else-if="message?.hasAttachment">
-                  Attachment
+                  {{ $t('Attachment') }}
                 </i>
               </q-chat-message>
               <div
@@ -98,7 +98,7 @@
                       @click="() => decryptMessageAttachment(message, true)"
                       v-element-visibility="() => decryptMessageAttachment(message)"
                     >
-                      Attachment encrypted
+                      {{ $t('AttachmentEncrypted') }}
                       <q-spinner v-if="message?.$state?.decryptingAttachment"/>
                     </div>
                   </div>

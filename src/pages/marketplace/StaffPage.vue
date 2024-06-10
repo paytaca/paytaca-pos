@@ -5,8 +5,8 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Staff</div>
-            <div class="text-grey">Marketplace</div>
+            <div class="text-h5">{{ $t('Staff') }}</div>
+            <div class="text-grey">{{ $t('Marketplace') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
@@ -26,7 +26,7 @@
       <div class="q-mb-md">
         <q-chip class="ellipsis">
           <template v-if="!filterOpts.roles?.length">
-            Filter role/s
+            {{ $t('FilterRoles') }}
           </template>
           <template v-else>
             {{ filterOpts.roles.map(formatRole).join(', ') }}
@@ -44,7 +44,7 @@
       <q-table
         ref="table"
         :loading="fetchingStaff"
-        loading-label="Loading..."
+        :loading-label="$t('Loading')"
         :columns="staffTableColumns"
         :rows="staff"
         row-key="id"
@@ -98,7 +98,7 @@
               </div>
               <q-btn
                 no-caps
-                label="Update"
+                :label="$t('Update')"
                 color="brandblue"
                 class="full-width"
                 @click="scope.set"
@@ -116,6 +116,7 @@ import { backend } from 'src/marketplace/backend'
 import { formatRole } from 'src/marketplace/utils'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import AddShopUserRoleFormDialog from 'src/components/marketplace/staff/AddShopUserRoleFormDialog.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
@@ -129,6 +130,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
 
     const roleOpts = computed(() => {
@@ -182,14 +184,32 @@ export default defineComponent({
 
     const table = ref()
     const staffTableColumns = [
-      { name: 'name', align: 'left', label: 'Name', field: 'fullName', sortable: true },
       {
-        name: 'roles', align: 'left', label: 'Roles',
+        name: 'name',
+        align: 'left',
+        label: t('Name'),
+        field: 'fullName',
+        sortable: true,
+      },
+      {
+        name: 'roles',
+        align: 'left',
+        label: t('Roles'),
         field: obj => obj?.getRolesFromShop(marketplaceStore.activeShopId),
         format: val => Array.isArray(val) ? val.map(formatRole).join(', ') : '',
       },
-      { name: 'username', align: 'center', label: 'Username', field: 'username', sortable: true },
-      { name: 'email', align: 'center', label: 'Email', field: 'email', sortable: true },
+      { name: 'username',
+        align: 'center',
+        label: t('Username'),
+        field: 'username',
+        sortable: true
+      },
+      { name: 'email',
+        align: 'center',
+        label: t('Email'),
+        field: 'email',
+        sortable: true
+      },
     ]
     const sortFieldNameMap = {
       items: 'items_count',
@@ -249,11 +269,11 @@ export default defineComponent({
         .catch(error => {
           let errorMsg = error?.response?.data?.detail
           if (error?.response?.status === 403 && !errorMsg) {
-            errorMsg = 'Sorry, you do not have sufficient admin permissions.'
+            errorMsg = t('AdminPermissionErrMsg')
           }
 
           $q.notify({
-            message: errorMsg || 'Error encountered in updating roles',
+            message: errorMsg || t('RoleUpdateErrorMsg'),
             type: 'negative',
           })
         })

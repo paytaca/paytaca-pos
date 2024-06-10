@@ -4,18 +4,19 @@
       <q-card-section class="row no-wrap items-start q-pb-sm">
         <div class="q-space">
           <div class="text-h5">{{ product?.name }}</div>
+          <!--TODO:-->
           <div class="text-caption text-grey" style="margin-top:-0.5em;">product#{{ product?.id }}</div>
         </div>
         <slot name="menu" v-bind="{ product }"></slot>
       </q-card-section>
       <q-card-section v-if="product?.categories?.length" class="q-pt-none q-pb-sm">
-        <div class="text-grey">Categories</div>
+        <div class="text-grey">{{ $t('Categories') }}</div>
         <q-badge v-for="category in product?.categories" :key="category" class="q-mr-sm">
           {{ category }}
         </q-badge>
       </q-card-section>
       <q-card-section v-if="product?.code" class="q-pt-none q-pb-sm">
-        <div class="text-grey">Code</div>
+        <div class="text-grey">{{ $t('Code') }}</div>
         {{ product?.code }}
       </q-card-section>
       <q-card-section v-if="product?.imageUrl" class="row items-center justify-center q-pt-none">
@@ -26,11 +27,11 @@
         />
       </q-card-section>
       <q-card-section v-if="product?.description" class="q-pt-none">
-        <div class="text-grey">Description</div>
+        <div class="text-grey">{{ $t('Description') }}</div>
         {{ product?.description }}
       </q-card-section>
       <q-card-section v-if="product?.totalStocks" class="q-pt-none q-pb-sm">
-        <div class="text-grey">Stocks</div>
+        <div class="text-grey">{{ $t('Stocks') }}</div>
         {{ product?.totalStocks }}
       </q-card-section>
       <div v-if="fetchingVariants" class="row items-center justify-center q-my-md">
@@ -39,9 +40,9 @@
       <table v-else class="full-width" style="border-spacing:8px;">
         <tr>
           <th v-if="hasVariantImage" class="image-col"></th>
-          <th v-if="product.hasVariants">Variant</th>
-          <th>Price</th>
-          <th>Quantity</th>
+          <th v-if="product.hasVariants">{{ $t('Variant') }}</th>
+          <th>{{ $t('Price') }}</th>
+          <th>{{ $t('Quantity') }}</th>
           <th></th>
         </tr>
         <template v-for="variant in product?.variants" :key="variant.id">
@@ -62,8 +63,8 @@
             </td>
             <td class="text-center">{{ variant.price }} {{ marketplaceStore?.currency }}</td>
             <td class="text-center">
-              <span v-if="variant.totalStocks == 0" class="text-grey">No stocks</span>
-              <span v-else-if="!variant.totalStocks" class="text-grey">No inventory</span>
+              <span v-if="variant.totalStocks == 0" class="text-grey">{{ $t('NoStocks') }}</span>
+              <span v-else-if="!variant.totalStocks" class="text-grey">{{ $t('NoInventory') }}</span>
               <span v-else>{{ variant.totalStocks }}</span>
             </td>
             <td style="width:3.5em;">
@@ -77,7 +78,7 @@
                         v-close-popup
                       >
                         <q-item-section>
-                          <q-item-label>Go to inventory</q-item-label>
+                          <q-item-label>{{ $t('GoToInventory') }}</q-item-label>
                         </q-item-section>
                       </q-item>
                     </q-list>
