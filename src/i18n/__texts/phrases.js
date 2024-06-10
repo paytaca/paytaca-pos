@@ -425,7 +425,11 @@ const phrases = {
       UpdateStockErrorMsg: 'Error encountered in updating stock',
       UpdatedStocks: 'Updated stocks',
       NoPurchaseOrder: 'No purchase order',
-      // Key: '',
+      SelectLanguage: 'Select Language',
+      ChineseSimplified: 'Chinese (Simplified)',
+      ChineseTraditional: 'Chinese (Traditional)',
+      PortugueseBrazil: 'Portuguese (Brazil)',
+      SpanishArgentina: 'Spanish (Argentina)',
     },
   ],
   dynamic: [

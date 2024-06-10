@@ -62,6 +62,16 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'">
+          <q-item-section>
+            <q-item-label>
+              {{ $t('Language') }}
+            </q-item-label>
+          </q-item-section>
+          <q-item-section>
+            <LanguageSelector />
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-card>
     <q-card v-if="walletStore?.merchantInfo?.id" class="q-mx-md q-mt-lg text-weight-medium" style="border-radius:16px;">
@@ -161,11 +171,13 @@ import MainHeader from 'src/components/MainHeader.vue'
 import { useWalletStore } from 'src/stores/wallet'
 import { padPosId } from 'src/wallet/utils'
 import packageInfo from '../../package.json'
+import LanguageSelector from 'src/components/LanguageSelector.vue'
 
 export default defineComponent({
     name: "SettingsPage",
     components: {
-      MainHeader
+      MainHeader,
+      LanguageSelector,
     },
     setup() {
       const walletStore = useWalletStore()
