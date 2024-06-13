@@ -19,6 +19,9 @@
 import { useDialogPluginComponent } from 'quasar'
 import { defineComponent, ref, watch } from 'vue'
 import AddonsInfoPanel from './AddonsInfoPanel.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 export default defineComponent({
   name: 'AddonsInfoDialog',
@@ -35,7 +38,7 @@ export default defineComponent({
     currency: String,
     title: {
       type: String,
-      default: 'Addon Options',
+      default: t('AddonOptions'),
     },
   },
   setup(props, { emit: $emit }) {

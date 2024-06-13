@@ -4,14 +4,14 @@
       <template v-slot:title>
         <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
         <div class="q-space">
-          <div class="text-h5">User</div>
-          <div class="text-grey">Marketplace</div>
+          <div class="text-h5">{{ $t('User') }}</div>
+          <div class="text-grey">{{ $t('Marketplace') }}</div>
         </div>
       </template>
     </MarketplaceHeader>
     <q-card class="q-mb-md">
       <q-card-section class="q-pb-none row items-center">
-        <div class="text-h6">Profile</div>
+        <div class="text-h6">{{ $t('Profile') }}</div>
         <q-space/>
         <q-btn
           v-if="!profileEditMode"
@@ -26,7 +26,8 @@
           <UserProfileForm :user="marketplaceStore.user" @updated="() => profileEditMode = false"/>
           <q-btn
             outline
-            no-caps label="Cancel"
+            no-caps
+            :label="$t('Cancel')"
             color="grey"
             class="full-width q-mt-sm"
             @click="() => profileEditMode = false"
@@ -47,32 +48,32 @@
           </div>
           <div class="col-6 q-py-xs q-px-sm">
             <div>{{ marketplaceStore?.user?.firstName }}</div>
-            <div class="text-caption bottom">First name</div>
+            <div class="text-caption bottom">{{ $t('FirstName') }}</div>
           </div>
           <div class="col-6 q-py-xs q-px-sm">
             <div>{{ marketplaceStore?.user?.lastName }}</div>
-            <div class="text-caption bottom">Last name</div>
+            <div class="text-caption bottom">{{ $t('LastName') }}</div>
           </div>
           <div class="col-6 q-py-xs q-px-sm">
             <div>{{ marketplaceStore?.user?.email }}</div>
-            <div class="text-caption bottom">Email</div>
+            <div class="text-caption bottom">{{ $t('Email') }}</div>
           </div>
   
           <div class="col-6 q-py-xs q-px-sm">
             <div>{{ marketplaceStore?.user?.username }}</div>
-            <div class="text-caption bottom">Username</div>
+            <div class="text-caption bottom">{{ $t('Username') }}</div>
           </div>
           <div class="col-6 q-py-xs q-px-sm">
             <div v-if="marketplaceStore?.user?.phoneNumber">{{ marketplaceStore?.user?.phoneNumber }}</div>
-            <i v-else class="text-grey">None</i>
-            <div class="text-caption bottom">Phone number</div>
+            <i v-else class="text-grey">{{ $t('None') }}</i>
+            <div class="text-caption bottom">{{ $t('PhoneNumber') }}</div>
           </div>
         </q-card-section>
       </q-slide-transition>
     </q-card>
     <q-card class="q-mb-md">
       <q-card-section>
-        <div class="text-subtitle1">Change Password</div>
+        <div class="text-subtitle1">{{ $t('ChangePassword') }}</div>
         <q-form ref="form" @submit="() => changePassword()">
           <q-banner v-if="formErrors?.detail?.length" class="bg-red text-white rounded-borders q-mb-md">
             <div v-if="formErrors?.detail?.length === 1">
@@ -87,7 +88,7 @@
             outlined
             :disable="formData.loading"
             clearable
-            label="Current Password"
+            :label="$t('CurrentPassword')"
             type="password"
             v-model="formData.current"
             autocomplete="on"
@@ -98,7 +99,7 @@
             dense
             outlined
             :disable="formData.loading"
-            label="New Password"
+            :label="$t('NewPassword')"
             type="password"
             v-model="formData.new"
             autocomplete="on"
@@ -109,13 +110,13 @@
             dense
             outlined
             :disable="formData.loading"
-            label="Confirm New Password"
+            :label="$t('ConfirmNewPassword')"
             type="password"
             v-model="formData.newConfirm"
             autocomplete="on"
             reactive-rules
             :rules="[
-              val => val === formData.new || 'Password does not match',
+              val => val === formData.new || $t('PasswordDoesntMatch'),
             ]"
           />
           <div class="q-mt-sm">
@@ -124,7 +125,7 @@
               :loading="formData.loading"
               color="brandblue"
               no-caps
-              label="Update password"
+              :label="$t('UpdatePassword')"
               type="submit"
               class="full-width"
             />
@@ -139,6 +140,7 @@ import { backend } from 'src/marketplace/backend'
 import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { defineComponent, ref } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import UserProfileForm from 'src/components/marketplace/UserProfileForm.vue'
@@ -150,11 +152,11 @@ export default defineComponent({
     UserProfileForm,
   },
   setup() {
+    const { t } = useI18n()
     const $q = useQuasar()
     const marketplaceStore = useMarketplaceStore()
-
     const profileEditMode = ref(false)
-
+    const form = ref()
     const formData = ref({
       loading: false,
       current: '',
@@ -162,7 +164,6 @@ export default defineComponent({
       newConfirm: '',
     })
 
-    const form = ref()
     function clearFormData() {
       formData.value.current = ''
       formData.value.new = ''
@@ -190,8 +191,8 @@ export default defineComponent({
         new_password: formData.value.new,
       }
       const dialog = $q.dialog({
-        title: 'Password update',
-        message: 'Updating password',
+        title: t('PasswordUpdate'),
+        message: t('Updating password'),
         progress: true,
         persistent: true,
         ok: false,
@@ -201,7 +202,7 @@ export default defineComponent({
       formData.value.loading = true
       backend.post(`users/update_password/`, data)
         .then(() => {
-          dialog.update({ message: 'Password updated successfully!' })
+          dialog.update({ message: t('PasswordUpdateSuccessfully') })
           clearFormData()
         })
         .catch(error => {
@@ -213,7 +214,7 @@ export default defineComponent({
           if (Array.isArray(data)) formErrors.value.detail = data
           if (data?.detail) formErrors.value.detail = [data?.detail]
           if (!formErrors.value.detail?.length) {
-            formErrors.value.detail = ['Encountered error in updating password']
+            formErrors.value.detail = [t('FormErrorPasswordMsg')]
           }
           dialog.hide()
         })

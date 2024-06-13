@@ -20,20 +20,20 @@
           <div class="row q-gutter-md q-mt-sm">
             <div class="user-info-attribute">
               <div>{{ user.firstName }}</div>
-              <div class="text-caption text-grey">First name</div>
+              <div class="text-caption text-grey">{{ $t('FirstName') }}</div>
             </div>
             <div class="user-info-attribute">
               <div>{{ user.lastName }}</div>
-              <div class="text-caption text-grey">Last name</div>
+              <div class="text-caption text-grey">{{ $t('LastName') }}</div>
             </div>
           </div>
           <div class="user-info-attribute">
             <div>{{ user.username }}</div>
-            <div class="text-caption text-grey">Username</div>
+            <div class="text-caption text-grey">{{ $t('Username') }}</div>
           </div>
           <div class="user-info-attribute">
             <div>{{ user.email }}</div>
-            <div class="text-caption text-grey">Email</div>
+            <div class="text-caption text-grey">{{ $t('Email') }}</div>
           </div>
           <div v-if="userRoles?.length" class="user-info-attribute">
             <div class="q-mt-xs q-gutter-sm">
@@ -41,7 +41,7 @@
                 {{ formatRole(role) }}
               </q-badge>
             </div>
-            <div class="text-caption text-grey">Roles</div>
+            <div class="text-caption text-grey">{{ $t('Roles') }}</div>
           </div>
         </slot>
       </q-card-section>

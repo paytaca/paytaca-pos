@@ -5,8 +5,8 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Stocks</div>
-            <div class="text-grey">Marketplace</div>
+            <div class="text-h5">{{ $t('Stocks') }}</div>
+            <div class="text-grey">{{ $t('Marketplace') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
@@ -15,7 +15,7 @@
           <q-input
             dense
             v-model="filterOpts.search"
-            placeholder="PO#, Item name"
+            :placeholder="$t('PoItemName')"
             debounce="500"
           >
             <template v-slot:prepend><q-icon name="search"/></template>
@@ -29,7 +29,8 @@
             >
               <q-btn
                 flat
-                no-caps label="Reset"
+                no-caps
+                :label="$t('Reset')"
                 color="brandblue"
                 padding="xs md"
                 class="text-underline q-r-mt-md q-r-mr-lg float-right"
@@ -40,7 +41,7 @@
                 v-if="!tempFilterOpts.productId && !tempFilterOpts.variantId"
                 class="q-mb-sm"
               >
-                <div class="text-subtitle1">Categories</div>
+                <div class="text-subtitle1">{{ $t('Categories') }}</div>
                 <div style="min-width:min(50vw, 300px);">
                   <q-select
                     outlined
@@ -55,7 +56,7 @@
                 </div>
               </div>
               <div class="q-mb-sm">
-                <div class="text-subtitle1">Expired</div>
+                <div class="text-subtitle1">{{ $t('Expired') }}</div>
                 <q-btn-toggle
                   v-model="tempFilterOpts.expired"
                   no-caps
@@ -63,9 +64,9 @@
                   toggle-color="primary"
                   padding="xs md"
                   :options="[
-                    {label: 'Yes', value: true },
-                    {label: 'No', value: false },
-                    {label: 'All', value: undefined}
+                    {label: $t('Yes'), value: true },
+                    {label: $t('No'), value: false },
+                    {label: $t('All'), value: undefined}
                   ]"
                 />
               </div>
@@ -77,7 +78,7 @@
               <q-list separator>
                 <q-item clickable :to="{ name: 'marketplace-create-purchase-order' }">
                   <q-item-section>
-                    <q-item-label>Create Purchase Order</q-item-label>
+                    <q-item-label>{{ $t('CreatePurchaseOrder') }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <!-- <q-item clickable v-close-popup @click="() => openCreateStockDialog()">
@@ -96,7 +97,7 @@
             style="max-width:max(500px,75vw);"
             @click="openFilterOptsForm = true"
           >
-            {{ filterOpts?.categories?.length === 1 ? 'Category' : 'Categories' }}
+            {{ filterOpts?.categories?.length === 1 ? $t('Category') : $t('Categories') }}
             :
             {{ filterOpts?.categories?.join(', ') }}
           </div>
@@ -111,7 +112,7 @@
               :color="filterOpts?.expired ? 'green' : 'red'"
               class="q-mr-xs"
             />
-            Expired
+            {{ $t('Expired') }}
           </div>
           <template v-if="filterOptsMetadata.product?.id">
             <div
@@ -119,7 +120,7 @@
               class="filter-opt q-px-xs"
               @click="() => showVariantInfoDialog = true"
             >
-              Variant:
+              {{ $t('Variant') }}:
               <template v-if="filterOptsMetadata?.product?.name">
                 {{ filterOptsMetadata?.product?.name }}
                 <template v-if="filterOptsMetadata?.variant?.name">
@@ -131,7 +132,7 @@
               </template>
             </div>
             <div v-else class="filter-opt q-px-xs" @click="() => showProductInfoDialog = true">
-              Product: {{  filterOptsMetadata.product?.name || `#${filterOptsMetadata.product?.id}` }}
+              {{ $t('Product') }}: {{  filterOptsMetadata.product?.name || `#${filterOptsMetadata.product?.id}` }}
             </div>
           </template>
           <ProductInventoryDialog
@@ -153,33 +154,51 @@
             padding="2px 0.75em"
             @click="() => displaySelectedStocks = true"
           >
-            {{ selectedStocks?.length }}
-            {{ selectedStocks?.length === 1 ? 'stock' : 'stocks' }}
+            {{
+              $t(
+                'NumberOfStocks',
+                {
+                  count: selectedStocks?.length,
+                  unit: selectedStocks?.length === 1 ? $t('stock') : $t('stocks')
+                },
+                `${selectedStocks?.length} ${ selectedStocks?.length === 1 ? $t('stock') : $t('stocks') }`
+              )
+            }}
           </q-btn>
           <q-btn
             rounded
             :outline="$q.dark.isActive"
             padding="2px 0.75em"
             no-caps
-            label="Recount"
+            :label="$t('Recount')"
             icon="edit"
-            :to="{ name: 'marketplace-add-stock-recount', query: { stockIds: selectedStocks.map(stock => stock?.id).filter(Boolean).join(',') }}"
+            :to="{
+              name: 'marketplace-add-stock-recount',
+              query: {
+                stockIds: selectedStocks.map(stock => stock?.id).filter(Boolean).join(',')
+              }
+            }"
           />
           <q-btn
             rounded
             :outline="$q.dark.isActive"
             padding="2px 0.75em"
             no-caps
-            label="Update"
+            :label="$t('Update')"
             icon="edit"
-            :to="{ name: 'marketplace-stocks-update', query: { stockIds: selectedStocks.map(stock => stock?.id).filter(Boolean).join(',') }}"
+            :to="{
+              name: 'marketplace-stocks-update',
+              query: {
+                stockIds: selectedStocks.map(stock => stock?.id).filter(Boolean).join(',')
+              }
+            }"
           />
         </div>
       </q-slide-transition>
       <q-table
         ref="table"
         :loading="fetchingStocks"
-        loading-label="Loading..."
+        :loading-label="$t('Loading')"
         :columns="stocksTableColumns"
         :rows="stocks"
         row-key="id"
@@ -227,7 +246,7 @@
             </div>
             <div v-else class="text-grey">
               {{ props.row?.metadata?.product_name }}
-              {{ props.row?.metadata?.product_name ? '(Deleted)' : 'Deleted'}}
+              {{ props.row?.metadata?.product_name ? `(${$t('Deleted')})` : $t('Deleted') }}
             </div>
           </q-td>
         </template>
@@ -254,7 +273,7 @@
                 {{ props.row.costPrice }} {{ marketplaceStore?.currency }}
               </span>
               <span v-else class="text-grey text-underline">
-                Set price
+                {{ $t('SetPrice') }}
               </span>
               <q-spinner v-if="props.row.$state.updatingFields?.has('cost_price')" class="q-ml-xs"/>
               <q-popup-edit
@@ -284,7 +303,7 @@
                 {{ formatDateRelative(props.row.expiresAt) }}
               </span>
               <span v-else class="text-grey text-underline">
-                Set expiry
+                {{ $t('SetExpiry') }}
               </span>
               <q-spinner v-if="props.row.$state.updatingFields?.has('expires_at')" class="q-ml-xs"/>
               <q-popup-edit
@@ -297,8 +316,8 @@
               >
                 <q-date v-model="scope.value" flat mask="YYYY-MM-DD">
                   <div class="row items-center justify-end">
-                    <q-btn v-close-popup no-caps label="Close" flat/>
-                    <q-btn v-close-popup no-caps label="Set" color="brandblue" @click="() => scope.set()"/>
+                    <q-btn v-close-popup no-caps :label="$t('Close')" flat/>
+                    <q-btn v-close-popup no-caps :label="$t('Set')" color="brandblue" @click="() => scope.set()"/>
                   </div>
                 </q-date>
               </q-popup-edit>
@@ -310,11 +329,11 @@
             {{ formatDateRelative(props.row.updatedAt) }}
             <q-menu class="q-py-sm q-px-md">
               <div class="q-mb-sm">
-                <div class="text-grey q-mr-xs">Created:</div>
+                <div class="text-grey q-mr-xs">{{ $t('Created') }}:</div>
                 <div style="white-space:nowrap;">{{ formatTimestampToText(props.row.createdAt) }}</div>
               </div>
               <div class="q-mb-sm">
-                <div class="text-grey q-mr-xs">Updated:</div>
+                <div class="text-grey q-mr-xs">{{ $t('Updated') }}:</div>
                 <div style="white-space:nowrap;">{{ formatTimestampToText(props.row.updatedAt) }}</div>
               </div>
             </q-menu>
@@ -340,6 +359,7 @@ import { Product, PurchaseOrder, Stock, Variant } from "src/marketplace/objects"
 import { formatDateRelative, formatTimestampToText } from "src/marketplace/utils";
 import { useMarketplaceStore } from "src/stores/marketplace";
 import { useQuasar } from "quasar";
+import { useI18n } from 'vue-i18n'
 import { defineComponent, onMounted, ref, watch } from "vue";
 import StocksListViewDialog from "src/components/marketplace/inventory/StocksListViewDialog.vue";
 import CreateStockFormDialog from "src/components/marketplace/inventory/CreateStockFormDialog.vue";
@@ -368,6 +388,7 @@ export default defineComponent({
   },
   setup(props) {
     const $q = useQuasar()
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
 
     const categoriesFilter = ref({
@@ -388,7 +409,7 @@ export default defineComponent({
     }
     function categoriesPrompt() {
       $q.dialog({
-        title: 'Filter categories',
+        title: t('FilterCategories'),
         position: 'bottom',
         options: {
           type: 'checkbox',
@@ -516,14 +537,14 @@ export default defineComponent({
 
     const table = ref()
     const stocksTableColumns = [
-      { name: 'product', align: 'left', label: 'Product', field: obj => [obj?.variant?.product?.name, obj?.variant?.name].filter(Boolean).join('- '), sortable: true },
-      // { name: 'variant', align: 'center', label: 'Variant', field: obj => obj?.variant?.name },
-      { name: 'purchase-order', align: 'center', label: 'Purchase Order', field: 'purchaseOrderNumber', sortable: true },
-      { name: 'quantity', align: 'center', label: 'Qty', field: 'quantity', sortable: true },
-      { name: 'cost-price', align: 'center', label: 'Cost Price', field: obj => obj.costPrice && `${obj.costPrice} ${marketplaceStore?.currency}`, sortable: true },
-      { name: 'expires-at', align: 'center', label: 'Expires', field: obj => obj.expiresAt, format: val => val ? formatDateRelative(val) : '', sortable: true },
-      // { name: 'created-at', align: 'center', label: 'Created' },
-      { name: 'updated-at', align: 'center', label: 'Updated', sortable: true },
+      { name: 'product', align: 'left', label: t('Product'), field: obj => [obj?.variant?.product?.name, obj?.variant?.name].filter(Boolean).join('- '), sortable: true },
+      // { name: 'variant', align: 'center', label: t('Variant'), field: obj => obj?.variant?.name },
+      { name: 'purchase-order', align: 'center', label: t('PurchaseOrder'), field: 'purchaseOrderNumber', sortable: true },
+      { name: 'quantity', align: 'center', label: t('Qty'), field: 'quantity', sortable: true },
+      { name: 'cost-price', align: 'center', label: t('CostPrice'), field: obj => obj.costPrice && `${obj.costPrice} ${marketplaceStore?.currency}`, sortable: true },
+      { name: 'expires-at', align: 'center', label: t('Expires'), field: obj => obj.expiresAt, format: val => val ? formatDateRelative(val) : '', sortable: true },
+      // { name: 'created-at', align: 'center', label: t('Created') },
+      { name: 'updated-at', align: 'center', label: t('Updated'), sortable: true },
       { name: 'actions', align: 'center', label: '', sortable: true },
     ]
     const sortFieldNameMap = {
@@ -607,13 +628,17 @@ export default defineComponent({
       let itemName = productName
       if (variantName) itemName += `- ${variantName}`
       $q.dialog({
-        title: 'Remove stock',
-        message: `Remove stock for "${itemName}". Are you sure?`,
+        title: t('RemoveStock'),
+        message: t(
+          'RemoveStockItemMsg',
+          { item: itemName },
+          `Remove stock for "${itemName}". Are you sure?`
+        ),
         ok: true,
         cancel: true,
       })
         .onOk(() => {
-          const dialog = $q.dialog({ title: 'Removing stock', progress: true, ok: false })
+          const dialog = $q.dialog({ title: t('RemovingStock'), progress: true, ok: false })
           backend.delete(`stocks/${stock.id}/`)
             .then(() => {
               dialog.hide()
@@ -622,11 +647,11 @@ export default defineComponent({
             .catch(error => {
               let errorMsg = error?.response?.data?.detail
               if (error?.response?.status === 403 && !errorMsg) {
-                errorMsg = 'Sorry, you do not have sufficient permissions to access the inventory.'
+                errorMsg = t('RemoveStockErr1')
               }
               dialog.update({
-                title: 'Error',
-                message: errorMsg || 'Failed to remove stock',
+                title: t('Error'),
+                message: errorMsg || t('RemoveStockErr2'),
               })
             })
             .finally(() => {
@@ -637,8 +662,15 @@ export default defineComponent({
 
     function confirmDeleteStocks(stocks=[].map(Stock.parse)) {
       $q.dialog({
-        title: 'Remove stocks',
-        message: `Removing ${stocks?.length} ${stocks?.length === 1 ? 'stock': 'stocks'}. Are you sure?`,
+        title: t('RemoveStocks'),
+        message: t(
+          'RemoveStocksMsg',
+          {
+            count: stocks.length,
+            unit: stocks?.length === 1 ? t('stock'): t('stocks')
+          },
+          `Removing ${stocks?.length} ${stocks?.length === 1 ? t('stock'): t('stocks')}. Are you sure?`
+        ),
         ok: true,
         cancel: true,
       })
@@ -646,14 +678,14 @@ export default defineComponent({
           const data = {
             ids: stocks.map(stock => stock?.id),
           }
-          const dialog = $q.dialog({ title: 'Removing stocks', ok: false, progress: true })
+          const dialog = $q.dialog({ title: t('RemovingStocks'), ok: false, progress: true })
           backend.post('stocks/batch_delete/', data)
             .then(() => {
-              dialog.update({ title: 'Stocks removed' })
+              dialog.update({ title: t('StocksRemoved') })
               fetchStocks()
             })
             .catch(() => {
-              dialog.update({ title: 'Failed to remove stocks',  message: 'Error encountered' })
+              dialog.update({ title: t('FailedToRemoveStocks'),  message: t('ErrorEncountered') })
             })
             .finally(() => {
               dialog.update({ ok: true, progress: false })

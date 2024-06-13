@@ -19,17 +19,17 @@
         </div>
       </div>
       <div class="q-px-md row q-gutter-sm">
-        <SalesReportCard title="Today" :sales-report="walletStore.salesReportSummary.today" class="col-5"/>
-        <SalesReportCard title="Yesterday" :sales-report="walletStore.salesReportSummary.yesterday" class="col-5"/>
-        <SalesReportCard title="Last 7 days" :sales-report="walletStore.salesReportSummary.last7Days" class="col-5"/>
-        <SalesReportCard title="This month" :sales-report="walletStore.salesReportSummary.lastMonth" class="col-5"/>
+        <SalesReportCard :title="$t('Today')" :sales-report="walletStore.salesReportSummary.today" class="col-5"/>
+        <SalesReportCard :title="$t('Yesterday')" :sales-report="walletStore.salesReportSummary.yesterday" class="col-5"/>
+        <SalesReportCard :title="$t('LastSevenDays')" :sales-report="walletStore.salesReportSummary.last7Days" class="col-5"/>
+        <SalesReportCard :title="$t('ThisMonth')" :sales-report="walletStore.salesReportSummary.lastMonth" class="col-5"/>
       </div>
 
       <MarketplaceWidget class="q-mx-md q-mt-md"/>
 
       <q-card class="q-mx-md q-mt-md home-transactions-list-container" style="border-radius:25px;">
         <q-card-section class="text-h6">
-          Transactions
+          {{ $t('Transactions') }}
         </q-card-section>
         <q-card-section class="q-pt-none">
           <div class="row items-center justify-end">
@@ -48,7 +48,11 @@
           <div v-if="fetchingTransactions" class="row items-center justify-center q-px-xs">
             <q-linear-progress query color="brandblue"/>
           </div>
-          <TransactionsList :transactions="transactions" class="home-transactions-list" :class="(transactions?.num_pages > 1 ? 'pagination': '')"/>
+          <TransactionsList
+            :transactions="transactions"
+            class="home-transactions-list"
+            :class="(transactions?.num_pages > 1 ? 'pagination': '')"
+          />
         </q-card-section>
       </q-card>
     </div>
@@ -65,6 +69,7 @@ import MarketplaceWidget from 'src/components/marketplace/MarketplaceWidget.vue'
 import { paymentUriHasMatch, findMatchingPaymentLink } from 'src/wallet/utils'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 // import historyData from 'src/wallet/mockers/history.json'
@@ -86,6 +91,7 @@ export default defineComponent({
     const $router = useRouter()
     const walletStore = useWalletStore()
     const txCacheStore = useTxCacheStore()
+    const { t } = useI18n()
 
     onMounted(() => fetchTransactions())
     onMounted(() => walletStore.refetchSalesReport())
@@ -149,15 +155,15 @@ export default defineComponent({
     const forceDisplayWalletLink = ref(false)
     onMounted(() => {
       if (walletStore.isLinked && !walletStore.isDeviceValid) $q.dialog({
-        title: 'Invalid device',
-        message: 'Linked device does not match',
+        title: t('InvalidDevice'),
+        message: t('InvalidDeviceMsg'),
         persistent: true,
         ok: false,
         cancel: {
           noCaps: true,
           flat: true,
           color:'red',
-          label: 'Link another wallet',
+          label: t('InvalidDeviceLabel'),
         },
       })
         .onCancel(() => {
@@ -171,13 +177,13 @@ export default defineComponent({
     function promptUnlinkRequest() {
       if (!walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.id) return
       $q.dialog({
-        title: 'Unlink device request',
-        message: 'Merchant requested to unlink device',
+        title: t('UnlinkDeviceTitle'),
+        message: t('UnlinkDeviceMsg'),
         persistent: walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.force,
         ok: {
           noCaps: true,
           color: 'red',
-          label: 'Confirm unlink',
+          label: t('UnlinkDeviceOkMsg'),
           flat: true,
         },
         cancel: !walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.force ? {
@@ -194,7 +200,6 @@ export default defineComponent({
     }
 
     const walletLinkComponent = ref()
-    // onMounted(() => linkWalletFromUrl())
     watch(() => [props.walletLinkUrl], linkWalletFromUrl())
     async function linkWalletFromUrl() {
       if (!props.walletLinkUrl) return
@@ -221,9 +226,7 @@ export default defineComponent({
 <style scoped>
 .home-main-content {
   overflow: auto;
-  /* max-height:100%; */
   padding-bottom: 50px;
-  /* padding-top: 20px; */
 }
 
 .home-transactions-list-container {

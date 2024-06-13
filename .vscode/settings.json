@@ -11,5 +11,6 @@
     "javascriptreact",
     "typescript",
     "vue"
-  ]
+  ],
+  "editor.fontWeight": "bold"
 }

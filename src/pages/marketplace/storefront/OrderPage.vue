@@ -5,15 +5,23 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Order</div>
-            <div class="text-grey">Storefront</div>
+            <div class="text-h5">{{ $t('Order') }}</div>
+            <div class="text-grey">{{ $t('Storefront') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
 
       <div class="row items-start no-wrap">
         <div class="row items-center q-space">
-          <div class="text-h5 q-space">Order #{{ order?.id }}</div>
+          <div class="text-h5 q-space">
+            {{
+              $t(
+                'OrderId',
+                { id: order?.id },
+                `Order #${order?.id}`
+              )
+            }}
+          </div>
           <div v-if="order?.id" style="margin-left:-4px;">
             <q-chip
               v-if="!order?.isCancelled"
@@ -39,7 +47,7 @@
               >
                 <q-item-section>
                   <q-item-label>
-                    View Payments
+                    {{ $t('ViewPayments') }}
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -50,7 +58,7 @@
               >
                 <q-item-section>
                   <q-item-label>
-                    Create Payment
+                    {{ $t('CreatePayment') }}
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -60,7 +68,7 @@
               >
                 <q-item-section>
                   <q-item-label>
-                    View edit history
+                    {{ $t('ViewEditHistory') }}
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -68,14 +76,25 @@
               <q-item
                 v-if="prevStatus"
                 v-close-popup clickable
-                @click="() => updateStatus({ status: prevStatus, errorMessage:'Unable to revert status'})"
+                @click="() => updateStatus({
+                  status: prevStatus,
+                  errorMessage: $t('UnableToRevertStatus')
+                })"
               >
                 <q-item-section>
                   <q-item-label class="text-no-wrap">
-                    <template v-if="prevStatus === 'pending'">Unconfirm order</template>
-                    <template v-else-if="prevStatus === 'confirmed'">Revert to confirmed</template>
-                    <template v-else-if="prevStatus === 'preparing'">Revert as preparing</template>
-                    <template v-else>Revert to '{{ formatOrderStatus(prevStatus) }}'</template>
+                    <template v-if="prevStatus === 'pending'">{{ $t('UnconfirmOrder') }}</template>
+                    <template v-else-if="prevStatus === 'confirmed'">{{ $t('RevertToConfirmed') }}</template>
+                    <template v-else-if="prevStatus === 'preparing'">{{ $t('RevertAsPreparing') }}</template>
+                    <template v-else>
+                      {{
+                        $t(
+                          'RevertToStatus',
+                          { status: formatOrderStatus(prevStatus) },
+                          `Revert to '${formatOrderStatus(prevStatus)}'`
+                        )
+                      }}
+                    </template>
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -85,7 +104,7 @@
                 @click="() => confirmCancelOrder()"
               >
                 <q-item-section>
-                  <q-item-label class="text-no-wrap">Cancel Order</q-item-label>
+                  <q-item-label class="text-no-wrap">{{ $t('CancelOrder') }}</q-item-label>
                 </q-item-section>
               </q-item>
             </q-menu>
@@ -107,19 +126,20 @@
       >
         <div class="row items-center">
           <div>
-            <div class="text-caption top">Preparation timer:</div>
+            <div class="text-caption top">{{ $t('PreparationTimer') }}:</div>
             <div class="text-h5">{{ preparationTimeRemainingText }}</div>
           </div>
           <q-icon name="help" size="1.5em">
             <q-menu class="q-pa-sm">
-              Complete items in the order and set as ready for pickup on or before timer expires
+              {{ $t('PreparationTimerMessage') }}
             </q-menu>
           </q-icon>
           <q-space/>
           <q-btn
             rounded
             :outline="preparationTimeLow"
-            no-caps label="Extend time"
+            no-caps 
+            :label="$t('ExtendTime')"
             :color="!preparationTimeLow ? 'brandblue' : undefined"
             @click="() => extendPreparationTime()"
           />
@@ -165,9 +185,9 @@
         <div class="row items-center justify-between q-gutter-y-sm" style="gap:12px;">
           <div>
             <div class="text-subtitle1">
-              Order dispute
+              {{ $t('OrderDispute') }}
             </div>
-            <div class="text-caption text-grey">Order is currently in dispute</div>
+            <div class="text-caption text-grey">{{ $t('OrderDisputeMsg') }}</div>
           </div>
           <q-btn
             :outline="!$q.dark.isActive"
@@ -177,7 +197,7 @@
             padding="1px sm"
             @click="() => showOrderDisputeDialog()"
           >
-            Dispute
+            {{ $t('Dispute') }}
             <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
           </q-btn>
         </div>
@@ -191,12 +211,13 @@
       >
         <q-btn
           v-if="customer?.id === orderReview?.createdByCustomer?.id"
-          flat icon="edit"
+          flat
+          icon="edit"
           padding="xs"
           class="float-right"
           @click.stop="() => rateOrder()"
         />
-        <div>Customer review</div>
+        <div>{{ $t('CustomerReview') }}</div>
         <q-rating
           readonly
           max="5"
@@ -215,7 +236,7 @@
         <q-card>
           <q-card-section>
             <div class="row items-center no-wrap">
-              <div class="text-h5 q-space">Order Review</div>
+              <div class="text-h5 q-space">{{ $t('OrderReview') }}</div>
               <q-btn flat icon="close" padding="sm" v-close-popup/>
             </div>
             <ReviewsListPanel :reviews="[orderReview]"/>
@@ -233,15 +254,15 @@
           @click="() => {
             nextStatus == 'confirmed'
             ? confirmOrder()
-            : updateStatus({ status: nextStatus, errorMessage:'Unable to update order' })
+            : updateStatus({ status: nextStatus, errorMessage: $t('UnableToUpdateOrder') })
           }"
         />
       </div>
       <q-card class="q-mb-md">
         <q-card-section class="q-pt-sm">
           <div class="row items-center q-mb-sm">
-            <div v-if="order?.isStorePickup" class="text-h6 q-space">Store pickup</div>
-            <div v-else class="text-h6 q-space">Delivery</div>
+            <div v-if="order?.isStorePickup" class="text-h6 q-space">{{ $t('StorePickup') }}</div>
+            <div v-else class="text-h6 q-space">{{ $t('Delivery') }}</div>
             <div class="row items-center">
               <LeafletMapDialog v-model="showMap" :locations="mapLocations"/>
               <q-btn
@@ -249,7 +270,7 @@
                 flat
                 padding="none"
                 no-caps
-                label="Open Map"
+                :label="$t('OpenMap')"
                 class="text-underline"
                 @click="() => showMap = true"
               />
@@ -291,21 +312,29 @@
                     clickable v-close-popup
                     @click="() => searchRiderForDelivery()"
                   >
-                    <q-item-section>Search for rider</q-item-section>
+                    <q-item-section>{{ $t('SearchForRider') }}</q-item-section>
                   </q-item>
                   <q-item
                     v-if="!delivery?.activeRiderId && delivery?.rider?.id"
                     clickable v-close-popup
                     @click="() => assignRider({id: null})"
                   >
-                    <q-item-section>Unassign rider</q-item-section>
+                    <q-item-section>{{ $t('UnassignRider') }}</q-item-section>
                   </q-item>
                   <q-item
                     clickable v-close-popup
                     @click="() => setDeliveryPublicity(!delivery.isPublic)"
                   >
                     <q-item-section>
-                      <q-item-label>Set {{ delivery?.isPublic ? 'Private' : 'Public' }}</q-item-label>
+                      <q-item-label>
+                        {{
+                          $t(
+                            'SetPrivacy',
+                            { privacy: delivery?.isPublic ? $t('Private') : $t('Public') },
+                            `Set ${ delivery?.isPublic ? $t('Private') : $t('Public') }`
+                          )
+                        }}
+                      </q-item-label>
                     </q-item-section>
                   </q-item>
                 </q-list>
@@ -314,7 +343,7 @@
             <div class="float-right q-my-xs">
               <q-icon v-if="delivery?.activeRiderId" name="check_circle" size="1.5em" color="green">
                 <q-menu class="q-pa-sm">
-                  Rider has accepted delivery
+                  {{ $t('RiderHasAcceptedDelivery') }}
                   <span v-if="delivery?.acceptedAt">({{  formatDateRelative(delivery?.acceptedAt) }})</span>
                 </q-menu>
               </q-icon>
@@ -327,22 +356,39 @@
               >
                 <q-menu class="q-pa-sm">
                   <div v-if="delivery.pickedUpAt">
-                    Picked up {{ formatDateRelative(delivery.pickedUpAt) }}
+                    {{
+                      $t(
+                        'PickedUpAt',
+                        { date: formatDateRelative(delivery.pickedUpAt) },
+                        `Picked up ${formatDateRelative(delivery.pickedUpAt)}`
+                      )
+                    }}
                   </div>
                   <div v-if="delivery.deliveredAt">
-                    Delivered {{ formatDateRelative(delivery.deliveredAt) }}
+                    {{
+                      $t(
+                        'DeliveredAt',
+                        { date: formatDateRelative(delivery.deliveredAt) },
+                        `Delivered ${formatDateRelative(delivery.deliveredAt)}`
+                      )
+                    }}
                   </div>
                 </q-menu>
               </q-icon>
             </div>
-            <div class="text-subtitle1">Delivery status</div>
+            <div class="text-subtitle1">{{ $t('DeliveryStatus') }}</div>
             <div class="text-caption bottom">
-              Delivery #{{ delivery?.id }}
+              {{
+                $t(
+                  'DeliveryId',
+                  { id: delivery?.id },
+                  `Delivery #${delivery?.id}`
+                )
+              }}
               <template v-if="delivery.isPublic === false">
-                <span class="text-grey text-underline">(Private)</span>
+                <span class="text-grey text-underline">({{ $t('Private') }})</span>
                 <q-menu class="q-pa-sm">
-                  Delivery will not be visible to riders when searching deliveries.
-                  Assign a rider or set to public.
+                  {{ $t('DeliveryStatusMsg') }}
                 </q-menu>
               </template>
             </div>
@@ -354,11 +400,11 @@
                 style="height:3rem;width:3rem;object-position:center;object-fit:cover;"
                 @click="() => openImage(
                   delivery?.rider?.profilePictureUrl,
-                  delivery?.rider?.fullName || 'Rider',
+                  delivery?.rider?.fullName || $t('Rider'),
                 )"
               />
               <div class="q-space">
-                <div class="text-subtitle2">Rider</div>
+                <div class="text-subtitle2">{{ $t('Rider') }}</div>
                 <div class="row items-start q-gutter-x-xs">
                   <div style="line-height:1.25;">
                     <div>{{ delivery?.rider?.fullName }}</div>
@@ -375,14 +421,14 @@
                 :href="`tel:${delivery?.rider?.phoneNumber}`"
               />
             </div>
-            <div v-else class="text-grey">No rider yet</div>
+            <div v-else class="text-grey">{{ $t('NoRiderYet') }}</div>
           </q-card-section>
         </template>
         <template v-else-if="!order?.isStorePickup">
           <q-card-section v-if="order?.id && !order?.isCancelled" class="q-pt-sm">
             <q-btn
               no-caps
-              label="Create delivery request"
+              :label="$t('CreateDeliveryRequest')"
               color="brandblue"
               class="full-width"
               @click="() => createDeliveryRequest()"
@@ -394,7 +440,7 @@
       <q-card class="q-mb-md">
         <q-card-section class="q-pb-none q-pt-sm">
           <div class="row items-center">
-            <div class="text-h6 q-space">Items</div>
+            <div class="text-h6 q-space">{{ $t('Items') }}</div>
             <q-btn
               v-if="order?.editable"
               flat
@@ -407,10 +453,10 @@
         <q-markup-table dense>
           <thead>
             <tr>
-              <th colspan="2">Item</th>
-              <th>Price</th>
-              <th>Qty</th>
-              <th>Subtotal</th>
+              <th colspan="2">{{ $t('Item') }}</th>
+              <th>{{ $t('Price') }}</th>
+              <th>{{ $t('Qty') }}</th>
+              <th>{{ $t('Subtotal') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -455,30 +501,30 @@
 
       <div class="q-px-xs" @click="toggleAmountsDisplay">
         <div class="row items-start text-subtitle2">
-          <div class="q-space">Subtotal</div>
+          <div class="q-space">{{ $t('Subtotal') }}</div>
           <div v-if="displayBch">{{ orderAmounts.subtotal.bch }} BCH</div>
           <div v-else>{{ orderAmounts.subtotal.currency }} {{ orderCurrency }}</div>
         </div>
 
         <div class="row items-start text-subtitle2">
-          <div class="q-space">Markup</div>
+          <div class="q-space">{{ $t('Markup') }}</div>
           <div v-if="displayBch">{{ orderAmounts.markupAmount.bch }} BCH</div>
           <div v-else>{{ orderAmounts.markupAmount.currency }} {{ orderCurrency }}</div>
         </div>
         <div class="row items-start text-subtitle2">
-          <div class="q-space">Delivery fee</div>
+          <div class="q-space">{{ $t('DeliveryFee') }}</div>
           <div v-if="displayBch">{{ orderAmounts.deliveryFee.bch }} BCH</div>
           <div v-else>{{ orderAmounts.deliveryFee.currency }} {{ orderCurrency }}</div>
         </div>
         <div class="row items-start text-h6">
-          <div class="q-space">Total</div>
+          <div class="q-space">{{ $t('Total') }}</div>
           <div v-if="displayBch">{{ orderAmounts.total.bch }} BCH</div>
           <div v-else>{{ orderAmounts.total.currency }} {{ orderCurrency }}</div>
         </div>
         <template v-if="orderAmounts.totalPaid.currency || orderAmounts.totalPendingPayment.currency">
           <q-separator/>
           <div class="row items-start text-body1">
-            <div class="q-space">Total Paid</div>
+            <div class="q-space">{{ $t('TotalPaid') }}</div>
             <div v-if="displayBch">{{ orderAmounts.totalPaid.bch || 0 }} BCH</div>
             <div v-else>{{ orderAmounts.totalPaid.currency || 0 }} {{ orderCurrency }}</div>
           </div>
@@ -487,20 +533,20 @@
             class="row items-start text-grey"
             @click.stop
           >
-            <div class="q-space">Pending amount</div>
+            <div class="q-space">{{ $t('PendingAmount') }}</div>
             <div v-if="displayBch">{{ orderAmounts.totalPendingPayment.bch }} BCH</div>
             <div v-else>{{ orderAmounts.totalPendingPayment.currency }} {{ orderCurrency }}</div>
-            <q-menu class="q-pa-md">Amount sent by customer but not yet received</q-menu>
+            <q-menu class="q-pa-md">{{ $t('PendingAmountMsg') }}</q-menu>
           </div>
 
           <template v-if="orderAmounts.totalRefunded.currency">
             <div class="row items-start text-grey">
-              <div class="q-space">Total refunded</div>
+              <div class="q-space">{{ $t('TotalRefunded') }}</div>
               <div v-if="displayBch">{{ orderAmounts.totalRefunded.bch }} BCH</div>
               <div v-else>{{ orderAmounts.totalRefunded.currency }} {{ orderCurrency }}</div>
             </div>
             <div class="row items-start">
-              <div class="q-space">Net paid</div>
+              <div class="q-space">{{ $t('NetPaid') }}</div>
               <div v-if="displayBch">{{ orderAmounts.netPaid.bch }} BCH</div>
               <div v-else>{{ orderAmounts.netPaid.currency }} {{ orderCurrency }}</div>
             </div>
@@ -519,7 +565,7 @@
                 padding="xs md"
                 @click="() => showOrderDisputeDialog()"
               >
-                Dispute
+                {{ $t('Dispute') }}
                 <q-icon v-if="disputeButtonOpts.icon" :name="disputeButtonOpts.icon" size="1.25em" class="q-ml-xs"/>
               </q-btn>
             </div>
@@ -533,7 +579,8 @@
         <div class="row items-center justify-end">
           <q-btn
             flat
-            no-caps label="Add payment"
+            no-caps
+            :label="$t('AddPayment')"
             v-close-popup
             @click="() => createPayment()"
           />
@@ -564,6 +611,7 @@ import { Delivery, Order, OrderDispute, Payment, Review, Rider, Storefront, Vari
 import { errorParser, formatOrderStatus, formatOrderStatusAction, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative, round } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useNotificationsStore } from 'src/stores/notifications'
+import { useI18n } from 'vue-i18n'
 import { debounce, useQuasar } from 'quasar'
 import { computed, defineComponent, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
@@ -603,6 +651,7 @@ export default defineComponent({
   },
   setup(props) {
     const $q = useQuasar()
+    const { t } = useI18n()
     window.t = () => $q.dark.toggle()
     const marketplaceStore = useMarketplaceStore()
     const notificationsStore = useNotificationsStore()
@@ -744,8 +793,8 @@ export default defineComponent({
     }
     function extendPreparationTime() {
       $q.dialog({
-        title: 'Preparation time',
-        message: 'Extend preparation time',
+        title: t('PreparationTime'),
+        message: t('ExtendPreparationTime'),
         position: 'bottom',
         prompt: {
           model: 5,
@@ -754,7 +803,7 @@ export default defineComponent({
           type: 'number',
           suffix: 'min/s',
         },
-        ok: { noCaps: true, label: 'Extend', color: 'brandblue' },
+        ok: { noCaps: true, label: t('Extend'), color: 'brandblue' },
         cancel: { flat: true, noCaps: true, color: 'grey' },
       }).onOk(value => {
         const extendMinutes = parseInt(value)
@@ -779,7 +828,7 @@ export default defineComponent({
           if (!errorMessage && error?.message?.length < 200) errorMessage = error?.message
           $q.notify({
             type: 'negative',
-            message: 'Unable to update preparation time',
+            message: t('UnableToUpdatePreparationTime'),
             captioN: errorMessage,
           })
           return Promise.reject(error)
@@ -815,7 +864,7 @@ export default defineComponent({
         .catch(error => {
           $q.notify({
             type: 'negative',
-            message: opts?.errorMessage || 'Unable to update status',
+            message: opts?.errorMessage || t('UnableToUupdateStatus'),
             caption: error?.response?.data?.detail ||
                     errorParser.firstElementOrValue(error?.response?.data),
           })
@@ -824,8 +873,8 @@ export default defineComponent({
 
     function confirmOrder() {
       $q.dialog({
-        title: 'Confirm order',
-        message: 'Set a preparation time for the order',
+        title: t('ConfirmOrder'),
+        message: t('SetOrderPreparationTime'),
         position: 'bottom',
         prompt: {
           dense: true,
@@ -849,7 +898,7 @@ export default defineComponent({
         let preparationDeadline = new Date(Date.now() + prepTime)
         updateStatus({
           status: 'confirmed',
-          errorMessage: 'Unable to confirm order',
+          errorMessage: t('UnableToConfirmOrder'),
           preparationDeadline: preparationDeadline,
         })
       })
@@ -857,8 +906,8 @@ export default defineComponent({
 
     function confirmCancelOrder() {
       $q.dialog({
-        title: 'Cancel order',
-        message: 'Cancel order, are you sure?',
+        title: t('CancelOrder'),
+        message: t('CancelOrderMsg'),
         ok: { color: 'brandblue', flat: true },
       }).onOk(() => cancelOrder())
     }
@@ -869,7 +918,7 @@ export default defineComponent({
       }).onOk(cancelReason => {
         updateStatus({
           status: 'cancelled',
-          errorMessage: 'Unable to cancel order',
+          errorMessage: t('UnableToCancelOrder'),
           cancelReason: cancelReason,
         })
       })
@@ -896,8 +945,8 @@ export default defineComponent({
     function createDeliveryRequest() {
       const data = { order_id: order.value.id }
       const dialog = $q.dialog({
-        title: 'Delivery request',
-        message: 'Creating delivery request',
+        title: t('DeliveryRequest'),
+        message: t('CreatingDeliveryRequest'),
         progress: true,
         persistent: true,
         ok: false,
@@ -913,7 +962,7 @@ export default defineComponent({
           const errorMessage = error?.response?.data?.detail ||
               errorParser.firstElementOrValue(error?.response?.data?.non_field_errors) ||
               errorParser.firstElementOrValue(error?.response?.data?.order_id)
-          dialog.update({ message: errorMessage || 'Unable to create delivery request' })
+          dialog.update({ message: errorMessage || t('UnableToCreateDeliveryRequest') })
         })
         .finally(() => {
           dialog.update({ progress: false, persistent: false, ok: { color: 'brandblue' }})
@@ -932,8 +981,8 @@ export default defineComponent({
       const data = { rider_id: riderId }
 
       const dialog = $q.dialog({
-        title: 'Delivery request',
-        message: riderId ? 'Assigning rider' : 'Unassigning rider',
+        title: t('DeliveryRequest'),
+        message: riderId ? t('AssigningRider') : t('UnassigningRider'),
         progress: true, persistent: true,
         ok: false,
       })
@@ -944,7 +993,7 @@ export default defineComponent({
           return response
         })
         .catch(error => {
-          const defaultError = riderId ? 'Unable to assign rider' : 'Unable to unassign rider'
+          const defaultError = riderId ? t('UnableToAssignRider') : t('UnableToUnassignRider')
           const errorMessage = error?.response?.data?.detail ||
               errorParser.firstElementOrValue(error?.response?.data?.non_field_errors)
           dialog.update({ message: errorMessage || defaultError })
@@ -957,8 +1006,8 @@ export default defineComponent({
     function setDeliveryPublicity(isPublic=false) {
       const data = { is_public: isPublic }
       const dialog = $q.dialog({
-        title: 'Updating delivery',
-        message: 'Updating delivery',
+        title: t('UpdatingDelivery'),
+        message: t('UpdatingDelivery'),
         progress: true, persistent: true,
         ok: false,
       })
@@ -1009,7 +1058,7 @@ export default defineComponent({
       const data = []
       if (storefront.value?.location?.validCoordinates) {
         data.push({
-          popup: ['Pickup location', storefront.value?.location?.formatted].filter(Boolean).join(': '),
+          popup: [t('PickupLocation'), storefront.value?.location?.formatted].filter(Boolean).join(': '),
           lat: storefront.value?.location?.latitude,
           lon: storefront.value?.location?.longitude,
           icon: {
@@ -1029,7 +1078,7 @@ export default defineComponent({
         data.push({
           lat: deliveryLoc?.latitude,
           lon: deliveryLoc?.longitude,
-          popup: ['Delivery address', deliveryLoc?.formatted].filter(Boolean).join(': '),
+          popup: [t('DeliveryAddress'), deliveryLoc?.formatted].filter(Boolean).join(': '),
           icon: {
             iconUrl: customerLocationPin,
             iconSize: [30, 45],
@@ -1047,7 +1096,7 @@ export default defineComponent({
         if (!isNaN(riderLocTimestamp)) timestampText = `<br/>${formatDateRelative(riderLocTimestamp)}`
         const riderName = [rider?.firstName, rider?.lastName].filter(Boolean).join(' ')
         data.push({
-          popup: [`Rider`, riderName].filter(Boolean).join(': ') + timestampText,
+          popup: [t(`Rider`), riderName].filter(Boolean).join(': ') + timestampText,
           lat: riderLoc[0],
           lon: riderLoc[1],
           icon: {
@@ -1091,8 +1140,8 @@ export default defineComponent({
       const orderId = order.value.id
       const data = { order_id: orderId }
       const dialog = $q.dialog({
-        title: 'Payment',
-        message: 'Creating payment request',
+        title: t('Payment'),
+        message: t('CreatingPaymentRequest'),
         progress: true,
         persistent: true,
         ok: false,
@@ -1121,7 +1170,7 @@ export default defineComponent({
               errorParser.firstElementOrValue(error?.response?.data)
           dialog.update({
             title: 'Error',
-            message: errorMessage || 'Unable to create payment request',
+            message: errorMessage || t('UnableToCreatePaymentRequest'),
           })
         })
         .finally(() => {
@@ -1181,15 +1230,15 @@ export default defineComponent({
       if (!OrderDispute.resolveActionsList.includes(resolveAction)) return
       let msg
       if (resolveAction == OrderDispute.resolveActions.completeOrder) {
-        msg = 'Completing order'
+        msg = t('CompletingOrder')
         if (order.value?.status !== 'delivered') {
           await promiseDialog({
-            title: 'Resolve dispute',
-            message: 'Order will be set as completed after resolving dispute. Continue?',
+            title: t('ResolveDispute'),
+            message: t('OrderCompleteMsg'),
             color: 'brandblue',
             persistent: true,
-            ok: { noCaps: true, label: 'Complete order', color: 'green', flat: true },
-            cancel: { noCaps: true, label: 'Close', flat: true, color: $q.dark.isActive ? 'white' : 'black' },
+            ok: { noCaps: true, label: t('CompleteOrder'), color: 'green', flat: true },
+            cancel: { noCaps: true, label: t('Close'), flat: true, color: $q.dark.isActive ? 'white' : 'black' },
             stackButtons: true,
           })
         }
@@ -1197,12 +1246,12 @@ export default defineComponent({
         msg = 'Cancelling order'
         if (order.value?.status !== 'cancelled') {
           await promiseDialog({
-            title: 'Resolve dispute',
-            message: 'Order will be cancelled after resolving dispute. Continue?',
+            title: t('ResolveDispute'),
+            message: t('OrderCancelMsg'),
             color: 'brandblue',
             persistent: true,
-            ok: { noCaps: true, label: 'Cancel order', color: 'red', flat: true },
-            cancel: { noCaps: true, label: 'Close', flat: true, color: $q.dark.isActive ? 'white' : 'black' },
+            ok: { noCaps: true, label: t('CancelOrder'), color: 'red', flat: true },
+            cancel: { noCaps: true, label: t('Close'), flat: true, color: $q.dark.isActive ? 'white' : 'black' },
             stackButtons: true,
           })
         }
@@ -1210,7 +1259,7 @@ export default defineComponent({
 
       const data = { resolve_action: resolveAction }
       const dialog = $q.dialog({
-        title: 'Resolving dispute',
+        title: t('ResolvingDispute'),
         message: msg,
         progress: true,
         persistent: true,
@@ -1235,8 +1284,8 @@ export default defineComponent({
           console.log('errorMessage', errorMessage)
 
           dialog.update({
-            title: 'Resolve dispute error',
-            message: errorMessage || 'Unknown error occurred',
+            title: t('ResolveDisputeError'),
+            message: errorMessage || t('UnknownErrorOccurred'),
           })
           return Promise.reject(error)
         })

@@ -10,7 +10,7 @@
   >
     <q-card>
       <q-card-section>
-        <div class="text-h6">Receive Items</div>
+        <div class="text-h6">{{ $t('ReceiveItems') }}</div>
       </q-card-section>
       <q-list>
         <q-item
@@ -53,7 +53,7 @@
           :loading="loading"
           :disable="loading"
           no-caps
-          label="Update"
+          :label="$t('Update')"
           color="brandblue"
           class="full-width"
           @click="() => markItemsReceived()"
@@ -62,6 +62,7 @@
     </q-card>
   </q-dialog>
 </template>
+
 <script>
 import { useDialogPluginComponent } from 'quasar'
 import { backend } from 'src/marketplace/backend'

@@ -6,7 +6,7 @@
           dense
           outlined
           :loading="loading"
-          placeholder="Product name / code"
+          :placeholder="$t('ProductNameOrCode')"
           v-model="searchVal"
           debounce="500"
           @update:model-value="() => updateProductSearchList()"
@@ -39,10 +39,10 @@
           </q-item>
         </q-virtual-scroll>
         <div v-else-if="!searchVal" class="q-pa-md text-grey text-center">
-          Search products
+          {{ $t('SearchProducts') }}
         </div>
         <div v-else class="q-pa-md text-grey text-center">
-          No data
+          {{ $t('NoData') }}
         </div>
 
         <q-item
@@ -54,7 +54,7 @@
         >
           <q-item-section class="text-center">
             <q-item-label :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'">
-              Show more
+              {{ $t('ShowMore') }}
               <q-spinner v-if="loading"/>
             </q-item-label>
           </q-item-section>
@@ -64,14 +64,14 @@
         <q-btn
           v-if="cancel"
           flat
-          label="Cancel"
+          :label="$t('Cancel')"
           v-bind="cancel"
           @click="onDialogCancel"
         />
         <q-btn
           v-if="ok"
           color="brandblue"
-          label="OK"
+          :label="$t('OK')"
           v-bind="ok"
           @click="submit"
         />

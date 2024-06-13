@@ -32,7 +32,8 @@ module.exports = configure(function (ctx) {
       'network-detect',
       'push-notifications',
       'qrcodereader',
-      'websocket'
+      'websocket',
+      'i18n',
     ],
 
     // https://v2.quasar.dev/quasar-cli-webpack/quasar-config-js#Property%3A-css

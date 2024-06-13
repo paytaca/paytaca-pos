@@ -1,10 +1,10 @@
-<template>
+`<template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card style="width: max(90vw, 500px)">
       <q-card-section class="q-pb-sm">
         <div class="row no-wrap items-center">
           <div class="row items-center q-gutter-x-xs">
-            <div class="text-h5">Edit item</div>
+            <div class="text-h5">{{ $t('EditItem') }}</div>
           </div>
           <q-space/>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
@@ -13,7 +13,7 @@
           <q-field
             v-if="!formData?.customItem"
             outlined
-            label="Item"
+            :label="$t('Item')"
             :model-value="formData?.variant"
             bottom-slots
           >
@@ -31,7 +31,7 @@
               <q-item-section top>
                 <q-item-label>{{ ctx?.modelValue?.itemName }}</q-item-label>
                 <q-item-label v-if="ctx?.modelValue?.price">
-                  <template v-if="!marketplaceStore?.currency">Price: </template>
+                  <template v-if="!marketplaceStore?.currency">{{ $t('Price') }}: </template>
                   {{ ctx?.modelValue?.price }} {{ marketplaceStore?.currency }}
                 </q-item-label>
               </q-item-section>
@@ -41,40 +41,40 @@
             v-else
             dense
             outlined
-            label="Item name"
+            :label="$t('ItemName')"
             v-model="formData.itemName"
             bottom-slots
             :rules="[
-              val => Boolean(val) || 'Required',
+              val => Boolean(val) || $t('Required'),
             ]"
           />
           <q-input
             dense
             outlined
-            label="Price"
+            :label="$t('Price')"
             :disable="!formData?.customItem"
             :model-value="formData?.price || formData?.variant?.price"
             :suffix="marketplaceStore?.currency"
             bottom-slots
             @update:modelValue="val => formData.price = Number(val)"
             :rules="[
-              val => Boolean(val) || 'Required',
+              val => Boolean(val) || $t('Required'),
             ]"
           />
           <q-input
             dense
             outlined
-            label="Quantity"
+            :label="$t('Quantity')"
             v-model.number="formData.quantity"
             :rules="[
-              val => Boolean(val) || 'Required',
-              val => val > 0 || 'Invalid',
+              val => Boolean(val) || $t('Required'),
+              val => val > 0 || $t('Invalid'),
             ]"
           />
           <div class="q-mt-sm">
             <q-btn
               no-caps
-              label="Update"
+              :label="$t('Update')"
               color="brandblue"
               class="full-width"
               type="submit"

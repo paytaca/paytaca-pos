@@ -2,7 +2,7 @@
   <q-form ref="form" @submit="() => submit()">
     <div class="row items-center q-mb-sm">
       <slot name="title">
-        <div class="text-h6">Add Item</div>
+        <div class="text-h6">{{ $t('AddItem') }}</div>
       </slot>
       <q-space/>
       <div class="row items-center q-gutter-xs">
@@ -28,7 +28,7 @@
             @error="onScannerError"
           />
           <div style="position:absolute;bottom:0;left:0;right:0" class="text-center text-caption text-white">
-            Scan barcode
+            {{ $t('ScanBarcode') }}
           </div>
           <q-inner-loading :showing="scanner.loading" color="brandblue" dark/>
         </div>
@@ -52,7 +52,7 @@
         :dense="!formData.variant?.id"
         outlined
         clearable
-        label="Item"
+        :label="$t('Item')"
         v-model="formData.variant"
         bottom-slots
         :error="Boolean(scanner.error)"
@@ -82,7 +82,7 @@
             </q-item-section>
           </template>
           <div v-else-if="ctx.focused" class=text-grey>
-            Search / scan item
+            {{ $t('SearchOrScanItem') }}
           </div>
         </template>
       </q-field>
@@ -92,25 +92,25 @@
         dense
         outlined
         :disable="disable"
-        label="Item name (Custom)"
+        :label="$t('CustomItemName')"
         v-model="formData.itemName"
         @blur="() => formData.customItem = Boolean(formData.itemName)"
         lazy-rules
         :rules="[
-          val => Boolean(val) || 'Required',
+          val => Boolean(val) || $t('Required'),
         ]"
       />
       <q-input
         dense
         outlined
         :disable="disable"
-        label="Price"
+        :label="$t('Price')"
         :suffix="marketplaceStore?.currency"
         type="number"
         step="0.001"
         v-model.number="formData.price"
         :rules="[
-          val => Boolean(val) || 'Required',
+          val => Boolean(val) || $t('Required'),
         ]"
       />
     </template>
@@ -120,19 +120,23 @@
       dense
       outlined
       :disable="disable"
-      label="Cost price"
+      :label="$t('CostPrice')"
       :suffix="marketplaceStore?.currency"
       type="number"
       step="0.001"
       v-model.number="formData.costPrice"
-      :placeholder="formData?.variant?.price ? `Price: ${formData?.variant?.price}`: ''"
+      :placeholder="formData?.variant?.price ? $t(
+        'PriceValue',
+        { price: formData?.variant?.price },
+        `Price: ${formData?.variant?.price}`
+      ): ''"
       bottom-slots
     />
     <q-input
       dense
       outlined
       :disable="disable"
-      label="Quantity"
+      :label="$t('Quantity')"
       type="number"
       v-model.number="formData.quantity"
       bottom-slots
@@ -143,7 +147,7 @@
           :disable="disable"
           color="brandblue"
           no-caps
-          :label="formData.customItem ? 'Add custom item': 'Add Item'"
+          :label="formData.customItem ? $t('AddCustomItem'): $t('AddItem')"
           class="full-width"
           type="submit"
         />
@@ -158,7 +162,7 @@
       <template v-slot:no-item="ctx">
         <q-item v-if="!ctx?.searchVal">
           <q-item-section class="text-center text-grey">
-            <q-item-label>Search item</q-item-label>
+            <q-item-label>{{ $t('SearchItem') }}</q-item-label>
           </q-item-section>
         </q-item>
         <div v-else></div>
@@ -171,7 +175,13 @@
         >
           <q-item-section class="text-center">
             <q-item-label class="text-subtitle1 text-underline">
-              Add item '{{ ctx?.searchVal }}'
+              {{
+                $t(
+                  'AddItemValue',
+                  { value: ctx?.searchVal },
+                  `Add item '${ctx?.searchVal}'`
+                )
+              }}
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -188,6 +198,7 @@ import { debounce, useQuasar } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import { StreamBarcodeReader } from "vue-barcode-reader";
 import VariantSearchDialog from './VariantSearchDialog.vue'
+import { useI18n } from 'vue-i18n'
 
 
 const cachedBackend = setup(Object.assign({}, backend.defaults,
@@ -217,6 +228,7 @@ export default defineComponent({
   },
   setup(props, { emit: $emit }) {
     const $q = useQuasar()
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
 
     const hideFieldsForScan = computed(() => scanner.value.show)
@@ -261,7 +273,7 @@ export default defineComponent({
       }
 
       const dialog = $q.dialog({
-        title: 'Searching item',
+        title: t('SearchingItem'),
         progress: true,
         ok: false, cancel: false,
         color: 'brandblue',
@@ -273,7 +285,7 @@ export default defineComponent({
         })
         .then(response => {
           if (!response?.data?.results?.length) {
-            scanner.value.error = 'No variant found'
+            scanner.value.error = t('NoVariantFound')
             return response
           }
 
@@ -284,7 +296,7 @@ export default defineComponent({
         })
         .catch(error => {
           console.error(error)
-          scanner.value.error = 'Failed to retrieve item details'
+          scanner.value.error = t('FailedToRetrieveItemDetails')
         })
         .finally(() => {
           scanner.value.loading = false

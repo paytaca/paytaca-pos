@@ -5,8 +5,8 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Payments</div>
-            <div class="text-grey">Storefront</div>
+            <div class="text-h5">{{ $t('Payments') }}</div>
+            <div class="text-grey">{{ $t('Storefront') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
@@ -15,7 +15,7 @@
           <q-input
             dense
             v-model="filterOpts.search"
-            placeholder="Customer name / Order ID"
+            :placeholder="$t('CustomerNameOrOrderId')"
             debounce="500"
           >
             <template v-slot:prepend><q-icon name="search"/></template>
@@ -25,7 +25,8 @@
             <q-menu v-model="openFilterOptsForm" class="q-pa-md">
               <q-btn
                 flat
-                no-caps label="Reset"
+                no-caps
+                :label="$t('Reset')"
                 color="brandblue"
                 padding="xs md"
                 class="text-underline q-r-mr-lg float-right"
@@ -33,7 +34,7 @@
                 @click="() => filterOpts = createDefaultFilterOpts()"
               />
               <div class="q-mb-sm">
-                <div class="text-subtitle1">Statuses</div>
+                <div class="text-subtitle1">{{ $t('Statuses') }}</div>
                 <div>
                   <q-checkbox
                     v-for="status in statusOpts" :key="status"
@@ -46,7 +47,7 @@
                 </div>
               </div>
               <div class="q-mb-sm">
-                <div class="text-subtitle1">Escrow</div>
+                <div class="text-subtitle1">{{ $t('Escrow') }}</div>
                 <q-btn-toggle
                   v-model="filterOpts.isEscrow"
                   no-caps
@@ -54,15 +55,15 @@
                   toggle-color="primary"
                   padding="none xs"
                   :options="[
-                    {label: 'Yes', value: true },
-                    {label: 'No', value: false },
-                    {label: 'All', value: undefined}
+                    {label: $t('Yes'), value: true },
+                    {label: $t('No'), value: false },
+                    {label: $t('All'), value: undefined}
                   ]"
                 />
               </div>
 
               <div class="q-mb-sm">
-                <div class="text-subtitle1">Refundable</div>
+                <div class="text-subtitle1">{{ $t('Refundable') }}</div>
                 <q-btn-toggle
                   v-model="filterOpts.refundable"
                   no-caps
@@ -70,9 +71,9 @@
                   toggle-color="primary"
                   padding="none xs"
                   :options="[
-                    {label: 'Yes', value: true },
-                    {label: 'No', value: false },
-                    {label: 'All', value: undefined}
+                    {label: $t('Yes'), value: true },
+                    {label: $t('No'), value: false },
+                    {label: $t('All'), value: undefined}
                   ]"
                 />
               </div>
@@ -85,7 +86,13 @@
             class="ellipsis filter-opt q-px-xs"
             @click="openFilterOptsForm = true"
           >
-            Status: {{ filterOpts?.statuses?.map?.(formatStatusGeneric)?.join(', ') }}
+            {{
+              $t(
+                'StatusValue',
+                { value: filterOpts?.statuses?.map?.(formatStatusGeneric)?.join(', ') },
+                `Status: ${ filterOpts?.statuses?.map?.(formatStatusGeneric)?.join(', ') }`
+              )
+            }}
           </div>
           <div
             v-if="(typeof filterOpts?.isEscrow) === 'boolean'"
@@ -98,7 +105,7 @@
               :color="filterOpts?.isEscrow ? 'green' : 'red'"
               class="q-mr-xs"
             />
-            Escrow
+            {{ $t('Escrow') }}
           </div>
           <div
             v-if="(typeof filterOpts?.refundable) === 'boolean'"
@@ -111,7 +118,7 @@
               :color="filterOpts?.refundable ? 'green' : 'red'"
               class="q-mr-xs"
             />
-            Refundable
+            {{ $t('Refundable') }}
           </div>
         </div>
       </div>
@@ -148,12 +155,17 @@
           <q-td :props="props">
             <q-btn v-if="props?.row?.orderId"
               flat
-              no-caps :label="`Order #${props?.row?.orderId}`"
+              no-caps
+              :label="$t(
+                'OrderId',
+                { id: props?.row?.orderId },
+                `Order #${props?.row?.orderId}`
+              )"
               padding="2px sm"
               @click="() => displayPaymentOrder(props.row)"
             />
             <span v-else-if="props?.row?.checkoutId" class="text-grey">
-              Checkout
+              {{ $t('Checkout') }}
             </span>
           </q-td>
         </template>
@@ -162,7 +174,8 @@
             <q-btn
               v-if="props?.row?.escrowContractAddress"
               flat
-              no-caps label="View details"
+              no-caps
+              :label="$t('ViewDetails')"
               padding="none xs"
               @click="() => displayPaymentEscrowContract(props?.row)"
             />
@@ -174,7 +187,7 @@
               <q-menu>
                 <q-item clickable v-ripple v-close-popup @click="() => refundPayment(props?.row)">
                   <q-item-section>
-                    <q-item-label>Refund payment</q-item-label>
+                    <q-item-label>{{ $t('RefundPayment') }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-menu>
@@ -201,6 +214,7 @@ import { BchPrice, EscrowContract, Order, Payment } from 'src/marketplace/object
 import { errorParser, formatDateRelative, formatStatusGeneric } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
@@ -217,6 +231,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
     window.t = () => $q.dark.toggle()
 
@@ -279,12 +294,12 @@ export default defineComponent({
 
     const table = ref()
     const paymentsTableColumns = [
-      { name: 'id', align: 'center', label: 'Payment', field: 'id', format: val => val ? `#${val}` : '', sortable: true },
-      { name: 'status', align: 'center', label: 'Status', field: 'status', format: formatStatusGeneric, sortable: true },
-      { name: 'amount', align: 'center', label: 'Amount', field: obj => `${obj?.totalAmount} ${obj?.currency?.symbol}`, sortable: true },
-      { name: 'source', align: 'center', label: 'Reference', sortable: true },
-      { name: 'escrow', align: 'center', label: 'Escrow', },
-      { name: 'timestamp', align: 'center', label: 'Timestamp', field: 'createdAt', format: formatDateRelative, sortable: true },
+      { name: 'id', align: 'center', label: t('Payment'), field: 'id', format: val => val ? `#${val}` : '', sortable: true },
+      { name: 'status', align: 'center', label: t('Status'), field: 'status', format: formatStatusGeneric, sortable: true },
+      { name: 'amount', align: 'center', label: t('Amount'), field: obj => `${obj?.totalAmount} ${obj?.currency?.symbol}`, sortable: true },
+      { name: 'source', align: 'center', label: t('Reference'), sortable: true },
+      { name: 'escrow', align: 'center', label: t('Escrow'), },
+      { name: 'timestamp', align: 'center', label: t('Timestamp'), field: 'createdAt', format: formatDateRelative, sortable: true },
       { name: 'actions', align: 'center', },
     ]
     const sortFieldNameMap = {
@@ -302,7 +317,7 @@ export default defineComponent({
       const paymentId = payment?.id
 
       const dialog = $q.dialog({
-        title: 'Refunding payment',
+        title: t('RefundingPayment'),
         progress: true,
         persistent: true,
         ok: false,
@@ -313,9 +328,9 @@ export default defineComponent({
         .then(response => {
           const prevStatus = payment?.status
           payment.raw = response?.data
-          dialog.update({ title: 'Refund', message: 'Payment updated'})
+          dialog.update({ title: t('Refund'), message: t('PaymentUpdated') })
           if (prevStatus != payment?.status && payment?.status === 'voided')  {
-            dialog.update({ message: 'Payment refunded!' })
+            dialog.update({ message: t('PaymentRefunded') })
           }
           return response
         })
@@ -327,8 +342,8 @@ export default defineComponent({
           if (!errorMessage && typeof error?.message === 'string' && error?.message?.length < 200) {
             errorMessage = error?.message
           }
-          if (!errorMessage) errorMessage = 'Unknown error'
-          dialog.update({ title: 'Refund failed', message: errorMessage })
+          if (!errorMessage) errorMessage = t('UnknownError')
+          dialog.update({ title: t('RefundFailed'), message: errorMessage })
           return Promise.reject(error)
         })
         .finally(() => {
@@ -348,7 +363,7 @@ export default defineComponent({
 
       if (!payment.escrowContract) {
         const dialog = $q.dialog({
-          title: 'Fetching details',
+          title: t('FetchingDetails'),
           progress: true,
           color: 'brandblue',
           ok: false,
@@ -371,7 +386,7 @@ export default defineComponent({
 
       if (!payment.order) {
         const dialog = $q.dialog({
-          title: 'Fetching order',
+          title: t('FetchingOrder'),
           progress: true,
           color: 'brandblue',
           ok: false,

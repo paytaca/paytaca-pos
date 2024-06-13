@@ -3,14 +3,14 @@
     <q-card-section class="q-py-sm">
       <div class="row items-center">
         <div class="text-h6 q-space">
-          Marketplace
+          {{ $t('Marketplace') }}
           <q-spinner v-if="loading" size="0.75em"/>
         </div>
         <q-btn
           flat
           no-caps
           padding="xs none"
-          label="Go to marketplace"
+          :label="$t('GoToMarketPlace')"
           class="text-underline"
           :to="{ name: 'marketplace', query: { silentSync: true } }"
         />
@@ -48,6 +48,7 @@ import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useWalletStore } from 'src/stores/wallet'
+import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 
 export default defineComponent({
@@ -55,6 +56,7 @@ export default defineComponent({
   setup() {
     const marketplaceStore = useMarketplaceStore()
     const walletStore = useWalletStore()
+    const { t } = useI18n()
 
     const loading = ref(false)
     let updateShopPromise = ref()
@@ -78,14 +80,14 @@ export default defineComponent({
       const data = []
       if (hasCashierRole.value) {
         data.push({
-          name: 'Sale',
+          name: t('Sale'),
           icon: 'point_of_sale',
           route: { name: 'marketplace-sale', query: { silentSync: true } },
         })
       }
       if (hasStorefrontRole.value && marketplaceStore.storefront?.id) {
         data.push({
-          name: 'Orders',
+          name: t('Orders'),
           icon: 'pending_actions',
           badge: ordersCount.value,
           route: { name: 'marketplace-storefront-orders', query: { silentSync: true } },

@@ -5,8 +5,8 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Purchase Orders</div>
-            <div class="text-grey">Marketplace</div>
+            <div class="text-h5">{{ $t('PurchaseOrders') }}</div>
+            <div class="text-grey">{{ $t('Marketplace') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
@@ -16,9 +16,13 @@
         @click="() => filterToReviewPurchaseOrders()"
       >
         <q-card-section>
-          {{ toReviewPurchaseOrdersCount }}
-          {{ toReviewPurchaseOrdersCount === 1 ? 'purchase order' : 'purchase orders' }}
-          assigned to you for review
+          {{
+            $t(
+              'PurchaseOrderCount',
+              { count: toReviewPurchaseOrdersCount },
+              `${ toReviewPurchaseOrdersCount } purchase order(s) assigned to you for review`
+            )
+          }}
         </q-card-section>
       </q-card>
       <div class="full-width q-px-sm q-mb-sm">
@@ -26,7 +30,7 @@
           <q-input
             dense
             v-model="filterOpts.search"
-            placeholder="PO#, Supplier, item name/code"
+            :placeholder="$t('PoSupplierItemNameCode')"
             debounce="500"
             class="q-space"
           >
@@ -37,7 +41,8 @@
             <q-menu v-model="openFilterOptsForm" class="q-pa-md" @hide="() => syncTempFilterOptsToFilterOpts()">
               <q-btn
                 flat
-                no-caps label="Reset"
+                no-caps
+                :label="$t('Reset')"
                 color="brandblue"
                 padding="xs md"
                 class="text-underline q-r-mt-md q-r-mr-lg float-right"
@@ -45,7 +50,7 @@
                 @click="() => filterOpts = createDefaultFilterOpts()"
               />
               <div class="q-mb-sm">
-                <div class="text-subtitle1">Statuses</div>
+                <div class="text-subtitle1">{{ $t('Statuses') }}</div>
                 <div>
                   <q-checkbox
                     v-for="status in statusOpts" :key="status"
@@ -58,7 +63,7 @@
                 </div>
               </div>
               <div class="q-mb-sm">
-                <div class="text-subtitle1">Reviewed</div>
+                <div class="text-subtitle1">{{ $t('Reviewed') }}</div>
                 <q-btn-toggle
                   v-model="tempFilterOpts.reviewed"
                   no-caps
@@ -66,14 +71,14 @@
                   toggle-color="primary"
                   padding="none xs"
                   :options="[
-                    {label: 'Yes', value: true },
-                    {label: 'No', value: false },
-                    {label: 'All', value: null}
+                    {label: $t('Yes'), value: true },
+                    {label: $t('No'), value: false },
+                    {label: $t('All'), value: null}
                   ]"
                 />
               </div>
               <div class="q-mb-sm">
-                <div class="text-subtitle1">Assigned to me</div>
+                <div class="text-subtitle1">{{ $t('AssignedToMe') }}</div>
                 <q-btn-toggle
                   v-model="tempFilterOpts.assignedToMe"
                   no-caps
@@ -81,8 +86,8 @@
                   toggle-color="primary"
                   padding="none xs"
                   :options="[
-                    {label: 'Yes', value: true },
-                    {label: 'No', value: false },
+                    {label: $t('Yes'), value: true },
+                    {label: $t('No'), value: false },
                   ]"
                 />
               </div>
@@ -100,7 +105,13 @@
             class="ellipsis filter-opt q-px-xs"
             @click="openFilterOptsForm = true"
           >
-            Status: {{ filterOpts?.statuses?.map?.(formatPurchaseOrderStatus)?.join(', ') }}
+            {{
+              $t(
+                'StatusValue',
+                { value: filterOpts?.statuses?.map?.(formatPurchaseOrderStatus)?.join(', ') },
+                `Status: ${filterOpts?.statuses?.map?.(formatPurchaseOrderStatus)?.join(', ')}`
+              )
+            }}
           </div>
           <div
             v-if="(typeof filterOpts?.reviewed) === 'boolean'"
@@ -113,17 +124,17 @@
               :color="filterOpts?.reviewed ? 'green' : 'red'"
               class="q-mr-xs"
             />
-            Reviewed
+            {{ $t('Reviewed') }}
           </div>
           <q-chip v-if="filterOpts.filterToReview" removable @remove="() => filterOpts.filterToReview = null">
-            To review
+            {{ $t('ToReview') }}
           </q-chip>
         </div>
       </div>
       <q-table
         ref="table"
         :loading="fetchingPurchaseOrders"
-        loading-label="Loading..."
+        :loading-label="$t('Loading')"
         :columns="purchaseOrdersTableColumns"
         :rows="purchaseOrders"
         row-key="id"
@@ -158,7 +169,13 @@
               class="full-width"
               :to="{name: 'marketplace-purchase-order', params: { purchaseOrderId: props.row.id }}"
             >
-              PO#{{ props.row?.number }}
+              {{
+                $t(
+                  'PoNumber',
+                  { number: props.row?.number },
+                  `PO#${props.row?.number}`
+                )
+              }}
             </q-btn>
           </q-td>
         </template>
@@ -169,13 +186,29 @@
               {{ formatPurchaseOrderStatus(props?.row?.status) }}
               <q-icon v-if="props?.row?.reviewedAt" name="check_circle" color="green" size="1.25em" class="q-ml-xs">
                 <q-menu class="q-px-md q-py-sm">
-                  Purchase order reviewed
-                  <span class="text-italic">{{ formatDateRelative(props?.row?.reviewedAt) }}</span>
+                  {{
+                    $t(
+                      'PurchaseOrderReviewed',
+                      { date: formatDateRelative(props?.row?.reviewedAt) },
+                      `Purchase order reviewed ${ formatDateRelative(props?.row?.reviewedAt) }`
+                    )
+                  }}
                   <template v-if="props?.row?.reviewedBy?.id">
-                    by
-                    <span class="text-italic">{{ props?.row?.reviewedBy?.fullName }}</span>
+                    {{
+                      $t(
+                        'PurchaseOrderReviewedBy',
+                        { date: formatDateRelative(props?.row?.reviewedAt), name: props?.row?.reviewedBy?.fullName },
+                        `Purchase order reviewed ${ formatDateRelative(props?.row?.reviewedAt) } by ${ props?.row?.reviewedBy?.fullName }`
+                      )
+                    }}
                     <span v-if="marketplaceStore?.user?.id === props?.row?.reviewedBy?.id">
-                      (you)
+                      {{
+                        $t(
+                          'PurchaseOrderReviewedYou',
+                          { date: formatDateRelative(props?.row?.reviewedAt), name: props?.row?.reviewedBy?.fullName },
+                          `Purchase order reviewed ${ formatDateRelative(props?.row?.reviewedAt) } by ${ props?.row?.reviewedBy?.fullName } (you)`
+                        )
+                      }}
                     </span>
                   </template>
                 </q-menu>
@@ -190,8 +223,13 @@
             class="text-underline"
             @click="() => showPurchaseOrderItems(props.row)"
           >
-            {{ (props.row?.items?.length || props.row?.itemsCount) }}
-            {{ (props.row?.items?.length || props.row?.itemsCount) === 1 ? 'item' : 'items' }}
+            {{
+              $t(
+                'ItemCount',
+                { count: props.row?.items?.length || props.row?.itemsCount },
+                `${ (props.row?.items?.length || props.row?.itemsCount) } item(s)`
+              )
+            }}
           </q-td>
         </template>
   
@@ -208,11 +246,11 @@
             {{ formatDateRelative(props.row.updatedAt) }}
             <q-menu class="q-py-sm q-px-md">
               <div class="q-mb-sm">
-                <div class="text-grey q-mr-xs">Created:</div>
+                <div class="text-grey q-mr-xs">{{ $t('Created') }}:</div>
                 <div style="white-space:nowrap;">{{ formatTimestampToText(props.row.createdAt) }}</div>
               </div>
               <div class="q-mb-sm">
-                <div class="text-grey q-mr-xs">Updated:</div>
+                <div class="text-grey q-mr-xs">{{ $t('Updated') }}:</div>
                 <div style="white-space:nowrap;">{{ formatTimestampToText(props.row.updatedAt) }}</div>
               </div>
             </q-menu>
@@ -229,7 +267,7 @@
                     v-close-popup
                   >
                     <q-item-section>
-                      <q-item-label>View</q-item-label>
+                      <q-item-label>{{ $t('View') }}</q-item-label>
                     </q-item-section>
                   </q-item>
                 </q-list>
@@ -245,13 +283,20 @@
         <q-card-section>
           <div class="row items-center">
             <div class="text-h5">
-              PO#{{ purchaseOrderItemsDialog.purchaseOrder?.number }} Items
+              {{
+                $t(
+                  'PoNumberItems',
+                  { number: purchaseOrderItemsDialog.purchaseOrder?.number },
+                  `PO#${ purchaseOrderItemsDialog.purchaseOrder?.number } Items`
+                )
+              }}
             </div>
             <q-space/>
             <q-btn
               flat
               padding="sm"
-              no-caps label="Go to page"
+              no-caps
+              :label="$t('GoToPage')"
               class="text-underline"
               :to="{
                 name: 'marketplace-purchase-order',
@@ -281,16 +326,23 @@
             </q-item-section>
             <q-item-section avatar top>
               <q-item-label v-if="item?.deliveredAt">
-                Delivered {{ formatDateRelative(item?.deliveredAt) }}
+                {{
+                  $t(
+                    'DeliveredAt',
+                    { date: formatDateRelative(item?.deliveredAt) },
+                    `Delivered ${ formatDateRelative(item?.deliveredAt) }`
+                  )
+                }}
                 <q-menu class="q-pa-sm">{{ formatTimestampToText(item?.deliveredAt) }}</q-menu>
               </q-item-label>
               <q-item-label v-else class="text-grey">
-                Not yet delivered
+                {{ $t('NotYetDelivered') }}
               </q-item-label>
               <q-item-label v-if="item?.stockId">
                 <q-btn
                   flat padding="2px none"
-                  no-caps label="View stocks"
+                  no-caps
+                  :label="$t('ViewStocks')"
                   class="text-underline"
                   @click="() => displayItemStock(item)"
                 />
@@ -307,6 +359,7 @@ import { backend } from 'src/marketplace/backend'
 import { formatDateRelative, formatPurchaseOrderStatus, formatTimestampToText } from 'src/marketplace/utils'
 import { PurchaseOrder, PurchaseOrderItem, Stock, Vendor } from 'src/marketplace/objects'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import VendorInfoDialog from 'src/components/marketplace/inventory/VendorInfoDialog.vue'
@@ -323,6 +376,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
 
     const openFilterOptsForm  = ref(false)
@@ -410,11 +464,11 @@ export default defineComponent({
 
     const table = ref()
     const purchaseOrdersTableColumns = [
-      { name: 'number', align: 'center', label: 'Number', field: 'number', format: val => `PO#${val}`, sortable: true },
-      { name: 'status', align: 'center', label: 'Status', field: 'status', format: formatPurchaseOrderStatus, sortable: true },
-      { name: 'items', align: 'center', label: 'Items', field: obj => obj?.items?.length || obj?.itemsCount, format: val => val === 1 ? `${val} item` : `${val} items`, sortable: true },
-      { name: 'vendor', align: 'center', label: 'Supplier', field: obj => obj?.vendor?.name, sortable: true },
-      { name: 'updated-at', align: 'center', label: 'Updated', field: 'updatedAt', sortable: true },
+      { name: 'number', align: 'center', label: t('Number'), field: 'number', format: val => `PO#${val}`, sortable: true },
+      { name: 'status', align: 'center', label: t('Status'), field: 'status', format: formatPurchaseOrderStatus, sortable: true },
+      { name: 'items', align: 'center', label: t('Items'), field: obj => obj?.items?.length || obj?.itemsCount, format: val => val === 1 ? `${val} item` : `${val} items`, sortable: true },
+      { name: 'vendor', align: 'center', label: t('Supplier'), field: obj => obj?.vendor?.name, sortable: true },
+      { name: 'updated-at', align: 'center', label: t('Updated'), field: 'updatedAt', sortable: true },
       // { name: 'actions', align: 'center', label: '' },
     ]
     const sortFieldNameMap = {

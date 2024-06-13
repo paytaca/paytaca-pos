@@ -9,7 +9,7 @@
   >
     <q-card style="height:100%;width:100%;">
       <div class="row no-wrap items-center justify-center q-pl-md">
-        <div class="text-h6 q-space q-mt-sm">{{ headerText || 'Map' }}</div>
+        <div class="text-h6 q-space q-mt-sm">{{ headerText || $t('Map') }}</div>
         <q-btn
           flat
           padding="sm"
@@ -39,7 +39,7 @@
           <LControl>
             <div class="bg-white text-black q-pa-xs">
               <q-checkbox dense v-model="autoCenter">
-                <span class="text-weight-medium">Center view</span>
+                <span class="text-weight-medium">{{ $t('CenterView') }}</span>
               </q-checkbox>
             </div>
           </LControl>

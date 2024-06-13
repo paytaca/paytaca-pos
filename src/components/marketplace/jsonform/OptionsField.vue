@@ -32,7 +32,8 @@
             <q-btn
               v-if="inputValue"
               flat
-              no-caps label="Add"
+              no-caps
+              :label="$t('Add')"
               padding="none xs"
               @click="() => addInputValue()"
             />
@@ -44,6 +45,9 @@
 </template>
 <script>
 import { defineComponent, ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 export default defineComponent({
   name: 'OptionsField',
@@ -57,7 +61,7 @@ export default defineComponent({
     modelValue: Array,
     input: String,
     fieldProps: Object,
-    placeholder: { type: String, default: 'Input option' },
+    placeholder: { type: String, default: t('InputOption') },
     disableAddOnComma: Boolean,
   },
   setup(props, { emit: $emit }) {

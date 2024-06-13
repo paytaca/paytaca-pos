@@ -1,17 +1,17 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" no-refocus position="bottom">
     <q-card class="q-dialog-plugin">
-      <q-form @submit="onDialogOK({ amount })">
+      <q-form @submit="checkAmount()">
         <q-card-section>
-          <div class="text-h5 q-mb-md">Set Amount</div>
+          <div class="text-h5 q-mb-md">{{ $t('SetAmount') }}</div>
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
           </div>
           <div class="row items-center no-wrap q-gutter-x-sm">
             <q-input
-              label="Amount"
+              :label="$t('Amount')"
               type="number"
-              step="0.00000001"
+              :step="amount.currency === 'BCH' ? 0.00000001 : 0.01"
               v-model.number="amount.value"
               outlined
               autofocus
@@ -32,7 +32,7 @@
             color="brandblue"
             size="1rem"
             padding="sm md"
-            label="Create Payment QR"
+            :label="$t('CreatePaymentQR')"
             class="q-space"
             type="submit"
             icon="mdi-qrcode"
@@ -76,9 +76,21 @@ export default defineComponent({
       }
       return opts
     })
+
+    function checkAmount () {
+      if (amount.value.currency !== 'BCH' && amount.value.value < 1) {
+        onDialogCancel()
+        return
+      }
+      onDialogOK({ amount: amount.value })
+    }
     
     return {
-      dialogRef, onDialogHide, onDialogOK, onDialogCancel,
+      dialogRef,
+      checkAmount,
+      onDialogHide,
+      onDialogOK,
+      onDialogCancel,
       amount,
       currencyOpts,
     }

@@ -3,7 +3,7 @@
     <q-card style="width: max(90vw, 500px)">
       <q-card-section class="row no-wrap items-start q-pb-sm">
         <div class="q-space row items-center q-gutter-x-xs">
-          <div class="text-h5">Stock Recount</div>
+          <div class="text-h5">{{ $t('StockRecount') }}</div>
           <div v-if="stockRecount?.id" class="text-grey">#{{ stockRecount?.id }}</div>
         </div>
         <slot name="menu" v-bind="{ stockRecount }"></slot>
@@ -14,11 +14,11 @@
       <template v-else>
         <q-card-section class="q-pb-none row">
           <div v-if="stockRecount.remarks" class="col-12">
-            <div class="text-caption top text-grey">Remarks</div>
+            <div class="text-caption top text-grey">{{ $t('Remarks') }}</div>
             <div>{{ stockRecount.remarks }}</div>
           </div>
           <div v-if="stockRecount.createdAt || stockRecount?.createdBy?.id">
-            <div class="text-caption top text-grey">Created</div>
+            <div class="text-caption top text-grey">{{ $t('Created') }}</div>
             <div>{{ stockRecount?.createdBy?.fullName }}</div>
             <div v-if="stockRecount.createdAt">
               {{ formatTimestampToText(stockRecount.createdAt) }}
@@ -26,21 +26,43 @@
           </div>
         </q-card-section>
         <q-card-section class="q-pb-none row">
-          <div class="text-subtitle1">Updated stocks</div>
+          <div class="text-subtitle1">{{ $t('UpdatedStocks') }}</div>
         </q-card-section>
         <q-list>
           <q-item v-for="item in stockRecount.items" :key="item?.id">
             <q-item-section top>
               <q-item-label>
-                Stock#{{ item?.stockId }}
+                {{
+                  $t(
+                    'StockId',
+                    { id: item?.stockId }
+                    `Stock#${item?.stockId}`
+                  )
+                }}
               </q-item-label>
               <q-item-label class="text-caption">
                 {{ item?.remarks }}
               </q-item-label>
             </q-item-section>
             <q-item-section side top>
-              <q-item-label>Expected: {{ item?.expectedQuantity }}</q-item-label>
-              <q-item-label>Actual: {{ item?.actualQuantity }}</q-item-label>
+              <q-item-label>
+                {{
+                  $t(
+                    'ExpectedQty',
+                    { quantity: item?.expectedQuantity },
+                    `Expected: ${item?.expectedQuantity}`
+                  )
+                }}
+              </q-item-label>
+              <q-item-label>
+                {{
+                  $t(
+                    'ActualQty',
+                    { quantity: item?.actualQuantity },
+                    `Actual: ${item?.actualQuantity}`
+                  )
+                }}
+              </q-item-label>
             </q-item-section>
           </q-item>
         </q-list>

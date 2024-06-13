@@ -39,13 +39,13 @@
         <q-list>
           <q-item clickable v-ripple v-close-popup :to="{ name: 'marketplace-user' }">
             <q-item-section>
-              <q-item-label>Change Password</q-item-label>
+              <q-item-label>{{ $t('ChangePassword') }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-separator/>
           <q-item clickable v-ripple v-close-popup @click="() => logOut()">
             <q-item-section>
-              <q-item-label>Logout</q-item-label>
+              <q-item-label>{{ $t('Logout') }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
@@ -58,13 +58,16 @@ import { backend, setAuthToken } from 'src/marketplace/backend'
 import { formatRole } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, ref } from 'vue'
 import blankUserImg from 'src/assets/blank_user_image.webp'
+
+const { t } = useI18n()
 
 export default defineComponent({
   name: 'MarketplaceHeader',
   props: {
-    title: { type: String, default: 'Marketplace'},
+    title: { type: String, default: t('Marketplace') },
   },
   setup() {
     const $q = useQuasar()

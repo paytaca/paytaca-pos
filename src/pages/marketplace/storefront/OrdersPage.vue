@@ -5,8 +5,8 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Orders</div>
-            <div class="text-grey">Storefront</div>
+            <div class="text-h5">{{ $t('Orders') }}</div>
+            <div class="text-grey">{{ $t('Storefront') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
@@ -17,7 +17,7 @@
             dense
             :loading="Boolean(filterOpts?.search && fetchingOrders)"
             v-model="filterOpts.search"
-            placeholder="PO#, Item name"
+            :placeholder="$t('PoItemName')"
             debounce="500"
           >
             <template v-slot:prepend><q-icon name="search"/></template>
@@ -37,7 +37,8 @@
             >
               <q-btn
                 flat
-                no-caps label="Reset"
+                no-caps
+                :label="$t('Reset')"
                 color="brandblue"
                 padding="xs md"
                 class="text-underline q-r-mr-lg float-right"
@@ -45,7 +46,7 @@
                 @click="() => tempFilterOpts = createDefaultFilterOpts()"
               />
               <div class="q-mb-sm">
-                <div class="text-subtitle1">Statuses</div>
+                <div class="text-subtitle1">{{ $t('Statuses') }}</div>
                 <div>
                   <q-checkbox
                     v-for="status in statusOpts" :key="status"
@@ -58,7 +59,7 @@
                 </div>
               </div>
               <div class="q-mb-sm">
-                <div class="text-subtitle1">Delivery Types</div>
+                <div class="text-subtitle1">{{ $t('DeliveryTypes') }}</div>
                 <div>
                   <q-checkbox
                     v-for="deliveryType in deliveryTypeOpts" :key="deliveryType"
@@ -71,7 +72,7 @@
                 </div>
               </div>
               <div class="q-mb-sm">
-                <div class="text-subtitle1">Has ongoing dispute</div>
+                <div class="text-subtitle1">{{ $t('HasOngoingDispute') }}</div>
                 <q-btn-toggle
                   v-model="tempFilterOpts.hasOngoingDispute"
                   no-caps
@@ -79,15 +80,15 @@
                   toggle-color="primary"
                   padding="none xs"
                   :options="[
-                    {label: 'Yes', value: true },
-                    {label: 'No', value: false },
-                    {label: 'All', value: undefined}
+                    {label: $t('Yes'), value: true },
+                    {label: $t('No'), value: false },
+                    {label: $t('All'), value: undefined}
                   ]"
                 />
               </div>
               <q-btn
                 no-caps
-                label="Apply filter"
+                :label="$t('ApplyFilter')"
                 class="full-width q-mt-sm"
                 color="brandblue"
                 v-close-popup
@@ -102,7 +103,13 @@
           class="ellipsis filter-opt q-px-xs"
           @click="openFilterOptsForm = true"
         >
-          Status: {{ filterOpts?.statuses?.map?.(formatOrderStatus)?.join(', ') }}
+          {{
+            $t(
+              'StatusValue',
+              { value: filterOpts?.statuses?.map?.(formatOrderStatus)?.join(', ') },
+              `Status: ${filterOpts?.statuses?.map?.(formatOrderStatus)?.join(', ')}`
+            )
+          }}
         </div>
         <div
           v-if="filterOpts?.deliveryTypes?.length" style="max-width:45vw;"
@@ -116,11 +123,12 @@
           class="ellipsis filter-opt q-px-xs"
           @click="openFilterOptsForm = true"
         >
-          has
-          <template v-if="!filterOpts?.hasOngoingDispute">
-            no
+          <template v-if="filterOpts?.hasOngoingDispute">
+            {{ $t('HasDispute') }}
           </template>
-          dispute
+          <template v-else>
+            {{ $t('HasNoDispute') }}
+          </template>
         </div>
       </div>
       <q-table
@@ -133,7 +141,10 @@
         hide-pagination
         binary-state-sort
         :sort-method="sortMethod"
-        @row-click="(evt, row) => $router.push({ name: 'marketplace-storefront-order', params: { orderId: row.id } })"
+        @row-click="(evt, row) => $router.push({
+          name: 'marketplace-storefront-order',
+          params: { orderId: row.id }
+        })"
       >
         <template v-slot:body-cell-status="props">
           <q-td :props="props">
@@ -142,7 +153,7 @@
             </q-badge>
             <br/>
             <q-badge v-if="props.row?.hasOngoingDispute" color="red">
-              Dispute
+              {{ $t('Dispute') }}
             </q-badge>
           </q-td>
         </template>
@@ -173,6 +184,7 @@ import { Order } from 'src/marketplace/objects'
 import { formatOrderStatus, formatStatusGeneric, parseOrderStatusColor } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { defineComponent, onMounted, watch, ref } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
@@ -190,6 +202,7 @@ export default defineComponent({
     deliveryTypes: String,
   },
   setup(props) {
+    const { t } = useI18n()
     const $route = useRoute()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
@@ -306,12 +319,12 @@ export default defineComponent({
 
     const table = ref()
     const ordersTableColumns = [
-      { name: 'id', align: 'left', label: 'Order', field: 'id', format: val => val ? `#${val}` : '', sortable: true },
-      { name: 'status', align: 'left', label: 'Status', field: 'formattedStatus', sortable: true },
-      { name: 'payment-status', align: 'left', label: 'Payment Status', field: 'formattedPaymentStatus', sortable: true },
-      { name: 'delivery-type', align: 'left', label: 'Delivery', field: 'formattedDeliveryType', sortable: true },
-      { name: 'subtotal', align: 'left', label: 'Subtotal', field: obj => obj?.subtotal ? `${obj.subtotal} ${obj?.currency?.symbol}` : '', sortable: true },
-      { name: 'customer', align: 'left', label: 'Customer', field: obj => `${obj?.customer?.firstName} ${obj?.customer?.lastName}`, sortable: true },
+      { name: 'id', align: 'left', label: t('Order'), field: 'id', format: val => val ? `#${val}` : '', sortable: true },
+      { name: 'status', align: 'left', label: t('Status'), field: 'formattedStatus', sortable: true },
+      { name: 'payment-status', align: 'left', label: t('PaymentStatus'), field: 'formattedPaymentStatus', sortable: true },
+      { name: 'delivery-type', align: 'left', label: t('Delivery'), field: 'formattedDeliveryType', sortable: true },
+      { name: 'subtotal', align: 'left', label: t('Subtotal'), field: obj => obj?.subtotal ? `${obj.subtotal} ${obj?.currency?.symbol}` : '', sortable: true },
+      { name: 'customer', align: 'left', label: t('Customer'), field: obj => `${obj?.customer?.firstName} ${obj?.customer?.lastName}`, sortable: true },
     ]
     const sortFieldNameMap = {
       customer: 'customer_name',

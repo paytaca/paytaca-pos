@@ -7,7 +7,7 @@
         <q-space/>
         <div class="text-right">
           <div v-if="shouldDisplayMinMaxOpts(addon)" class="q-ml-xs text-grey text-caption" style="line-height:1.1em">
-            Required selected:
+            {{ $t('RequiredSelected') }}:
             {{ addon?.minOpts }}
             <template v-if="addon?.minOpts !== addon?.maxOpts">
               - {{ addon?.maxOpts }}

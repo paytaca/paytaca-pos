@@ -6,12 +6,12 @@
           <div class="row items-center q-gutter-x-xs">
             <div class="text-h5">
               <!-- <template v-if="salesOrder?.draft">Draft</template> -->
-              Sale
+              {{ $t('Sale') }}
               <template v-if="salesOrder?.number">#{{ salesOrder?.number }}</template>
             </div>
           </div>
           <div v-if="salesOrder?.draft">
-            <q-chip class="text-weight-medium" color="grey" dense>Draft</q-chip>
+            <q-chip class="text-weight-medium" color="grey" dense>{{ $t('Draft') }}</q-chip>
           </div>
           <q-space/>
           <slot name="menu" v-bind="{ salesOrder }"></slot>
@@ -20,14 +20,26 @@
           <div v-if="salesOrder?.createdAt" class="text-caption bottom text-grey">
             {{ formatTimestampToText(salesOrder?.createdAt) }}
             <q-menu class="q-pa-sm">
-              Created at {{ formatTimestampToText(salesOrder?.createdAt) }}
+              {{
+                $t(
+                  'CreatedAt',
+                  { date: formatTimestampToText(salesOrder?.createdAt) },
+                  `Created at ${formatTimestampToText(salesOrder?.createdAt)}`
+                )
+              }}
             </q-menu>
           </div>
           <q-space/>
           <div v-if="salesOrder?.createdBy?.id" class="text-caption bottom text-grey">
             {{ salesOrder?.createdBy?.fullName }}
             <q-menu class="q-pa-sm">
-              Created by {{ salesOrder?.createdBy?.fullName }}
+              {{
+                $t(
+                  'CreatedBy',
+                  { name: salesOrder?.createdBy?.fullName },
+                  `Created by ${salesOrder?.createdBy?.fullName}`
+                )
+              }}
             </q-menu>
           </div>
         </div>
@@ -36,25 +48,25 @@
         <div class="row items-center q-r-mx-xs">
           <div v-if="salesOrder?.parsedStatus" class="q-pa-xs q-space">
             <div>{{ salesOrder?.parsedStatus }}</div>
-            <div class="text-caption bottom text-grey">Status</div>
+            <div class="text-caption bottom text-grey">{{ $t('Status') }}</div>
           </div>
           <div v-if="salesOrder?.paymentMode" class="q-pa-xs q-space">
             <div>{{ salesOrder?.parsedPaymentMode || salesOrder?.paymentMode }}</div>
-            <div class="text-caption bottom text-grey">Payment mode</div>
+            <div class="text-caption bottom text-grey">{{ $t('PaymentMode') }}</div>
           </div>
           <template v-if="salesOrder?.paymentMode == 'bch'">
             <div v-if="salesOrder?.bchRecipientAddress" class="q-pa-xs q-space">
               <div class="ellipsis" style="max-width:10em">{{ salesOrder?.bchRecipientAddress }}</div>
-              <div class="text-caption bottom text-grey">Recipient Address</div>
+              <div class="text-caption bottom text-grey">{{ $t('RecipientAddress') }}</div>
               <q-menu class="q-pa-sm">
                 <div class="row items-center">
-                  <div class="text-subtitle2 q-space">Recipient Address</div>
+                  <div class="text-subtitle2 q-space">{{ $t('RecipientAddress') }}</div>
                   <div class="row items-center">
                     <q-btn
                       flat
                       icon="content_copy"
                       padding="xs"
-                      @click="() => copyToClipboard(salesOrder?.bchRecipientAddress, 'Recipient address copied')"
+                      @click="() => copyToClipboard(salesOrder?.bchRecipientAddress, $t('RecipientAddressCopied'))"
                     />
                   </div>
                 </div>
@@ -63,16 +75,16 @@
             </div>
             <div v-if="salesOrder?.bchTxid" class="q-pa-xs q-space">
               <div class="ellipsis" style="max-width:10em">{{ salesOrder?.bchTxid }}</div>
-              <div class="text-caption bottom text-grey">Transaction</div>
+              <div class="text-caption bottom text-grey">{{ $t('Transaction') }}</div>
               <q-menu class="q-pa-sm">
                 <div class="row items-center">
-                  <div class="text-subtitle2 q-space">Transaction</div>
+                  <div class="text-subtitle2 q-space">{{ $t('Transaction') }}</div>
                   <div class="row items-center q-gutter-sm">
                     <q-btn
                       flat
                       icon="content_copy"
                       padding="xs"
-                      @click="() => copyToClipboard(salesOrder?.bchTxid, 'Transaction copied')"
+                      @click="() => copyToClipboard(salesOrder?.bchTxid, $t('TransactionCopied'))"
                       class="q-mr-sm"
                     />
 
@@ -96,7 +108,7 @@
         <div v-if="salesOrder?.$state?.updating" class="row items-center justify-center">
           <q-spinner size="3em"/>
         </div>
-        <div v-if="salesOrder?.items?.length" class="text-subtitle1">Items</div>
+        <div v-if="salesOrder?.items?.length" class="text-subtitle1">{{ $t('Items') }}</div>
         <table class="full-width">
           <tr v-for="item in salesOrder.items" :key="item?.variant?.id">
             <td class="text-weight-medium">
@@ -131,14 +143,20 @@
           </tr>
         </table>
         <div v-if="salesOrder?.total || salesOrder?.bchTotal" class="text-subtitle1 row items-start q-pr-md">
-          <div class="text-grey q-space">Total</div>
+          <div class="text-grey q-space">{{ $t('Total') }}</div>
           <div>
             <div v-if="salesOrder?.paymentMode == 'bch' && salesOrder?.bchTotal" class="text-right">
               <div class="row items-center">
                 <div>{{ salesOrder?.bchTotal }} BCH</div>
                 <q-icon v-if="salesOrder?.bchPrice?.timestamp" name="info" size="1em">
                   <q-menu class="q-pa-sm">
-                    BCH price at {{ formatTimestampToText(salesOrder?.bchPrice?.timestamp) }}
+                    {{
+                      $t(
+                        'BchPriceAtValue',
+                        { value: formatTimestampToText(salesOrder?.bchPrice?.timestamp) },
+                        `BCH price at ${formatTimestampToText(salesOrder?.bchPrice?.timestamp)}`
+                      )
+                    }}
                   </q-menu>
                 </q-icon>
               </div>
@@ -162,6 +180,7 @@ import { SalesOrder } from 'src/marketplace/objects'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { defineComponent, ref, watch } from 'vue'
 import { formatTimestampToText } from 'src/marketplace/utils'
+import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
   name: 'SalesOrderDetailDialog',
@@ -179,6 +198,7 @@ export default defineComponent({
   },
   setup(props, { emit: $emit }) {
     const $q = useQuasar()
+    const { t } = useI18n()
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
     const innerVal = ref(props.modelValue)
@@ -189,7 +209,7 @@ export default defineComponent({
       this.$copyText(value)
         .then(() => {
           $q.notify({
-            message: message || 'Copied to clipboard',
+            message: message || t('CopiedToClipboard'),
             timeout: 800,
             icon: 'mdi-clipboard-check',
             color: 'blue-9'

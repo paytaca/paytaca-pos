@@ -5,8 +5,8 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Sales</div>
-            <div class="text-grey">Marketplace</div>
+            <div class="text-h5">{{ $t('Sales') }}</div>
+            <div class="text-grey">{{ $t('Marketplace') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
@@ -27,7 +27,7 @@
                 </div>
               </template>
               <div v-else class="text-grey">
-                None
+                {{ $t('None') }}
               </div>
             </q-card-section>
           </q-card>
@@ -39,8 +39,8 @@
           :disable="salesGraph.loading"
           inline
           :options="[
-            { label: 'Monthly', value: 'month'},
-            { label: 'Daily', value: 'day'},
+            { label: $t('Monthly'), value: 'month'},
+            { label: $t('Daily'), value: 'day'},
           ]"
           v-model="salesGraphParams.interval"
         />
@@ -94,6 +94,7 @@
 import { backend } from 'src/marketplace/backend'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar';
+import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import VueApexCharts from "vue3-apexcharts";
@@ -106,13 +107,14 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
 
     const summaries = ref({
-      today:     { data: [].map(() => Object({ total: 0, count: 0, currency: '' })), loading: false, label: 'Today'},
-      yesterday: { data: [].map(() => Object({ total: 0, count: 0, currency: '' })), loading: false, label: 'Yesterday'},
-      thisWeek:  { data: [].map(() => Object({ total: 0, count: 0, currency: '' })), loading: false, label: 'This week'},
-      thisMonth: { data: [].map(() => Object({ total: 0, count: 0, currency: '' })), loading: false, label: 'This month'},
+      today:     { data: [].map(() => Object({ total: 0, count: 0, currency: '' })), loading: false, label: t('Today')},
+      yesterday: { data: [].map(() => Object({ total: 0, count: 0, currency: '' })), loading: false, label: t('Yesterday')},
+      thisWeek:  { data: [].map(() => Object({ total: 0, count: 0, currency: '' })), loading: false, label: t('ThisWeek')},
+      thisMonth: { data: [].map(() => Object({ total: 0, count: 0, currency: '' })), loading: false, label: t('ThisMonth')},
     })
     onMounted(() => updateSummary())
 
@@ -164,10 +166,10 @@ export default defineComponent({
     }
 
     const predefinedRangeOpts = computed(() => {
-      const today =      { from: new Date(), to: new Date(), label: 'Today' }
-      const yesterday =  { from: new Date(), to: new Date(), label: 'Yesterday' }
-      const last7Days =  { from: new Date(), to: new Date(), label: 'Last 7 days' }
-      const last30Days = { from: new Date(), to: new Date(), label: 'Last 30 days' }
+      const today =      { from: new Date(), to: new Date(), label: t('Today') }
+      const yesterday =  { from: new Date(), to: new Date(), label: t('Yesterday') }
+      const last7Days =  { from: new Date(), to: new Date(), label: t('Last7days') }
+      const last30Days = { from: new Date(), to: new Date(), label: t('Last30days') }
 
       today.from.setHours(0,0,0,0)
       today.to.setHours(24,0,0,-1)
@@ -232,7 +234,7 @@ export default defineComponent({
           salesGraph.value.range.from = new Date(response?.data?.timestamp_from)
           salesGraph.value.range.to = new Date(response?.data?.timestamp_to)
           salesGraph.value.range.label = predefinedRangeOpts.value
-            .find(range => isRangeEqual(range, salesGraph.value.range))?.label || 'Custom'
+            .find(range => isRangeEqual(range, salesGraph.value.range))?.label || t('Custom')
 
           salesGraph.value.interval = response?.data?.interval
           salesGraph.value.currency = response?.data?.currency

@@ -5,15 +5,16 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Collections</div>
-            <div class="text-grey">Storefront</div>
+            <div class="text-h5">{{ $t('Collections') }}</div>
+            <div class="text-grey">{{ $t('Storefront') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
       <div v-if="collection?.id" class="row items-center justify-end q-mb-sm q-gutter-sm">
         <q-btn
           :outline="$q.dark.isActive"
-          no-caps label="Delete"
+          no-caps
+          :label="$t('Delete')"
           icon="delete"
           color="red"
           padding="xs md"
@@ -36,28 +37,26 @@
           </div>
           <div v-if="typeof collection?.auto === 'boolean'">
             <div>
-              <template v-if="collection?.auto">Auto</template>
-              <template v-else>Manual</template>
+              <template v-if="collection?.auto">{{ $t('Auto') }} </template>
+              <template v-else>{{ $t('Manual') }} </template>
             </div>
-            <div class="text-caption bottom">Collection Type</div>
+            <div class="text-caption bottom">{{ $t('CollectionType') }}</div>
           </div>
           <div v-if="collection?.auto" class="row">
-            <div class="text-subtitle1 col-12">Conditions</div>
+            <div class="text-subtitle1 col-12">{{ $t('Conditions') }} </div>
             <div>
-              Products matching
               <span v-if="collection?.conditionsOperand == 'any'">
-                any of the
+                {{ $t('ProductsMatchAny') }}
               </span>
               <span v-else-if="collection?.conditionsOperand == 'all'">
-                all of the
+                {{ $t('ProductsMatchAll') }}
               </span>
-              conditions
             </div>
             <table v-if="Array.isArray(collection?.conditions)" class="full-width text-left">
               <tr>
-                <th>Field</th>
-                <th>Condition</th>
-                <th>Value</th>
+                <th>{{ $t('Field') }}</th>
+                <th>{{ $t('Condition') }}</th>
+                <th>{{ $t('Value') }}</th>
               </tr>
               <tr v-for="(condition, index) in collection?.conditions" :key="index">
                 <td>{{ condition.fieldLabel }}</td>
@@ -93,7 +92,7 @@
         <q-card-section class="q-pb-none">
           <div class="row items-center full-width">
             <div class="text-h6">
-              Products
+              {{ $t('Products') }} 
               <template v-if="productsPagination?.count && !isNaN(productsPagination?.count)">
                 ({{ productsPagination?.count }})
               </template>
@@ -131,14 +130,20 @@
               <q-item-label>
                 {{ product?.name }}
                 <template v-if="product?.hasVariants">
-                  ({{ product?.variants?.length || product?.variantsCount }} variants)
+                  {{
+                    $t(
+                      'VariantCount',
+                      { count: product?.variants?.length || product?.variantsCount },
+                      `(${ product?.variants?.length || product?.variantsCount } variants)`
+                    )
+                  }}
                 </template>
               </q-item-label>
               <q-item-label class="text-caption">#{{ product?.id }}</q-item-label>
             </q-item-section>
             <q-item-section v-if="!isNaN(product?.totalStocks) && product?.totalStocks !== null" avatar top>
               <q-item-label>{{ product?.totalStocks }}</q-item-label>
-              <q-item-label class="text-caption">Stocks</q-item-label>
+              <q-item-label class="text-caption">{{ $t('Stocks') }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
@@ -157,6 +162,7 @@ import { formatTimestampToText } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import ProductInventoryDialog from 'src/components/marketplace/inventory/ProductInventoryDialog.vue';
@@ -175,6 +181,7 @@ export default defineComponent({
   },
   setup(props) {
     const $q = useQuasar()
+    const { t } = useI18n()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
 
@@ -203,16 +210,20 @@ export default defineComponent({
 
     function confirmDeleteCollection() {
       $q.dialog({
-        title: 'Delete collection',
-        message: `Deleting collection '${collection.value.name}'. Are you sure?`,
-        ok: { color: 'red', noCaps: true, label: 'Delete' },
+        title: t('DeleteCollection'),
+        message: t(
+          'DeleteCollectionMsg',
+          { name: collection.value.name },
+          `Deleting collection '${collection.value.name}'. Are you sure?`
+        ),
+        ok: { color: 'red', noCaps: true, label: t('Delete') },
         cancel: { color: 'grey', noCaps: true, flat: true },
       }).onOk(deleteCollection)
     }
 
     function deleteCollection() {
       const dialog = $q.dialog({
-        title: 'Removing collection',
+        title: t('RemovingCollection'),
         ok: false,
         progress: true,
         persistent: true,
@@ -221,14 +232,14 @@ export default defineComponent({
       backend.delete(`connecta/collections/${collection.value?.id}/`)
         .then(() => {
           dialog.update({
-            title: 'Collection deleted',
+            title: t('CollectionDeleted'),
           }).onDismiss(() => $router.go(-1))
         })
         .catch(error => {
           const data = error?.response?.data
           dialog.update({
-            title: 'Error',
-            message: data?.detail || 'Unknown error occurred',
+            title: t('Error'),
+            message: data?.detail || t('UnknownErrorOccurred'),
           })
         })
         .finally(() => {

@@ -6,13 +6,13 @@
         <div class="q-space">
           <div class="text-h5">
             <template v-if="marketplaceStore?.storefrontData?.id">
-              Storefront settings
+              {{ $t('StorefrontSettings') }}
             </template>
             <template v-else>
-              Storefront Setup
+              {{ $t('StorefrontSetup') }}
             </template>
           </div>
-          <div class="text-grey">Marketplace</div>
+          <div class="text-grey">{{ $t('Marketplace') }}</div>
         </div>
       </template>
     </MarketplaceHeader>
@@ -33,13 +33,14 @@
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { defineComponent, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import StorefrontInfoForm from 'src/components/marketplace/storefront/settings/StorefrontInfoForm.vue'
 import StorefrontHoursForm from 'src/components/marketplace/storefront/settings/StorefrontHoursForm.vue'
 
 export default defineComponent({
-  name: 'SetupStorefronPage.vue',
+  name: 'SetupStorefrontPage.vue',
   components: {
     MarketplaceHeader,
     StorefrontInfoForm,
@@ -50,13 +51,14 @@ export default defineComponent({
   },
   setup(props) {
     const $q = useQuasar()
+    const { t } = useI18n()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
 
     const tab = ref(props.tabParam || 'info')
     const tabs = ref([
-      { label: 'Info', name: 'info', disable: false, },
-      { label: 'Hours', name: 'hours', disable: !Boolean(marketplaceStore?.storefrontData?.id), },
+      { label: t('Info'), name: 'info', disable: false, },
+      { label: t('Hours'), name: 'hours', disable: !Boolean(marketplaceStore?.storefrontData?.id), },
     ])
 
     watch(tab, () => $router.replace({ params: { tabParam: tab.value } }))
@@ -67,19 +69,19 @@ export default defineComponent({
 
     function onStorefrontInfoSaved() {
       $q.dialog({
-        title: marketplaceStore?.storefrontData?.id ? 'Storefront updated' : 'Storefront created',
+        title: marketplaceStore?.storefrontData?.id ? t('StorefrontUpdated') : t('StorefrontCreated'),
         color: 'brandblue',
-        ok: { noCaps: true, label: 'Return'},
-        cancel: { noCaps: true, label: 'Stay in page', flat: true }, 
+        ok: { noCaps: true, label: t('Return')},
+        cancel: { noCaps: true, label: t('StayInPage'), flat: true }, 
       }).onOk(() => $router.go(-1))
     }
 
     function onStorefrontHoursSaved() {
       $q.dialog({
-        title: 'Storefront updated',
+        title: t('StorefrontUpdated'),
         color: 'brandblue',
-        ok: { noCaps: true, label: 'Return' },
-        cancel: { noCaps: true, label: 'Stay in page', flat: true },
+        ok: { noCaps: true, label: t('Return') },
+        cancel: { noCaps: true, label: t('StayInPage'), flat: true },
       }).onOk(() => $router.go(-1))
     }
 

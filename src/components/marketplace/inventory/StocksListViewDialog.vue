@@ -3,7 +3,7 @@
     <q-card>
       <q-card-section>
         <div class="text-h6">
-          Stocks
+          {{ $t('Stocks') }}
         </div>
       </q-card-section>
       <q-virtual-scroll
@@ -17,28 +17,28 @@
             <q-item-label class="text-subtitle1">{{ stock?.itemName }}</q-item-label>
             <div class="row items-start q-mt-xs q-gutter-x-md q-gutter-y-sm">
               <div>
-                <q-item-label class="text-caption" style="margin-bottom:-0.5em;">Quantity</q-item-label>
+                <q-item-label class="text-caption" style="margin-bottom:-0.5em;">{{ $t('Quantity') }}</q-item-label>
                 <q-item-label>{{ stock.quantity || 0 }}</q-item-label>
               </div>
               <div v-if="stock.costPrice">
-                <q-item-label class="text-caption" style="margin-bottom:-0.5em;">Cost Price</q-item-label>
+                <q-item-label class="text-caption" style="margin-bottom:-0.5em;">{{ $t('CostPrice') }}</q-item-label>
                 <q-item-label>{{ stock.costPrice }} {{ marketplaceStore?.currency  }}</q-item-label>
               </div>
               <div v-if="stock.shop?.name">
-                <q-item-label class="text-caption" style="margin-bottom:-0.5em;">Shop</q-item-label>
+                <q-item-label class="text-caption" style="margin-bottom:-0.5em;">{{ $t('Shop') }}</q-item-label>
                 <q-item-label>{{ stock.shop?.name }}</q-item-label>
               </div>
             </div>
             <div class="row items-start q-mt-xs q-gutter-x-md q-gutter-y-sm">
               <div v-if="stock?.createdAt">
-                <q-item-label class="text-caption" style="margin-bottom:-0.5em;">Created</q-item-label>
+                <q-item-label class="text-caption" style="margin-bottom:-0.5em;">{{ $t('Created') }}</q-item-label>
                 <q-item-label>{{ formatDateRelative(stock?.createdAt) }}</q-item-label>
                 <q-menu class="q-py-sm q-px-md">
                   {{ formatTimestampToText(stock.createdAt) }}
                 </q-menu>
               </div>
               <div v-if="stock?.updatedAt">
-                <q-item-label class="text-caption" style="margin-bottom:-0.5em;">Updated</q-item-label>
+                <q-item-label class="text-caption" style="margin-bottom:-0.5em;">{{ $t('Updated') }}</q-item-label>
                 <q-item-label>{{ formatDateRelative(stock?.updatedAt) }}</q-item-label>
                 <q-menu class="q-py-sm q-px-md">
                   {{ formatTimestampToText(stock.updatedAt) }}

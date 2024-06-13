@@ -5,8 +5,8 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Products</div>
-            <div class="text-grey">Storefront</div>
+            <div class="text-h5">{{ $t('Products') }}</div>
+            <div class="text-grey">{{ $t('Storefront') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
@@ -15,7 +15,7 @@
           <q-input
             dense
             v-model="filterOpts.search"
-            placeholder="Product name"
+            :placeholder="$t('ProductName')"
             debounce="500"
           >
             <template v-slot:prepend><q-icon name="search"/></template>
@@ -29,7 +29,8 @@
             >
               <q-btn
                 flat
-                no-caps label="Reset"
+                no-caps
+                :label="$t('Reset')"
                 color="brandblue"
                 padding="xs md"
                 class="text-underline q-r-mt-md q-r-mr-lg float-right"
@@ -37,7 +38,7 @@
                 @click="filterOpts = createDefaultFilterOpts(), tempFilterOpts = createDefaultFilterOpts()"
               />
               <div class="q-mb-sm">
-                <div class="text-subtitle1">Categories</div>
+                <div class="text-subtitle1">{{ $t('Categories') }}</div>
                 <div style="min-width:min(50vw, 300px);">
                   <q-select
                     outlined
@@ -52,7 +53,7 @@
                 </div>
               </div>
               <div class="q-mb-sm">
-                <div class="text-subtitle1">Availability</div>
+                <div class="text-subtitle1">{{ $t('Availability') }}</div>
                 <q-btn-toggle
                   v-model="tempFilterOpts.availability"
                   no-caps
@@ -60,9 +61,9 @@
                   toggle-color="primary"
                   padding="xs md"
                   :options="[
-                    {label: 'Available', value: true },
-                    {label: 'Unvailable', value: false },
-                    {label: 'All', value: undefined}
+                    { label: $t('Available'), value: true },
+                    { label: $t('Unvailable'), value: false },
+                    { label: $t('All'), value: undefined}
                   ]"
                 />
               </div>
@@ -84,7 +85,7 @@
               class="ellipsis filter-opt q-px-xs"
               @click="openFilterOptsForm = true"
             >
-              {{ availability ? 'Available' : 'Unavailable' }}
+              {{ availability ? $t('Available') : $t('Unavailable') }}
             </div>
           </div>
           <div
@@ -93,7 +94,7 @@
             style="max-width:max(500px,75vw);"
             @click="openFilterOptsForm = true"
           >
-            {{ filterOpts?.categories?.length === 1 ? 'Category' : 'Categories' }}
+            {{ filterOpts?.categories?.length === 1 ? $t('Category') : $t('Categories') }}
             :
             {{ filterOpts?.categories?.join(', ') }}
           </div>
@@ -107,7 +108,7 @@
             :outline="$q.dark.isActive"
             padding="2px 0.75em"
             no-caps
-            label="Remove"
+            :label="$t('Remove')"
             @click="() => confirmRemoveSelectedProducts()"
           />
           <q-btn
@@ -115,7 +116,7 @@
             :outline="$q.dark.isActive"
             padding="2px 0.75em"
             no-caps
-            label="Mark available"
+            :label="$t('MarkAvailable')"
             @click="() => updateSelectedProductsAvailability(true)"
           />
 
@@ -124,7 +125,7 @@
             :outline="$q.dark.isActive"
             padding="2px 0.75em"
             no-caps
-            label="Mark unavailable"
+            :label="$t('MarkUnavailable')"
             @click="() => updateSelectedProductsAvailability(false)"
           />
         </div>
@@ -174,7 +175,13 @@
                 <div>
                   {{ props.row.name }}
                   <template v-if="props.row.hasVariants">
-                    ({{ props.row.variants.length || props.row.variantsCount }} variants)
+                    {{
+                      $t(
+                        'VariantCount',
+                        { count: props.row.variants.length || props.row.variantsCount },
+                       `(${ props.row.variants.length || props.row.variantsCount } variants)`
+                      )
+                    }}
                   </template>
                 </div>
                 <div class="text-caption bottom text-grey">#{{ props.row.id }}</div>
@@ -199,8 +206,13 @@
                 class="no-wrap"
               />
               <div class="text-caption bottom">
-                {{ props?.row?.reviewSummary?.count }}
-                {{ props?.row?.reviewSummary?.count === 1 ? 'review' : 'reviews' }}
+                {{
+                  $t(
+                    'ReviewCount',
+                    { count: props?.row?.reviewSummary?.count },
+                   `${ props?.row?.reviewSummary?.count } review(s)`
+                  )
+                }}
               </div>
             </div>
           </q-td>
@@ -218,8 +230,8 @@
               :loading="props.row?.$state?.updatingCartOptions"
               flat
               no-caps
-              :label="props.row?.hasCartOptions ? 'Edit' : 'Add'"
-              :icon-right="props.row?.hasCartOptions ? 'edit' : 'add'"
+              :label="props.row?.hasCartOptions ? $t('Edit') : $t('Add')"
+              :icon-right="props.row?.hasCartOptions ? $t('edit') : $t('add')"
               no-wrap
               padding="xs sm"
               dense
@@ -236,7 +248,7 @@
                   :loading="props.row?.$state?.updatingAddons"
                   flat
                   no-caps
-                  label="View"
+                  :label="$t('View')"
                   no-wrap
                   padding="xs"
                   size="1em"
@@ -250,8 +262,8 @@
                 :loading="props.row?.$state?.updatingAddons"
                 flat
                 no-caps
-                :label="props.row?.addonsCount ? 'Edit' : 'Add'"
-                :icon-right="props.row?.addonsCount ? undefined : 'add'"
+                :label="props.row?.addonsCount ? $t('Edit') : $t('Add')"
+                :icon-right="props.row?.addonsCount ? undefined : $t('add')"
                 no-wrap
                 :padding="props.row?.addonsCount ? 'xs' :'xs sm'"
                 :size="props.row?.addonsCount ? '1em' : undefined"
@@ -278,6 +290,7 @@ import { Product } from 'src/marketplace/objects';
 import { backend } from 'src/marketplace/backend';
 import { errorParser, formatTimestampToText } from 'src/marketplace/utils';
 import { useMarketplaceStore } from 'src/stores/marketplace';
+import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar';
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue';
@@ -299,6 +312,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    const { t } = useI18n()
     window.$q = $q
     const marketplaceStore = useMarketplaceStore()
 
@@ -374,14 +388,14 @@ export default defineComponent({
 
     const table = ref()
     const productsTableColumns = [
-      { name: 'product', align: 'left', label: 'Product', field: 'name', sortable: true },
-      // { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks' },
-      { name: 'reviews', align: 'left', label: 'Reviews' },
-      { name: 'available', align: 'left', label: 'Available', sortable: true },
-      { name: 'markup-price', align: 'left', label: 'Markup Price', field: 'markupPriceRangeText', format: val => `${val} ${marketplaceStore?.currency}`, sortable: true },
-      { name: 'cart-options', align: 'left', label: 'Cart Options' },
-      { name: 'addons', align: 'left', label: 'Addon Options' },
-      { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText, sortable: true },
+      { name: 'product', align: 'left', label: t('Product'), field: 'name', sortable: true },
+      // { name: 'total-quantity', align: 'center', label: t('Stock'), field: 'totalStocks' },
+      { name: 'reviews', align: 'left', label: t('Reviews') },
+      { name: 'available', align: 'left', label: t('Available'), sortable: true },
+      { name: 'markup-price', align: 'left', label: t('MarkupPrice'), field: 'markupPriceRangeText', format: val => `${val} ${marketplaceStore?.currency}`, sortable: true },
+      { name: 'cart-options', align: 'left', label: t('CartOptions') },
+      { name: 'addons', align: 'left', label: t('AddonOptions') },
+      { name: 'created', align: 'center', label: t('Created'), field: 'createdAt', format: formatTimestampToText, sortable: true },
       // { name: 'actions', align: 'center', label: '' },
     ]
     const sortFieldNameMap = {
@@ -419,8 +433,12 @@ export default defineComponent({
     function confirmRemoveSelectedProducts() {
       const count = productsTableState.value.selected.length
       $q.dialog({
-        title: `Remove ${count} ${count === 1 ? 'product' : 'products'} from storefront`,
-        message: 'Removing selected products from storefront, are you sure?',
+        title: t(
+          'RemoveStorefrontProduct',
+          { count },
+          `Remove ${count} product(s) from storefront`
+        ),
+        message: t('RemoveSelectedProductsMsg'),
       }).onOk(() => removeSelectedProducts())
     }
 
@@ -431,7 +449,7 @@ export default defineComponent({
       }
 
       const dialog = $q.dialog({
-        title: 'Removing products from strefront',
+        title: t('RemoveProductsStorefrontMsg'),
         ok: false, 
         persistent: true,
         progress: true,
@@ -444,9 +462,8 @@ export default defineComponent({
         })
         .catch(error => {
           const data = error?.response?.data
-          let errorMsg = errorParser.firstElementOrValue(data?.non_field_errors) ||
-                        data?.detail || 'Encountered unknown error'
-          dialog.update({ title: 'Unable to remove products', message: errorMsg })
+          let errorMsg = errorParser.firstElementOrValue(data?.non_field_errors) || data?.detail || t('EncounteredUnknownError')
+          dialog.update({ title: t('UnableToRemoveProducts'), message: errorMsg })
         })
         .finally(() => {
           dialog.update({ ok: { color: 'brandblue' }, progress: false, persistent: false })
@@ -482,7 +499,7 @@ export default defineComponent({
       $q.dialog({
         component: JSONFormDialog,
         componentProps: {
-          title: [product?.name, 'Cart options'].filter(Boolean).join(' - '),
+          title: [product?.name, t('CartOptions')].filter(Boolean).join(' - '),
           schemaData: product.cartOptions || undefined,
         }
       }).onOk(result => {
@@ -503,7 +520,7 @@ export default defineComponent({
             product.hasCartOptions = product.cartOptions !== null
             product.raw.has_cart_options = product.hasCartOptions
             $q.notify({
-              message: 'Cart options updated',
+              message: t('CartOptionsUpdated'),
               icon: 'check',
               color: 'brandblue',
             })
@@ -520,7 +537,11 @@ export default defineComponent({
       $q.dialog({
         component: AddonsInfoDialog,
         componentProps: {
-          title: `${product.name} - Addon Options`,
+          title: t(
+            'AddOptionsName',
+            { name: product.name },
+            `${product.name} - Addon Options`
+          ),
           addons: product.addons,
           currency: marketplaceStore?.currency,
         }
@@ -532,7 +553,11 @@ export default defineComponent({
       $q.dialog({
         component: AddonsFormDialog,
         componentProps: {
-          title: `${product.name} - Addon Options`,
+          title: t(
+            'AddOptionsName',
+            { name: product.name },
+            `${product.name} - Addon Options`
+          ),
           initialValue: product.addons,
           clearable: true,
           promptClear: true,
@@ -559,7 +584,7 @@ export default defineComponent({
           .then(response => {
             product.raw = Object.assign({}, product.raw, response.data)
             $q.notify({
-              message: 'Addon options updated',
+              message: t('AddonOptionsUpdated'),
               icon: 'check',
               color: 'brandblue',
             })
@@ -588,7 +613,7 @@ export default defineComponent({
         }
 
         const dialog = $q.dialog({
-          title: 'Adding products',
+          title: t('AddingProducts'),
           progress: true,
           persistent: true,
           ok: false,
@@ -601,8 +626,8 @@ export default defineComponent({
           .catch(error => {
             const data = error?.response?.data
             let errorMsg = errorParser.firstElementOrValue(data?.non_field_errors) ||
-                          data?.detail || 'Encountered unknown error'
-            dialog.update({ title: 'Unable to add products', message: errorMsg })
+                          data?.detail || t('EncounteredUnknownError')
+            dialog.update({ title: t('UnableToAddProducts'), message: errorMsg })
           })
           .finally(() => {
             dialog.update({ ok: { color: 'brandblue' }, progress: false, persistent: false })

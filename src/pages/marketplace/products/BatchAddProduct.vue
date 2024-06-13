@@ -4,14 +4,14 @@
       <template v-slot:title>
         <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
         <div class="q-space">
-          <div class="text-h5">Add Products</div>
-          <div class="text-grey">Marketplace</div>
+          <div class="text-h5">{{ $t('AddProducts') }}</div>
+          <div class="text-grey">{{ $t('Marketplace') }}</div>
         </div>
       </template>
     </MarketplaceHeader>
     <div class="row items-center q-mb-md">
       <q-space/>
-      <q-btn flat no-caps label="Open from Excel / CSV / ZIP" @click="updloadSpreadsheet"/>
+      <q-btn flat no-caps :label="$t('OpenFrom')" @click="updloadSpreadsheet"/>
     </div>
     <q-form @submit="() => addProducts()">
       <q-banner v-if="formErrors?.detail?.length" class="bg-red text-white rounded-borders q-mb-sm">
@@ -26,7 +26,7 @@
         <q-btn
           no-caps
           :disable="loading"
-          label="Add product"
+          :label="$t('AddProduct')"
           :color="$q.dark.isActive ? 'dark' : 'white'"
           :text-color="$q.dark.isActive ? undefined : 'black'"
           @click="addRow"
@@ -41,7 +41,15 @@
         >
           <q-card-section class="q-py-sm q-px-md">
             <div class="row items-center">
-              <div class="text-grey">Product {{ index+1 }}</div>
+              <div class="text-grey">
+                {{
+                  $t(
+                    'ProductIndex',
+                    { index: index + 1 },
+                    `Product ${index+1}`
+                  )
+                }}
+              </div>
               <q-icon
                 v-if="formErrors?.products?.[index]?.hasError"
                 name="error" color="red" size="1.75em" class="q-ml-xs"
@@ -59,8 +67,8 @@
               <div :class="[product?.imageUrl ? 'col-9':'col-12']">
                 <div class="row items-center q-gutter-xs">
                   <div class="text-body1 ellipsis q-space">
-                    <template v-if="product.name">{{ product.name  }}</template>
-                    <span v-else class="text-grey">Unnamed</span>
+                    <template v-if="product.name">{{ product.name }}</template>
+                    <span v-else class="text-grey">{{ $t('Unnamed') }}</span>
                   </div>
                   <div v-if="product?.categories" class="ellipsis q-gutter-xs" style="min-width:5em">
                     <span
@@ -75,7 +83,7 @@
               <div class="ellipsis q-my-xs">{{ product.description }}</div>
             </div>
             <div v-if="product?.variants?.length  > 1" class="text-grey">
-              Variants
+              {{ $t('Variants') }}
             </div>
             <div v-for="(variant, index2) in product?.variants" :key="`${index}-${index2}`" class="row items-start q-mb-xs">
               <img
@@ -90,10 +98,10 @@
                   <div class="text-body2">{{ variant?.name }}</div>
                 </div>
                 <div class="row">
-                  <div class="q-pr-xs" style="min-width:50%;"><span class="text-grey">Code:</span> {{ variant?.code }}</div>
-                  <div class="q-pr-xs" style="min-width:50%;"><span class="text-grey">Price:</span> {{ variant?.price }} {{ marketplaceStore?.currency }}</div>
-                  <div class="q-pr-xs" style="min-width:50%;"><span class="text-grey">Initial stock:</span> {{ variant?.initialStock }}</div>
-                  <div class="q-pr-xs" style="min-width:50%;"><span class="text-grey">Cost Price:</span> {{ variant?.costPrice }} {{ marketplaceStore?.currency }}</div>
+                  <div class="q-pr-xs" style="min-width:50%;"><span class="text-grey">{{ $t('Code') }}:</span> {{ variant?.code }}</div>
+                  <div class="q-pr-xs" style="min-width:50%;"><span class="text-grey">{{ $t('Price') }}:</span> {{ variant?.price }} {{ marketplaceStore?.currency }}</div>
+                  <div class="q-pr-xs" style="min-width:50%;"><span class="text-grey">{{ $t('InitialStock') }}:</span> {{ variant?.initialStock }}</div>
+                  <div class="q-pr-xs" style="min-width:50%;"><span class="text-grey">{{ $t('CostPrice') }}:</span> {{ variant?.costPrice }} {{ marketplaceStore?.currency }}</div>
                 </div>
               </div>
             </div>
@@ -109,7 +117,7 @@
           type="submit"
           class="full-width"
         >
-          Create products
+          {{ $t('CreateProducts') }}
           <template v-if="formData.products.length">({{ formData.products.length }})</template>
         </q-btn>
       </div>
@@ -117,7 +125,7 @@
     <q-dialog v-model="openAddProductsOptsDialog" full-width>
       <q-card>
         <q-card-section>
-          <div class="text-h5 text-center q-mb-md">Add Products</div>
+          <div class="text-h5 text-center q-mb-md">{{ $t('AddProducts') }}</div>
           <q-btn-group spread>
             <q-btn
               no-caps
@@ -126,7 +134,7 @@
             >
               <div>
                 <div><q-icon name="upload_file" size="3em"/></div>
-                <div>Upload a file</div>
+                <div>{{ $t('UploadAFile') }}</div>
               </div>
             </q-btn>
             <q-btn
@@ -136,7 +144,7 @@
             >
               <div>
                 <div><q-icon name="edit_note" size="3em"/></div>
-                <div>Input form</div>
+                <div>{{ $t('InputForm') }}</div>
               </div>
             </q-btn>
           </q-btn-group>
@@ -150,6 +158,7 @@ import { backend } from 'src/marketplace/backend'
 import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { defineComponent, ref } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
@@ -164,6 +173,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    const { t } = useI18n()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
     const openAddProductsOptsDialog = ref(true)
@@ -230,15 +240,15 @@ export default defineComponent({
 
     function updloadSpreadsheet() {
       let note = ''
-      if (formData.value.products.length) note += 'NOTE: Loading a file will overwrite current info in the form'
+      if (formData.value.products.length) note += t('LoadProductsNote')
       $q.dialog({
-        title: 'Load products data',
+        title: t('LoadProductsData'),
         message: note,
         html: true,
         prompt: {
           type: 'file',
           color: 'brandblue',
-          hint: 'Upload excel / csv / zip file',
+          hint: t('LoadProductsHint'),
         },
         ok: {
           flat: true,
@@ -249,7 +259,7 @@ export default defineComponent({
         data.set('file', files[0])
 
         const dialog = $q.dialog({
-          title: 'Reading file',
+          title: t('ReadingFile'),
           progress: true,
           ok: false,
           persistent: true,
@@ -268,7 +278,7 @@ export default defineComponent({
               error?.response?.data?.non_field_errors?.[0] || 
               error?.response?.data?.file?.[0]
 
-            dialog.update({ title: 'Error', message: errorMsg || 'Unable to read file' })
+            dialog.update({ title: t('Error'), message: errorMsg || t('UnableToReadFile') })
           })
           .finally(() => {
             dialog.update({ persistent: false, ok: true, progress: false })
@@ -339,7 +349,7 @@ export default defineComponent({
         .finally(() => clearFormErrors())
         .then(() => {
           $q.dialog({
-            title: 'Products added!',
+            title: t('ProductsAdded'),
             ok: true,
           }).onOk(() => {
             $router.back()
@@ -383,7 +393,7 @@ export default defineComponent({
           if (data?.detail) formErrors.value.detail = [data?.detail]
 
           if (!formErrors.value.detail?.length) {
-            formErrors.value.detail = ['Encountered errors in adding products']
+            formErrors.value.detail = [t('AddingProductsErrMsg')]
           }
 
           return

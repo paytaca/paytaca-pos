@@ -2,7 +2,7 @@
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card class="q-pa-md" style="min-width:min(450px, 90vw);">
       <q-btn flat round icon="close" padding="xs" class="float-right" v-close-popup/>
-      <div class="text-h6 q-mb-sm">Search Variant</div>
+      <div class="text-h6 q-mb-sm">{{ $t('SearchVariant') }}</div>
       <template v-if="mode === 'search'">
         <q-input
           ref="searchInput"
@@ -36,8 +36,8 @@
           <slot v-else-if="!variantOpts?.length" name="no-item" v-bind="{ loading, searchVal }">
             <q-item>
               <q-item-section class="text-center text-grey">
-                <q-item-label v-if="searchVal">No items</q-item-label>
-                <q-item-label v-else>Search variant</q-item-label>
+                <q-item-label v-if="searchVal">{{ $t('NoItems') }}</q-item-label>
+                <q-item-label v-else>{{ $t('SearchVariant') }}</q-item-label>
               </q-item-section>
             </q-item>
           </slot>
@@ -58,7 +58,7 @@
               <q-item-label class="text-caption">{{ opt?.code }}</q-item-label>
             </q-item-section>
             <q-item-section side>
-              <q-item-label>Stocks: {{opt?.totalStocks }}</q-item-label>
+              <q-item-label>{{ $t('Stocks') }}: {{opt?.totalStocks }}</q-item-label>
               <q-item-label>{{opt?.price }} {{ marketplaceStore?.currency }}</q-item-label>
             </q-item-section>
           </q-item>
@@ -73,7 +73,7 @@
               @error="onScannerError"
             />
             <div style="position:absolute;bottom:0;left:0;right:0" class="text-center text-caption text-white">
-              Scan barcode
+              {{ $t('ScanBarcode') }}
             </div>
           </div>
         </div>
@@ -88,6 +88,7 @@ import { useMarketplaceStore } from 'src/stores/marketplace'
 import { debounce, useDialogPluginComponent } from 'quasar'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import { StreamBarcodeReader } from "vue-barcode-reader";
+import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
   name: 'VariantSearchDialog',
@@ -108,6 +109,7 @@ export default defineComponent({
     extraFilterArgs: Object,
   },
   setup(props, { emit: $emit }) {
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
@@ -177,7 +179,7 @@ export default defineComponent({
         })
         .then(response => {
           if (!response?.data?.results?.length) {
-            scanner.value.error = 'No variant found'
+            scanner.value.error = t('NoVariantFound')
             return response
           }
 
@@ -187,7 +189,7 @@ export default defineComponent({
         })
         .catch(error => {
           console.error(error)
-          scanner.value.error = 'Failed to retrieve item details'
+          scanner.value.error = t('FailedToRetrieveItemDetails')
         })
         .finally(() => {
           scanner.value.loading = false

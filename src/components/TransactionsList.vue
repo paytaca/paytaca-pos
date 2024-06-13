@@ -80,8 +80,8 @@ export default defineComponent({
   data() {
     return {
       recordTypeMap: {
-        incoming: 'RECEIVED',
-        outgoing: 'SENT'
+        incoming: this.$t('RECEIVED'),
+        outgoing: this.$t('SENT')
       },
     }
   },

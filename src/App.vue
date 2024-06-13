@@ -4,6 +4,7 @@
 
 <script>
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { defineComponent, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useWalletStore } from './stores/wallet'
 import { useNotificationsStore } from './stores/notifications'
@@ -33,6 +34,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    const { t } = useI18n()
     const walletStore = useWalletStore()
     const notificationsStore = useNotificationsStore()
     const $rpc = inject('$rpc')
@@ -84,8 +86,8 @@ export default defineComponent({
     function checkSuspended() {
       if (walletStore.deviceInfo.linkedDevice.isSuspended) {
         deviceSuspensionDialog.value = $q.dialog({
-          title: 'Suspended',
-          message: 'POS Device is suspended, contact merchant to unsuspend device',
+          title: t('Suspended'),
+          message: t('PosDeviceSuspensionMsg'),
           persistent: true,
           ok: false,
           cancel: false,
@@ -112,14 +114,14 @@ export default defineComponent({
       console.log('Notification:', notification)
       if (notification?.title || notification?.body) {
         let actions = [
-          { icon: 'close', 'aria-label': 'Dismiss', color: 'white' }
+          { icon: 'close', 'aria-label': t('Dismiss'), color: 'white' }
         ]
         const route = notificationsStore.resolvePushNotificationRoute(notification)
         if (route) {
           actions = [
             {
               noCaps: true,
-              label: 'Open',
+              label: t('Open'),
               textColor: 'white',
               handler: () => {
                 notificationsStore.setOpenedNotification(notification)
@@ -128,7 +130,7 @@ export default defineComponent({
             },
             {
               noCaps: true,
-              label: 'Close',
+              label: t('Close'),
               textColor: 'white',
             },
           ]

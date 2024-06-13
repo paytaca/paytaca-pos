@@ -5,7 +5,7 @@
       outlined
       :disable="disable"
       :loading="scanner.loading"
-      label="Item"
+      :label="$t('Item')"
       use-input
       :options="variantOpts"
       option-label="name"
@@ -50,8 +50,8 @@
             <q-item-label class="text-caption">{{ opt?.code }}</q-item-label>
           </q-item-section>
           <q-item-section side>
-            <q-item-label>Stocks</q-item-label>
-            <q-item-label>{{opt?.totalStocks }}</q-item-label>
+            <q-item-label>{{ $t('Stocks') }}</q-item-label>
+            <q-item-label>{{ opt?.totalStocks }}</q-item-label>
           </q-item-section>
         </q-item>
       </template>
@@ -64,7 +64,7 @@
         >
           <q-item-section class="text-center">
             <q-item-label>
-              More
+              {{ $t('More') }}
               <q-spinner v-if="pagination?.appending"/>
             </q-item-label>
           </q-item-section>
@@ -80,7 +80,7 @@
             @error="onScannerError"
           />
           <div style="position:absolute;bottom:0;left:0;right:0" class="text-center text-caption text-white">
-            Scan barcode
+            {{ $t('ScanBarcode') }}
           </div>
         </div>
       </div>
@@ -90,27 +90,31 @@
       dense
       outlined
       :disable="disable"
-      label="Cost price"
+      :label="$t('CostPrice')"
       :suffix="marketplaceStore?.currency"
       type="number"
       step="0.001"
-      :placeholder="formData?.variant?.price ? `Price: ${formData?.variant?.price}`: ''"
+      :placeholder="formData?.variant?.price ? $t(
+        'PriceValue',
+        { price: formData?.variant?.price },
+        `Price: ${formData?.variant?.price}`
+      ): ''"
       v-model.number="formData.costPrice"
       bottom-slots
       :rules="[
-        val => val > 0 || 'Invalid',
+        val => val > 0 || $t('Invalid'),
       ]"
     />
     <q-input
       dense
       outlined
       :disable="disable"
-      label="Quantity"
+      :label="$t('Quantity')"
       type="number"
       v-model.number="formData.quantity"
       bottom-slots
       :rules="[
-        val => val > 0 || 'Invalid',
+        val => val > 0 || $t('Invalid'),
       ]"
     />
     <div class="q-gutter-y-sm">
@@ -118,7 +122,7 @@
         :disable="disable"
         color="brandblue"
         no-caps
-        label="Add Item"
+        :label="$t('AddItem')"
         type="submit"
         class="full-width"
       />
@@ -128,7 +132,7 @@
         outline
         color="grey"
         no-caps
-        label="Cancel"
+        :label="$t('Cancel')"
         @click="() => {$emit('cancel');clearForm();}"
         class="full-width"
       />
@@ -152,6 +156,7 @@ import { computed, defineComponent, ref, watch } from 'vue'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { StreamBarcodeReader } from "vue-barcode-reader";
 import { Variant } from 'src/marketplace/objects';
+import { useI18n } from 'vue-i18n'
 
 const cachedBackend = setup(Object.assign({}, backend.defaults,
   {
@@ -181,6 +186,7 @@ export default defineComponent({
     disable: Boolean,
   },
   setup(props, { emit: $emit, attrs: $attrs }) {
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
     const showCancel = computed(() => {
       console.log($attrs)
@@ -211,7 +217,7 @@ export default defineComponent({
         })
         .then(response => {
           if (!response?.data?.results?.length) {
-            scanner.value.error = 'No variant found'
+            scanner.value.error = t('NoVariantFound')
             return response
           }
 
@@ -224,7 +230,7 @@ export default defineComponent({
         })
         .catch(error => {
           console.error(error)
-          scanner.value.error = 'Failed to retrieve item details'
+          scanner.value.error = t('FailedToRetrieveItemDetails')
         })
         .finally(() => {
           scanner.value.loading = false

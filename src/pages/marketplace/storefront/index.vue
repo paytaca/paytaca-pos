@@ -4,8 +4,8 @@
       <template v-slot:title>
         <q-btn flat icon="arrow_back" @click="() => $router.go(-1)"/>
         <div class="q-space">
-          <div class="text-h5">Storefront</div>
-          <div class="text-grey">Marketplace</div>
+          <div class="text-h5">{{ $t('Storefront') }}</div>
+          <div class="text-grey">{{ $t('Marketplace') }}</div>
         </div>
       </template>
     </MarketplaceHeader>
@@ -15,10 +15,10 @@
     </div>
     <q-card v-else>
       <q-card-section>
-        <div class="text-grey">No storefront</div>
+        <div class="text-grey">{{ $t('NoStorefront') }}</div>
         <q-btn
           no-caps
-          label="Create Storefront"
+          :label="$t('CreateStorefront')"
           color="brandblue"
           class="full-width q-mt-sm"
           :to="{name: 'marketplace-storefront-setup'}"
@@ -55,6 +55,7 @@
 import { backend } from 'src/marketplace/backend'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { debounce } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 
@@ -64,17 +65,18 @@ export default defineComponent({
     MarketplaceHeader,
   },
   setup() {
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
     onMounted(() => marketplaceStore.fetchStorefront())
     onMounted(() => updateOrdersCount())
 
     const pages = computed(() => {
       return [
-        { name: 'Products', icon: 'local_mall', route: { name: 'marketplace-storefront-products' } },
-        { name: 'Collections', icon: 'collections', route: { name: 'marketplace-storefront-collections' } },
-        { name: 'Orders', icon: 'pending_actions', badge: ordersCount.value, route: { name: 'marketplace-storefront-orders' } },
-        { name: 'Payments', icon: 'payments', route: { name: 'marketplace-storefront-payments' } },
-        { name: 'Settings', icon: 'settings', route: { name: 'marketplace-storefront-settings' } },
+        { name: t('Products'), icon: 'local_mall', route: { name: 'marketplace-storefront-products' } },
+        { name: t('Collections'), icon: 'collections', route: { name: 'marketplace-storefront-collections' } },
+        { name: t('Orders'), icon: 'pending_actions', badge: ordersCount.value, route: { name: 'marketplace-storefront-orders' } },
+        { name: t('Payments'), icon: 'payments', route: { name: 'marketplace-storefront-payments' } },
+        { name: t('Settings'), icon: 'settings', route: { name: 'marketplace-storefront-settings' } },
       ]
     })
 

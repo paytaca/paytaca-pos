@@ -4,8 +4,8 @@
       <template v-slot:title>
         <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
         <div class="q-space">
-          <div class="text-h5">Stock Recount</div>
-          <div class="text-grey">Marketplace</div>
+          <div class="text-h5">{{ $t('StockRecount') }}</div>
+          <div class="text-grey">{{ $t('Marketplace') }}</div>
         </div>
       </template>
     </MarketplaceHeader>
@@ -14,8 +14,16 @@
         no-caps rounded
         padding="2px 0.75em"
       >
-        {{ formData?.items?.length }}
-        {{ formData?.items?.length === 1 ? 'stock' : 'stocks' }}
+        {{
+          $t(
+            'NumberOfStocks',
+            {
+              count: formDataList?.items?.length,
+              unit: formDataList?.items?.length === 1 ? $t('stock') : $t('stocks')
+            },
+            `${formDataList?.items?.length} ${ formDataList?.items?.length === 1 ? $t('stock') : $t('stocks') }`
+          )
+        }}
       </q-chip>
       <q-space/>
       <q-btn
@@ -26,7 +34,7 @@
         @click="() => openStockSearchDialog()"
       >
         <q-icon name="add"/>
-        <span class="text-underline">Select more stocks</span>
+        <span class="text-underline">{{ $t('SelectMoreStocks') }}</span>
       </q-btn>
     </div>
     <q-form @submit="() => createStockRecount()">
@@ -41,17 +49,25 @@
       <div :class="{ dark: $q.dark.isActive }" class="row stocks-table-container" style="overflow:auto;">
         <table class="stocks-table full-width" :class="{ dark: $q.dark.isActive }">
           <tr>
-            <th>Stock</th>
-            <th>Expected</th>
-            <th>Actual</th>
-            <th>Remarks</th>
+            <th>{{ $t('Stock') }}</th>
+            <th>{{ $t('Expected') }}</th>
+            <th>{{ $t('Actual') }}</th>
+            <th>{{ $t('Remarks') }}</th>
             <th></th>
           </tr>
           <TransitionGroup name="fade">
             <tr v-for="(item, index) in formData.items" :key="item?.stock?.id">
               <td class="row items-center no-wrap text-weight-medium field" @click="() => displayStock(item.stock)">
                 <div class="q-space">
-                  <div>Stock#{{ item?.stock?.id }}</div>
+                  <div>
+                    {{
+                      $t(
+                        'StockId',
+                        { id: item?.stock?.id },
+                        `Stock#${item?.stock?.id}`
+                      )
+                    }}
+                  </div>
                   <div class="text-caption bottom ellipsis" style="max-width:25vw;">{{ item.stock.itemName }}</div>
                 </div>
                 <q-icon
@@ -89,7 +105,7 @@
                   :placeholder="item?.stock?.quantity"
                   v-model.number="item.actualQuantity"
                   :rules="[
-                    val => val >= 0 || 'Invalid',
+                    val => val >= 0 || $t('Invalid'),
                   ]"
                   :error="Boolean(formErrors?.items?.[index]?.actualQuantity)"
                   :error-message="formErrors?.items?.[index]?.actualQuantity"
@@ -121,7 +137,7 @@
       </div>
       <q-card class="q-mt-sm">
         <q-card-section>
-          <div>Remarks</div>
+          <div>{{ $t('Remarks') }}</div>
           <q-input
             dense
             outlined
@@ -135,7 +151,7 @@
       <div class="fixed-bottom q-pa-sm" style="z-index: 2;">
         <q-btn
           no-caps
-          label="Update stocks"
+          :label="$t('UpdateStocks')"
           color="brandblue"
           class="full-width"
           type="submit"
@@ -151,6 +167,7 @@ import { Stock } from 'src/marketplace/objects'
 import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { defineComponent, onMounted, ref } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
@@ -169,6 +186,7 @@ export default defineComponent({
   setup(props) {
     const marketplaceStore = useMarketplaceStore()
     const $q = useQuasar()
+    const { t } = useI18n()
     const $router = useRouter()
     onMounted(() => {
       if (!props.stockIds) return
@@ -260,7 +278,7 @@ export default defineComponent({
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
           $q.dialog({
-            title: 'Stock recount created!',
+            title: t('StockRecountCreated'),
             ok: true,
           }).onOk(() => $router.back())
           return response
@@ -284,7 +302,7 @@ export default defineComponent({
           if (Array.isArray(data)) formErrors.value.detail = data
           if (data?.detail) formErrors.value.detail = [data?.detail]
           if (!formErrors.value.detail?.length) {
-            formErrors.value.detail = ['Encountered errors in createing stock recount']
+            formErrors.value.detail = [t('StockRecountErrMsg')]
           }
         })
         .finally(() => {

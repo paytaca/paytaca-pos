@@ -5,8 +5,8 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Products</div>
-            <div class="text-grey">Marketplace</div>
+            <div class="text-h5">{{ $t('Products') }}</div>
+            <div class="text-grey">{{ $t('Marketplace') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
@@ -15,7 +15,7 @@
           <q-input
             dense
             v-model="filterOpts.search"
-            placeholder="Product name"
+            :placeholder="$t('ProductName')"
             debounce="500"
           >
             <template v-slot:prepend><q-icon name="search"/></template>
@@ -33,12 +33,12 @@
               <q-list separator>
                 <q-item clickable :to="{ name: 'marketplace-add-product' }">
                   <q-item-section>
-                    <q-item-label>Add Product</q-item-label>
+                    <q-item-label>{{ $t('AddProduct') }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable :to="{ name: 'marketplace-batch-add-product' }">
                   <q-item-section>
-                    <q-item-label>Add Multiple Products</q-item-label>
+                    <q-item-label>{{ $t('AddMultipleProducts') }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -52,7 +52,7 @@
             style="max-width:max(500px,75vw);"
             @click="categoriesPrompt"
           >
-            {{ filterOpts?.categories?.length === 1 ? 'Category' : 'Categories' }}
+            {{ filterOpts?.categories?.length === 1 ? $t('Category') : $t('Categories') }}
             :
             {{ filterOpts?.categories?.join(', ') }}
           </div>
@@ -101,7 +101,13 @@
                 <div>
                   {{ props.row.name }}
                   <template v-if="props.row.hasVariants">
-                    ({{ props.row.variants.length || props.row.variantsCount }} variants)
+                    {{
+                      $t(
+                        'VariantCount',
+                        { count: props.row.variants.length || props.row.variantsCount },
+                        `(${ props.row.variants.length || props.row.variantsCount } variants)`
+                      )
+                    }}
                   </template>
                 </div>
                 <div class="text-caption bottom text-grey">#{{ props.row.id }}</div>
@@ -125,8 +131,13 @@
                 class="no-wrap"
               />
               <div class="text-caption bottom">
-                {{ props?.row?.reviewSummary?.count }}
-                {{ props?.row?.reviewSummary?.count === 1 ? 'review' : 'reviews' }}
+                {{
+                  $t(
+                    'ReviewCount',
+                    { count: props?.row?.reviewSummary?.count },
+                    `${ props?.row?.reviewSummary?.count } review(s)`
+                  )
+                }}
               </div>
             </div>
           </q-td>
@@ -142,16 +153,19 @@
                     v-close-popup
                   >
                     <q-item-section>
-                      <q-item-label>Edit Product</q-item-label>
+                      <q-item-label>{{ $t('EditProduct') }}</q-item-label>
                     </q-item-section>
                   </q-item>
                   <q-item
                     clickable
-                    :to="{ name: 'marketplace-stocks', query: { productId: props.row?.id } }"
+                    :to="{
+                      name: 'marketplace-stocks',
+                      query: { productId: props.row?.id }
+                    }"
                     v-close-popup
                   >
                     <q-item-section>
-                      <q-item-label>Go to inventory</q-item-label>
+                      <q-item-label>{{ $t('GoToInventory') }}</q-item-label>
                     </q-item-section>
                   </q-item>
                 </q-list>
@@ -176,7 +190,7 @@
                 v-close-popup
               >
                 <q-item-section>
-                  <q-item-label>Edit Product</q-item-label>
+                  <q-item-label>{{ $t('EditProduct') }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item
@@ -185,7 +199,7 @@
                 v-close-popup
               >
                 <q-item-section>
-                  <q-item-label>Go to inventory</q-item-label>
+                  <q-item-label>{{ $t('GoToInventory') }}</q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
@@ -205,6 +219,7 @@ import { backend } from 'src/marketplace/backend'
 import { Product } from 'src/marketplace/objects'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import ProductInventoryDialog from 'src/components/marketplace/inventory/ProductInventoryDialog.vue'
 import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue';
@@ -221,6 +236,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
 
     const categoriesFilter = ref({
@@ -241,7 +257,7 @@ export default defineComponent({
     }
     function categoriesPrompt() {
       $q.dialog({
-        title: 'Filter categories',
+        title: t('FilterCategories'),
         position: 'bottom',
         options: {
           type: 'checkbox',
@@ -298,10 +314,10 @@ export default defineComponent({
     
     const table = ref()
     const productsTableColumns = [
-      { name: 'product', align: 'left', label: 'Product', field: 'name', sortable: true },
-      { name: 'reviews', align: 'left', label: 'Reviews' },
-      { name: 'total-quantity', align: 'center', label: 'Stock', field: 'totalStocks', sortable: true },
-      { name: 'created', align: 'center', label: 'Created', field: 'createdAt', format: formatTimestampToText, sortable: true },
+      { name: 'product', align: 'left', label: t('Product'), field: 'name', sortable: true },
+      { name: 'reviews', align: 'left', label: t('Reviews') },
+      { name: 'total-quantity', align: 'center', label: t('Stock'), field: 'totalStocks', sortable: true },
+      { name: 'created', align: 'center', label: t('Created'), field: 'createdAt', format: formatTimestampToText, sortable: true },
       // { name: 'actions', align: 'center', label: '' },
     ]
     const sortFieldNameMap = {

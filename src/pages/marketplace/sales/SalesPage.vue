@@ -5,8 +5,8 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Sales</div>
-            <div class="text-grey">Marketplace</div>
+            <div class="text-h5">{{ $t('Sales') }}</div>
+            <div class="text-grey">{{ $t('Marketplace') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
@@ -17,7 +17,7 @@
           rounded
           padding="xs sm"
           no-caps
-          label="Reports"
+          :label="$t('Reports')"
           icon="query_stats"
           :to="{ name: 'marketplace-sales-reports'}"
         />
@@ -28,7 +28,7 @@
           <q-input
             dense
             v-model="filterOpts.search"
-            placeholder="PO#, Item name"
+            :placeholder="$t('PoItemName')"
             debounce="500"
           >
             <template v-slot:prepend><q-icon name="search"/></template>
@@ -47,16 +47,34 @@
               {{ formatDate(parsedFilterOpts.dateRange.exact) }}
             </template>
             <template v-else-if="parsedFilterOpts.dateRange.from && parsedFilterOpts.dateRange.to">
-              {{ formatDate(parsedFilterOpts.dateRange.from) }} to {{ formatDate(parsedFilterOpts.dateRange.to) }}
+              {{
+                $t(
+                  'DateFromTo',
+                  { from: formatDate(parsedFilterOpts.dateRange.from), to: formatDate(parsedFilterOpts.dateRange.to) },
+                  `${ formatDate(parsedFilterOpts.dateRange.from) } to ${ formatDate(parsedFilterOpts.dateRange.to) }`
+                )
+              }}
             </template>
             <template v-else-if="parsedFilterOpts.dateRange?.from">
-              from {{ formatDate(parsedFilterOpts.dateRange?.from) }}
+              {{
+                $t(
+                  'DateFrom',
+                  { from: formatDate(parsedFilterOpts.dateRange?.from) },
+                  `from ${ formatDate(parsedFilterOpts.dateRange?.from) }`
+                )
+              }}
             </template>
             <template v-else-if="parsedFilterOpts.dateRange?.to">
-              to {{ formatDate(parsedFilterOpts.dateRange?.to) }}
+              {{
+                $t(
+                  'DateTo',
+                  { to: formatDate(parsedFilterOpts.dateRange?.to) },
+                  `to ${ formatDate(parsedFilterOpts.dateRange?.to) }`
+                )
+              }}
             </template>
             <span v-else class="text-grey">
-              Filter date
+              {{ $t('FilterDate') }}
             </span>
             <q-popup-edit
               v-model="filterOpts.dateRange"
@@ -74,11 +92,12 @@
                 <q-btn
                   v-if="!Boolean(scope.initialValue)"
                   flat color="grey"
-                  no-caps label="Cancel"
+                  no-caps
+                  :label="$t('Cancel')"
                   @click="scope.cancel"
                 />
-                <q-btn v-else flat color="grey" no-caps label="Clear" @click="() => {scope.value=null;scope.set();}"/>
-                <q-btn flat color="brandblue" no-caps label="Set" @click="scope.set"/>
+                <q-btn v-else flat color="grey" no-caps :label="$t('Clear')" @click="() => {scope.value=null;scope.set();}"/>
+                <q-btn flat color="brandblue" no-caps :label="$t('Set')" @click="scope.set"/>
               </div>
             </q-popup-edit>
           </q-chip>
@@ -88,7 +107,7 @@
       <q-table
         ref="table"
         :loading="fetchingSalesOrders"
-        loading-label="Loading..."
+        :loading-label="$t('Loading')"
         :columns="salesOrdersTableColumns"
         :rows="salesOrders"
         row-key="id"
@@ -123,7 +142,13 @@
               class="full-width"
               @click="() => showSalesOrderDetail(props.row)"
             >
-              SO#{{ props.row?.number }}
+              {{
+                $t(
+                  'SoNumber',
+                  { number: props.row?.number },
+                  `SO#${ props.row?.number }`
+                )
+              }}
             </q-btn>
           </q-td>
         </template>
@@ -138,7 +163,7 @@
           flat
           no-caps
           padding="xs none"
-          label="Go to page"
+          :label="$t('GoToPage')"
           class="text-underline"
           :to="{ name: 'marketplace-sales-order', params: { salesOrderId: salesOrderDetailDialog.salesOrder?.id } }"
         />
@@ -152,6 +177,7 @@ import { SalesOrder } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { date } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import SalesOrderDetailDialog from 'src/components/marketplace/sales/SalesOrderDetailDialog.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
@@ -165,6 +191,7 @@ export default defineComponent({
     LimitOffsetPagination,
   },
   setup() {
+    const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
 
     const filterOpts = ref({
@@ -242,11 +269,11 @@ export default defineComponent({
 
     const table = ref()
     const salesOrdersTableColumns = [
-      { name: 'number', align: 'center', label: 'Number', field: 'number', format: val => `SO#${val}`, sortable: true },
-      { name: 'status', align: 'center', label: 'Status', field: 'parsedStatus', sortable: true },
-      { name: 'total', align: 'center', label: 'Total', field: obj => obj?.total ? `${obj?.total} ${obj?.currency?.symbol}` : '', sortable: true },
-      { name: 'items', align: 'center', label: 'Items', field: obj => obj?.items?.length || obj?.itemsCount, format: val => val === 1 ? `${val} item` : `${val} items`, sortable: true },
-      { name: 'payment-mode', align: 'center', label: 'Payment mode', field: obj => obj?.parsedPaymentMode || obj?.paymentMode, sortable: true },
+      { name: 'number', align: 'center', label: t('Number'), field: 'number', format: val => `SO#${val}`, sortable: true },
+      { name: 'status', align: 'center', label: t('Status'), field: 'parsedStatus', sortable: true },
+      { name: 'total', align: 'center', label: t('Total'), field: obj => obj?.total ? `${obj?.total} ${obj?.currency?.symbol}` : '', sortable: true },
+      { name: 'items', align: 'center', label: t('Items'), field: obj => obj?.items?.length || obj?.itemsCount, format: val => val === 1 ? `${val} item` : `${val} items`, sortable: true },
+      { name: 'payment-mode', align: 'center', label: t('PaymentMode'), field: obj => obj?.parsedPaymentMode || obj?.paymentMode, sortable: true },
     ]
     const sortFieldNameMap = {
       items: 'items_count',

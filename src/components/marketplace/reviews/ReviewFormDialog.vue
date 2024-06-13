@@ -46,7 +46,7 @@
               outlined
               :disable="loading"
               autogrow
-              label="Message"
+              :label="$t('Message')"
               v-model="formData.text"
               type="textarea"
               input-style="min-height:4rem;"
@@ -98,7 +98,8 @@
           <q-btn
             :disable="loading"
             :loading="loading"
-            no-caps label="Submit"
+            no-caps
+            :label="$t('Submit')"
             color="brandblue"
             class="full-width q-mt-sm"
             type="submit"
@@ -108,7 +109,8 @@
             outline
             :disable="loading"
             :loading="loading"
-            no-caps label="Cancel"
+            no-caps
+            :label="$t('Cancel')"
             color="grey"
             class="full-width q-mt-sm"
             v-close-popup
@@ -266,7 +268,7 @@ export default defineComponent({
             if (data?.detail) formErrors.value.detail = [data?.detail]
           }
           if (!formErrors.value.detail?.length) formErrors.value.detail = [
-            'Unable to create review'
+            t('UnableToCreateReview')
           ]
         })
         .finally(() => {

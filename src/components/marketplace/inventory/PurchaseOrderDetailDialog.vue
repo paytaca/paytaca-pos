@@ -5,7 +5,7 @@
         <div class="row no-wrap items-start">
           <div class="q-space row items-center q-gutter-x-xs">
             <div class="text-h5">
-              Purchase Order
+              {{ $t('PurchaseOrder') }}
               <template v-if="purchaseOrder?.number">#{{ purchaseOrder?.number }}</template>
             </div>
           </div>
@@ -15,14 +15,26 @@
           <div v-if="purchaseOrder?.createdAt" class="text-caption bottom text-grey">
             {{ formatTimestampToText(purchaseOrder?.createdAt) }}
             <q-menu class="q-pa-sm">
-              Created at {{ formatTimestampToText(purchaseOrder?.createdAt) }}
+              {{
+                $t(
+                  'CreatedAt',
+                  { date: formatTimestampToText(purchaseOrder?.createdAt) },
+                  `Created at ${formatTimestampToText(purchaseOrder?.createdAt)}`,
+                )
+              }}
             </q-menu>
           </div>
           <q-space/>
           <div v-if="purchaseOrder?.createdBy?.id" class="text-caption bottom text-grey">
             {{ purchaseOrder?.createdBy?.fullName }}
             <q-menu class="q-pa-sm">
-              Created by {{ purchaseOrder?.createdBy?.fullName }}
+              {{
+                $t(
+                  'CreatedBy',
+                  { name: purchaseOrder?.createdBy?.fullName },
+                  `Created by ${purchaseOrder?.createdBy?.fullName}`,
+                )
+              }}
             </q-menu>
           </div>
         </div>
@@ -33,18 +45,18 @@
       <template v-else>
         <q-card-section class="q-py-none row q-px-sm">
           <div class="col-6 col-sm-4 q-px-sm q-pb-xs">
-            <div class="text-caption top text-grey">Status</div>
+            <div class="text-caption top text-grey">{{ $t('Status') }}</div>
             <div>{{ formatPurchaseOrderStatus(purchaseOrder?.status) }}</div>
           </div>
           <div class="q-space q-px-sm q-pb-xs">
-            <div class="text-caption top text-grey">Vendor</div>
+            <div class="text-caption top text-grey">{{ $t('Vendor') }}</div>
             <div>{{ purchaseOrder.vendor.name }}</div>
             <div v-if="purchaseOrder.vendor?.location?.formatted" class="text-caption bottom" style="line-height:1.5em;">
               {{ purchaseOrder.vendor?.location?.formatted }}
             </div>
           </div>
           <div v-if="purchaseOrder.reviewedAt" class="q-space q-px-sm q-pb-xs">
-            <div class="text-caption top text-grey">Reviewed</div>
+            <div class="text-caption top text-grey">{{ $t('Reviewed') }}</div>
             <div>{{ purchaseOrder?.reviewedBy?.fullName }}</div>
             <div v-if="purchaseOrder.reviewedAt" class="text-caption bottom">
               {{ formatTimestampToText(purchaseOrder.reviewedAt) }}
@@ -52,7 +64,7 @@
           </div>
         </q-card-section>
         <q-card-section class="q-pb-none">
-          <div class="text-h6">Items</div>
+          <div class="text-h6">{{ $t('Items') }}</div>
         </q-card-section>
         <q-list class="q-mb-md">
           <q-item
