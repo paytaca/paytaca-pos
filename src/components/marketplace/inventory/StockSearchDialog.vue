@@ -34,18 +34,33 @@
                 <template v-if="stock?.purchaseOrderNumber">{{ stock?.purchaseOrderNumber }}</template>
                 <i v-else class="text-grey">{{ $t('NoPurchaseOrder') }}</i>
               </q-item-label>
-              <!--TODO:-->
               <q-item-label v-else>{{ stock?.itemName }}</q-item-label>
               <q-item-label class="text-caption">#{{ stock?.id }}</q-item-label>
             </q-item-section>
             <q-item-section>
-              <q-item-label>Qty: {{ stock?.quantity }}</q-item-label>
-              <q-item-label>Cost Price: {{ stock?.costPrice }} {{ marketplaceStore?.currency }}</q-item-label>
+              <q-item-label>
+                {{
+                  $t(
+                    'QuantityDisplayText',
+                    { totalStocks: stock?.quantity },
+                    `Qty: ${stock?.quantity}`
+                  )
+                }}
+              </q-item-label>
+              <q-item-label>
+                {{
+                  $t(
+                    'CostPrice',
+                    { price: stock?.costPrice, currency: marketplaceStore?.currency },
+                    `Cost Price: ${stock?.costPrice} ${marketplaceStore?.currency}`
+                  )
+                }}
+              </q-item-label>
               <q-item-label v-if="context === 'sales' && stock?.expiresAt">
                 <template v-if="stock?.expiresAt?.getTime() <= Date.now()">
-                  Expired:
+                  {{ $t('Expired') }}:
                 </template>
-                <template v-else>Expires:</template>
+                <template v-else>{{ $t('Expires') }}:</template>
                 {{ formatDateRelative(stock.expiresAt) }}
               </q-item-label>
             </q-item-section>

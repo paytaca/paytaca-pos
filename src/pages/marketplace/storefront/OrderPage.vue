@@ -13,8 +13,15 @@
 
       <div class="row items-start no-wrap">
         <div class="row items-center q-space">
-          <!--TODO:-->
-          <div class="text-h5 q-space">Order #{{ order?.id }}</div>
+          <div class="text-h5 q-space">
+            {{
+              $t(
+                'OrderId',
+                { id: order?.id },
+                `Order #${order?.id}`
+              )
+            }}
+          </div>
           <div v-if="order?.id" style="margin-left:-4px;">
             <q-chip
               v-if="!order?.isCancelled"
@@ -79,8 +86,15 @@
                     <template v-if="prevStatus === 'pending'">{{ $t('UnconfirmOrder') }}</template>
                     <template v-else-if="prevStatus === 'confirmed'">{{ $t('RevertToConfirmed') }}</template>
                     <template v-else-if="prevStatus === 'preparing'">{{ $t('RevertAsPreparing') }}</template>
-                    <!--TODO:-->
-                    <template v-else>Revert to '{{ formatOrderStatus(prevStatus) }}'</template>
+                    <template v-else>
+                      {{
+                        $t(
+                          'RevertToStatus',
+                          { status: formatOrderStatus(prevStatus) },
+                          `Revert to '${formatOrderStatus(prevStatus)}'`
+                        )
+                      }}
+                    </template>
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -275,8 +289,15 @@
                     @click="() => setDeliveryPublicity(!delivery.isPublic)"
                   >
                     <q-item-section>
-                      <!--TODO:-->
-                      <q-item-label>Set {{ delivery?.isPublic ? $t('Private') : $t('Public') }}</q-item-label>
+                      <q-item-label>
+                        {{
+                          $t(
+                            'SetPrivacy',
+                            { privacy: delivery?.isPublic ? $t('Private') : $t('Public') },
+                            `Set ${ delivery?.isPublic ? $t('Private') : $t('Public') }`
+                          )
+                        }}
+                      </q-item-label>
                     </q-item-section>
                   </q-item>
                 </q-list>
@@ -298,20 +319,35 @@
               >
                 <q-menu class="q-pa-sm">
                   <div v-if="delivery.pickedUpAt">
-                    <!--TODO:-->
-                    Picked up {{ formatDateRelative(delivery.pickedUpAt) }}
+                    {{
+                      $t(
+                        'PickedUpAt',
+                        { date: formatDateRelative(delivery.pickedUpAt) },
+                        `Picked up ${formatDateRelative(delivery.pickedUpAt)}`
+                      )
+                    }}
                   </div>
                   <div v-if="delivery.deliveredAt">
-                    <!--TODO:-->
-                    Delivered {{ formatDateRelative(delivery.deliveredAt) }}
+                    {{
+                      $t(
+                        'DeliveredAt',
+                        { date: formatDateRelative(delivery.deliveredAt) },
+                        `Delivered ${formatDateRelative(delivery.deliveredAt)}`
+                      )
+                    }}
                   </div>
                 </q-menu>
               </q-icon>
             </div>
             <div class="text-subtitle1">{{ $t('DeliveryStatus') }}</div>
             <div class="text-caption bottom">
-              <!--TODO:-->
-              Delivery #{{ delivery?.id }}
+              {{
+                $t(
+                  'DeliveryId',
+                  { id: delivery?.id },
+                  `Delivery #${delivery?.id}`
+                )
+              }}
               <template v-if="delivery.isPublic === false">
                 <span class="text-grey text-underline">({{ $t('Private') }})</span>
                 <q-menu class="q-pa-sm">

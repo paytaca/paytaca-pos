@@ -28,10 +28,25 @@
               </q-item-label>
             </template>
             <template v-else>
-              <!--TODO:-->
               <q-item-label> {{ capitalize(purchaseOrderUpdate?.updateType?.replaceAll('_', ' ')) }}</q-item-label>
-              <q-item-label> Previous: {{ purchaseOrderUpdate?.prevValue }}</q-item-label>
-              <q-item-label> New: {{ purchaseOrderUpdate?.newValue }}</q-item-label>
+              <q-item-label>
+                {{
+                  $t(
+                    'PreviousValue',
+                    { value: purchaseOrderUpdate?.prevValue },
+                    `Previous: ${purchaseOrderUpdate?.prevValue}`
+                  )
+                }}
+              </q-item-label>
+              <q-item-label>
+                {{
+                  $t(
+                    'NewValue',
+                    { value: purchaseOrderUpdate?.newValue },
+                    `New: ${purchaseOrderUpdate?.newValue}`
+                  )
+                }}
+              </q-item-label>
             </template>
           </q-item-section>
           <q-item-section top side>

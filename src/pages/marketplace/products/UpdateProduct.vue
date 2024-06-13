@@ -183,8 +183,13 @@
                 <div class="row items-center">
                   <div class="text-grey q-space" :class="{ 'text-strike': variant.remove }">
                     <template v-if="variant.remove">({{ $t('Delete') }})</template>
-                    <!--TODO:-->
-                    Variant {{ index + 1 }}
+                    {{
+                      $t(
+                        'VariantIndex',
+                        { index: index + 1 },
+                        `Variant ${ index + 1 }`
+                      )
+                    }}
                     <template v-if="variant.obj.name">
                       - {{ variant.obj.name }}
                     </template>
@@ -250,8 +255,13 @@
                 <div v-if="computedFormData.variants.count > 1">
                   <div class="row items-center">
                     <div class="text-grey q-space">
-                      <!--TODO:-->
-                      New Variant {{ index + 1 }}
+                      {{
+                        $t(
+                          'NewVariantIndex',
+                          { index: index + 1 },
+                          `New Variant ${ index + 1 }`
+                        )
+                      }}
                     </div>
                     <q-btn
                       flat icon="delete"
@@ -696,8 +706,16 @@ export default defineComponent({
 
     function confirmDeleteProduct() {
       $q.dialog({
-        title: `Delete '${product.value?.name}'`, // TODO:
-        message: `Delete product '${product.value.name}'. Are you sure?`, // TODO:
+        title: t(
+          'DeleteProductPromptTitle',
+          { name: product.value?.name },
+          `Delete '${product.value?.name}'`
+        ),
+        message: t(
+          'DeleteProductPromptMsg',
+          { name: product.value?.name },
+          `Delete product '${product.value.name}'. Are you sure?`
+        ),
         ok: {
           noCaps: true,
           label: t('Delete'),

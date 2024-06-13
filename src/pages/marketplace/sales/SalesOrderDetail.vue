@@ -5,8 +5,8 @@
         <template v-slot:title>
           <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
           <div class="q-space">
-            <div class="text-h5">Sales Order</div>
-            <div class="text-grey">Marketplace</div>
+            <div class="text-h5">{{ $t('SalesOrder') }}</div>
+            <div class="text-grey">{{ $t('Marketplace') }}</div>
           </div>
         </template>
       </MarketplaceHeader>
@@ -17,9 +17,8 @@
         <q-card-section>
           <div class="row items-center">
             <div class="text-h5">
-              <!--TODO:-->
-              <template v-if="salesOrder?.draft">Draft</template>
-              Sale
+              <template v-if="salesOrder?.draft">{{ $t('DraftSale') }}</template>
+              <template v-else>{{ $t('Sale') }}</template>
               <template v-if="salesOrder?.number">#{{ salesOrder?.number }}</template>
               <q-spinner v-if="loading" class="on-right"/>
             </div>
@@ -42,7 +41,7 @@
                 <q-item clickable v-ripple v-close-popup @click="() => confirmVoidSale()">
                   <q-item-section>
                     <q-item-label>
-                      Void Sale
+                      {{ $t('VoidSale') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -57,7 +56,7 @@
             <div v-if="salesOrder?.createdBy?.fullName">{{ salesOrder?.createdBy?.fullName }}</div>
           </div>
 
-          <div class="text-h6 q-mt-md">Items</div>
+          <div class="text-h6 q-mt-md">{{ $t('Items') }}</div>
           <table class="items-table">
             <tr
               v-for="item in salesOrder?.items" :key="item?.id"
@@ -83,14 +82,20 @@
           
           <q-separator spaced/>
           <div class="text-h5 row items-start">
-            <div class="q-space">Total</div>
+            <div class="q-space">{{ $t('Total') }}</div>
             <div>
               <div v-if="salesOrder?.paymentMode == 'bch' && salesOrder?.bchTotal" class="text-right">
                 <div class="row items-center">
                   <div>{{ salesOrder?.bchTotal }} BCH</div>
                   <q-icon v-if="salesOrder?.bchPrice?.timestamp" name="info" size="1em">
                     <q-menu class="q-pa-sm">
-                      BCH price at {{ formatTimestampToText(salesOrder?.bchPrice?.timestamp) }}
+                      {{
+                        $t(
+                          'BchPriceAtValue',
+                          { value: formatTimestampToText(salesOrder?.bchPrice?.timestamp) },
+                          `BCH price at ${ formatTimestampToText(salesOrder?.bchPrice?.timestamp) }`
+                        )
+                      }}
                     </q-menu>
                   </q-icon>
                 </div>
@@ -105,16 +110,16 @@
           </div>
 
           <div class="row no-wrap items-start">
-            <div class="q-space q-mr-sm">Payment method</div>
+            <div class="q-space q-mr-sm">{{ $t('PaymentMethod') }}</div>
             <div>{{ salesOrder.parsedPaymentMode }}</div>
           </div>
           <template v-if="salesOrder?.paymentMode == 'bch'">
             <div class="row no-wrap items-start">
-              <div class="q-space q-mr-sm">Recipient</div>
+              <div class="q-space q-mr-sm">{{ $t('Recipient') }}</div>
               <div style="word-break:break-all;" class="ellipsis">{{ salesOrder?.bchRecipientAddress }}</div>
             </div>
             <div v-if="salesOrder?.bchTxid" class="row no-wrap items-start">
-              <div class="q-space q-mr-sm">Transaction</div>
+              <div class="q-space q-mr-sm">{{ $t('Transaction') }}</div>
               <div style="word-break:break-all;" class="ellipsis">{{ salesOrder?.bchTxid }}</div>
               <q-btn
                 v-if="salesOrder?.bchTxidLink"

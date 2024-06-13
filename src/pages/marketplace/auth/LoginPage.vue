@@ -145,10 +145,13 @@ export default defineComponent({
           const isThrottled = error?.response?.status === 429
           const retryAfter = error?.response?.headers?.['Retry-After']
           if (isThrottled && !errors.value.detail?.length) {
-            // TODO:
-            let msg = 'You are making frequent actions'
-            if (retryAfter) msg += `. Try again after ${retryAfter} seconds`
-            else msg += `. Try again later`
+            let msg = t('FrequentActionErrMsg1')
+            if (retryAfter) msg += t(
+              'FrequentActionErrMsg2',
+              { seconds: retryAfter },
+              `. Try again after ${retryAfter} seconds`
+            )
+            else msg += t('FrequentActionErrMsg3')
 
             errors.value.detail = [msg]
           }

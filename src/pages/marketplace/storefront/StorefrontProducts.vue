@@ -175,8 +175,13 @@
                 <div>
                   {{ props.row.name }}
                   <template v-if="props.row.hasVariants">
-                    <!--TODO:-->
-                    ({{ props.row.variants.length || props.row.variantsCount }} variants)
+                    {{
+                      $t(
+                        'VariantCount',
+                        { count: props.row.variants.length || props.row.variantsCount },
+                       `(${ props.row.variants.length || props.row.variantsCount } variants)`
+                      )
+                    }}
                   </template>
                 </div>
                 <div class="text-caption bottom text-grey">#{{ props.row.id }}</div>
@@ -201,9 +206,13 @@
                 class="no-wrap"
               />
               <div class="text-caption bottom">
-                <!--TODO:-->
-                {{ props?.row?.reviewSummary?.count }}
-                {{ props?.row?.reviewSummary?.count === 1 ? 'review' : 'reviews' }}
+                {{
+                  $t(
+                    'ReviewCount',
+                    { count: props?.row?.reviewSummary?.count },
+                   `${ props?.row?.reviewSummary?.count } review(s)`
+                  )
+                }}
               </div>
             </div>
           </q-td>
@@ -424,8 +433,11 @@ export default defineComponent({
     function confirmRemoveSelectedProducts() {
       const count = productsTableState.value.selected.length
       $q.dialog({
-        // TODO:
-        title: `Remove ${count} ${count === 1 ? 'product' : 'products'} from storefront`,
+        title: t(
+          'RemoveStorefrontProduct',
+          { count },
+          `Remove ${count} product(s) from storefront`
+        ),
         message: t('RemoveSelectedProductsMsg'),
       }).onOk(() => removeSelectedProducts())
     }
@@ -450,9 +462,8 @@ export default defineComponent({
         })
         .catch(error => {
           const data = error?.response?.data
-          let errorMsg = errorParser.firstElementOrValue(data?.non_field_errors) ||
-                        data?.detail || t('EncounteredUnknownError')
-          dialog.update({ title: 'Unable to remove products', message: errorMsg })
+          let errorMsg = errorParser.firstElementOrValue(data?.non_field_errors) || data?.detail || t('EncounteredUnknownError')
+          dialog.update({ title: t('UnableToRemoveProducts'), message: errorMsg })
         })
         .finally(() => {
           dialog.update({ ok: { color: 'brandblue' }, progress: false, persistent: false })
@@ -526,8 +537,11 @@ export default defineComponent({
       $q.dialog({
         component: AddonsInfoDialog,
         componentProps: {
-          // TODO:
-          title: `${product.name} - Addon Options`,
+          title: t(
+            'AddOptionsName',
+            { name: product.name },
+            `${product.name} - Addon Options`
+          ),
           addons: product.addons,
           currency: marketplaceStore?.currency,
         }
@@ -539,8 +553,11 @@ export default defineComponent({
       $q.dialog({
         component: AddonsFormDialog,
         componentProps: {
-          // TODO:
-          title: `${product.name} - Addon Options`,
+          title: t(
+            'AddOptionsName',
+            { name: product.name },
+            `${product.name} - Addon Options`
+          ),
           initialValue: product.addons,
           clearable: true,
           promptClear: true,

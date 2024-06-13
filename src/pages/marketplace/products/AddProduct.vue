@@ -172,8 +172,13 @@
                 <div v-if="formData.variants.length > 1">
                   <div class="row items-center">
                     <div class="text-grey q-space">
-                      <!--TODO:-->
-                      Variant {{ index + 1 }}
+                      {{
+                        $t(
+                          'VariantIndex',
+                          { index: index + 1 },
+                          `Variant ${index + 1}`
+                        )
+                      }}
                     </div>
                     <q-btn flat icon="delete" @click="() => formData.variants.splice(index, 1)"/>
                   </div>

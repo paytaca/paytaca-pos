@@ -153,10 +153,17 @@
             no-caps rounded
             padding="2px 0.75em"
             @click="() => displaySelectedStocks = true"
-          > 
-            <!--TODO:-->
-            {{ selectedStocks?.length }}
-            {{ selectedStocks?.length === 1 ? 'stock' : 'stocks' }}
+          >
+            {{
+              $t(
+                'NumberOfStocks',
+                {
+                  count: selectedStocks?.length,
+                  unit: selectedStocks?.length === 1 ? $t('stock') : $t('stocks')
+                },
+                `${selectedStocks?.length} ${ selectedStocks?.length === 1 ? $t('stock') : $t('stocks') }`
+              )
+            }}
           </q-btn>
           <q-btn
             rounded
@@ -622,7 +629,11 @@ export default defineComponent({
       if (variantName) itemName += `- ${variantName}`
       $q.dialog({
         title: t('RemoveStock'),
-        message: `Remove stock for "${itemName}". Are you sure?`,  // TODO:
+        message: t(
+          'RemoveStockItemMsg',
+          { item: itemName },
+          `Remove stock for "${itemName}". Are you sure?`
+        ),
         ok: true,
         cancel: true,
       })
@@ -652,8 +663,14 @@ export default defineComponent({
     function confirmDeleteStocks(stocks=[].map(Stock.parse)) {
       $q.dialog({
         title: t('RemoveStocks'),
-        // TODO:
-        message: `Removing ${stocks?.length} ${stocks?.length === 1 ? 'stock': 'stocks'}. Are you sure?`,
+        message: t(
+          'RemoveStocksMsg',
+          {
+            count: stocks.length,
+            unit: stocks?.length === 1 ? t('stock'): t('stocks')
+          },
+          `Removing ${stocks?.length} ${stocks?.length === 1 ? t('stock'): t('stocks')}. Are you sure?`
+        ),
         ok: true,
         cancel: true,
       })

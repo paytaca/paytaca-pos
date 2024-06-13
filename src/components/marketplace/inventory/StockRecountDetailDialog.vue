@@ -4,7 +4,6 @@
       <q-card-section class="row no-wrap items-start q-pb-sm">
         <div class="q-space row items-center q-gutter-x-xs">
           <div class="text-h5">{{ $t('StockRecount') }}</div>
-          <!--TODO:-->
           <div v-if="stockRecount?.id" class="text-grey">#{{ stockRecount?.id }}</div>
         </div>
         <slot name="menu" v-bind="{ stockRecount }"></slot>
@@ -32,17 +31,38 @@
         <q-list>
           <q-item v-for="item in stockRecount.items" :key="item?.id">
             <q-item-section top>
-              <!--TODO:-->
               <q-item-label>
-                Stock#{{ item?.stockId }}
+                {{
+                  $t(
+                    'StockId',
+                    { id: item?.stockId }
+                    `Stock#${item?.stockId}`
+                  )
+                }}
               </q-item-label>
               <q-item-label class="text-caption">
                 {{ item?.remarks }}
               </q-item-label>
             </q-item-section>
             <q-item-section side top>
-              <q-item-label>Expected: {{ item?.expectedQuantity }}</q-item-label>
-              <q-item-label>Actual: {{ item?.actualQuantity }}</q-item-label>
+              <q-item-label>
+                {{
+                  $t(
+                    'ExpectedQty',
+                    { quantity: item?.expectedQuantity },
+                    `Expected: ${item?.expectedQuantity}`
+                  )
+                }}
+              </q-item-label>
+              <q-item-label>
+                {{
+                  $t(
+                    'ActualQty',
+                    { quantity: item?.actualQuantity },
+                    `Actual: ${item?.actualQuantity}`
+                  )
+                }}
+              </q-item-label>
             </q-item-section>
           </q-item>
         </q-list>

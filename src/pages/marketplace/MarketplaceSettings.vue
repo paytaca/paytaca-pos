@@ -68,10 +68,13 @@
               {{ formattedMarkupSaleRate }}
               <q-icon name="info"/>
               <q-menu class="q-pa-sm">
-                <!-- TODO: -->
-                Items are sold with
-                {{ formattedMarkupSaleRate }}
-                change from their original price
+                {{
+                  $t(
+                    'MarkupSaleRateValue',
+                    { rate: formattedMarkupSaleRate },
+                    `Items are sold with ${formattedMarkupSaleRate} change from their original price`
+                  )
+                }}
               </q-menu>
             </q-item-label>
           </q-item-section>

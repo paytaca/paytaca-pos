@@ -85,7 +85,6 @@
         </div>
       </div>
     </q-slide-transition>
-    <!--TODO:-->
     <q-input
       v-if="withCostPrice"
       dense
@@ -95,7 +94,11 @@
       :suffix="marketplaceStore?.currency"
       type="number"
       step="0.001"
-      :placeholder="formData?.variant?.price ? `Price: ${formData?.variant?.price}`: ''"
+      :placeholder="formData?.variant?.price ? $t(
+        'PriceValue',
+        { price: formData?.variant?.price },
+        `Price: ${formData?.variant?.price}`
+      ): ''"
       v-model.number="formData.costPrice"
       bottom-slots
       :rules="[

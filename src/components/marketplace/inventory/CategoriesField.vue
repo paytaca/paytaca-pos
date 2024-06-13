@@ -29,8 +29,15 @@
             @click="() => ctx?.addInputValue?.()"
           >
             <q-item-section>
-              <!--TODO:-->
-              <q-item-label>Add '{{ ctx?.inputValue }}'</q-item-label>
+              <q-item-label>
+                {{
+                  $t(
+                    'AddInputValue',
+                    { value: ctx?.inputValue }
+                    `Add ${ctx?.inputValue}`
+                  )
+                }}
+              </q-item-label>
             </q-item-section>
           </q-item>
         </template>

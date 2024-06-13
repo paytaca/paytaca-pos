@@ -90,20 +90,25 @@
           class="ellipsis filter-opt q-px-xs"
           @click="openFilterOptsForm = true"
         >
-          <!--TODO:-->
-          Status: {{ filterOpts?.statuses?.map?.(formatOrderStatus)?.join(', ') }}
+          {{
+            $t(
+              'StatusValue',
+              { value: filterOpts?.statuses?.map?.(formatOrderStatus)?.join(', ') },
+              `Status: ${filterOpts?.statuses?.map?.(formatOrderStatus)?.join(', ')}`
+            )
+          }}
         </div>
         <div
           v-if="(typeof filterOpts?.hasOngoingDispute === 'boolean')"
           class="ellipsis filter-opt q-px-xs"
           @click="openFilterOptsForm = true"
         >
-          <!--TODO:-->
-          has
-          <template v-if="!filterOpts?.hasOngoingDispute">
-            no
+          <template v-if="filterOpts?.hasOngoingDispute">
+            {{ $t('HasDispute') }}
           </template>
-          dispute
+          <template v-else>
+            {{ $t('HasNoDispute') }}
+          </template>
         </div>
       </div>
       <q-table

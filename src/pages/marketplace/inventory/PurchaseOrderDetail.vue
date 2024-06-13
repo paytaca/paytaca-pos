@@ -25,19 +25,36 @@
         <q-card-section>
           <div class="row items-center">
             <div v-if="purchaseOrder?.number" class="row items-center text-h5">
-              <!--TODO:-->
-              <div>PO#{{ purchaseOrder?.number }}</div>
+              <div>
+                {{
+                  $t(
+                    'PoNumber',
+                    { number: purchaseOrder?.number },
+                    `PO#${purchaseOrder?.number}`
+                  )
+                }}
+              </div>
             </div>
             <q-icon v-if="purchaseOrder?.reviewedAt" name="check_circle" color="green" size="1.5rem" class="q-mx-xs">
               <q-menu class="q-pa-sm">
-                Reviewed
                 <template v-if="purchaseOrder?.reviewedBy?.fullName">
-                  by {{ purchaseOrder?.reviewedBy?.fullName }}
+                  {{
+                    $t(
+                      'ReviewedBy',
+                      { name: purchaseOrder?.reviewedBy?.fullName, date: formatTimestampToText(purchaseOrder?.reviewedAt) },
+                      `Reviewed by ${ purchaseOrder?.reviewedBy?.fullName }} at ${ formatTimestampToText(purchaseOrder?.reviewedAt) }`
+                    )
+                  }}
                   <span v-if="purchaseOrder?.reviewedBy?.id == marketplaceStore?.user?.id">
-                    (you)
+                    {{
+                      $t(
+                        'ReviewedByYou',
+                        { name: purchaseOrder?.reviewedBy?.fullName, date: formatTimestampToText(purchaseOrder?.reviewedAt) },
+                        `Reviewed by ${ purchaseOrder?.reviewedBy?.fullName }} (you) at ${ formatTimestampToText(purchaseOrder?.reviewedAt) }`
+                      )
+                    }}
                   </span>
                 </template>
-                at {{ formatTimestampToText(purchaseOrder?.reviewedAt) }}
               </q-menu>
             </q-icon>
             <q-space/>
@@ -49,15 +66,26 @@
             <div v-if="purchaseOrder?.createdAt" class="text-caption bottom text-grey">
               {{ formatTimestampToText(purchaseOrder?.createdAt) }}
               <q-menu class="q-pa-sm">
-                <!--TODO:-->
-                Created at {{ formatTimestampToText(purchaseOrder?.createdAt) }}
+                {{
+                  $t(
+                    'CreatedAt',
+                    { date: formatTimestampToText(purchaseOrder?.createdAt) },
+                    `Created at ${formatTimestampToText(purchaseOrder?.createdAt)}`
+                  )
+                }}
               </q-menu>
             </div>
             <q-space/>
             <div v-if="purchaseOrder?.createdBy?.id" class="text-caption bottom text-grey">
               {{ purchaseOrder?.createdBy?.fullName }}
               <q-menu class="q-pa-sm">
-                Created by {{ purchaseOrder?.createdBy?.fullName }}
+                {{
+                  $t(
+                    'CreatedBy',
+                    { name: purchaseOrder?.createdBy?.fullName },
+                    `Created by ${purchaseOrder?.createdBy?.fullName}`
+                  )
+                }}
               </q-menu>
             </div>
           </div>
@@ -256,8 +284,13 @@
             <template v-if="itemsViewMode === 'delivery_status'">
               <div class="col-5 col-sm-3">
                 <div v-if="item?.deliveredAt">
-                  <!--TODO:-->
-                  Delivered {{ formatDateRelative(item.deliveredAt) }}
+                  {{
+                    $t(
+                      'DeliveredDate',
+                      { date: formatDateRelative(item.deliveredAt) },
+                      `Delivered ${formatDateRelative(item.deliveredAt)}`
+                    )
+                  }}
                   <q-menu class="q-py-sm q-px-md">
                     {{ formatTimestampToText(item.deliveredAt) }}
                   </q-menu>

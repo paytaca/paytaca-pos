@@ -14,9 +14,16 @@
         no-caps rounded
         padding="2px 0.75em"
       >
-        <!--TODO:-->
-        {{ formData?.items?.length }}
-        {{ formData?.items?.length === 1 ? 'stock' : 'stocks' }}
+        {{
+          $t(
+            'NumberOfStocks',
+            {
+              count: formDataList?.items?.length,
+              unit: formDataList?.items?.length === 1 ? $t('stock') : $t('stocks')
+            },
+            `${formDataList?.items?.length} ${ formDataList?.items?.length === 1 ? $t('stock') : $t('stocks') }`
+          )
+        }}
       </q-chip>
       <q-space/>
       <q-btn
@@ -52,8 +59,15 @@
             <tr v-for="(item, index) in formData.items" :key="item?.stock?.id">
               <td class="row items-center no-wrap text-weight-medium field" @click="() => displayStock(item.stock)">
                 <div class="q-space">
-                  <!--TODO:-->
-                  <div>Stock#{{ item?.stock?.id }}</div>
+                  <div>
+                    {{
+                      $t(
+                        'StockId',
+                        { id: item?.stock?.id },
+                        `Stock#${item?.stock?.id}`
+                      )
+                    }}
+                  </div>
                   <div class="text-caption bottom ellipsis" style="max-width:25vw;">{{ item.stock.itemName }}</div>
                 </div>
                 <q-icon

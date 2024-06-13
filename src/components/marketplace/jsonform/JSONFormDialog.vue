@@ -28,8 +28,15 @@
           <TransitionGroup name="slide">
             <div v-for="(fieldData, index) in formSchemaData" :key="fieldData?._index">
               <div class="row items-center q-my-sm">
-                <!--TODO:-->
-                <div class="text-subtitle1">Field {{ index+1 }}</div>
+                <div class="text-subtitle1">
+                  {{
+                    $t(
+                      'FieldIndex',
+                      { index: index + 1 },
+                      `Field ${index + 1}`
+                    )
+                  }}
+                </div>
                 <div v-if="fieldTypeLabelMap[fieldData?.options?.type]" class="text-grey q-ml-xs">
                   ({{ fieldTypeLabelMap[fieldData?.options?.type] }})
                 </div>

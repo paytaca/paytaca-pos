@@ -42,7 +42,6 @@
               </template>
             </q-item-label>
             <q-item-label class="text-caption">
-              <!--TODO:-->
               {{ item?.quantity }} x
               {{ item?.costPrice }} {{ purchaseOrder?.currency?.symbol }}
             </q-item-label>

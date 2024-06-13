@@ -17,18 +17,29 @@
           <slot name="menu" v-bind="{ salesOrder }"></slot>
         </div>
         <div class="row items-center">
-          <!--TODO:-->
           <div v-if="salesOrder?.createdAt" class="text-caption bottom text-grey">
             {{ formatTimestampToText(salesOrder?.createdAt) }}
             <q-menu class="q-pa-sm">
-              Created at {{ formatTimestampToText(salesOrder?.createdAt) }}
+              {{
+                $t(
+                  'CreatedAt',
+                  { date: formatTimestampToText(salesOrder?.createdAt) },
+                  `Created at ${formatTimestampToText(salesOrder?.createdAt)}`
+                )
+              }}
             </q-menu>
           </div>
           <q-space/>
           <div v-if="salesOrder?.createdBy?.id" class="text-caption bottom text-grey">
             {{ salesOrder?.createdBy?.fullName }}
             <q-menu class="q-pa-sm">
-              Created by {{ salesOrder?.createdBy?.fullName }}
+              {{
+                $t(
+                  'CreatedBy',
+                  { name: salesOrder?.createdBy?.fullName },
+                  `Created by ${salesOrder?.createdBy?.fullName}`
+                )
+              }}
             </q-menu>
           </div>
         </div>
@@ -139,8 +150,13 @@
                 <div>{{ salesOrder?.bchTotal }} BCH</div>
                 <q-icon v-if="salesOrder?.bchPrice?.timestamp" name="info" size="1em">
                   <q-menu class="q-pa-sm">
-                    <!--TODO:-->
-                    BCH price at {{ formatTimestampToText(salesOrder?.bchPrice?.timestamp) }}
+                    {{
+                      $t(
+                        'BchPriceAtValue',
+                        { value: formatTimestampToText(salesOrder?.bchPrice?.timestamp) },
+                        `BCH price at ${formatTimestampToText(salesOrder?.bchPrice?.timestamp)}`
+                      )
+                    }}
                   </q-menu>
                 </q-icon>
               </div>

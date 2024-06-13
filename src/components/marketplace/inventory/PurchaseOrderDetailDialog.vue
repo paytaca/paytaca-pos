@@ -15,16 +15,26 @@
           <div v-if="purchaseOrder?.createdAt" class="text-caption bottom text-grey">
             {{ formatTimestampToText(purchaseOrder?.createdAt) }}
             <q-menu class="q-pa-sm">
-              <!--TODO:-->
-              Created at {{ formatTimestampToText(purchaseOrder?.createdAt) }}
+              {{
+                $t(
+                  'CreatedAt',
+                  { date: formatTimestampToText(purchaseOrder?.createdAt) },
+                  `Created at ${formatTimestampToText(purchaseOrder?.createdAt)}`,
+                )
+              }}
             </q-menu>
           </div>
           <q-space/>
           <div v-if="purchaseOrder?.createdBy?.id" class="text-caption bottom text-grey">
             {{ purchaseOrder?.createdBy?.fullName }}
             <q-menu class="q-pa-sm">
-              <!--TODO:-->
-              Created by {{ purchaseOrder?.createdBy?.fullName }}
+              {{
+                $t(
+                  'CreatedBy',
+                  { name: purchaseOrder?.createdBy?.fullName },
+                  `Created by ${purchaseOrder?.createdBy?.fullName}`,
+                )
+              }}
             </q-menu>
           </div>
         </div>
@@ -76,7 +86,6 @@
                 </template>
               </q-item-label>
               <q-item-label class="text-caption">
-                <!--TODO:-->
                 {{ item?.quantity }} x
                 {{ item?.costPrice }} {{ purchaseOrder?.currency?.symbol }}
               </q-item-label>

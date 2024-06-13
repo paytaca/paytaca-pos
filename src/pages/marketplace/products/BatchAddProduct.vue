@@ -41,8 +41,15 @@
         >
           <q-card-section class="q-py-sm q-px-md">
             <div class="row items-center">
-              <!--TODO:-->
-              <div class="text-grey">Product {{ index+1 }}</div>
+              <div class="text-grey">
+                {{
+                  $t(
+                    'ProductIndex',
+                    { index: index + 1 },
+                    `Product ${index+1}`
+                  )
+                }}
+              </div>
               <q-icon
                 v-if="formErrors?.products?.[index]?.hasError"
                 name="error" color="red" size="1.75em" class="q-ml-xs"

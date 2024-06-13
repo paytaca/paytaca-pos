@@ -4,8 +4,15 @@
       <q-card-section class="row no-wrap items-start q-pb-sm">
         <div class="q-space">
           <div class="text-h5">{{ product?.name }}</div>
-          <!--TODO:-->
-          <div class="text-caption text-grey" style="margin-top:-0.5em;">product#{{ product?.id }}</div>
+          <div class="text-caption text-grey" style="margin-top:-0.5em;">
+            {{
+              $t(
+                'ProductNumber',
+                { id: product?.id },
+                `product#${product?.id}`
+              )
+            }}
+          </div>
         </div>
         <slot name="menu" v-bind="{ product }"></slot>
       </q-card-section>

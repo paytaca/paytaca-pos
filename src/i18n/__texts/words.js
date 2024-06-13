@@ -57,6 +57,8 @@ const words = [
     Products: 'Products',
     Stocks: 'Stocks',
     Stock: 'Stock',
+    stocks: 'stocks',
+    stock: 'stock',
     Collections: 'Collections',
     Error: 'Error',
     Orders: 'Orders',

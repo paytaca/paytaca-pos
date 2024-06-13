@@ -81,8 +81,14 @@
               size="xs"
             />
 
-            <!-- TODO: -->
-            {{ remainingPaymentRounded }} BCH left
+            {{
+              $t(
+                'BchLeftValue',
+                { price: remainingPaymentRounded },
+                `${remainingPaymentRounded} BCH left`
+              )
+            }}
+            
             
             <q-btn v-if="showRemainingCurrencyAmount" color="grey" icon="info" flat size="xs" class="q-px-xs" style="width: 20px">
               <q-menu>

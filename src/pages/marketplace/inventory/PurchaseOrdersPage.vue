@@ -16,10 +16,13 @@
         @click="() => filterToReviewPurchaseOrders()"
       >
         <q-card-section>
-          <!--TODO:-->
-          {{ toReviewPurchaseOrdersCount }}
-          {{ toReviewPurchaseOrdersCount === 1 ? 'purchase order' : 'purchase orders' }}
-          assigned to you for review
+          {{
+            $t(
+              'PurchaseOrderCount',
+              { count: toReviewPurchaseOrdersCount },
+              `${ toReviewPurchaseOrdersCount } purchase order(s) assigned to you for review`
+            )
+          }}
         </q-card-section>
       </q-card>
       <div class="full-width q-px-sm q-mb-sm">
@@ -102,8 +105,13 @@
             class="ellipsis filter-opt q-px-xs"
             @click="openFilterOptsForm = true"
           >
-            <!--TODO:-->
-            Status: {{ filterOpts?.statuses?.map?.(formatPurchaseOrderStatus)?.join(', ') }}
+            {{
+              $t(
+                'StatusValue',
+                { value: filterOpts?.statuses?.map?.(formatPurchaseOrderStatus)?.join(', ') },
+                `Status: ${filterOpts?.statuses?.map?.(formatPurchaseOrderStatus)?.join(', ')}`
+              )
+            }}
           </div>
           <div
             v-if="(typeof filterOpts?.reviewed) === 'boolean'"
@@ -161,8 +169,13 @@
               class="full-width"
               :to="{name: 'marketplace-purchase-order', params: { purchaseOrderId: props.row.id }}"
             >
-              <!--TODO:-->
-              PO#{{ props.row?.number }}
+              {{
+                $t(
+                  'PoNumber',
+                  { number: props.row?.number },
+                  `PO#${props.row?.number}`
+                )
+              }}
             </q-btn>
           </q-td>
         </template>
@@ -173,14 +186,29 @@
               {{ formatPurchaseOrderStatus(props?.row?.status) }}
               <q-icon v-if="props?.row?.reviewedAt" name="check_circle" color="green" size="1.25em" class="q-ml-xs">
                 <q-menu class="q-px-md q-py-sm">
-                  <!--TODO:-->
-                  Purchase order reviewed
-                  <span class="text-italic">{{ formatDateRelative(props?.row?.reviewedAt) }}</span>
+                  {{
+                    $t(
+                      'PurchaseOrderReviewed',
+                      { date: formatDateRelative(props?.row?.reviewedAt) },
+                      `Purchase order reviewed ${ formatDateRelative(props?.row?.reviewedAt) }`
+                    )
+                  }}
                   <template v-if="props?.row?.reviewedBy?.id">
-                    by
-                    <span class="text-italic">{{ props?.row?.reviewedBy?.fullName }}</span>
+                    {{
+                      $t(
+                        'PurchaseOrderReviewedBy',
+                        { date: formatDateRelative(props?.row?.reviewedAt), name: props?.row?.reviewedBy?.fullName },
+                        `Purchase order reviewed ${ formatDateRelative(props?.row?.reviewedAt) } by ${ props?.row?.reviewedBy?.fullName }`
+                      )
+                    }}
                     <span v-if="marketplaceStore?.user?.id === props?.row?.reviewedBy?.id">
-                      (you)
+                      {{
+                        $t(
+                          'PurchaseOrderReviewedYou',
+                          { date: formatDateRelative(props?.row?.reviewedAt), name: props?.row?.reviewedBy?.fullName },
+                          `Purchase order reviewed ${ formatDateRelative(props?.row?.reviewedAt) } by ${ props?.row?.reviewedBy?.fullName } (you)`
+                        )
+                      }}
                     </span>
                   </template>
                 </q-menu>
@@ -195,9 +223,13 @@
             class="text-underline"
             @click="() => showPurchaseOrderItems(props.row)"
           >
-            <!--TODO:-->
-            {{ (props.row?.items?.length || props.row?.itemsCount) }}
-            {{ (props.row?.items?.length || props.row?.itemsCount) === 1 ? 'item' : 'items' }}
+            {{
+              $t(
+                'ItemCount',
+                { count: props.row?.items?.length || props.row?.itemsCount },
+                `${ (props.row?.items?.length || props.row?.itemsCount) } item(s)`
+              )
+            }}
           </q-td>
         </template>
   
@@ -251,8 +283,13 @@
         <q-card-section>
           <div class="row items-center">
             <div class="text-h5">
-              <!--TODO:-->
-              PO#{{ purchaseOrderItemsDialog.purchaseOrder?.number }} Items
+              {{
+                $t(
+                  'PoNumberItems',
+                  { number: purchaseOrderItemsDialog.purchaseOrder?.number },
+                  `PO#${ purchaseOrderItemsDialog.purchaseOrder?.number } Items`
+                )
+              }}
             </div>
             <q-space/>
             <q-btn
@@ -289,8 +326,13 @@
             </q-item-section>
             <q-item-section avatar top>
               <q-item-label v-if="item?.deliveredAt">
-                <!--TODO:-->
-                Delivered {{ formatDateRelative(item?.deliveredAt) }}
+                {{
+                  $t(
+                    'DeliveredAt',
+                    { date: formatDateRelative(item?.deliveredAt) },
+                    `Delivered ${ formatDateRelative(item?.deliveredAt) }`
+                  )
+                }}
                 <q-menu class="q-pa-sm">{{ formatTimestampToText(item?.deliveredAt) }}</q-menu>
               </q-item-label>
               <q-item-label v-else class="text-grey">

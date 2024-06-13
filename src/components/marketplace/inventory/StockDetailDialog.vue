@@ -2,9 +2,25 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card style="width: max(90vw, 500px)">
       <q-card-section>
-        <!--TODO:-->
-        <div class="text-h5">{{ stock?.itemName || `Stock#${stock?.id}` }}</div>
-        <div class="text-caption bottom text-grey">stock#{{ stock?.id }}</div>
+        <div class="text-h5">
+          {{
+            stock?.itemName ||
+            $t(
+              'StockId',
+              { id: stock?.id }
+              `Stock#${stock?.id}`
+            )
+          }}
+        </div>
+        <div class="text-caption bottom text-grey">
+          {{
+            $t(
+              'stockId',
+              { id: stock?.id }
+              `stock#${stock?.id}`
+            )
+          }}
+        </div>
       </q-card-section>
       <q-card-section v-if="stock?.$state?.updating" class="row items-center justify-center">
         <q-spinner size="2.5em"/>
@@ -66,47 +82,71 @@
             <q-item-section>
               <q-item-label>
                 <template v-if="adjustment?.adjustType === 'set'">
-                  <!--TODO:-->
-                  Changed
                   <template v-if="adjustment?.previousQuantity">
-                    from {{ adjustment?.previousQuantity }}
+                    {{
+                      $t(
+                        'ChangedToFrom',
+                        { quantity: adjustment?.quantity, previousQuantity: adjustment?.previousQuantity },
+                        `Changed from ${ adjustment?.previousQuantity } to ${ adjustment?.quantity }`
+                      )
+                    }}
                   </template>
-                  to {{ adjustment?.quantity }}
+                  <template v-else>
+                    {{
+                      $t(
+                        'ChangedTo',
+                        { quantity: adjustment?.quantity},
+                        `Changed to ${ adjustment?.quantity }`
+                      )
+                    }}
+                  </template>
                 </template>
                 <template v-else-if="adjustment?.adjustType === 'add'">
-                  <template v-if="adjustment?.quantity < 0">Deducted</template>
-                  <template v-else>Added</template>
-                  {{ Math.abs(adjustment?.quantity) }}
+                  <template v-if="adjustment?.quantity < 0">
+                    {{
+                      $t(
+                        'DeductedQuantity',
+                        { quantity: Math.abs(adjustment?.quantity) },
+                        `Deducted ${ Math.abs(adjustment?.quantity) }`
+                      )
+                    }}
+                  </template>
+                  <template v-else>
+                    {{
+                      $t(
+                        'AddedQuantity',
+                        { quantity: Math.abs(adjustment?.quantity) },
+                        `Added ${ Math.abs(adjustment?.quantity) }`
+                      )
+                    }}
+                  </template>
                 </template>
                 <template v-if="adjustment?.source === 'sales'">
-                  from
                   <span
                     :class="adjustment.salesOrderId ? 'text-weight-medium': ''"
                     @click="() => showStockAdjustmentSalesOrder(adjustment)"
                   >
-                    sales
+                    {{ $t('FromSales') }}
                   </span>
                 </template>
                 <template v-else-if="adjustment.source === 'purchase_orders'">
-                  from
                   <span
-                    :class="adjustment.purchaseOrderId ? 'text-weight-medium': ''"
-                    @click="() => showStockAdjustmentPurchaseOrder(adjustment)"
+                  :class="adjustment.purchaseOrderId ? 'text-weight-medium': ''"
+                  @click="() => showStockAdjustmentPurchaseOrder(adjustment)"
                   >
-                    purchase order
+                    {{ $t('FromPurchaseOrder') }}
                   </span>
                 </template>
                 <template v-else-if="adjustment.source === 'stock_recount'">
-                  from 
                   <span
-                    :class="adjustment.stockRecountId ? 'text-weight-medium': ''"
-                    @click="() => showStockAdjustmentRecount(adjustment)"
+                  :class="adjustment.stockRecountId ? 'text-weight-medium': ''"
+                  @click="() => showStockAdjustmentRecount(adjustment)"
                   >
-                    stock recount
+                    {{ $t('FromStockRecount') }}
                   </span>
                 </template>
                 <template v-else-if="adjustment.source === 'initial_stock'">
-                  from initial stock
+                  {{ $t('FromInitialStock') }}
                 </template>
               </q-item-label>
               <q-item-label class="text-caption">

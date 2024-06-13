@@ -86,8 +86,13 @@
             class="ellipsis filter-opt q-px-xs"
             @click="openFilterOptsForm = true"
           >
-            <!--TODO:-->
-            Status: {{ filterOpts?.statuses?.map?.(formatStatusGeneric)?.join(', ') }}
+            {{
+              $t(
+                'StatusValue',
+                { value: filterOpts?.statuses?.map?.(formatStatusGeneric)?.join(', ') },
+                `Status: ${ filterOpts?.statuses?.map?.(formatStatusGeneric)?.join(', ') }`
+              )
+            }}
           </div>
           <div
             v-if="(typeof filterOpts?.isEscrow) === 'boolean'"
@@ -148,11 +153,14 @@
 
         <template v-slot:body-cell-source="props">
           <q-td :props="props">
-            <!--TODO:-->
             <q-btn v-if="props?.row?.orderId"
               flat
               no-caps
-              :label="`Order #${props?.row?.orderId}`"
+              :label="$t(
+                'OrderId',
+                { id: props?.row?.orderId },
+                `Order #${props?.row?.orderId}`
+              )"
               padding="2px sm"
               @click="() => displayPaymentOrder(props.row)"
             />

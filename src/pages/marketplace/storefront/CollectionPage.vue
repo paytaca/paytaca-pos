@@ -45,21 +45,18 @@
           <div v-if="collection?.auto" class="row">
             <div class="text-subtitle1 col-12">{{ $t('Conditions') }} </div>
             <div>
-              <!--TODO:-->
-              Products matching
               <span v-if="collection?.conditionsOperand == 'any'">
-                any of the
+                {{ $t('ProductsMatchAny') }}
               </span>
               <span v-else-if="collection?.conditionsOperand == 'all'">
-                all of the
+                {{ $t('ProductsMatchAll') }}
               </span>
-              conditions
             </div>
             <table v-if="Array.isArray(collection?.conditions)" class="full-width text-left">
               <tr>
-                <th>{{ $t('Field') }} </th>
-                <th>{{ $t('Condition') }} </th>
-                <th>{{ $t('Value') }} </th>
+                <th>{{ $t('Field') }}</th>
+                <th>{{ $t('Condition') }}</th>
+                <th>{{ $t('Value') }}</th>
               </tr>
               <tr v-for="(condition, index) in collection?.conditions" :key="index">
                 <td>{{ condition.fieldLabel }}</td>
@@ -133,11 +130,15 @@
               <q-item-label>
                 {{ product?.name }}
                 <template v-if="product?.hasVariants">
-                  <!--TODO:-->
-                  ({{ product?.variants?.length || product?.variantsCount }} variants)
+                  {{
+                    $t(
+                      'VariantCount',
+                      { count: product?.variants?.length || product?.variantsCount },
+                      `(${ product?.variants?.length || product?.variantsCount } variants)`
+                    )
+                  }}
                 </template>
               </q-item-label>
-              <!--TODO:-->
               <q-item-label class="text-caption">#{{ product?.id }}</q-item-label>
             </q-item-section>
             <q-item-section v-if="!isNaN(product?.totalStocks) && product?.totalStocks !== null" avatar top>
@@ -210,8 +211,11 @@ export default defineComponent({
     function confirmDeleteCollection() {
       $q.dialog({
         title: t('DeleteCollection'),
-        // TODO:
-        message: `Deleting collection '${collection.value.name}'. Are you sure?`,
+        message: t(
+          'DeleteCollectionMsg',
+          { name: collection.value.name },
+          `Deleting collection '${collection.value.name}'. Are you sure?`
+        ),
         ok: { color: 'red', noCaps: true, label: t('Delete') },
         cancel: { color: 'grey', noCaps: true, flat: true },
       }).onOk(deleteCollection)

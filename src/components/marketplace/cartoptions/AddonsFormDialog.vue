@@ -333,7 +333,11 @@ export default defineComponent({
       if (!formData.value?.includes?.(addon)) return 
       $q.dialog({
         title: t('RemoveAddon'),
-        message: `Remove addon '${addon?.label}'. Are you sure?`, // TODO:
+        message: t(
+          'RemoveAddonMsg',
+          { addonLabel: addon?.label },
+          `Remove addon '${addon?.label}'. Are you sure?`
+        ),
         color: 'brandblue',
         ok: true,
         cancel: true,

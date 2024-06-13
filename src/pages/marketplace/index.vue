@@ -39,12 +39,22 @@
             @click="onDashboardCardClick('inventory')"
           >
             <div v-if="Number.isFinite(productsCount)">
-              <!--TODO:-->
-              {{ productsCount }} product{{ productsCount == 1 ? '' : 's' }}
+              {{
+                $t(
+                  'ProductsCount',
+                  { productsCount },
+                  `${productsCount} product(s)`
+                )
+              }}
             </div>
             <div v-if="Number.isFinite(toReviewPurchaseOrdersCount)" class="ellipsis">
-              <!--TODO:-->
-              {{ toReviewPurchaseOrdersCount }} pending purchase orders
+              {{
+                $t(
+                  'PendingPurchaseOrderCount',
+                  { count: toReviewPurchaseOrdersCount },
+                  `${toReviewPurchaseOrdersCount} pending purchase orders`
+                )
+              }}
             </div>
           </DashboardCard>
     
@@ -62,26 +72,46 @@
                   <div class="text-red q-pr-xs">{{ $t('CLOSED') }}</div>
                   <template v-if="storefrontHours?.nextOpenTimestamp">
                     <span class="text-grey">
-                      <!--TODO:-->
-                      Opens {{ formatDateRelative(storefrontHours?.nextOpenTimestamp) }}
+                      {{
+                        $t(
+                          'OpensAt',
+                          { date: formatDateRelative(storefrontHours?.nextOpenTimestamp) },
+                          `Opens ${formatDateRelative(storefrontHours?.nextOpenTimestamp)}`
+                        )
+                      }}
                     </span>
                   </template>
                 </template>
               </div>
               <template v-if="Number.isFinite(pendingOrdersCount)">
                 <div v-if="pendingOrdersCount">
-                  <!--TODO:-->
-                  {{ pendingOrdersCount }} pending order{{ pendingOrdersCount === 1 ? '' : 's' }}
+                  {{
+                    $t(
+                      'PendingOrdersCount',
+                      { pendingOrdersCount },
+                      `${pendingOrdersCount} pending order(s)`
+                    )
+                  }}
                 </div>
                 <div v-else class="text-grey">{{ $t('NoPendingOrders') }}</div>
               </template>
               <div v-if="orderDisputesCount > 0">
-                <!--TODO:-->
-                {{ orderDisputesCount }} order dispute{{ orderDisputesCount === 1 ? '' : 's' }}
+                {{
+                  $t(
+                    'OrderDisputesCount',
+                    { orderDisputesCount },
+                    `${orderDisputesCount} order dispute(s)`
+                  )
+                }}
               </div>
               <div v-if="paymentsInEscrowCount">
-                <!--TODO:-->
-                {{ paymentsInEscrowCount }} payment{{ paymentsInEscrowCount === 1 ? '' : 's' }} in escrow
+                {{
+                  $t(
+                    'PaymentsInEscrowCount',
+                    { paymentsInEscrowCount },
+                    `${paymentsInEscrowCount} payment(s) in escrow`
+                  )
+                }}
               </div>
             </template>
             <div v-else class="text-grey">
@@ -117,8 +147,13 @@
             @click="onDashboardCardClick('shop')"
           >
             <div v-if="staffCount !== undefined">
-              <!--TODO:-->
-              {{ staffCount }} staff
+              {{
+                $t(
+                  'StaffCount',
+                  { count: staffCount },
+                  `${staffCount} staff`
+                )
+              }}
             </div>
           </DashboardCard>
         </div>

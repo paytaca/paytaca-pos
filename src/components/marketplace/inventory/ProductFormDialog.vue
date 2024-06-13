@@ -80,8 +80,15 @@
             >
               <template v-if="formData.variants?.length > 1">
                 <div class="row">
-                  <!--TODO:-->
-                  <div class="text-grey q-space">Variant {{ index + 1 }}</div>
+                  <div class="text-grey q-space">
+                    {{
+                      $t(
+                        'VariantIndex',
+                        { index: index + 1 },
+                        `Variant ${index + 1}`
+                      )
+                    }}
+                  </div>
                   <q-btn
                     flat
                     icon="delete"

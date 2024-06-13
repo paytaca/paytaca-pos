@@ -14,9 +14,16 @@
         no-caps rounded
         padding="2px 0.75em"
       >
-        <!--TODO:-->
-        {{ formDataList?.length }}
-        {{ formDataList?.length === 1 ? 'stock' : 'stocks' }}
+        {{
+          $t(
+            'NumberOfStocks',
+            {
+              count: formDataList?.length,
+              unit: formDataList?.length === 1 ? $t('stock') : $t('stocks')
+            },
+            `${formDataList?.length} ${ formDataList?.length === 1 ? $t('stock') : $t('stocks') }`
+          )
+        }}
       </q-chip>
       <q-space/>
       <q-btn
@@ -50,9 +57,14 @@
           </tr>
           <tr v-for="(formData, index) in formDataList" :key="index">
             <td class="text-weight-medium" @click="() => displayStock(formData.stock)">
-              <!--TODO:-->
-              <div>Stock#
-                {{ formData?.stock?.id }}
+              <div>
+                {{
+                  $t(
+                    'StockId',
+                    { id: formData?.stock?.id },
+                    `Stock#${formData?.stock?.id}`
+                  )
+                }}
                 <template v-if="serializedFormDataList[index]?.$edited">
                   *
                 </template>

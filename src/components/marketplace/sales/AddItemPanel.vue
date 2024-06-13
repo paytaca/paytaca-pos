@@ -115,7 +115,6 @@
       />
     </template>
 
-    <!--TODO:-->
     <q-input
       v-if="withCostPrice"
       dense
@@ -126,7 +125,11 @@
       type="number"
       step="0.001"
       v-model.number="formData.costPrice"
-      :placeholder="formData?.variant?.price ? `Price: ${formData?.variant?.price}`: ''"
+      :placeholder="formData?.variant?.price ? $t(
+        'PriceValue',
+        { price: formData?.variant?.price },
+        `Price: ${formData?.variant?.price}`
+      ): ''"
       bottom-slots
     />
     <q-input
@@ -171,9 +174,14 @@
           @click="() => setCustomItem({ itemName: ctx?.searchVal })"
         >
           <q-item-section class="text-center">
-            <!--TODO:-->
             <q-item-label class="text-subtitle1 text-underline">
-              Add item '{{ ctx?.searchVal }}'
+              {{
+                $t(
+                  'AddItemValue',
+                  { value: ctx?.searchVal },
+                  `Add item '${ctx?.searchVal}'`
+                )
+              }}
             </q-item-label>
           </q-item-section>
         </q-item>

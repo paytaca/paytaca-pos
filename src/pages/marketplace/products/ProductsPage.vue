@@ -101,8 +101,13 @@
                 <div>
                   {{ props.row.name }}
                   <template v-if="props.row.hasVariants">
-                    <!--TODO:-->
-                    ({{ props.row.variants.length || props.row.variantsCount }} variants)
+                    {{
+                      $t(
+                        'VariantCount',
+                        { count: props.row.variants.length || props.row.variantsCount },
+                        `(${ props.row.variants.length || props.row.variantsCount } variants)`
+                      )
+                    }}
                   </template>
                 </div>
                 <div class="text-caption bottom text-grey">#{{ props.row.id }}</div>
@@ -126,9 +131,13 @@
                 class="no-wrap"
               />
               <div class="text-caption bottom">
-                <!--TODO:-->
-                {{ props?.row?.reviewSummary?.count }}
-                {{ props?.row?.reviewSummary?.count === 1 ? 'review' : 'reviews' }}
+                {{
+                  $t(
+                    'ReviewCount',
+                    { count: props?.row?.reviewSummary?.count },
+                    `${ props?.row?.reviewSummary?.count } review(s)`
+                  )
+                }}
               </div>
             </div>
           </q-td>

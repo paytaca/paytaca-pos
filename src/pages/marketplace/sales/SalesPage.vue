@@ -43,18 +43,35 @@
         <div class="row items-center">
           <q-chip clickable class="q-ma-none">
             <q-icon name="date_range" class="q-mr-xs"/>
-            <!--TODO:-->
             <template v-if="parsedFilterOpts.dateRange.exact">
               {{ formatDate(parsedFilterOpts.dateRange.exact) }}
             </template>
             <template v-else-if="parsedFilterOpts.dateRange.from && parsedFilterOpts.dateRange.to">
-              {{ formatDate(parsedFilterOpts.dateRange.from) }} to {{ formatDate(parsedFilterOpts.dateRange.to) }}
+              {{
+                $t(
+                  'DateFromTo',
+                  { from: formatDate(parsedFilterOpts.dateRange.from), to: formatDate(parsedFilterOpts.dateRange.to) },
+                  `${ formatDate(parsedFilterOpts.dateRange.from) } to ${ formatDate(parsedFilterOpts.dateRange.to) }`
+                )
+              }}
             </template>
             <template v-else-if="parsedFilterOpts.dateRange?.from">
-              from {{ formatDate(parsedFilterOpts.dateRange?.from) }}
+              {{
+                $t(
+                  'DateFrom',
+                  { from: formatDate(parsedFilterOpts.dateRange?.from) },
+                  `from ${ formatDate(parsedFilterOpts.dateRange?.from) }`
+                )
+              }}
             </template>
             <template v-else-if="parsedFilterOpts.dateRange?.to">
-              to {{ formatDate(parsedFilterOpts.dateRange?.to) }}
+              {{
+                $t(
+                  'DateTo',
+                  { to: formatDate(parsedFilterOpts.dateRange?.to) },
+                  `to ${ formatDate(parsedFilterOpts.dateRange?.to) }`
+                )
+              }}
             </template>
             <span v-else class="text-grey">
               {{ $t('FilterDate') }}
@@ -125,8 +142,13 @@
               class="full-width"
               @click="() => showSalesOrderDetail(props.row)"
             >
-              <!--TODO:-->
-              SO#{{ props.row?.number }}
+              {{
+                $t(
+                  'SoNumber',
+                  { number: props.row?.number },
+                  `SO#${ props.row?.number }`
+                )
+              }}
             </q-btn>
           </q-td>
         </template>

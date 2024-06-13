@@ -64,8 +64,15 @@
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>{{ opt?.itemName }}</q-item-label>
-                  <!--TODO:-->
-                  <q-item-label class="text-caption">Qty: {{ opt.totalStocks }}</q-item-label>
+                  <q-item-label class="text-caption">
+                    {{
+                      $t(
+                        'QuantityDisplayText',
+                        { totalStocks: opt.totalStocks },
+                        `Qty: ${opt.totalStocks}`
+                      )
+                    }}
+                  </q-item-label>
                 </q-item-section>
               </q-item>
             </template>
