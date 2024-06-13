@@ -592,7 +592,13 @@ export default defineComponent({
       if (!proceed) return
 
       const isVoucher = claimVoucher(parsedData)
-      if (!isVoucher) updatePayment(parsedData)
+
+      if (isVoucher) {
+        clearInterval(qrExpirationCountdown)
+        clearTimeout(qrExpirationPrompt)
+      } else {
+        updatePayment(parsedData)
+      }
     }
 
     /**
