@@ -95,7 +95,7 @@ export function parsePurchaseOrderStatusColor(value) {
 }
 
 /**
- * @typedef {'pending' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'on_delivery' | 'delivered' | 'completed' | 'cancelled'} OrderStatus
+ * @typedef {'pending' | 'confirmed' | 'preparing' | 'picked_up' | 'ready_for_pickup' | 'on_delivery' | 'delivered' | 'completed' | 'cancelled'} OrderStatus
  */
 
 /**
@@ -105,6 +105,28 @@ export function formatOrderStatus(value) {
   if (typeof value !== 'string') return ''
 
   return capitalize(value.replaceAll('_', ' '))
+}
+
+/**
+ * 
+ * @param {OrderStatus} value 
+ * @returns 
+ */
+export function formatOrderStatusAction(value) {
+  switch(value) {
+    case 'pending':
+      return 'Mark pending'
+    case 'confirmed':
+      return 'Conirm order'
+    case 'preparing':
+      return 'Prepare order'
+    case 'ready_for_pickup':
+      return 'Ready for pickup'
+    case 'picked_up':
+      return 'Order picked up'
+    default:
+      return `Order ${formatOrderStatus(value)}`
+  }
 }
 
 /**
@@ -121,6 +143,8 @@ export function parseOrderStatusColor(value) {
       return 'amber-7'
     case 'ready_for_pickup':
       return 'amber-8'
+    case 'picked_up':
+      return 'green'
     case 'on_delivery':
       return 'green'
     case 'delivered':

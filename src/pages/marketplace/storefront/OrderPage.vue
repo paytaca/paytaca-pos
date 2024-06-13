@@ -145,6 +145,41 @@
           />
         </div>
       </q-banner>
+      <q-banner
+        v-if="order?.isReadyForPickup && order?.isStorePickup"
+        rounded
+        class="q-mb-md shadow-3"
+      >
+        <div class="text-h6">
+          Ready for customer pickup
+        </div>
+        <div class="text-grey q-space">
+          Customer is notified that the order is ready for pickup.
+          You can also contact customer through
+        </div>
+        <div class="row items-center justify-around q-mt-sm">
+          <div class="column items-center">
+            <q-btn
+              rounded
+              icon="message"
+              padding="md"
+              color="brandblue"
+              @click="() => openChatDialog()"
+            />
+            <div class="q-mt-xs text-caption">Chat</div>
+          </div>
+          <div class="column items-center">
+            <q-btn
+              rounded
+              icon="phone"
+              padding="md"
+              color="brandblue"
+              :href="`tel:${order?.deliveryAddress?.phoneNumber}`"
+            />
+            <div class="q-mt-xs text-caption">Call</div>
+          </div>
+        </div>            
+      </q-banner>
 
       <q-banner v-if="orderDispute?.id" rounded class="q-my-sm">
         <div class="row items-center justify-between q-gutter-y-sm" style="gap:12px;">
@@ -213,7 +248,7 @@
         <q-btn
           v-if="nextStatus"
           no-caps
-          :label="formatOrderStatus(nextStatus)"
+          :label="formatOrderStatusAction(nextStatus)"
           :color="parseOrderStatusColor(nextStatus)"
           class="q-space"
           @click="() => {
@@ -226,10 +261,12 @@
       <q-card class="q-mb-md">
         <q-card-section class="q-pt-sm">
           <div class="row items-center q-mb-sm">
-            <div class="text-h6 q-space">{{ $t('Delivery') }}</div>
+            <div v-if="order?.isStorePickup" class="text-h6 q-space">{{ $t('StorePickup') }}</div>
+            <div v-else class="text-h6 q-space">{{ $t('Delivery') }}</div>
             <div class="row items-center">
               <LeafletMapDialog v-model="showMap" :locations="mapLocations"/>
               <q-btn
+                v-if="!order?.isStorePickup"
                 flat
                 padding="none"
                 no-caps
@@ -261,7 +298,7 @@
               {{ order?.deliveryAddress?.lastName }}
             </div>
             <div>{{ order?.deliveryAddress?.phoneNumber }}</div>
-            <div>{{ order?.deliveryAddress?.location?.formatted }}</div>
+            <div v-if="!order?.isStorePickup">{{ order?.deliveryAddress?.location?.formatted }}</div>
           </div>
         </q-card-section>
         <template v-if="delivery?.id">
@@ -387,7 +424,7 @@
             <div v-else class="text-grey">{{ $t('NoRiderYet') }}</div>
           </q-card-section>
         </template>
-        <template v-else>
+        <template v-else-if="!order?.isStorePickup">
           <q-card-section v-if="order?.id && !order?.isCancelled" class="q-pt-sm">
             <q-btn
               no-caps
@@ -571,7 +608,7 @@
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { Delivery, Order, OrderDispute, Payment, Review, Rider, Storefront, Variant } from 'src/marketplace/objects'
-import { errorParser, formatOrderStatus, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative, round } from 'src/marketplace/utils'
+import { errorParser, formatOrderStatus, formatOrderStatusAction, parseOrderStatusColor, parsePaymentStatusColor, formatTimestampToText, formatDateRelative, round } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useNotificationsStore } from 'src/stores/notifications'
 import { useI18n } from 'vue-i18n'
@@ -798,18 +835,20 @@ export default defineComponent({
         })
     }
 
-    const orderStatusSequence = [
-      'pending', 'confirmed', 'preparing', 'ready_for_pickup',
-    ]
+    const orderStatusSequence = computed(() => {
+      const statusSequence = ['pending', 'confirmed', 'preparing', 'ready_for_pickup']
+      if (order.value.isStorePickup) statusSequence.push('picked_up')
+      return statusSequence
+    })
     const nextStatus = computed(() => {
-      const index = orderStatusSequence.indexOf(order.value?.status)
+      const index = orderStatusSequence.value.indexOf(order.value?.status)
       if (index < 0) return
-      return orderStatusSequence[index+1]
+      return orderStatusSequence.value[index+1]
     })
     const prevStatus = computed(() => {
-      const index = orderStatusSequence.indexOf(order.value?.status)
+      const index = orderStatusSequence.value.indexOf(order.value?.status)
       if (index < 0) return
-      return orderStatusSequence[index-1]
+      return orderStatusSequence.value[index-1]
     })
 
     function updateStatus(opts={ status: '', errorMessage: '', cancelReason: '', preparationDeadline: 0 }) {
@@ -1399,6 +1438,7 @@ export default defineComponent({
       onUpdateOrderData,
 
       chatButton,
+      openChatDialog,
 
       nextStatus,
       prevStatus,
@@ -1448,7 +1488,9 @@ export default defineComponent({
 
       // utils funcs
       round,
-      formatOrderStatus, parseOrderStatusColor,
+      formatOrderStatus,
+      formatOrderStatusAction,
+      parseOrderStatusColor,
       parsePaymentStatusColor,
       formatTimestampToText,
       formatDateRelative,
