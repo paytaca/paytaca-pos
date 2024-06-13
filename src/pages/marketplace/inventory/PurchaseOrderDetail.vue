@@ -42,7 +42,7 @@
                     $t(
                       'ReviewedBy',
                       { name: purchaseOrder?.reviewedBy?.fullName, date: formatTimestampToText(purchaseOrder?.reviewedAt) },
-                      `Reviewed by ${ purchaseOrder?.reviewedBy?.fullName }} at ${ formatTimestampToText(purchaseOrder?.reviewedAt) }`
+                      `Reviewed by ${ purchaseOrder?.reviewedBy?.fullName } at ${ formatTimestampToText(purchaseOrder?.reviewedAt) }`
                     )
                   }}
                   <span v-if="purchaseOrder?.reviewedBy?.id == marketplaceStore?.user?.id">
@@ -50,7 +50,7 @@
                       $t(
                         'ReviewedByYou',
                         { name: purchaseOrder?.reviewedBy?.fullName, date: formatTimestampToText(purchaseOrder?.reviewedAt) },
-                        `Reviewed by ${ purchaseOrder?.reviewedBy?.fullName }} (you) at ${ formatTimestampToText(purchaseOrder?.reviewedAt) }`
+                        `Reviewed by ${ purchaseOrder?.reviewedBy?.fullName } (you) at ${ formatTimestampToText(purchaseOrder?.reviewedAt) }`
                       )
                     }}
                   </span>

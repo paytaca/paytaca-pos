@@ -445,6 +445,7 @@ const phrases = {
       FromPurchaseOrder: 'from purchase order',
       FromStockRecount: 'from stock recount',
       FromInitialStock: 'from initial stock',
+      MustBeGreaterThanOne: 'Must be greater than 1.',
     },
   ],
   dynamic: [

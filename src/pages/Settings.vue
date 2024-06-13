@@ -1,6 +1,6 @@
 <template>
   <q-page class="settings-page">
-    <MainHeader title="Settings"/>
+    <MainHeader :title="$t('Settings')"/>
     <q-card class="q-mx-md q-mt-lg text-weight-medium" style="border-radius:16px;">
       <q-list separator>
         <q-item v-if="walletStore?.branchInfo?.id" clickable v-ripple :to="{ name: 'marketplace' }">

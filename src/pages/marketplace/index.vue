@@ -61,7 +61,7 @@
           <DashboardCard
             :ref="el => dashboarCardRefs.storefront = el"
             v-if="marketplaceStore.userPermissions.storefront"
-            title="Storefront" :loading="salesToday?.loading" ripple class="q-space dashboard-card"
+            :title="$t('Storefront')" :loading="salesToday?.loading" ripple class="q-space dashboard-card"
             :class="[(tabs.active && tabs.active === 'storefront') ? 'col-12' : '']"
             @click="onDashboardCardClick('storefront')"
           >

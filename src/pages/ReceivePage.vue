@@ -1,6 +1,6 @@
 <template>
   <q-page padding>
-    <MainHeader title="Payment"/>
+    <MainHeader :title="$t('Payment')"/>
     <div class="text-center text-h4" style="margin-bottom: 50px;">
       <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
     </div>
@@ -80,16 +80,13 @@
               :color="bchRateStatus.color"
               size="xs"
             />
-
             {{
               $t(
                 'BchLeftValue',
                 { price: remainingPaymentRounded },
                 `${remainingPaymentRounded} BCH left`
               )
-            }}
-            
-            
+            }}            
             <q-btn v-if="showRemainingCurrencyAmount" color="grey" icon="info" flat size="xs" class="q-px-xs" style="width: 20px">
               <q-menu>
                 <q-list style="min-width: 100px">
