@@ -446,6 +446,8 @@ const phrases = {
       FromStockRecount: 'from stock recount',
       FromInitialStock: 'from initial stock',
       MustBeGreaterThanOne: 'Must be greater than 1.',
+      DeliveryTypes: 'Delivery Types',
+      StorePickup: 'Store pickup',
     },
   ],
   dynamic: [
