@@ -41,16 +41,30 @@
         class="text-blue-9 q-my-md"
         style="width:250px"
       />
-      <q-icon v-if="networkTimeDiff" name="info" class="q-ml-xs">
+      <q-icon v-if="networkTimeDiffSeconds > 1" name="info" class="q-ml-xs">
         <q-menu class="q-pa-sm">
           <div>
-            Detected that device does not match server time.
-            QR code expiration is adjusted
+            {{ $t('DetectedDeviceTimeNotMatch') }}
           </div>
           <div class="text-caption text-grey">
-            Device is {{ Math.round(Math.abs(networkTimeDiff/1000)) }}
-            second{{ Math.round(Math.abs(networkTimeDiff/1000)) == 1 ? '' : 's' }}
-            {{ networkTimeDiff > 0 ? 'behind' : 'ahead' }}
+            <template v-if="networkTimeDiffSeconds > 0">
+              {{
+                $t(
+                  'DeviceTimeBehind',
+                  { value: Math.abs(networkTimeDiffSeconds) },
+                  `Device is ${Math.abs(networkTimeDiffSeconds)} seconds behind`,
+                )
+              }}
+            </template>
+            <template v-else>
+              {{
+                $t(
+                  'DeviceTimeAhead',
+                  { value: Math.abs(networkTimeDiffSeconds) },
+                  `Device is ${Math.abs(networkTimeDiffSeconds)} seconds ahead`,
+                )
+              }}
+            </template>
           </div>
         </q-menu>
       </q-icon>
@@ -244,6 +258,7 @@ export default defineComponent({
     const qrExpirationTimer = ref(1)
     const showExpirationTimer = ref(true)
     const networkTimeDiff = ref(0)
+    const networkTimeDiffSeconds = computed(() => Math.round(networkTimeDiff.value/1000))
     onMounted(() => updateNetworkTimeDiff())
     function updateNetworkTimeDiff() {
       getNetworkTimeDiff().then(result => {
@@ -780,6 +795,7 @@ export default defineComponent({
       qrExpirationTimer,
       showExpirationTimer,
       networkTimeDiff,
+      networkTimeDiffSeconds,
       isBchMode,
     }
   },

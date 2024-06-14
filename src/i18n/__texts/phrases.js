@@ -21,6 +21,7 @@ const phrases = {
       PaymentComplete: 'Payment Complete',
       QrExpired: 'QR Expired',
       QrRefreshMessage: 'The QR has expired due to BCH price update. Do you wish to refresh it?',
+      DetectedDeviceTimeNotMatch: 'Detected that device does not match server time. QR code expiration is adjusted',
       WaitingForPayment: 'Waiting for payment ... ',
       NoTransactionsReceived: 'No transactions received',
       CopiedToClipboard: 'Copied to clipboard',
@@ -452,6 +453,8 @@ const phrases = {
   ],
   dynamic: [
     {
+      DeviceTimeAhead: "Device is {value} seconds ahead",
+      DeviceTimeBehind: "Device is {value} seconds behind",
       RemoveAddonMsg: "Remove addon '{addonLabel}'. Are you sure?",
       RemoveStockItemMsg: 'Remove stock for "{item}". Are you sure?',
       AddInputValue: 'Add {value}',
