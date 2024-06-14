@@ -39,9 +39,9 @@
 import { backend } from 'src/marketplace/backend'
 import { Stock } from 'src/marketplace/objects'
 import { defineComponent } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { i18n } from 'src/boot/i18n'
 
-const { t } = useI18n()
+const { t } = i18n.global
 
 export default defineComponent({
   name: 'StockQtyPopupEdit',

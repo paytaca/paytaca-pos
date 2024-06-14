@@ -28,9 +28,9 @@
 import { useDialogPluginComponent } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import JSONFormPreview from './JSONFormPreview.vue'
-import { useI18n } from 'vue-i18n'
+import { i18n } from 'src/boot/i18n'
 
-const { t } = useI18n()
+const { t } = i18n.global
 
 export default defineComponent({
   name: 'JSONFormDataDialog',

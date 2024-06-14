@@ -45,9 +45,9 @@
 </template>
 <script>
 import { defineComponent, ref, computed, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { i18n } from 'src/boot/i18n'
 
-const { t } = useI18n()
+const { t } = i18n.global
 
 export default defineComponent({
   name: 'OptionsField',

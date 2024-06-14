@@ -268,7 +268,9 @@ import { parseProductAddon } from 'src/marketplace/product-addons.js'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { computed, defineComponent, onMounted, ref, watch, watchEffect } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { i18n } from 'src/boot/i18n'
+
+const { t } = i18n.global
 
 export default defineComponent({
   name: 'AddonsFormDialog',
@@ -285,7 +287,6 @@ export default defineComponent({
   },
   setup(props, { emit: $emit }) {
     const $q = useQuasar()
-    const { t } = useI18n()
     const { dialogRef, onDialogCancel, onDialogHide, onDialogOK } = useDialogPluginComponent()
     const innerVal = ref(props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))

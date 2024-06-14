@@ -58,11 +58,11 @@ import { backend, setAuthToken } from 'src/marketplace/backend'
 import { formatRole } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
-import { useI18n } from 'vue-i18n'
+import { i18n } from 'src/boot/i18n'
 import { computed, defineComponent, ref } from 'vue'
 import blankUserImg from 'src/assets/blank_user_image.webp'
 
-const { t } = useI18n()
+const { t } = i18n.global
 
 export default defineComponent({
   name: 'MarketplaceHeader',

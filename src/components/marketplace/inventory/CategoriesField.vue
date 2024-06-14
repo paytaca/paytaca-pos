@@ -64,9 +64,9 @@
 import { computed, defineComponent, ref, watch } from 'vue'
 import OptionsField from '../jsonform/OptionsField.vue'
 import CategoriesSearchWrapper from './CategoriesSearchWrapper.vue'
-import { useI18n } from 'vue-i18n'
+import { i18n } from 'src/boot/i18n'
 
-const { t } = useI18n()
+const { t } = i18n.global
 
 export default defineComponent({
   name: 'CategoriesField',
