@@ -101,6 +101,7 @@
               <q-item
                 v-if="!order?.isCancelled"
                 v-close-popup clickable
+                :disable="updatingStatus"
                 @click="() => confirmCancelOrder()"
               >
                 <q-item-section>
@@ -247,6 +248,7 @@
       <div class="row items-center q-gutter-sm q-mb-md">
         <q-btn
           v-if="nextStatus"
+          :disable="updatingStatus"
           no-caps
           :label="formatOrderStatusAction(nextStatus)"
           :color="parseOrderStatusColor(nextStatus)"
@@ -851,12 +853,22 @@ export default defineComponent({
       return orderStatusSequence.value[index-1]
     })
 
+    const updatingStatus = ref(false)
     function updateStatus(opts={ status: '', errorMessage: '', cancelReason: '', preparationDeadline: 0 }) {
+      const dialog = $q.dialog({
+        title: 'Order status',
+        message: opts?.status == prevStatus.value ? 'Reverting order status' : 'Updating order status',
+        progress: true,
+        persistent: true,
+        color: 'brandblue',
+        ok: false, cancel: false,
+      })
       const data = {
         status: opts?.status,
         cancel_reason: opts?.cancelReason || undefined,
         preparation_deadline: opts?.preparationDeadline || undefined,
       }
+      updatingStatus.value = true
       return backend.post(`connecta/orders/${order.value.id}/update_status/`, data)
         .then(response => {
           order.value.raw = response?.data
@@ -868,6 +880,10 @@ export default defineComponent({
             caption: error?.response?.data?.detail ||
                     errorParser.firstElementOrValue(error?.response?.data),
           })
+        })
+        .finally(() => {
+          updatingStatus.value = false
+          dialog?.hide?.()
         })
     }
 
@@ -1449,6 +1465,7 @@ export default defineComponent({
       extendPreparationTime,
       updatePreparationDeadline,
 
+      updatingStatus,
       updateStatus,
       confirmOrder,
       confirmCancelOrder,

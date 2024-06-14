@@ -117,7 +117,7 @@ export function formatOrderStatusAction(value) {
     case 'pending':
       return 'Mark pending'
     case 'confirmed':
-      return 'Conirm order'
+      return 'Confirm order'
     case 'preparing':
       return 'Prepare order'
     case 'ready_for_pickup':

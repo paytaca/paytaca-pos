@@ -130,13 +130,13 @@
               <q-item-label>
                 {{ product?.name }}
                 <template v-if="product?.hasVariants">
-                  {{
+                  ({{
                     $t(
                       'VariantCount',
                       { count: product?.variants?.length || product?.variantsCount },
                       `(${ product?.variants?.length || product?.variantsCount } variants)`
                     )
-                  }}
+                  }})
                 </template>
               </q-item-label>
               <q-item-label class="text-caption">#{{ product?.id }}</q-item-label>

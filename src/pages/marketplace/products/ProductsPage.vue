@@ -101,13 +101,13 @@
                 <div>
                   {{ props.row.name }}
                   <template v-if="props.row.hasVariants">
-                    {{
+                    ({{
                       $t(
                         'VariantCount',
                         { count: props.row.variants.length || props.row.variantsCount },
                         `(${ props.row.variants.length || props.row.variantsCount } variants)`
                       )
-                    }}
+                    }})
                   </template>
                 </div>
                 <div class="text-caption bottom text-grey">#{{ props.row.id }}</div>
