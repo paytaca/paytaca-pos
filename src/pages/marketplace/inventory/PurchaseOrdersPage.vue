@@ -186,22 +186,8 @@
               {{ formatPurchaseOrderStatus(props?.row?.status) }}
               <q-icon v-if="props?.row?.reviewedAt" name="check_circle" color="green" size="1.25em" class="q-ml-xs">
                 <q-menu class="q-px-md q-py-sm">
-                  {{
-                    $t(
-                      'PurchaseOrderReviewed',
-                      { date: formatDateRelative(props?.row?.reviewedAt) },
-                      `Purchase order reviewed ${ formatDateRelative(props?.row?.reviewedAt) }`
-                    )
-                  }}
                   <template v-if="props?.row?.reviewedBy?.id">
-                    {{
-                      $t(
-                        'PurchaseOrderReviewedBy',
-                        { date: formatDateRelative(props?.row?.reviewedAt), name: props?.row?.reviewedBy?.fullName },
-                        `Purchase order reviewed ${ formatDateRelative(props?.row?.reviewedAt) } by ${ props?.row?.reviewedBy?.fullName }`
-                      )
-                    }}
-                    <span v-if="marketplaceStore?.user?.id === props?.row?.reviewedBy?.id">
+                    <template v-if="marketplaceStore?.user?.id === props?.row?.reviewedBy?.id">
                       {{
                         $t(
                           'PurchaseOrderReviewedYou',
@@ -209,7 +195,25 @@
                           `Purchase order reviewed ${ formatDateRelative(props?.row?.reviewedAt) } by ${ props?.row?.reviewedBy?.fullName } (you)`
                         )
                       }}
-                    </span>
+                    </template>
+                    <template v-else>
+                      {{
+                        $t(
+                          'PurchaseOrderReviewedBy',
+                          { date: formatDateRelative(props?.row?.reviewedAt), name: props?.row?.reviewedBy?.fullName },
+                          `Purchase order reviewed ${ formatDateRelative(props?.row?.reviewedAt) } by ${ props?.row?.reviewedBy?.fullName }`
+                        )
+                      }}
+                    </template>
+                  </template>
+                  <template v-else>
+                    {{
+                      $t(
+                        'PurchaseOrderReviewed',
+                        { date: formatDateRelative(props?.row?.reviewedAt) },
+                        `Purchase order reviewed ${ formatDateRelative(props?.row?.reviewedAt) }`
+                      )
+                    }}
                   </template>
                 </q-menu>
               </q-icon>

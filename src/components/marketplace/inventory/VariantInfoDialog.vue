@@ -54,9 +54,9 @@ import { Variant } from 'src/marketplace/objects'
 import { useDialogPluginComponent } from 'quasar'
 import { defineComponent, ref, watch } from 'vue'
 import { useMarketplaceStore } from 'src/stores/marketplace'
-import { useI18n } from 'vue-i18n'
+import { i18n } from 'src/boot/i18n'
 
-const { t } = useI18n()
+const { t } = i18n.global
 
 export default defineComponent({
   name: 'VariantInfoDialog',

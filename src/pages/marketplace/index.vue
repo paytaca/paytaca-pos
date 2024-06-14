@@ -403,6 +403,7 @@ export default defineComponent({
     const toReviewPurchaseOrdersCount = ref([].map(Number)[0])
     function getToReviewPurchaseOrderCount() {
       const params = {
+        shop_id: marketplaceStore.activeShopId || 0,
         to_review: true,
         reviewed: false,
         limit: 1,

@@ -38,13 +38,6 @@
             <q-icon v-if="purchaseOrder?.reviewedAt" name="check_circle" color="green" size="1.5rem" class="q-mx-xs">
               <q-menu class="q-pa-sm">
                 <template v-if="purchaseOrder?.reviewedBy?.fullName">
-                  {{
-                    $t(
-                      'ReviewedBy',
-                      { name: purchaseOrder?.reviewedBy?.fullName, date: formatTimestampToText(purchaseOrder?.reviewedAt) },
-                      `Reviewed by ${ purchaseOrder?.reviewedBy?.fullName } at ${ formatTimestampToText(purchaseOrder?.reviewedAt) }`
-                    )
-                  }}
                   <span v-if="purchaseOrder?.reviewedBy?.id == marketplaceStore?.user?.id">
                     {{
                       $t(
@@ -54,6 +47,15 @@
                       )
                     }}
                   </span>
+                  <template v-else>
+                    {{
+                      $t(
+                        'ReviewedBy',
+                        { name: purchaseOrder?.reviewedBy?.fullName, date: formatTimestampToText(purchaseOrder?.reviewedAt) },
+                        `Reviewed by ${ purchaseOrder?.reviewedBy?.fullName } at ${ formatTimestampToText(purchaseOrder?.reviewedAt) }`
+                      )
+                    }}
+                  </template>
                 </template>
               </q-menu>
             </q-icon>
@@ -287,7 +289,7 @@
                   {{
                     $t(
                       'DeliveredDate',
-                      { date: formatDateRelative(item.deliveredAt) },
+                      { relativeDate: formatDateRelative(item.deliveredAt) },
                       `Delivered ${formatDateRelative(item.deliveredAt)}`
                     )
                   }}

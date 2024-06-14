@@ -7,7 +7,7 @@
             stock?.itemName ||
             $t(
               'StockId',
-              { id: stock?.id }
+              { id: stock?.id },
               `Stock#${stock?.id}`
             )
           }}
@@ -16,7 +16,7 @@
           {{
             $t(
               'stockId',
-              { id: stock?.id }
+              { id: stock?.id },
               `stock#${stock?.id}`
             )
           }}
@@ -121,6 +121,7 @@
                     }}
                   </template>
                 </template>
+                {{" "}}
                 <template v-if="adjustment?.source === 'sales'">
                   <span
                     :class="adjustment.salesOrderId ? 'text-weight-medium': ''"
@@ -131,8 +132,8 @@
                 </template>
                 <template v-else-if="adjustment.source === 'purchase_orders'">
                   <span
-                  :class="adjustment.purchaseOrderId ? 'text-weight-medium': ''"
-                  @click="() => showStockAdjustmentPurchaseOrder(adjustment)"
+                    :class="adjustment.purchaseOrderId ? 'text-weight-medium': ''"
+                    @click="() => showStockAdjustmentPurchaseOrder(adjustment)"
                   >
                     {{ $t('FromPurchaseOrder') }}
                   </span>
