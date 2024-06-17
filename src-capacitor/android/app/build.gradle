@@ -7,8 +7,8 @@ android {
         applicationId "com.paytaca.pos"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 13
-        versionName "v0.4.0"
+        versionCode 14
+        versionName "v0.4.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
