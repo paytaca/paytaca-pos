@@ -15,7 +15,7 @@
           <div class="line-design4"></div>
         </div>
       </div>
-      <span class="scanner-text text-center full-width">{{ text }}</span>
+      <span class="scanner-text text-center full-width">{{ translatedText }}</span>
     </div>
 
     <qrcode-stream
@@ -32,20 +32,24 @@
 
 <script>
 import { QrcodeStream } from 'vue3-qrcode-reader'
-import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ref, computed } from 'vue'
 
 export default {
   components: { QrcodeStream },
   props: {
     text: {
       type: String,
-      default: this.$t('ScanQrCode'),
+      default: 'ScanQrCode',
     },
     toggle: Function
   },
   emits: ['decode', 'error'],
   setup (props, { emit }) {
     const errorMessage = ref(null)
+
+    const { t } = useI18n()
+    const translatedText = computed(() => t(text));
 
     function onScannerDecode (content) {
       emit('decode', content)
