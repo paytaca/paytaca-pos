@@ -625,6 +625,7 @@ export default {
   Unset: "不设置",
   Unvailable: "不可电线",
   Update: "更新",
+  UpdateBchFiatPrice: "更新BCH-FIAT价格",
   UpdateLastPurchaseOrderNumber: "更新最后的采购订单号",
   UpdateLastSalesOrderNumber: "更新最后的销售订单号",
   UpdatePassword: "更新密码",

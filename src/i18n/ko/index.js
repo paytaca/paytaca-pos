@@ -625,6 +625,7 @@ export default {
   Unset: "세트가 없다",
   Unvailable: "불가능합니다",
   Update: "업데이트",
+  UpdateBchFiatPrice: "BCH-FIAT 가격을 업데이트하십시오",
   UpdateLastPurchaseOrderNumber: "마지막 구매 주문 번호를 업데이트하십시오",
   UpdateLastSalesOrderNumber: "마지막 판매 주문 번호를 업데이트하십시오",
   UpdatePassword: "비밀번호 업데이트",

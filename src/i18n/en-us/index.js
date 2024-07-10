@@ -625,6 +625,7 @@ export default {
   Unset: "Unset",
   Unvailable: "Unvailable",
   Update: "Update",
+  UpdateBchFiatPrice: "Update BCH-Fiat Price",
   UpdateLastPurchaseOrderNumber: "Update last purchase order number",
   UpdateLastSalesOrderNumber: "Update last sales order number",
   UpdatePassword: "Update Password",

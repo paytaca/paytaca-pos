@@ -625,6 +625,7 @@ export default {
   Unset: "Tidak ada",
   Unvailable: "Tidak terselubung",
   Update: "Memperbarui",
+  UpdateBchFiatPrice: "Perbarui harga BCH-FIAT",
   UpdateLastPurchaseOrderNumber: "Perbarui Nomor Pesanan Pembelian Terakhir",
   UpdateLastSalesOrderNumber: "Perbarui Nomor Pesanan Penjualan Terakhir",
   UpdatePassword: "Perbarui Kata Sandi",

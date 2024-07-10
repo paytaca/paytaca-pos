@@ -449,6 +449,7 @@ const phrases = {
       MustBeGreaterThanOne: 'Must be greater than 1.',
       DeliveryTypes: 'Delivery Types',
       StorePickup: 'Store pickup',
+      UpdateBchFiatPrice: 'Track BCH-Fiat Price',
     },
   ],
   dynamic: [

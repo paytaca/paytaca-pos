@@ -625,6 +625,7 @@ export default {
   Unset: "Non settato",
   Unvailable: "Non disponibile",
   Update: "Aggiornamento",
+  UpdateBchFiatPrice: "Aggiorna il prezzo BCH-Fiat",
   UpdateLastPurchaseOrderNumber: "Aggiorna l'ultimo numero di ordine di acquisto",
   UpdateLastSalesOrderNumber: "Aggiorna l'ultimo numero dell'ordine di vendita",
   UpdatePassword: "Aggiorna la password",

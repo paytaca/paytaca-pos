@@ -625,6 +625,7 @@ export default {
   Unset: "Wala makaalinggat",
   Unvailable: "Dili masukod",
   Update: "Update",
+  UpdateBchFiatPrice: "Pag-update sa presyo sa BCH-Fiat",
   UpdateLastPurchaseOrderNumber: "Pag-update sa katapusan nga numero sa order sa pagpalit",
   UpdateLastSalesOrderNumber: "Pag-update sa katapusang numero sa pag-undang sa pagbaligya",
   UpdatePassword: "Pag-update sa password",

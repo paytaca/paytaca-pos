@@ -625,6 +625,7 @@ export default {
   Unset: "Ongezel",
   Unvailable: "Onstuimig",
   Update: "Update",
+  UpdateBchFiatPrice: "Update Bch-Fiat-prijs",
   UpdateLastPurchaseOrderNumber: "Update laatste inkoopordernummer",
   UpdateLastSalesOrderNumber: "Update laatste verkoopordernummer",
   UpdatePassword: "Vernieuw wachtwoord",

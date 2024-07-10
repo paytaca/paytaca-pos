@@ -625,6 +625,7 @@ export default {
   Unset: "解き放つ",
   Unvailable: "無視できません",
   Update: "アップデート",
+  UpdateBchFiatPrice: "BCH-Fiat価格を更新します",
   UpdateLastPurchaseOrderNumber: "最後の発注書番号を更新します",
   UpdateLastSalesOrderNumber: "最後の販売注文番号を更新します",
   UpdatePassword: "パスワードを更新します",

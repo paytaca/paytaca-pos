@@ -625,6 +625,7 @@ export default {
   Unset: "M",
   Unvailable: "Wanda ba a haɗa ba",
   Update: "Sabuntawa",
+  UpdateBchFiatPrice: "CIGABA DA BUKA BCH-FIAT",
   UpdateLastPurchaseOrderNumber: "Sabunta lambar oda na ƙarshe",
   UpdateLastSalesOrderNumber: "Sabunta lambar umarnin tallace-tallace na ƙarshe",
   UpdatePassword: "Sabunta kalmar sirri",
