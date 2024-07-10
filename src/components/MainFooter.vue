@@ -78,6 +78,7 @@ export default defineComponent({
           setAmount: amount?.value || undefined,
           setCurrency: amount?.currency || undefined,
           lockAmount: true,
+          resetQr: data?.resetQr,
         }
         $router.push({ name, query })
       })

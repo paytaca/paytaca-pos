@@ -35,7 +35,7 @@
       </div>
     </div>
 
-    <div v-if="showExpirationTimer && !isBchMode" class="flex flex-center">
+    <div v-if="showExpirationTimer && !isBchMode && __resetQr" class="flex flex-center">
       <q-linear-progress
         :value="qrExpirationTimer"
         class="text-blue-9 q-my-md"
@@ -102,7 +102,7 @@
           <div v-if="paid" class="text-green">{{ $t('PaymentComplete') }}</div>
           <div v-if="!paid" style="color: #ed5f59">
             <q-icon
-              v-if="currencyBchRate.status !== 2"
+              v-if="currencyBchRate.status !== 2 && __resetQr"
               :name="bchRateStatus.icon"
               :color="bchRateStatus.color"
               size="xs"
@@ -202,6 +202,7 @@ export default defineComponent({
     setAmount: Number,
     setCurrency: String,
     lockAmount: Boolean, // should only work if setAmount is given
+    resetQr: Boolean, // for checking if QR should be resetted every minute
   },
   methods: {
     copyText(value, message='Copied address') {
@@ -287,6 +288,7 @@ export default defineComponent({
     const receiveAmount = ref(0)
     const currency = ref('BCH')
     const disableAmount = ref(false)
+    const __resetQr = ref(props.resetQr === 'true')
 
     const currencyRateUpdateRate = 60 * 1000
     const currencyBchRate = computed(() => {
@@ -301,7 +303,7 @@ export default defineComponent({
     let qrExpirationPrompt = null
     let qrExpirationCountdown = null
 
-    onMounted(() => refreshQrCountdown())
+    if (__resetQr.value) onMounted(() => refreshQrCountdown())
     watch(currency, () => updateSelectedCurrencyRate())
 
 
@@ -797,6 +799,7 @@ export default defineComponent({
       networkTimeDiff,
       networkTimeDiffSeconds,
       isBchMode,
+      __resetQr,
     }
   },
 })
