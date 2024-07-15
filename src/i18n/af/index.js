@@ -546,6 +546,7 @@ export default {
   ShowSummary: "Toon opsomming",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  Spanish: "Spaans",
   SpanishArgentina: "Spaans (Argentinië)",
   Staff: "Personeel",
   StaffCount: "{count} personeel",

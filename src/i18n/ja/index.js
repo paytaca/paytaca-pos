@@ -546,6 +546,7 @@ export default {
   ShowSummary: "概要を表示します",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  Spanish: "スペイン語",
   SpanishArgentina: "スペイン語（アルゼンチン）",
   Staff: "スタッフ",
   StaffCount: "{count}スタッフ",

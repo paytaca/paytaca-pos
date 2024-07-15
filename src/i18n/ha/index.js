@@ -546,6 +546,7 @@ export default {
   ShowSummary: "Nuna takaitawa",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  Spanish: "Spanish",
   SpanishArgentina: "ASPISE (Argentina)",
   Staff: "Ma'aikata",
   StaffCount: "{Kogin Ma'aikatan",

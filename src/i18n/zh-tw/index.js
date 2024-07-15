@@ -546,6 +546,7 @@ export default {
   ShowSummary: "顯示摘要",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  Spanish: "西班牙語",
   SpanishArgentina: "西班牙語（阿根廷）",
   Staff: "職員",
   StaffCount: "{count}員工",

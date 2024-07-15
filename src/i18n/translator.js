@@ -67,7 +67,8 @@ class Translator {
 
       'es-ar:es',
       'pt-br:pt',
-    ]
+    ].sort()
+
     const sum = this.getTotalLines()
     console.log('Expected no. of translation keys on i18n files: ', sum)
     if (ignoreExisting) console.log('Will ignore keys with existing translation')

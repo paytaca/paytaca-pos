@@ -546,6 +546,7 @@ export default {
   ShowSummary: "요약 표시",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  Spanish: "스페인의",
   SpanishArgentina: "스페인어 (아르헨티나)",
   Staff: "직원",
   StaffCount: "{count} 직원",

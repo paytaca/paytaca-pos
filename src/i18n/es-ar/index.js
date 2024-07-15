@@ -546,6 +546,7 @@ export default {
   ShowSummary: "Resumen de espectáculos",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  Spanish: "Española",
   SpanishArgentina: "Español (Argentina)",
   Staff: "Personal",
   StaffCount: "{count} personal",

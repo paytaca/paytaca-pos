@@ -187,6 +187,7 @@ const words = [
     Japanese: 'Japanese',
     Korean: 'Korean',
     Portuguese: 'Portuguese',
+    Spanish: 'Spanish',
     // Key: 'Key',
   },
 ]
