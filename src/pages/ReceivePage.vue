@@ -35,7 +35,7 @@
       </div>
     </div>
 
-    <div v-if="showExpirationTimer && !isBchMode && __resetQr" class="flex flex-center">
+    <div v-if="showExpirationTimer && !isBchMode" class="flex flex-center">
       <q-linear-progress
         :value="qrExpirationTimer"
         class="text-blue-9 q-my-md"
@@ -102,7 +102,7 @@
           <div v-if="paid" class="text-green">{{ $t('PaymentComplete') }}</div>
           <div v-if="!paid" style="color: #ed5f59">
             <q-icon
-              v-if="currencyBchRate.status !== 2 && __resetQr"
+              v-if="currencyBchRate.status !== 2"
               :name="bchRateStatus.icon"
               :color="bchRateStatus.color"
               size="xs"
@@ -185,10 +185,8 @@ import { useWakeLock } from '@vueuse/core'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import QRCode from 'vue-qrcode-component'
-import { sha256 } from 'src/wallet/utils'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
-import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
 import { Vault } from 'src/contracts/purelypeer/vault'
 import axios from 'axios'
 
@@ -202,7 +200,6 @@ export default defineComponent({
     setAmount: Number,
     setCurrency: String,
     lockAmount: Boolean, // should only work if setAmount is given
-    resetQr: Boolean, // for checking if QR should be resetted every minute
   },
   methods: {
     copyText(value, message='Copied address') {
@@ -237,6 +234,7 @@ export default defineComponent({
 
     const addressSet = computed(() => addressesStore.currentAddressSet)
     const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
+    const qrScanned = false
     
     const remainingPayment = computed(() => {
       const remaining = paymentsStore.total - paymentsStore.paid
@@ -288,7 +286,6 @@ export default defineComponent({
     const receiveAmount = ref(0)
     const currency = ref('BCH')
     const disableAmount = ref(false)
-    const __resetQr = ref(props.resetQr === 'true')
 
     const currencyRateUpdateRate = 60 * 1000
     const currencyBchRate = computed(() => {
@@ -303,7 +300,7 @@ export default defineComponent({
     let qrExpirationPrompt = null
     let qrExpirationCountdown = null
 
-    if (__resetQr.value) onMounted(() => refreshQrCountdown())
+    onMounted(() => refreshQrCountdown())
     watch(currency, () => updateSelectedCurrencyRate())
 
 
@@ -321,12 +318,16 @@ export default defineComponent({
       setTimeout(() => {refreshingQr.value = false}, 3000)
     }
 
+    function stopQrExpirationCountdown () {
+      clearInterval(qrExpirationCountdown)
+      clearTimeout(qrExpirationPrompt)
+    }
+
     function refreshQrCountdown () {
       if (isBchMode.value) return
 
       updateSelectedCurrencyRate()
-      clearInterval(qrExpirationCountdown)
-      clearTimeout(qrExpirationPrompt)
+      stopQrExpirationCountdown()
 
       qrExpirationTimer.value = 1
       
@@ -530,8 +531,7 @@ export default defineComponent({
       
       if (!isBchMode.value) {
         showExpirationTimer.value = false
-        clearInterval(qrExpirationCountdown)
-        clearTimeout(qrExpirationPrompt)
+        stopQrExpirationCountdown()
       }
     }
 
@@ -547,26 +547,15 @@ export default defineComponent({
         }
       }
 
-      axios.post(
-        purelypeerClaimUrl,
-        payload,
-        headers
-      ).then(
-        response => console.log('Updated purelypeer backend regarding claim: ', response)
-      ).catch(
-        err => console.error('Error on updating purelypeer backend regarding claim: ', err)
-      )
+      axios.post(purelypeerClaimUrl, payload, headers)
+        .then(response => console.log('Updated purelypeer backend regarding claim: ', response))
+        .catch(err => console.error('Error on updating purelypeer backend regarding claim: ', err))
 
       const watchtowerVoucherFlagUrl = `${process.env.WATCHTOWER_API}/vouchers/claimed/`
 
-      axios.post(
-        watchtowerVoucherFlagUrl,
-        payload
-      ).then(
-        response => console.log('Updated watchtower regarding claim: ', response)
-      ).catch(
-        err => console.error('Error on updating watchtower regarding claim: ', err)
-      )
+      axios.post(watchtowerVoucherFlagUrl, payload)
+        .then(response => console.log('Updated watchtower regarding claim: ', response))
+        .catch(err => console.error('Error on updating watchtower regarding claim: ', err))
     }
 
     function updateClaimTxnAttr (txid) {
@@ -621,6 +610,18 @@ export default defineComponent({
     function onWebsocketReceive(data) {
       console.log(data)
       
+      // someone scanned the QR code
+      if (data?.message && !qrScanned) {
+        stopQrExpirationCountdown()
+        qrScanned = true
+        this.$q.notify({
+          message: data.message,
+          timeout: 3000,
+          icon: 'mdi-qrcode-scan',
+          color: 'brandblue'
+        })
+      }
+      
       if (!data?.value) return
 
       const parsedData = parseWebsocketDataReceived(data)
@@ -634,8 +635,7 @@ export default defineComponent({
       const isVoucher = claimVoucher(parsedData)
 
       if (isVoucher) {
-        clearInterval(qrExpirationCountdown)
-        clearTimeout(qrExpirationPrompt)
+        stopQrExpirationCountdown()
       } else {
         updatePayment(parsedData)
       }
@@ -799,7 +799,6 @@ export default defineComponent({
       networkTimeDiff,
       networkTimeDiffSeconds,
       isBchMode,
-      __resetQr,
     }
   },
 })

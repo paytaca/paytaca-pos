@@ -5,10 +5,6 @@
         <q-card-section>
           <div class="q-mb-md">
             <div class="text-h5">{{ $t('SetAmount') }}</div>
-            <div v-if="amount.currency !== 'BCH'">
-              {{ $t('UpdateBchFiatPrice') }}
-              <q-checkbox v-model="resetQr" />
-            </div>
           </div>
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
@@ -68,7 +64,6 @@ export default defineComponent({
   ],
   setup(props) {
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
-    const resetQr = ref(true)
 
     const amount = ref({
       value: props?.initialValue?.amount || null,
@@ -89,10 +84,7 @@ export default defineComponent({
         onDialogCancel()
         return
       }
-      onDialogOK({
-        amount: amount.value,
-        resetQr: resetQr.value,
-      })
+      onDialogOK({ amount: amount.value })
     }
     
     return {
@@ -103,7 +95,6 @@ export default defineComponent({
       onDialogCancel,
       amount,
       currencyOpts,
-      resetQr,
     }
   },
 })
