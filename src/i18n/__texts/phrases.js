@@ -450,7 +450,7 @@ const phrases = {
       DeliveryTypes: 'Delivery Types',
       StorePickup: 'Store pickup',
       UpdateBchFiatPrice: 'Track BCH-Fiat Price',
-      SomeoneHasScannedQr: 'Someone has scanned the QR, payment initiated.',
+      SomeoneHasScannedQr: 'QR scanned, payment initiated',
     },
   ],
   dynamic: [

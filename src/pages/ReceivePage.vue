@@ -37,6 +37,7 @@
 
     <div v-if="showExpirationTimer && !isBchMode" class="flex flex-center">
       <q-linear-progress
+        v-if="!qrScanned"
         :value="qrExpirationTimer"
         class="text-blue-9 q-my-md"
         style="width:250px"
@@ -234,7 +235,7 @@ export default defineComponent({
 
     const addressSet = computed(() => addressesStore.currentAddressSet)
     const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
-    const qrScanned = false
+    let qrScanned = ref(false)
     
     const remainingPayment = computed(() => {
       const remaining = paymentsStore.total - paymentsStore.paid
@@ -610,12 +611,12 @@ export default defineComponent({
     function processLiveUpdate (data) {
       // someone scanned the QR code
       if (data.update_type === 'qr_scanned') {
-        if (!qrScanned) {
+        if (!qrScanned.value) {
           stopQrExpirationCountdown()
-          qrScanned = true
+          qrScanned.value = true
           
-          this.$q.notify({
-            message: this.$t('SomeoneHasScannedQr'),
+          $q.notify({
+            message: t('SomeoneHasScannedQr'),
             timeout: 3000,
             icon: 'mdi-qrcode-scan',
             color: 'brandblue'
@@ -805,6 +806,7 @@ export default defineComponent({
       networkTimeDiff,
       networkTimeDiffSeconds,
       isBchMode,
+      qrScanned,
     }
   },
 })
