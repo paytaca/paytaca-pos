@@ -606,22 +606,28 @@ export default defineComponent({
 
       return true
     }
+
+    function processLiveUpdate (data) {
+      // someone scanned the QR code
+      if (data.update_type === 'qr_scanned') {
+        if (!qrScanned) {
+          stopQrExpirationCountdown()
+          qrScanned = true
+          
+          this.$q.notify({
+            message: this.$t('SomeoneHasScannedQr'),
+            timeout: 3000,
+            icon: 'mdi-qrcode-scan',
+            color: 'brandblue'
+          })
+        }
+      }
+    }
     
     function onWebsocketReceive(data) {
       console.log(data)
-      
-      // someone scanned the QR code
-      if (data?.message && !qrScanned) {
-        stopQrExpirationCountdown()
-        qrScanned = true
-        this.$q.notify({
-          message: data.message,
-          timeout: 3000,
-          icon: 'mdi-qrcode-scan',
-          color: 'brandblue'
-        })
-      }
-      
+
+      if (data?.update_type) processLiveUpdate(data)
       if (!data?.value) return
 
       const parsedData = parseWebsocketDataReceived(data)

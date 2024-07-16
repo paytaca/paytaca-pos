@@ -546,6 +546,7 @@ export default {
   ShowSummary: "Tampilkan ringkasan",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  SomeoneHasScannedQr: "Seseorang telah memindai QR, pembayaran dimulai.",
   Spanish: "Orang Spanyol",
   SpanishArgentina: "Spanyol (Argentina)",
   Staff: "Staf",

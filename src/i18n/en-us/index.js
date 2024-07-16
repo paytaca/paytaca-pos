@@ -546,6 +546,7 @@ export default {
   ShowSummary: "Show summary",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  SomeoneHasScannedQr: "Someone has scanned the QR, payment initiated.",
   Spanish: "Spanish",
   SpanishArgentina: "Spanish (Argentina)",
   Staff: "Staff",

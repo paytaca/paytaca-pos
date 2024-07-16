@@ -546,6 +546,7 @@ export default {
   ShowSummary: "顯示摘要",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  SomeoneHasScannedQr: "有人掃描QR，付款。",
   Spanish: "西班牙語",
   SpanishArgentina: "西班牙語（阿根廷）",
   Staff: "職員",

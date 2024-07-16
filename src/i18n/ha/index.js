@@ -546,6 +546,7 @@ export default {
   ShowSummary: "Nuna takaitawa",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  SomeoneHasScannedQr: "Wani ya bincika QR, an fara biyan kuɗi.",
   Spanish: "Spanish",
   SpanishArgentina: "ASPISE (Argentina)",
   Staff: "Ma'aikata",

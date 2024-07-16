@@ -546,6 +546,7 @@ export default {
   ShowSummary: "요약 표시",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  SomeoneHasScannedQr: "누군가가 QR을 스캔했고 지불이 시작되었습니다.",
   Spanish: "스페인의",
   SpanishArgentina: "스페인어 (아르헨티나)",
   Staff: "직원",

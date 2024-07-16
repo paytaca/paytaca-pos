@@ -546,6 +546,7 @@ export default {
   ShowSummary: "Resumen de espectáculos",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  SomeoneHasScannedQr: "Alguien ha escaneado el QR, iniciado el pago.",
   Spanish: "Española",
   SpanishArgentina: "Español (Argentina)",
   Staff: "Personal",

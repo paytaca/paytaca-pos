@@ -546,6 +546,7 @@ export default {
   ShowSummary: "Ipakita ang Sumaryo",
   SignIn: "Sign-in",
   SoNumber: "SO#{number}",
+  SomeoneHasScannedQr: "Adunay nag-scan sa QR, gisugdan ang pagbayad.",
   Spanish: "Daplin sa Espanya",
   SpanishArgentina: "SPANISH (ARGENTINA)",
   Staff: "Kawani",
