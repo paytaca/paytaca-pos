@@ -14,14 +14,13 @@
 
 <script>
 import { useI18n } from 'vue-i18n'
+import { computed } from 'vue'
 
 export default {
   setup () {
     const { locale, t } = useI18n({ useScope: 'global' })
-
-    return {
-      locale,
-      localeOptions: [
+    const localeOptions = computed(() => {
+      return [
         { value: 'af', label: t('Afrikaans') },
         { value: 'ceb', label: t('Cebuano') },
         { value: 'zh-cn', label: t('ChineseSimplified') },
@@ -39,6 +38,11 @@ export default {
         { value: 'es', label: t('Spanish') },
         { value: 'es-ar', label: t('SpanishArgentina') },
       ]
+    })
+
+    return {
+      locale,
+      localeOptions,
     }
   }
 }
