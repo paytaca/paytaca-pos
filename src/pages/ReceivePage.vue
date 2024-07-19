@@ -266,10 +266,8 @@ export default defineComponent({
       return paymentsStore.paid / paymentsStore.total
     })
     const remainingPaymentRounded = computed(() => Number(remainingPayment.value.toFixed(8)))
-    // const paid = computed(() => remainingPayment.value === 0)
     const triggerSecondConfetti = ref(false)
-    const paid = ref(false)
-    onMounted(() => setTimeout(() => {paid.value = true}, 3000))
+    const paid = computed(() => remainingPayment.value === 0)
     watch(paid, () => setTimeout(() => triggerSecondConfetti.value = true, 1500))
 
     const receivingAddress = addressSet.value?.receiving
