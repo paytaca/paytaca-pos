@@ -33,7 +33,7 @@
       <q-card-section class="q-mt-xs">
         <q-item clickable v-ripple @click="copyToClipboard(String(transaction.amount))">
           <q-item-section v-if="!transaction?._offline || transaction?.amount" side>
-            <img src="~assets/bch-logo.png" height="30"/>
+            <img src="~assets/bch-logo.webp" height="30"/>
           </q-item-section>
           <q-item-section v-if="!transaction?._offline || transaction?.amount">
             <q-item-label class="text-h5">
@@ -145,7 +145,7 @@ export default defineComponent({
     asset() {
       return {
         symbol: 'BCH',
-        logo: '~assets/bch-logo.png',
+        logo: '~assets/bch-logo.webp',
       }
     }
   },

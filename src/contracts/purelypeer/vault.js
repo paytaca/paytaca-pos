@@ -1,16 +1,11 @@
 import vaultContractSource from "./contracts/vault.cash"
-import Watchtower from 'watchtower-cash-js'
 import { reverseHex } from "../utils"
 import { compileString } from "cashc"
 import axios from "axios"
-import BCHJS from "@psf/bch-js"
 import {
   Contract,
   ElectrumNetworkProvider,
 } from "cashscript"
-
-
-const bchjs = new BCHJS()
 
 
 export class Vault {

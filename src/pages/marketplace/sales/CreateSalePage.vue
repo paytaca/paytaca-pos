@@ -354,7 +354,7 @@
               >
                 <div v-if="loading"><q-skeleton height="200px" width="200px" /></div>
                 <template v-else>
-                  <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
+                  <img src="~assets/bch-logo.webp" height="50" class="qr-code-icon"/>
                   <QRCode
                     :text="bchPaymentUrl"
                     color="#253933"
