@@ -418,7 +418,6 @@ export default defineComponent({
       paymentUri += `&amount=${remainingPaymentRounded.value}`
       paymentUri += `&vault=${merchantVaultTokenAddress}`    // recipient of voucher NFT
 
-      // TODO: can be removed soon since the QR's timer is disabled when someone scans it
       if (!isBchMode.value) {
         const expiryDuration = currencyRateUpdateRate / 1000
         const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
