@@ -53,7 +53,7 @@
 
     <div v-if="showExpirationTimer && !isBchMode" class="flex flex-center">
       <q-linear-progress
-        v-if="!qrScanned"
+        v-if="!qrScanned && !paid"
         :value="qrExpirationTimer"
         class="text-blue-9 q-mt-md q-mb-none"
         style="width:250px"
@@ -196,6 +196,7 @@ import { usePaymentsStore } from 'stores/payments'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useAddressesStore } from 'stores/addresses'
 import { useMarketStore } from 'src/stores/market'
+import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
 import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, markRaw, inject, provide } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useWakeLock } from '@vueuse/core'
@@ -204,7 +205,6 @@ import { useI18n } from 'vue-i18n'
 import QRCode from 'vue-qrcode-component'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
-import { Vault } from 'src/contracts/purelypeer/vault'
 import axios from 'axios'
 import ConfettiExplosion from "vue-confetti-explosion"
 
@@ -268,7 +268,6 @@ export default defineComponent({
     const remainingPaymentRounded = computed(() => Number(remainingPayment.value.toFixed(8)))
     const triggerSecondConfetti = ref(false)
     const paid = computed(() => remainingPayment.value === 0)
-    watch(paid, () => setTimeout(() => triggerSecondConfetti.value = true, 1500))
 
     const receivingAddress = addressSet.value?.receiving
     const vault = ref(walletStore.merchantInfo?.vault)
@@ -483,7 +482,13 @@ export default defineComponent({
     }
 
     watch(addressSet, () => setupListener())
-    watch(paid, (newVal) => { if (newVal) closeWebsocket() })
+    watch(paid, (newVal) => {
+      if (newVal) {
+        closeWebsocket()
+        stopQrExpirationCountdown()
+        setTimeout(() => triggerSecondConfetti.value = true, 1500)
+      }
+    })
 
     // 0.4ms - 0.5ms
     onMounted(() => addressSet.value?.receiving ? setupListener() : null)
@@ -612,7 +617,7 @@ export default defineComponent({
       else if (updateType === 'cancel_payment') {
         message = t('PaymentCancelled')
       }
-      else if (updateType === 'sent_voucher') {
+      else if (updateType === 'voucher_claimed') {
         if (!data?.txid || !data?.category) return
         flagVoucher(data.txid, data.category)
         updateClaimTxnAttr(data.txid)
