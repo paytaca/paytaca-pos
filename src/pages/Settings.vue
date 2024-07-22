@@ -165,7 +165,6 @@
 </template>
 
 <script>
-import { useI18n } from 'vue-i18n'
 import { computed, defineComponent } from 'vue'
 import MainHeader from 'src/components/MainHeader.vue'
 import { useWalletStore } from 'src/stores/wallet'

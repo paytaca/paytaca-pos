@@ -3,7 +3,9 @@
     <q-card class="q-dialog-plugin">
       <q-form @submit="checkAmount()">
         <q-card-section>
-          <div class="text-h5 q-mb-md">{{ $t('SetAmount') }}</div>
+          <div class="q-mb-md">
+            <div class="text-h5">{{ $t('SetAmount') }}</div>
+          </div>
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
           </div>

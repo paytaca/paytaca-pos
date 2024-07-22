@@ -33,7 +33,8 @@ class Translator {
     }
   }
 
-  async translate () {
+  async translate (opts = { ignoreExisting: false }) {
+    const ignoreExisting = opts?.ignoreExisting
     /*
       check for supported language codes here
       https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
@@ -66,9 +67,11 @@ class Translator {
 
       'es-ar:es',
       'pt-br:pt',
-    ]
+    ].sort()
+
     const sum = this.getTotalLines()
     console.log('Expected no. of translation keys on i18n files: ', sum)
+    if (ignoreExisting) console.log('Will ignore keys with existing translation')
     
     let jsonData = {}
 
@@ -81,6 +84,11 @@ class Translator {
         continue
       }
 
+      if (ignoreExisting) {
+        const importedModule = await this.getExistingTranslations(lang)
+        jsonData = importedModule?.default || {}
+      }
+
       let codes = { from: 'en', to: lang }
       if (lang === 'en-us') codes.to = 'en'
 
@@ -89,13 +97,29 @@ class Translator {
       console.log('==============================')
 
       let index = 0
-      for (const group of this.texts) {
-        if (Object.keys(group).length === 0) {
-          continue
+      for (const _group of this.texts) {
+        const group = Object.assign({}, _group)
+
+        // filter keys that already exist in main output: `jsonData`
+        const deletedKeys = []
+        if (ignoreExisting) {
+          Object.keys(group).forEach(key => {
+            if (!jsonData[key]) return
+
+            delete group[key]
+            deletedKeys.push(key)
+          })
         }
 
         const label = this.getTextGroupLabel(index)
+        if (Object.keys(group).length === 0) {
+          console.log(`Skipping ${label}...`)
+          index++
+          continue
+        }
+
         console.log(`Translating ${label}...`)
+        if (deletedKeys.length) console.log('Ignored keys:', deletedKeys.length)
 
         // store all the interpolated substring in an object with its corresponding key
         const interpolatedWords = {}
@@ -191,6 +215,16 @@ class Translator {
         if (err) throw err
       }
     )
+  }
+  
+  async getExistingTranslations(lang) {
+    const fromPath = `./${lang}/${this.indexFile}`
+    const toPath = `./${lang}/temp-${Date.now()}.mjs`
+    if (!fs.existsSync(fromPath)) return {}
+    fs.copyFileSync(fromPath, toPath)
+    const data = await import(toPath)
+    fs.unlinkSync(toPath)
+    return data
   }
   
   async sleep (seconds) {

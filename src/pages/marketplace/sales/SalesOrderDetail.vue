@@ -176,7 +176,7 @@
               <div v-if="bchPayment.show && !salesOrder?.isVoid" class="q-mt-md">
                 <div class="row justify-center items-center q-mt-sm">
                   <div class="qr-code-container row items-center">
-                    <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
+                    <img src="~assets/bch-logo.webp" height="50" class="qr-code-icon"/>
                     <QRCode
                       :text="bchPaymentUrl"
                       color="#253933"

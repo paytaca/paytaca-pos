@@ -1,27 +1,43 @@
 <template>
   <q-page padding>
     <MainHeader :title="$t('Payment')"/>
-    <div class="text-center text-h4" style="margin-bottom: 50px;">
-      <q-skeleton v-if="loading" type="text" width="5em" style="margin:auto;"/>
+    <div v-if="loading" class="text-center text-h4" style="margin-bottom: 50px;">
+      <q-skeleton type="text" width="5em" style="margin:auto;"/>
     </div>
     <q-banner v-if="!isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-lg rounded-borders">
       {{ $t('AppOfflineMessage') }}
     </q-banner>
-    <div class="row items-center justify-center">
+    <div class="row items-center justify-center q-mt-md">
       <div
         class="qr-code-container"
-        :class="paid ? 'bg-dark border-green' : 'border-red'"
+        :class="qrCodeContainerClass"
         style="position:relative;"
         v-ripple
         @click="copyText(qrData, $t('CopyPaymentUri'))"
       >
-        <div v-if="paid" class="bg-dark">
+        <ConfettiExplosion
+          v-if="paid"
+          :particleCount="200"
+          :force="0.4"
+          :duration="8000"
+          :shouldDestroyAfterDone="true"
+        />
+        <ConfettiExplosion
+          v-if="paid && triggerSecondConfetti"
+          :particleCount="200"
+          :force="0.6"
+          :duration="5000"
+          :shouldDestroyAfterDone="true"
+        />
+        <div v-if="paid" :class="$q.dark.isActive ? 'bg-dark' : 'bg-green-3'">
           <img src="~assets/success-check.gif" height="200" />
         </div>
         <template v-else>
-          <div v-if="!websocketsReady || refreshingQr" class="bg-dark"><q-skeleton height="200px" width="200px" /></div>
+          <div v-if="!websocketsReady || refreshingQr" :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
+            <q-skeleton height="200px" width="200px" />
+          </div>
           <template v-else>
-            <img src="~assets/bch-logo.png" height="50" class="qr-code-icon"/>
+            <img src="~assets/bch-logo.webp" height="50" class="qr-code-icon"/>
             <QRCode
               :text="qrData"
               color="#253933"
@@ -37,8 +53,9 @@
 
     <div v-if="showExpirationTimer && !isBchMode" class="flex flex-center">
       <q-linear-progress
+        v-if="!qrScanned && !paid"
         :value="qrExpirationTimer"
-        class="text-blue-9 q-my-md"
+        class="text-blue-9 q-mt-md q-mb-none"
         style="width:250px"
       />
       <q-icon v-if="networkTimeDiffSeconds > 1" name="info" class="q-ml-xs">
@@ -93,7 +110,7 @@
       </div>
     </div>
 
-    <div v-if="canViewTransactionsReceived" class="q-px-md q-mt-md">
+    <div v-if="canViewPayments" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
           {{ $t('Payments') }}
@@ -162,7 +179,7 @@
       </template>
       <div v-else-if="websocketsReady" class="row items-center justify-center">
         <div class="text-grey text-center q-mt-xs q-pt-xs">
-          <q-spinner size="30px"/>
+          <q-spinner size="30px" class="q-mb-md" />
           <div>{{ $t('WaitingForPayment') }}</div>
         </div>
       </div>
@@ -179,24 +196,25 @@ import { usePaymentsStore } from 'stores/payments'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useAddressesStore } from 'stores/addresses'
 import { useMarketStore } from 'src/stores/market'
+import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
 import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, markRaw, inject, provide } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useWakeLock } from '@vueuse/core'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import QRCode from 'vue-qrcode-component'
-import { sha256 } from 'src/wallet/utils'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
-import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
-import { Vault } from 'src/contracts/purelypeer/vault'
 import axios from 'axios'
+import ConfettiExplosion from "vue-confetti-explosion"
+
 
 export default defineComponent({
   name: "ReceivePage",
   components: {
     QRCode,
-    MainHeader
+    MainHeader,
+    ConfettiExplosion,
   },
   props: {
     setAmount: Number,
@@ -236,6 +254,7 @@ export default defineComponent({
 
     const addressSet = computed(() => addressesStore.currentAddressSet)
     const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
+    let qrScanned = ref(false)
     
     const remainingPayment = computed(() => {
       const remaining = paymentsStore.total - paymentsStore.paid
@@ -247,6 +266,7 @@ export default defineComponent({
       return paymentsStore.paid / paymentsStore.total
     })
     const remainingPaymentRounded = computed(() => Number(remainingPayment.value.toFixed(8)))
+    const triggerSecondConfetti = ref(false)
     const paid = computed(() => remainingPayment.value === 0)
 
     const receivingAddress = addressSet.value?.receiving
@@ -313,18 +333,22 @@ export default defineComponent({
     const bchRateStatus = computed(() => status[currencyBchRate.value.status.toString()])
 
 
-    function updateSelectedCurrencyRate() {
+    function updateSelectedCurrencyRate () {
       if (isBchMode.value) return
       marketStore.refreshBchPrice(currency.value)
       setTimeout(() => {refreshingQr.value = false}, 3000)
+    }
+
+    function stopQrExpirationCountdown () {
+      clearInterval(qrExpirationCountdown)
+      clearTimeout(qrExpirationPrompt)
     }
 
     function refreshQrCountdown () {
       if (isBchMode.value) return
 
       updateSelectedCurrencyRate()
-      clearInterval(qrExpirationCountdown)
-      clearTimeout(qrExpirationPrompt)
+      stopQrExpirationCountdown()
 
       qrExpirationTimer.value = 1
       
@@ -437,8 +461,16 @@ export default defineComponent({
     const enableReconnect = ref(true)
     const reconnectTimeout = ref(null)
     const transactionsReceived = ref([])
-    const canViewTransactionsReceived = computed(() => {
+    const canViewPayments = computed(() => {
       return transactionsReceived.value?.length || websocketsReady.value
+    })
+    const qrCodeContainerClass = computed(() => {
+      if (paid.value) {
+        let classes = 'border-green '
+        classes += $q.dark.isActive ? 'bg-dark': 'bg-green-3'
+        return classes
+      }
+      return 'border-red'
     })
 
     // close existing websocket in case it exists
@@ -450,7 +482,13 @@ export default defineComponent({
     }
 
     watch(addressSet, () => setupListener())
-    watch(paid, (newVal) => { if (newVal) closeWebsocket() })
+    watch(paid, (newVal) => {
+      if (newVal) {
+        closeWebsocket()
+        stopQrExpirationCountdown()
+        setTimeout(() => triggerSecondConfetti.value = true, 1500)
+      }
+    })
 
     // 0.4ms - 0.5ms
     onMounted(() => addressSet.value?.receiving ? setupListener() : null)
@@ -525,12 +563,6 @@ export default defineComponent({
       paymentsStore.addPayment(paidBch)
       promptOnLeave.value = false
       displayReceivedTransaction(transaction)
-      
-      if (!isBchMode.value) {
-        showExpirationTimer.value = false
-        clearInterval(qrExpirationCountdown)
-        clearTimeout(qrExpirationPrompt)
-      }
     }
 
     function flagVoucher (txid, category) {
@@ -545,26 +577,9 @@ export default defineComponent({
         }
       }
 
-      axios.post(
-        purelypeerClaimUrl,
-        payload,
-        headers
-      ).then(
-        response => console.log('Updated purelypeer backend regarding claim: ', response)
-      ).catch(
-        err => console.error('Error on updating purelypeer backend regarding claim: ', err)
-      )
-
-      const watchtowerVoucherFlagUrl = `${process.env.WATCHTOWER_API}/vouchers/claimed/`
-
-      axios.post(
-        watchtowerVoucherFlagUrl,
-        payload
-      ).then(
-        response => console.log('Updated watchtower regarding claim: ', response)
-      ).catch(
-        err => console.error('Error on updating watchtower regarding claim: ', err)
-      )
+      axios.post(purelypeerClaimUrl, payload, headers)
+        .then(response => console.log('Updated purelypeer backend regarding claim: ', response))
+        .catch(err => console.error('Error on updating purelypeer backend regarding claim: ', err))
     }
 
     function updateClaimTxnAttr (txid) {
@@ -584,59 +599,48 @@ export default defineComponent({
         .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
     }
 
-    function claimVoucher (data) {
-      if (!data.voucher) return false
+    function processLiveUpdate (data) {
+      const updateType = data?.update_type
+      let message = null
 
-      const merchantReceiverPk = vault.value?.receiving?.pubkey
-      const voucherClaimerAddress = vault.value?.receiving?.address
-
-      const vaultParams = {
-        params: {
-          merchantReceiverPk,
-        },
-        options: {
-          network: 'mainnet'
+      // someone scanned the QR code
+      if (updateType === 'qr_scanned') {
+        if (!qrScanned.value) {
+          stopQrExpirationCountdown()
+          qrScanned.value = true
+          message = t('SomeoneHasScannedQr')
         }
       }
-
-      const __vault = new Vault(vaultParams)
-      const category = data.voucher
-      const claimPayload = {
-        category,
-        voucherClaimerAddress
+      else if (updateType === 'sending_payment') {
+        message = t('SendingPayment')
+      }
+      else if (updateType === 'cancel_payment') {
+        message = t('PaymentCancelled')
+      }
+      else if (updateType === 'voucher_claimed') {
+        if (!data?.txid || !data?.category) return
+        flagVoucher(data.txid, data.category)
+        updateClaimTxnAttr(data.txid)
       }
 
-      __vault.claim(claimPayload)
-        .then(transaction => {
-          const txid = transaction.txid
-          flagVoucher(txid, category)
-          updateClaimTxnAttr(txid)
+      if (message) {
+        $q.notify({
+          timeout: 3000,
+          icon: 'mdi-information',
+          color: 'brandblue',
+          message,
         })
-
-      return true
+      }
     }
     
     function onWebsocketReceive(data) {
       console.log(data)
-      
+
+      if (data?.update_type) processLiveUpdate(data)
       if (!data?.value) return
 
       const parsedData = parseWebsocketDataReceived(data)
-      const tokenName = parsedData.tokenName.toLowerCase()
-      const cashtokenNftName = 'cashtoken nft'
-
-      let proceed = [cashtokenNftName, 'bch'].includes(tokenName)
-      if (tokenName === cashtokenNftName) proceed = parsedData.voucher !== null
-      if (!proceed) return
-
-      const isVoucher = claimVoucher(parsedData)
-
-      if (isVoucher) {
-        clearInterval(qrExpirationCountdown)
-        clearTimeout(qrExpirationPrompt)
-      } else {
-        updatePayment(parsedData)
-      }
+      updatePayment(parsedData)
     }
 
     /**
@@ -781,12 +785,13 @@ export default defineComponent({
       websockets,
       websocketsReady,
       transactionsReceived,
-      canViewTransactionsReceived,
+      canViewPayments,
       displayReceivedTransaction,
       paymentProgress,
       remainingPaymentRounded,
       currencyAmountRemaining,
       paid,
+      triggerSecondConfetti,
       showRemainingCurrencyAmount,
       bchRateStatus,
       refreshQr,
@@ -797,6 +802,8 @@ export default defineComponent({
       networkTimeDiff,
       networkTimeDiffSeconds,
       isBchMode,
+      qrScanned,
+      qrCodeContainerClass,
     }
   },
 })

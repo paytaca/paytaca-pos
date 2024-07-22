@@ -9,8 +9,12 @@ const Translator = require('./translator')
  * 
  */
 
+const opts = {
+  ignoreExisting: process.argv.includes('--ignore-existing'),
+}
+
 const translator = new Translator()
 
-translator.translate().then(
+translator.translate(opts).then(
   () => console.log('\nDone!')
 )
