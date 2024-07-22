@@ -576,12 +576,6 @@ export default defineComponent({
       axios.post(purelypeerClaimUrl, payload, headers)
         .then(response => console.log('Updated purelypeer backend regarding claim: ', response))
         .catch(err => console.error('Error on updating purelypeer backend regarding claim: ', err))
-
-      const watchtowerVoucherFlagUrl = `${process.env.WATCHTOWER_API}/vouchers/claimed/`
-
-      axios.post(watchtowerVoucherFlagUrl, payload)
-        .then(response => console.log('Updated watchtower regarding claim: ', response))
-        .catch(err => console.error('Error on updating watchtower regarding claim: ', err))
     }
 
     function updateClaimTxnAttr (txid) {
@@ -599,38 +593,6 @@ export default defineComponent({
       axios.post(watchtowerTxnAttrUrl, payload)
         .then(response => console.log('Added transaction attribute as voucher claim: ', response))
         .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
-    }
-
-    function claimVoucher (data) {
-      if (!data.voucher) return false
-
-      const merchantReceiverPk = vault.value?.receiving?.pubkey
-      const voucherClaimerAddress = vault.value?.receiving?.address
-
-      const vaultParams = {
-        params: {
-          merchantReceiverPk,
-        },
-        options: {
-          network: 'mainnet'
-        }
-      }
-
-      const __vault = new Vault(vaultParams)
-      const category = data.voucher
-      const claimPayload = {
-        category,
-        voucherClaimerAddress
-      }
-
-      __vault.claim(claimPayload)
-        .then(transaction => {
-          const txid = transaction.txid
-          flagVoucher(txid, category)
-          updateClaimTxnAttr(txid)
-        })
-
-      return true
     }
 
     function processLiveUpdate (data) {
@@ -651,6 +613,11 @@ export default defineComponent({
       else if (updateType === 'cancel_payment') {
         message = t('PaymentCancelled')
       }
+      else if (updateType === 'sent_voucher') {
+        if (!data?.txid || !data?.category) return
+        flagVoucher(data.txid, data.category)
+        updateClaimTxnAttr(data.txid)
+      }
 
       if (message) {
         $q.notify({
@@ -669,20 +636,7 @@ export default defineComponent({
       if (!data?.value) return
 
       const parsedData = parseWebsocketDataReceived(data)
-      const tokenName = parsedData.tokenName.toLowerCase()
-      const cashtokenNftName = 'cashtoken nft'
-
-      let proceed = [cashtokenNftName, 'bch'].includes(tokenName)
-      if (tokenName === cashtokenNftName) proceed = parsedData.voucher !== null
-      if (!proceed) return
-
-      const isVoucher = claimVoucher(parsedData)
-
-      if (isVoucher) {
-        stopQrExpirationCountdown()
-      } else {
-        updatePayment(parsedData)
-      }
+      updatePayment(parsedData)
     }
 
     /**
