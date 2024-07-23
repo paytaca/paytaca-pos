@@ -564,7 +564,7 @@ export default defineComponent({
       promptOnLeave.value = false
       displayReceivedTransaction(transaction)
     }
-
+    // TODO: transfer this to watchtower
     function flagVoucher (txid, category) {
       const payload = { txid, category }
 
@@ -616,6 +616,8 @@ export default defineComponent({
       }
       else if (updateType === 'cancel_payment') {
         message = t('PaymentCancelled')
+        qrScanned.value = false
+        refreshQrCountdown()
       }
       else if (updateType === 'voucher_claimed') {
         if (!data?.txid || !data?.category) return
@@ -638,6 +640,7 @@ export default defineComponent({
 
       if (data?.update_type) processLiveUpdate(data)
       if (!data?.value) return
+      if (data?.voucher) return
 
       const parsedData = parseWebsocketDataReceived(data)
       updatePayment(parsedData)
