@@ -604,7 +604,6 @@ export default defineComponent({
       }
       else if (updateType === 'voucher_claimed') {
         if (!data?.txid || !data?.category) return
-        flagVoucher(data.txid, data.category)
         updateClaimTxnAttr(data.txid)
       }
 
