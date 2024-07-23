@@ -564,23 +564,6 @@ export default defineComponent({
       promptOnLeave.value = false
       displayReceivedTransaction(transaction)
     }
-    // TODO: transfer this to watchtower
-    function flagVoucher (txid, category) {
-      const payload = { txid, category }
-
-      // for purelypeer only
-      const prefix = process.env.NODE_ENV === 'production' ? 'backend' : 'backend-staging'
-      const purelypeerClaimUrl = `https://${prefix}.purelypeer.cash/api/key_nfts/claimed/`
-      const headers = {
-        headers: {
-          'purelypeer-proof-auth-header': process.env.PURELYPEER_HEADER_VALUE
-        }
-      }
-
-      axios.post(purelypeerClaimUrl, payload, headers)
-        .then(response => console.log('Updated purelypeer backend regarding claim: ', response))
-        .catch(err => console.error('Error on updating purelypeer backend regarding claim: ', err))
-    }
 
     function updateClaimTxnAttr (txid) {
       const posId = walletStore.posId
