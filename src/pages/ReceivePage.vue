@@ -565,23 +565,6 @@ export default defineComponent({
       displayReceivedTransaction(transaction)
     }
 
-    function flagVoucher (txid, category) {
-      const payload = { txid, category }
-
-      // for purelypeer only
-      const prefix = process.env.NODE_ENV === 'production' ? 'backend' : 'backend-staging'
-      const purelypeerClaimUrl = `https://${prefix}.purelypeer.cash/api/key_nfts/claimed/`
-      const headers = {
-        headers: {
-          'purelypeer-proof-auth-header': process.env.PURELYPEER_HEADER_VALUE
-        }
-      }
-
-      axios.post(purelypeerClaimUrl, payload, headers)
-        .then(response => console.log('Updated purelypeer backend regarding claim: ', response))
-        .catch(err => console.error('Error on updating purelypeer backend regarding claim: ', err))
-    }
-
     function updateClaimTxnAttr (txid) {
       const posId = walletStore.posId
       const key = `voucher_claim_${posId}`
@@ -616,10 +599,11 @@ export default defineComponent({
       }
       else if (updateType === 'cancel_payment') {
         message = t('PaymentCancelled')
+        qrScanned.value = false
+        refreshQrCountdown()
       }
       else if (updateType === 'voucher_claimed') {
         if (!data?.txid || !data?.category) return
-        flagVoucher(data.txid, data.category)
         updateClaimTxnAttr(data.txid)
       }
 
@@ -638,6 +622,7 @@ export default defineComponent({
 
       if (data?.update_type) processLiveUpdate(data)
       if (!data?.value) return
+      if (data?.voucher) return
 
       const parsedData = parseWebsocketDataReceived(data)
       updatePayment(parsedData)
