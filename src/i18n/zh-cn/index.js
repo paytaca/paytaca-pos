@@ -544,6 +544,8 @@ export default {
   Shop: "店铺",
   ShopAccessWarningMsg: "您无法进入商店。联系商店管理员以授予访问权限。",
   ShopInfo: "商店信息",
+  ShopTimezoneOffsetAhead: "您是在商店地址的时区之前的{hours}小时",
+  ShopTimezoneOffsetBehind: "您是{hours}小时落后于商店地址的时区",
   ShowMore: "展示更多",
   ShowSummary: "显示摘要",
   SignIn: "Sign-in",

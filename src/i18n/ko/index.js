@@ -544,6 +544,8 @@ export default {
   Shop: "가게",
   ShopAccessWarningMsg: "상점에 접근 할 수 없습니다.상점 관리자에게 연락하여 액세스 권한을 부여하십시오.",
   ShopInfo: "상점 정보",
+  ShopTimezoneOffsetAhead: "상점 주소 'Timezone보다 시간 앞서 {시간} 시간입니다.",
+  ShopTimezoneOffsetBehind: "상점 주소 'Timezone 주소 뒤에 {시간} 시간",
   ShowMore: "자세히보기",
   ShowSummary: "요약 표시",
   SignIn: "Sign-in",

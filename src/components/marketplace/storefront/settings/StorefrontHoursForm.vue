@@ -36,6 +36,27 @@
           </q-field>
           <div :class="[disableHours ? 'text-grey' : '']">
             <div class="text-subtitle1">Hours</div>
+            <q-banner v-if="deviceOffsetHours" rounded class="bg-cyan text-white q-my-xs">
+              <template v-slot:avatar>
+                <q-icon name="info"  size="1.5rem"/>
+              </template>
+              <template v-if="deviceOffsetHours > 0">
+                {{
+                  $t(
+                    'ShopTimezoneOffsetAhead', { hours: deviceOffsetHours },
+                    `You are ${deviceOffsetHours} hours ahead of the shop address' timezone`
+                  )
+                }}
+              </template>
+              <template v-else-if="deviceOffsetHours < 0">
+                {{
+                  $t(
+                    'ShopTimezoneOffsetBehind', { hours: deviceOffsetHours },
+                    `You are ${deviceOffsetHours * -1} hour/s behind of shop address' timezone`
+                  )
+                }}
+              </template>
+            </q-banner>
             <table class="full-width">
               <colgroup>
                 <col span="1" style="width: 15%;">
@@ -133,6 +154,21 @@ export default defineComponent({
       }
       resetFormData()
     })
+
+    const deviceOffset = computed(() => {
+      const utcOffset = marketplaceStore.shopData?.location?.utc_offset / 60
+      if (!Number.isSafeInteger(utcOffset)) return null
+      const deviceUTCOffset = new Date().getTimezoneOffset()
+      return utcOffset - deviceUTCOffset
+    })
+    const deviceOffsetHours = computed(() => {
+      if (Number.isNaN(deviceOffset.value)) return null
+
+      const MIN_PRECISION = 15 // minutes
+      const rounded = MIN_PRECISION * Math.round(deviceOffset.value / MIN_PRECISION)
+      return rounded / 60
+    })
+
     const weekdays = [
       "Sunday",
       "Monday",
@@ -171,7 +207,6 @@ export default defineComponent({
     })
 
     function resetFormData() {
-      console.log(marketplaceStore.storefrontHoursData)
       formData.value.openStatus = marketplaceStore.storefrontHoursData?.open_status
       formData.value.weeklyHours = marketplaceStore.storefrontHoursData?.weekly_hours.map(weeklyHourData => {
         const weeklyHour = createEmptyWeeklyHour()
@@ -292,6 +327,8 @@ export default defineComponent({
     }
 
     return {
+      marketplaceStore,
+      deviceOffsetHours,
       weekdays,
       loading,
       formData,

@@ -544,6 +544,8 @@ export default {
   Shop: "Winkel",
   ShopAccessWarningMsg: "U hebt geen toegang tot de winkel.Neem contact op met een winkelbeheerder om toegang te verlenen.",
   ShopInfo: "Winkelinfo",
+  ShopTimezoneOffsetAhead: "U bent {hours} uren voor de tijdzone van het winkeladres",
+  ShopTimezoneOffsetBehind: "U bent {hours} uren achter van het winkeladres 'TimeZone",
   ShowMore: "Laat meer zien",
   ShowSummary: "Toon samenvatting",
   SignIn: "Sign-in",

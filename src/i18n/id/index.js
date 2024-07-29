@@ -544,6 +544,8 @@ export default {
   Shop: "Toko",
   ShopAccessWarningMsg: "Anda tidak memiliki akses ke toko.Hubungi admin toko untuk memberikan akses.",
   ShopInfo: "Info toko",
+  ShopTimezoneOffsetAhead: "Anda {hours} jam di depan alamat toko 'zona waktu",
+  ShopTimezoneOffsetBehind: "Anda {hours} jam di belakang zona waktu alamat toko",
   ShowMore: "Menampilkan lebih banyak",
   ShowSummary: "Tampilkan ringkasan",
   SignIn: "Sign-in",

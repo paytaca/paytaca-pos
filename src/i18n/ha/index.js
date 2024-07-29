@@ -544,6 +544,8 @@ export default {
   Shop: "Kanti",
   ShopAccessWarningMsg: "Ba ku da damar yin amfani da shagon.Tuntuɓi abokin ciniki don ba da damar shiga.",
   ShopInfo: "Bayani na kantin",
+  ShopTimezoneOffsetAhead: "Kai ne {sa'o'i kafin adireshin shagon 'lokaci",
+  ShopTimezoneOffsetBehind: "Kai {sa'o'i a bayan adireshin shagon 'lokaci",
   ShowMore: "Nuna more",
   ShowSummary: "Nuna takaitawa",
   SignIn: "Sign-in",

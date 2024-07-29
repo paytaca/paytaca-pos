@@ -544,6 +544,8 @@ export default {
   Shop: "店",
   ShopAccessWarningMsg: "あなたは店にアクセスできません。アクセスを付与するためにショップ管理者に連絡してください。",
   ShopInfo: "ショップ情報",
+  ShopTimezoneOffsetAhead: "あなたは店の住所の時間を1時間先に{hours}タイムゾーンです",
+  ShopTimezoneOffsetBehind: "あなたは店の住所の数時間遅れている{hours}タイムゾーン",
   ShowMore: "もっと見せる",
   ShowSummary: "概要を表示します",
   SignIn: "Sign-in",

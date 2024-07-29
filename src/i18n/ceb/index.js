@@ -544,6 +544,8 @@ export default {
   Shop: "Talyer",
   ShopAccessWarningMsg: "Wala ka'y ​​access sa shop.Pakigsulti sa usa ka Admin sa Shop aron ihatag ang pag-access.",
   ShopInfo: "Impormasyon sa Shop",
+  ShopTimezoneOffsetAhead: "Ikaw mga oras nga oras sa unahan sa Timezone sa Shop Address",
+  ShopTimezoneOffsetBehind: "Ikaw mga oras nga oras sa likod sa Timezone sa Shop Address",
   ShowMore: "Ipakita ang labi pa",
   ShowSummary: "Ipakita ang Sumaryo",
   SignIn: "Sign-in",

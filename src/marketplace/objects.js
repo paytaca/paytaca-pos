@@ -35,6 +35,7 @@ export class Location {
    * @param {String} data.country
    * @param {String} data.longitude
    * @param {String} data.latitude
+   * @param {Number} data.utc_offset
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -47,6 +48,7 @@ export class Location {
     this.country = data?.country
     this.longitude = data?.longitude
     this.latitude = data?.latitude
+    this.utcOffset = data?.utc_offset
   }
 
   get formatted() {

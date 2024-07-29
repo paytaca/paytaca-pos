@@ -544,6 +544,8 @@ export default {
   Shop: "Geschäft",
   ShopAccessWarningMsg: "Sie haben keinen Zugang zum Laden.Wenden Sie sich an einen Shop -Administrator, um Zugang zu gewähren.",
   ShopInfo: "Shop Info",
+  ShopTimezoneOffsetAhead: "Sie sind {hours} Stunden vor der Shop -Adresse 'TimeZone",
+  ShopTimezoneOffsetBehind: "Sie sind Stunden hinter der Ladenadresse 'Timezone",
   ShowMore: "Zeig mehr",
   ShowSummary: "Zusammenfassung zeigen",
   SignIn: "Sign-in",

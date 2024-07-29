@@ -544,6 +544,8 @@ export default {
   Shop: "Comercio",
   ShopAccessWarningMsg: "No tienes acceso a la tienda.Póngase en contacto con un administrador de la tienda para otorgar acceso.",
   ShopInfo: "Información de la tienda",
+  ShopTimezoneOffsetAhead: "Usted está {hours} horas antes de la dirección de la tienda 'zona horaria",
+  ShopTimezoneOffsetBehind: "Estás {hours} horas detrás de la dirección de la tienda 'zona horaria",
   ShowMore: "Mostrar más",
   ShowSummary: "Resumen de espectáculos",
   SignIn: "Sign-in",

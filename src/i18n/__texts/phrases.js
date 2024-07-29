@@ -525,6 +525,8 @@ const phrases = {
       ChangedTo: 'Changed to {quantity}',
       DeductedQuantity: 'Deducted {quantity}',
       AddedQuantity: 'Added {quantity}',
+      ShopTimezoneOffsetAhead: 'You are {hours} hours ahead of the shop address\' timezone',
+      ShopTimezoneOffsetBehind: 'You are {hours} hours behind of the shop address\' timezone',
     },
   ]
 }
