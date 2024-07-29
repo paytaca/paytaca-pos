@@ -9,6 +9,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
   state: () => {
     return {
       fetchingUser: false,
+      lastLoggedInUsername: '',
       user: {
         id: 0,
         profilePictureUrl: '',
