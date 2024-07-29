@@ -73,7 +73,7 @@
             </div>
           </LControl>
           <LMarker
-            v-for="rider in riders" :key="selected?.id == rider?.id ? `selected-${rider?.id}` : rider?.id"
+            v-for="rider in ridersWithCoordinates" :key="selected?.id == rider?.id ? `selected-${rider?.id}` : rider?.id"
             :latLng="{
               lat: rider?.currentLocation?.[1],
               lng: rider?.currentLocation?.[0],
@@ -185,17 +185,30 @@ export default defineComponent({
     }
 
     const riders = ref([].map(Rider.parse))
+    const ridersWithCoordinates = computed(() => {
+      return riders.value.filter(rider => {
+        return Number.isFinite(rider?.currentLocation?.[0]) && Number.isFinite(rider?.currentLocation?.[1])
+      })
+    })
     const fetchingRiders = ref(false)
     function searchRiderForDelivery() {
       const data = {
-        delivery_id: props?.delivery?.id,
+        pickup_location: {
+          longitude: props?.delivery?.pickupLocation?.longitude,
+          latitude: props?.delivery?.pickupLocation?.latitude,
+        },
         radius: searchOpts.value?.radius,
+        max_active_deliveries: 2,
       }
       const params = {}
       fetchingRiders.value = true
-      return backend.post(`connecta-express/riders/search/`, data, { params })
+      return backend.post(`connecta-express/riders/find/`, data, { params })
         .then(response => {
-          riders.value = response?.data?.results?.map?.(Rider.parse)
+          riders.value = response?.data?.map?.(Rider.parse)
+
+          if (riders.value?.length != ridersWithCoordinates.value?.length) {
+            mapView.value = false
+          }
           return response
         })
         .finally(() => {
@@ -261,6 +274,7 @@ export default defineComponent({
       toggleSelected,
       fetchingRiders,
       riders,
+      ridersWithCoordinates,
 
       map,
       mapView,
