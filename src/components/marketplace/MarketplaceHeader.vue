@@ -87,7 +87,9 @@ export default defineComponent({
     async function logOut() {
       try{
         $q.loading.show({ group: 'logout' })
-        await backend.post(`users/revoke_token/`).catch(console.error)
+        const customConfig = { forceHeartbeat: true }
+        await backend.post(`users/revoke_token/`, undefined, { customConfig })
+          .catch(console.error)
           .then(() => $q.loading.hide('logout'))
         setAuthToken(undefined)
         marketplaceStore.setUser(null)
