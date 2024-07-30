@@ -855,6 +855,7 @@ export class SalesOrder {
    * @param {String} data.bch_txid
    * @param {Number} data.received_amount
    * @param {String} data.created_at
+   * @param {Number[]} [data.order_ids]
    * @param {{ id:Number, first_name:String, last_name:String }} data.created_by
    * @param {{ code:String, symbol:String }} data.currency
    * @param {{ id:Number, name:String }} data.shop
@@ -879,6 +880,7 @@ export class SalesOrder {
     this.bchRecipientAddress = data?.bch_recipient_address
     this.bchTxid = data?.bch_txid
     this.receivedAmount = parseFloat(data?.received_amount)
+    this.orderIds = data?.order_ids
     if(data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt
     this.createdBy = User.parse(data?.created_by)

@@ -609,6 +609,8 @@ export default defineComponent({
         salesOrder = SalesOrder.parse({ id: opts?.salesOrderId })
         await salesOrder.refetch()
       }
+
+      if(!salesOrder?.id) return
       if (!salesOrder?.items?.length) await salesOrder.fetchItems()
 
       const items = salesOrder.items.map(item => {

@@ -152,6 +152,22 @@
             </q-btn>
           </q-td>
         </template>
+        <template v-slot:body-cell-order="props">
+          <q-td :props="props">
+            <template v-if="props.row?.orderIds?.length">
+              <q-chip
+                v-for="orderId in props.row?.orderIds" :key="orderId"
+                dense
+                clickable
+                color="brandblue"
+                text-color="white"
+                @click="() => displayOrder(orderId)"
+              >
+                Order#{{orderId}}
+              </q-chip>
+            </template>
+          </q-td>
+        </template>
       </q-table>
     </q-pull-to-refresh>
     <SalesOrderDetailDialog
@@ -169,17 +185,22 @@
         />
       </template>
     </SalesOrderDetailDialog>
+    <OrderDetailDialog
+      v-model="orderDetailDialog.show"
+      :order="orderDetailDialog.order"
+    />
   </q-page>
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
-import { SalesOrder } from 'src/marketplace/objects'
+import { Order, SalesOrder } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
-import { date } from 'quasar'
+import { date, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import SalesOrderDetailDialog from 'src/components/marketplace/sales/SalesOrderDetailDialog.vue'
+import OrderDetailDialog from 'src/components/marketplace/storefront/OrderDetailDialog.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 
@@ -187,11 +208,13 @@ export default defineComponent({
   name: 'SalesPage',
   components: {
     SalesOrderDetailDialog,
+    OrderDetailDialog,
     MarketplaceHeader,
     LimitOffsetPagination,
   },
   setup() {
     const { t } = useI18n()
+    const $q = useQuasar()
     const marketplaceStore = useMarketplaceStore()
 
     const filterOpts = ref({
@@ -273,6 +296,7 @@ export default defineComponent({
       { name: 'status', align: 'center', label: t('Status'), field: 'parsedStatus', sortable: true },
       { name: 'total', align: 'center', label: t('Total'), field: obj => obj?.total ? `${obj?.total} ${obj?.currency?.symbol}` : '', sortable: true },
       { name: 'items', align: 'center', label: t('Items'), field: obj => obj?.items?.length || obj?.itemsCount, format: val => val === 1 ? `${val} item` : `${val} items`, sortable: true },
+      { name: 'order', align: 'center', label: t('Orders') },
       { name: 'payment-mode', align: 'center', label: t('PaymentMode'), field: obj => obj?.parsedPaymentMode || obj?.paymentMode, sortable: true },
     ]
     const sortFieldNameMap = {
@@ -296,6 +320,28 @@ export default defineComponent({
       salesOrderDetailDialog.value.salesOrder = salesOrder
       salesOrderDetailDialog.value.show = true
     }
+
+    const orderDetailDialog = ref({ show: false, order: Order.parse() })
+    async function displayOrder(orderId = 0) {
+      if (!orderId) return
+
+      const dialog = $q.dialog({
+        title: t('FetchingOrder'),
+        progress: true,
+        color: 'brandblue',
+        ok: false,
+        cancel: false,
+        persistent: true,
+      })
+      await backend.get(`connecta/orders/${orderId}/`)
+        .then(response => {
+          orderDetailDialog.value.order = Order.parse(response?.data)
+          orderDetailDialog.value.show = true
+        })
+        .finally(() => dialog.hide())
+        dialog.hide()
+    }
+
 
     function formatDate(dateObj, format='MMM D, YYYY') {
       return date.formatDate(dateObj, format)
@@ -323,6 +369,9 @@ export default defineComponent({
 
       salesOrderDetailDialog,
       showSalesOrderDetail,
+
+      orderDetailDialog,
+      displayOrder,
 
       refreshPage,
 
