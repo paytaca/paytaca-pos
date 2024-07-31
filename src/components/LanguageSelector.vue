@@ -14,11 +14,18 @@
 
 <script>
 import { useI18n } from 'vue-i18n'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
+import { useSettingsStore } from 'src/stores/settings'
 
 export default {
   setup () {
+    const settingsStore = useSettingsStore()
+
     const { locale, t } = useI18n({ useScope: 'global' })
+
+    watch(locale, () => {
+      settingsStore.language = locale.value
+    })
     const localeOptions = computed(() => {
       return [
         { value: 'af', label: t('Afrikaans') },
