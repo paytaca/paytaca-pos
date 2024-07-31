@@ -831,10 +831,6 @@ export default defineComponent({
         console.log(element)
         if (!element) return
         element?.scrollIntoView?.({ behavior: 'smooth' })
-        window.t = () => {
-          console.log('Scrolling to view', element)
-          element?.scrollIntoView?.({ behavior: 'smooth' })
-        }
       }, 250)
     }
 

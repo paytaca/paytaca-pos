@@ -233,7 +233,6 @@ export default defineComponent({
     const $q = useQuasar()
     const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
-    window.t = () => $q.dark.toggle()
 
     onMounted(() => refreshPage())
     const openFilterOptsForm = ref(false)

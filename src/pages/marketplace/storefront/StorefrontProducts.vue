@@ -313,7 +313,6 @@ export default defineComponent({
   setup() {
     const $q = useQuasar()
     const { t } = useI18n()
-    window.$q = $q
     const marketplaceStore = useMarketplaceStore()
 
     const categoriesFilter = ref({

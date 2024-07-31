@@ -654,7 +654,6 @@ export default defineComponent({
   setup(props) {
     const $q = useQuasar()
     const { t } = useI18n()
-    window.t = () => $q.dark.toggle()
     const marketplaceStore = useMarketplaceStore()
     const notificationsStore = useNotificationsStore()
 
