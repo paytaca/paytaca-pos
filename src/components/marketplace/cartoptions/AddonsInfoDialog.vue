@@ -1,7 +1,7 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card class="q-pa-md rounded-borders">
-      <div class="row items-center">
+      <div class="row items-start no-wrap">
         <div class="text-h6">{{ title }}</div>
         <q-space/>
         <q-btn

@@ -148,6 +148,7 @@
             v-if="formData.addons?.length"
             :addons="formData.addons"
             :currency="marketplaceStore.currency"
+            class="q-mb-sm"
           />
           <q-btn
             :flat="!formData.addons?.length"

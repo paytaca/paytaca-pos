@@ -29,6 +29,18 @@
                 {{ marketplaceStore.user.username }}
               </div>
             </div>
+            <q-space/>
+            <div>
+              <q-btn
+                outline
+                rounded
+                icon="chevron_right"
+                color="brandblue"
+                padding="sm"
+                size="sm"
+                @click="$router.push({ name: 'marketplace-user' })"
+              />
+            </div>
           </div>
           <div v-if="marketplaceStore?.userRoles?.length" class="q-mt-xs q-gutter-sm">
             <q-badge v-for="(role, index) in marketplaceStore?.userRoles" :key="index">

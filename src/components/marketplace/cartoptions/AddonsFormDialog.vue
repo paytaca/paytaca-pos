@@ -1,7 +1,7 @@
 <template>
   <q-dialog ref="dialogRef" persistent @hide="onDialogHide" position="bottom" full-height>
     <q-card class="rounded-borders dialog-content-base" style="height:85vh !important;">
-      <div class="row items-center no-wrap dialog-content-header">
+      <div class="row items-start no-wrap dialog-content-header">
         <div class="text-h6">{{ title }}</div>
         <q-space/>
         <q-btn

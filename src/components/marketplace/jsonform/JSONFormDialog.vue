@@ -7,7 +7,7 @@
     @hide="onDialogHide"
   >
     <q-card class="q-pa-md">
-      <div class="row items-center">
+      <div class="row items-start no-wrap">
         <div class="text-h5">{{ title }}</div>
         <q-space/>
         <q-btn
