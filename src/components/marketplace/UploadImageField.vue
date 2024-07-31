@@ -19,7 +19,7 @@
         :disable="uploading || disable"
         :loading="uploading || loading"
         padding="xs sm"
-        :label="$t('Select Image')"
+        :label="$t('SelectImage', {}, 'Select Image')"
         @click="pickFile"
       />
     </slot>

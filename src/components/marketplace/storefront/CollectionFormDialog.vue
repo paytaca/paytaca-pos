@@ -2,8 +2,8 @@
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card>
       <q-card-section>
-        <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Create Collection</div>
+        <div class="row items-center no-wrap q-pb-sm">
+          <div class="text-h5 q-space">{{ $t('CreateCollection', {}, 'Create Collection') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <q-form @submit="() => createCollection()">
@@ -16,7 +16,7 @@
             </ul>
           </q-banner>
           <UploadImageField v-model="formData.imageUrl" :loading="loading" :disable="loading"/>
-          <div>Name</div>
+          <div>{{ $t('Name') }}</div>
           <q-input
             dense
             outlined
@@ -25,11 +25,11 @@
             :error="Boolean(formErrors?.name)"
             :error-message="formErrors?.name"
             :rules="[
-              val => Boolean(val) || 'Required',
+              val => Boolean(val) || $t('Required'),
             ]"
           />
           <div class="q-mb-md">
-            <div class="text-subtitle1">Collection type</div>
+            <div class="text-subtitle1">{{ $t('CollectionType', {}, 'Collection type')}}</div>
             <div v-if="formErrors?.auto" class="bg-red text-white text-body2 rounded-borders q-pa-sm">
               {{ formErrors?.auto }}
             </div>
@@ -38,46 +38,55 @@
               v-model="formData.auto"
               :val="true"
             >
-              <div>Automated</div>
-              <div class="text-caption">Products are added by some condition/s</div>
+              <div>{{ $t('Automated') }}</div>
+              <div class="text-caption">
+                {{
+                  $t(
+                    'CollectionDescriptionAuto', {},
+                    'Products are added by some condition/s'
+                  )
+                }}
+              </div>
             </q-radio>
             <q-radio
               :disable="loading"
               v-model="formData.auto"
               :val="false"
             >
-              <div>Manual</div>
-              <div class="text-caption">Manually select products</div>
+              <div>{{ $t('Manual') }}</div>
+              <div class="text-caption">
+                {{ $t('CollectionDescriptionManual', {}, 'Manually select products' )}}
+              </div>
             </q-radio>
           </div>
 
           <q-slide-transition>
             <div v-if="formData.auto" class="q-mb-md">
               <div class="row items-start">
-                <div class="text-subtitle1 q-space">Conditions</div>
+                <div class="text-subtitle1 q-space">{{ $t('Conditions') }}</div>
                 <q-btn
                   flat
                   padding="xs"
                   no-caps
-                  label="Add another condition"
+                  :label="$t('AddAnotherCondition', {}, 'Add another condition')"
                   icon="add"
                   @click="() => addConditionRow()"
                 />  
               </div>
               <div class="row items-start">
                 <div class="q-my-sm">
-                  Must match:
+                  {{ $t('MustMatch', {}, 'Must match') }}
                 </div>
                 <div>
                   <q-radio
-                    label="any condition"
+                    :label="$t('AnyCondition', {}, 'any condition')"
                     v-model="formData.conditionsOperand"
                     val="any"
                     :color="formErrors?.conditionsOperand ? 'red' : undefined"
                     keep-color
                   />
                   <q-radio
-                    label="all conditions"
+                    :label="$t('AllConditions', {}, 'all conditions')"
                     v-model="formData.conditionsOperand"
                     val="all"
                     :color="formErrors?.conditionsOperand ? 'red' : undefined"
@@ -96,7 +105,7 @@
                   >
                     <div class="row items-start q-space">
                       <div class="col-12 q-mx-xs text-caption top text-grey">
-                        Condition {{ index+1 }}
+                        {{ $t('Condition') }} {{ index+1 }}
                       </div>
                       <div
                         v-if="formErrors?.conditions?.[index]?.detail?.length"
@@ -116,6 +125,7 @@
                         v-model="condition.field"
                         emit-value
                         map-options
+                        :option-label="opt => $t(opt?.label)"
                         :options="CollectionCondition.fieldOpts"
                         hide-bottom-space
                         :error="Boolean(formErrors?.conditions?.[index]?.field)"
@@ -225,7 +235,7 @@
           </q-slide-transition>
           <q-slide-transition>
             <div v-if="!formData.auto" class="q-mb-md">
-              <div class="text-subtitle1">Products</div>
+              <div class="text-subtitle1">{{ $t('Products') }}</div>
               <ProductSearchPanel v-model="formData.products" :disable="loading">
                 <template v-slot:option="props">
                   <q-item clickable @click="() => props.toggleProduct(props.product)" class="q-px-none">
@@ -257,7 +267,7 @@
             no-caps
             :disable="loading"
             :loading="loading"
-            :label="collection?.id ? 'Update Collection' : 'Create Collection'"
+            :label="collection?.id ? $t('Update') : $t('Create')"
             type="submit"
             color="brandblue"
             class="full-width"
@@ -276,6 +286,7 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import ProductSearchPanel from '../ProductSearchPanel.vue'
 import UploadImageField from '../UploadImageField.vue'
+import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
   name: 'CollectionFormDialog',
@@ -295,6 +306,7 @@ export default defineComponent({
     ...useDialogPluginComponent.emits,
   ],
   setup(props, { emit: $emit }) {
+    const { t: $t } = useI18n()
     const $q = useQuasar()
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
     const marketplaceStore = useMarketplaceStore()
@@ -451,7 +463,9 @@ export default defineComponent({
         .catch(error => {
           const data = error?.response?.data
           if (!data) {
-            formErrors.value.detail = ['Encountered errors in creating collection']
+            formErrors.value.detail = [
+              $t('CreateCollectionError', {}, 'Encountered errors in creating collection'),
+            ]
             return
           }
 
@@ -475,7 +489,9 @@ export default defineComponent({
           if (data?.detail) formErrors.value.detail = [data?.detail]
 
           if (!formErrors.value.detail?.length) {
-            formErrors.value.detail = ['Encountered errors in creating collection']
+            formErrors.value.detail = [
+              $t('CreateCollectionError', {}, 'Encountered errors in creating collection'),
+            ]
           }
         })
         .finally(() => {

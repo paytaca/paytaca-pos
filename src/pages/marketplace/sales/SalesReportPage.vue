@@ -168,8 +168,8 @@ export default defineComponent({
     const predefinedRangeOpts = computed(() => {
       const today =      { from: new Date(), to: new Date(), label: t('Today') }
       const yesterday =  { from: new Date(), to: new Date(), label: t('Yesterday') }
-      const last7Days =  { from: new Date(), to: new Date(), label: t('Last7days') }
-      const last30Days = { from: new Date(), to: new Date(), label: t('Last30days') }
+      const last7Days =  { from: new Date(), to: new Date(), label: t('Last7Days') }
+      const last30Days = { from: new Date(), to: new Date(), label: t('Last30Days') }
 
       today.from.setHours(0,0,0,0)
       today.to.setHours(24,0,0,-1)

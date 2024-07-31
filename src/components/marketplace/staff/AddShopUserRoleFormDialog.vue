@@ -3,7 +3,7 @@
     <q-card>
       <q-card-section>
         <div class="text-h6">
-          Add Staff
+          {{ $t('AddStaff', {}, 'Add Staff') }}
         </div>
         <q-form @submit="() => addUser()">
           <q-banner v-if="formErrors?.detail?.length" class="bg-red text-white rounded-borders">
@@ -18,27 +18,27 @@
             <q-btn
               v-if="!formData.newUser"
               flat
-              no-caps label="Register new user"
+              no-caps :label="$t('RegisterNewuser', {}, 'Register new user')"
               icon-right="arrow_forward"
               @click="() => formData.newUser = true"
             />
             <q-btn
               v-else
               flat
-              no-caps label="Add existing user"
+              no-caps :label="$t('AddExistingUser', {}, 'Add existing user')"
               icon="arrow_back"
               @click="() => formData.newUser = false"
             />
           </div>
           <template v-if="!formData.newUser">
-            <div>User*</div>
+            <div>{{ $t('User') }}*</div>
             <q-select
               dense
               outlined
               use-input
               fill-input
               :disable="loading"
-              placeholder="name / email / username"
+              :placeholder="`${$t('Name')} / ${$t('Email')} / ${$t('Username')}`"
               :options="userOpts"
               :option-label="obj => obj?.fullName || obj?.username || obj?.email"
               option-value="id"
@@ -49,7 +49,7 @@
               :error="Boolean(formErrors?.user)"
               :error-message="formErrors?.user"
               :rules="[
-                val => Boolean(val?.id) || 'Required',
+                val => Boolean(val?.id) || $t('Required'),
               ]"
             >
               <template v-slot:selected-item>
@@ -67,18 +67,15 @@
                   </q-item-section>
                 </q-item>
               </template>
-              <template v-slot:no-option="props">
+              <template v-slot:no-option>
                 <div class="q-pa-md text-center text-grey">
-                    User
-                    <template v-if="props.inputValue">'{{ props.inputValue }}'</template>
-                    not found.
-                    Check again if user is already registered and not in the staff list
+                  {{ $t('UserNotFound', {}, 'User not found')}}
                 </div>
               </template>
             </q-select>
           </template>
           <template v-else>
-            <div>Username</div>
+            <div>{{ $t('Username') }}</div>
             <q-input
               dense
               outlined
@@ -98,7 +95,7 @@
                 fit class="q-px-md q-py-sm"
               >
                 <div v-if="usernameSearch.loading" class="text-grey text-center">
-                  Searching for existing user
+                  {{ $t('SearchingForExistingUser', {}, 'Searching for existing user',) }}
                   <q-spinner class="q-ml-xs"/>
                 </div>
                 <div
@@ -113,7 +110,7 @@
                 </div>
               </q-menu>
             </q-input>
-            <div>Password</div>
+            <div>{{ $t('Password') }}</div>
             <q-input
               dense
               outlined
@@ -124,7 +121,7 @@
               :error="Boolean(formErrors?.password)"
               :error-message="formErrors?.password"
             />
-            <div>Confirm password</div>
+            <div>{{ $t('ConfirmPassword', {}, 'Confirm password') }}</div>
             <q-input
               dense
               outlined
@@ -137,7 +134,7 @@
                 val => val === formData.password || 'Password does not match',
               ]"
             />
-            <div>Email</div>
+            <div>{{ $t('Email') }}</div>
             <q-input
               dense
               outlined
@@ -156,7 +153,7 @@
                 fit class="q-px-md q-py-sm"
               >
                 <div v-if="emailSearch.loading" class="text-grey text-center">
-                  Searching for existing user
+                  {{ $t('SearchingForExistingUser', {}, 'Searching for existing user',) }}
                   <q-spinner class="q-ml-xs"/>
                 </div>
                 <div
@@ -166,33 +163,33 @@
                 >
                   <div class="text-weight-medium">
                     <div>{{ emailSearch.user?.fullName || emailSearch.user.username || emailSearch.user.email }}</div>
-                    <div class="text-caption bottom text-grey">User#{{ emailSearch.user?.id }}</div>
+                    <div class="text-caption bottom text-grey">{{ $t('User') }}#{{ emailSearch.user?.id }}</div>
                   </div>
                 </div>
               </q-menu>
             </q-input>
-            <div>First name</div>
+            <div>{{ $t('FirstName', {}, 'First name') }}</div>
             <q-input
               dense
               outlined
               :disable="loading"
-              label="First name"
+              :label="$t('FirstName', {}, 'First name')"
               v-model="formData.firstName"
               :error="Boolean(formErrors?.firstName)"
               :error-message="formErrors?.firstName"
             />
-            <div>Last name</div>
+            <div>{{ $t('LastName', {}, 'Last name') }}</div>
             <q-input
               dense
               outlined
               :disable="loading"
-              label="Last name"
+              :label="$t('LastName', {}, 'Last name')"
               v-model="formData.lastName"
               :error="Boolean(formErrors?.lastName)"
               :error-message="formErrors?.lastName"
             />
           </template>
-          <div>Roles</div>
+          <div>{{ $t('Roles') }}</div>
           <div class="q-mb-md">
             <q-field
               v-model="formData.roles"
@@ -200,7 +197,7 @@
               :error="Boolean(formErrors?.roles)"
               :error-message="formErrors?.roles"
               :rules="[
-                val => val?.length || 'Required',
+                val => val?.length || $t('Required'),
               ]"
             >
               <q-option-group
@@ -218,7 +215,7 @@
               :disable="loading"
               color="brandblue"
               no-caps
-              label="Add User"
+              :label="$t('AddUser', {}, 'Add User')"
               class="full-width"
             />
           </div>
@@ -255,6 +252,7 @@ export default defineComponent({
         { value: roles.admin, label: t('Admin') },
         { value: roles.inventory, label: t('InventoryManager') },
         { value: roles.cashier, label: t('Cashier') },
+        { value: roles.storefront, label: t('Storefront') },
       ]
     })
     

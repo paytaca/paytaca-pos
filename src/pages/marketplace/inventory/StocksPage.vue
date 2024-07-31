@@ -634,11 +634,12 @@ export default defineComponent({
           { item: itemName },
           `Remove stock for "${itemName}". Are you sure?`
         ),
-        ok: true,
-        cancel: true,
+        color: 'brandblue',
+        ok: { label: t('Delete'), flat: true, color: 'red' },
+        cancel: { label: t('Cancel'), flat: true, color: 'grey' },
       })
         .onOk(() => {
-          const dialog = $q.dialog({ title: t('RemovingStock'), progress: true, ok: false })
+          const dialog = $q.dialog({ title: t('RemovingStock'), color: 'brandblue', progress: true, ok: false })
           backend.delete(`stocks/${stock.id}/`)
             .then(() => {
               dialog.hide()
@@ -660,6 +661,7 @@ export default defineComponent({
         })
     }
 
+    // unused
     function confirmDeleteStocks(stocks=[].map(Stock.parse)) {
       $q.dialog({
         title: t('RemoveStocks'),
@@ -671,8 +673,9 @@ export default defineComponent({
           },
           `Removing ${stocks?.length} ${stocks?.length === 1 ? t('stock'): t('stocks')}. Are you sure?`
         ),
-        ok: true,
-        cancel: true,
+        color: 'brandblue',
+        ok: { label: t('Delete'), flat: true, color: 'red' },
+        cancel: { label: t('Cancel'), flat: true, color: 'grey' },
       })
         .onOk(() => {
           const data = {

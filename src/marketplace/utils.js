@@ -1,6 +1,8 @@
+import { i18n } from 'src/boot/i18n'
 import ago from 's-ago'
 import { capitalize } from 'vue'
 
+const { t: $t } = i18n.global
 
 export function round(value, decimals) {
   const multiplier = 10 ** decimals
@@ -37,7 +39,9 @@ export function formatDateToText(timestamp) {
 
 export function formatStatusGeneric(value='') {
   if (typeof value !== 'string') return
-  return capitalize(value).replaceAll('_', ' ')
+  const result = capitalize(value).replaceAll('_', ' ')
+  const translationKey = result.split(' ').map(capitalize).join('')
+  return $t(translationKey, {}, result)
 }
 
 /** 
@@ -46,15 +50,15 @@ export function formatStatusGeneric(value='') {
 export function formatRole(value) {
   switch(value) {
     case 'shop_admin':
-      return 'Admin'
+      return $t('Admin')
     case 'inventory_control_manager':
-      return 'Inventory'
+      return $t('Inventory')
     case 'cashier':
-      return 'Cashier'
+      return $t('Cashier')
     case 'storefront_staff':
-      return 'Storefront'
+      return $t('Storefront')
     default:
-      if (typeof value === 'string') return capitalize(value).replaceAll('_', ' ')
+      if (typeof value === 'string') return formatStatusGeneric(value)
   }
 }
 
@@ -64,13 +68,13 @@ export function formatRole(value) {
 export function formatPurchaseOrderStatus(value) {
   switch(value) {
     case 'partial':
-      return 'Partially received'
+      return $t('Partially received', {}, 'Partially received')
     case 'draft':
     case 'pending':
     case 'received':
     case 'complete':
     default:
-      if (typeof value === 'string') return capitalize(value).replaceAll('_', ' ')
+      if (typeof value === 'string') formatStatusGeneric(value)
   }
 }
 
@@ -104,7 +108,17 @@ export function parsePurchaseOrderStatusColor(value) {
 export function formatOrderStatus(value) {
   if (typeof value !== 'string') return ''
 
-  return capitalize(value.replaceAll('_', ' '))
+  switch(value) {
+    case 'picked_up':
+      return $t('PickedUp', {}, 'Picked up')
+    case 'ready_for_pickup':
+      return $t('ReadyForPickup', {}, 'Ready for pickup')
+    case 'on_delivery':
+      return $t('OnDelivery', {}, 'On delivery')
+    default:
+      return formatStatusGeneric(value)
+  }
+
 }
 
 /**
@@ -115,17 +129,17 @@ export function formatOrderStatus(value) {
 export function formatOrderStatusAction(value) {
   switch(value) {
     case 'pending':
-      return 'Mark pending'
+      return $t('MarkPending', {}, 'Mark pending')
     case 'confirmed':
-      return 'Confirm order'
+      return $t('ConfirmOrder', {}, 'Confirm order')
     case 'preparing':
-      return 'Prepare order'
+      return $t('PrepareOrder',{}, 'Prepare order')
     case 'ready_for_pickup':
-      return 'Ready for pickup'
+      return $t('ReadyForPickup', {}, 'Ready for pickup')
     case 'picked_up':
-      return 'Order picked up'
+      return $t('OrderPickedUp', {}, 'Order picked up')
     default:
-      return `Order ${formatOrderStatus(value)}`
+      return `${$t('Order')} ${formatOrderStatus(value)}`
   }
 }
 

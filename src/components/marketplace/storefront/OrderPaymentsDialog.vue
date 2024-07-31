@@ -4,7 +4,7 @@
     <q-card>
       <q-card-section>
         <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Payments</div>
+          <div class="text-h5 q-space">{{ $t('Payments') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <slot name="before"></slot>
@@ -38,7 +38,7 @@
                       @click="() => updatePaymentStatus({ payment, status: 'received' })"
                     >
                       <q-item-section>
-                        <q-item-label>Mark received</q-item-label>
+                        <q-item-label>{{ $t('MarkReceived', {}, 'Mark received') }}</q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -48,7 +48,7 @@
                       @click="() => openRefundFormDialog(payment)"
                     >
                       <q-item-section>
-                        <q-item-label>Add Refund</q-item-label>
+                        <q-item-label>{{ $t('AddRefund', {}, 'Add Refund')}}</q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -58,7 +58,7 @@
                       @click="() => displayPaymentRefunds(payment)"
                     >
                       <q-item-section>
-                        <q-item-label>Refunds</q-item-label>
+                        <q-item-label>{{ $t('Refunds') }}</q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -68,7 +68,7 @@
                       @click="() => displayPaymentEscrowContract(payment)"
                     >
                       <q-item-section>
-                        <q-item-label style="white-space: nowrap;">View escrow</q-item-label>
+                        <q-item-label style="white-space: nowrap;">{{ $t('ViewEscrow', {}, 'View escrow') }}</q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
@@ -78,7 +78,7 @@
                       @click="() => updateEscrowFundingPrompt(payment)"
                     >
                       <q-item-section>
-                        <q-item-label>Update escrow payment</q-item-label>
+                        <q-item-label>{{ $t('UpdateEscrowPayment',{} , 'Update escrow payment')}}</q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>
@@ -89,7 +89,7 @@
           </q-item>
         </q-list>
         <div v-else class="text-center text-grey q-my-md">
-          No payments
+          {{ $t('NoPayments', {}, 'No payments') }}
         </div>
       </q-card-section>
       <EscrowContractDialog

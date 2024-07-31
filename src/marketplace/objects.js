@@ -1,9 +1,11 @@
+import { i18n } from "src/boot/i18n"
 import { capitalize } from "vue"
 import { backend } from "./backend"
 import { getOrderUpdatesTexts, getPurchaseOrderUpdatesTexts } from "./edit-history-utils"
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from "./chat/encryption"
-import { formatOrderStatus, formatPurchaseOrderStatus, lineItemPropertiesToText, parseOrderStatusColor, parsePurchaseOrderStatusColor } from './utils'
+import { formatOrderStatus, formatPurchaseOrderStatus, formatStatusGeneric, lineItemPropertiesToText, parseOrderStatusColor, parsePurchaseOrderStatusColor } from './utils'
 
+const { t: $t } = i18n.global
 export const ROLES = Object.freeze({
   admin: 'shop_admin',
   inventory: 'inventory_control_manager',
@@ -1364,7 +1366,7 @@ export class CollectionCondition {
 
   static fieldOpts = [
     { label: 'Price', value: this.fields.price },
-    { label: 'Markup price', value: this.fields.markupPrice },
+    { label: 'MarkupPrice', value: this.fields.markupPrice },
     { label: 'Name', value: this.fields.name, },
     { label: 'Categories', value: this.fields.categories, },
     { label: 'Created', value: this.fields.created, },
@@ -1375,24 +1377,24 @@ export class CollectionCondition {
       case this.fields.price:
       case this.fields.markupPrice:
         return [
-          { label: 'Equals', value: '' },
-          { label: 'Less than', value: 'lt' },
-          { label: 'Greater than', value: 'gt' },
+          { label: $t('Equals'), value: '' },
+          { label: $t('LessThan'), value: 'lt' },
+          { label: $t('GreaterThan'), value: 'gt' },
         ]
       case this.fields.name:
         return [
-          { label: 'Equals', value: '' },
-          { label: 'Contains', value: 'contains' },
-          { label: 'Starts with', value: 'startswith' },
+          { label: $t('Equals'), value: '' },
+          { label: $t('Contains'), value: 'contains' },
+          { label: $t('StartsWith'), value: 'startswith' },
         ]
       case this.fields.categories:
         return [
-          { label: 'Contains', value: 'in' },
+          { label: $t('Contains'), value: 'in' },
         ]
       case this.fields.created:
         return [
-          { label: 'Before', value: 'lt' },
-          { label: 'After', value: 'gt'},
+          { label: $t('Before'), value: 'lt' },
+          { label: $t('After'), value: 'gt'},
         ]
       default:
         return []
@@ -1819,7 +1821,7 @@ export class Order {
   get formattedDeliveryType() {
     if (typeof this.deliveryType !== 'string') return this.deliveryType
 
-    return capitalize(this.deliveryType).replace('_', ' ')
+    return formatStatusGeneric(this.deliveryType)
   }
 
   get markupAmount() {
@@ -1867,6 +1869,18 @@ export class Order {
   }
 
   get formattedPaymentStatus() {
+    switch(this.paymentStatus) {
+      case 'partially_refunded':
+        return $t('PartiallyRefunded', {}, formatOrderStatus(this.paymentStatus))
+      case 'payment_in_escrow':
+        return $t('PaymentInEscrow', {}, formatOrderStatus(this.paymentStatus))
+      case 'partially_paid':
+        return $t('PariallyPaid', {}, formatOrderStatus(this.paymentStatus))
+      case 'partial_payment_in_escrow':
+        return $t('PartialPaymentInEscrow', {}, formatOrderStatus(this.paymentStatus))
+      case 'payment_pending':
+        return $t('PaymentPending', {}, formatOrderStatus(this.paymentStatus))
+    }
     return formatOrderStatus(this.paymentStatus)
   }
 

@@ -4,6 +4,8 @@
  */
 const words = [
   {
+    minutes: 'minutes',
+    Change: 'Change',
     Currency: 'Currency',
     Return: 'Return',
     Map: 'Map',
@@ -97,6 +99,27 @@ const words = [
     No: 'No',
     Refund: 'Refund',
     Registered: 'Registered!',
+  },
+  {
+    Load: 'Load',
+    Automated: 'Automated',
+    Equals: 'Equals',
+    Before: 'Before',
+    After: 'After',
+    Pending: 'Pending',
+    Completed: 'Completed',
+    Cancelled: 'Cancelled',
+    Delivered: 'Delivered',
+    Preparing: 'Preparing',
+    Confirmed: 'Confirmed',
+    Paid: 'Paid',
+    Refunded: 'Refunded',
+    Call: 'Call',
+    Select: 'Select',
+    Refunds: 'Refunds',
+    Issue: 'Issue',
+    Issues: 'Issues',
+    Resolved: 'Resolved',
   },
   {
     Statuses: 'Statuses',

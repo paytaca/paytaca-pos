@@ -163,7 +163,7 @@
                 text-color="white"
                 @click="() => displayOrder(orderId)"
               >
-                Order#{{orderId}}
+                {{ $t('Order') }}#{{orderId}}
               </q-chip>
             </template>
           </q-td>

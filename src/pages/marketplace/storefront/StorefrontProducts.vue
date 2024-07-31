@@ -231,7 +231,7 @@
               flat
               no-caps
               :label="props.row?.hasCartOptions ? $t('Edit') : $t('Add')"
-              :icon-right="props.row?.hasCartOptions ? $t('edit') : $t('add')"
+              :icon-right="props.row?.hasCartOptions ? 'edit' : 'add'"
               no-wrap
               padding="xs sm"
               dense
@@ -263,7 +263,7 @@
                 flat
                 no-caps
                 :label="props.row?.addonsCount ? $t('Edit') : $t('Add')"
-                :icon-right="props.row?.addonsCount ? undefined : $t('add')"
+                :icon-right="props.row?.addonsCount ? undefined : 'add'"
                 no-wrap
                 :padding="props.row?.addonsCount ? 'xs' :'xs sm'"
                 :size="props.row?.addonsCount ? '1em' : undefined"

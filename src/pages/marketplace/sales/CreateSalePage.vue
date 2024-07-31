@@ -29,7 +29,7 @@
             >
               <q-item-section>
                 <q-item-label>
-                  New Empty
+                  {{ $t('NewEmpty', {}, 'New Empty') }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -49,7 +49,7 @@
                     {{ (salesOrder?.items?.length || salesOrder?.itemsCount ) > 1 ? 'items' : 'item' }})
                   </span>
                 </q-item-label>
-                <q-item-label caption >Created {{ formatDateRelative(salesOrder.createdAt) }} </q-item-label>
+                <q-item-label caption >{{ $t('Created') }} {{ formatDateRelative(salesOrder.createdAt) }} </q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
@@ -61,7 +61,7 @@
           outline
           no-caps
           :loading="loading"
-          :label="formData?.salesOrder?.id ? 'Save draft' : 'Save as draft'"
+          :label="$t('SaveDraft', {} , 'Save draft')"
           padding="xs md"
           @click="() => createSale({ draft: true, silent: true })"
         />
@@ -90,7 +90,7 @@
         <div class="items-container">
           <q-card class="q-space items-card q-mb-md">
             <q-card-section>
-              <div class="text-h5">Items</div>
+              <div class="text-h5">{{ $t('Items') }}</div>
               <table class="items-tab-table">
                 <TransitionGroup name="fade">
                   <template v-for="(item, index) in formData.items" :key="item._index || `item-${index}`">
@@ -100,7 +100,7 @@
                     >
                       <td colspan="1000">
                         <div class="row items-center justify-end">
-                          <div class="text-grey q-space">Item {{ index+1 }}</div> 
+                          <div class="text-grey q-space">{{ $t('Item') }} {{ index+1 }}</div> 
                           <q-btn
                             flat
                             :disable="loading"
@@ -142,7 +142,8 @@
                           class="q-ml-xs"
                         >
                           <q-menu class="q-py-sm q-px-md">
-                            Quantity is over total stocks: {{ item?.variant?.totalStocks }} 
+                            {{ $t('QuantityOverTotalStocks', {} , 'Quantity is over total stocks') }}
+                            : {{ item?.variant?.totalStocks }} 
                           </q-menu>
                         </q-icon>
                       </td>
@@ -154,7 +155,7 @@
                 </TransitionGroup>
               </table>
               <div v-if="!formData.items?.length" class="text-center text-grey">
-                No items
+                {{ $t('NoItems', {}, 'No items') }}
               </div>
             </q-card-section>
           </q-card>
@@ -173,7 +174,7 @@
         <q-card class="rounded-borders">
           <q-card-section>
             <div class="row">
-              <div class="q-space">Subtotal</div>
+              <div class="q-space">{{ $t('Subtotal') }}</div>
               <div>
                 {{ formComputedData.subtotal }}
                 {{ marketplaceStore?.currency  }}
@@ -187,7 +188,7 @@
             color="brandblue"
             no-caps
             :disable="loading"
-            label="Next"
+            :label="$t('Next')"
             class="full-width"
             @click="() => {
               nextTab()
@@ -214,16 +215,16 @@
                 <div>{{ item?.variant?.itemName || item?.itemName }}</div>
                 <q-space style="min-width:1.5em;"/>
                 <div v-if="[null, 0].includes(item?.variant?.totalStocks)" class="text-grey text-right">
-                  No stocks
+                  {{ $t('NoStocks', {}, 'No stocks') }}
                 </div>
                 <div
                   v-else-if="item?.variant?.totalStocks !== undefined"
                   :class="[item?.variant?.totalStocks >= item?.quantity ? 'text-green' : 'text-red', 'text-right']"
                 >
-                  Stocks: <span style="white-space:nowrap;">{{ item?.quantity }} / {{ item?.variant?.totalStocks }}</span>
+                  {{ $t('Stocks') }}: <span style="white-space:nowrap;">{{ item?.quantity }} / {{ item?.variant?.totalStocks }}</span>
                 </div>
                 <div v-else-if="item?.customItem" class="text-grey text-right">
-                  Custom item
+                  {{ $t('CustomItem', {}, 'Custom item') }}
                 </div>
               </div>
             </template>
@@ -237,7 +238,7 @@
                 :disable="loading || item?.customItem"
                 @click="() => selectStocks(item)"
               >
-                <span class="text-underline">Select stocks</span>
+                <span class="text-underline">{{ $t('SelectStocks', {}, 'Select stocks') }}</span>
                 <q-icon name="inventory" class="q-ml-sm"/>
               </q-btn>
               <div
@@ -246,10 +247,10 @@
               >
                 <div @click="() => viewStockDetail(consumption?.stock)" class="q-space">
                   <q-item-label class="text-weight-medium">
-                    Stock #{{ consumption?.stock?.id }}
+                    {{ $t('Stock') }} #{{ consumption?.stock?.id }}
                   </q-item-label>
                   <q-item-label class="text-caption">
-                    In stock: {{ consumption?.stock?.quantity }}
+                    {{ $t('InStock', {}, 'In stock') }}:  {{ consumption?.stock?.quantity }}
                   </q-item-label>
                 </div>
                 <div style="width:max(6em, 50%);">
@@ -259,7 +260,7 @@
                       dense
                       :disable="loading"
                       type="number"
-                      prefix="Qty"
+                      :prefix="$t('Qty')"
                       v-model.number="consumption.quantity"
                     />
                   </q-item-label>
@@ -274,7 +275,7 @@
             color="brandblue"
             no-caps
             :disable="loading"
-            label="Next"
+            :label="$t('Next')"
             class="full-width"
             @click="() => nextTab()"
           />
@@ -282,7 +283,7 @@
       </q-tab-panel>
       <q-tab-panel name="payment" class="q-pa-none">
         <q-select
-          label="Payment mode"
+          :label="$t('PaymentMode')"
           dense
           outlined
           :options="['BCH', 'Other']"
@@ -377,7 +378,7 @@
                   size="0.75em"
                   padding="none"
                   class="text-underline"
-                  no-caps label="Change address"
+                  no-caps :label="$t('ChangeAddress', {}, 'Change address')"
                   @click="() => updateRecipient()"
                 />
               </div>
@@ -388,7 +389,7 @@
           <q-input
             dense
             outlined
-            label="Received Amount"
+            :label="$t('ReceivedAmount', {}, 'Received Amount')"
             type="number"
             v-model.number="formData.receivedAmount"
             :suffix="marketplaceStore?.currency"
@@ -399,7 +400,7 @@
           <q-btn
             color="brandblue"
             no-caps
-            label="Next"
+            :label="$t('Next')"
             class="full-width"
             @click="() => nextTab()"
           />
@@ -408,7 +409,7 @@
       <q-tab-panel name="review" class="q-pa-none">
         <q-card class="q-mb-md">
           <q-card-section>
-            <div class="text-subtitle1">Items</div>
+            <div class="text-subtitle1">{{ $t('Items') }}</div>
             <div v-for="(item, index) in formData.items" :key="item._index || `item-${index}`">
               <div class="row items-center no-wrap q-gutter-x-sm q-mb-sm">
                 <div v-if="item.customItem" class="q-space">
@@ -431,18 +432,18 @@
         </q-card>
         <q-card class="q-mb-md">
           <q-card-section>
-            <div class="text-subtitle1">Payment</div>
+            <div class="text-subtitle1">{{ $t('Payment') }}</div>
             <div class="row no-wrap items-start">
-              <div class="q-space q-mr-sm text-grey">Payment method</div>
+              <div class="q-space q-mr-sm text-grey">{{ $t('PaymentMethod', {}, 'Payment method') }}</div>
               <div>{{ formData.paymentMode }}</div>
             </div>
             <template v-if="formData.paymentMode == 'BCH'">
               <div class="row no-wrap items-start">
-                <div class="q-space q-mr-sm text-grey">Recipient</div>
+                <div class="q-space q-mr-sm text-grey" style="white-space:nowrap">{{ $t('Recipient') }}</div>
                 <div style="word-break:break-all;" class="ellipsis">{{ formData?.bchPayment?.recipient }}</div>
               </div>
               <div class="row no-wrap items-start">
-                <div class="q-space q-mr-sm text-grey">BCH Price</div>
+                <div class="q-space q-mr-sm text-grey">BCH {{ $t('Price') }}</div>
                 <div class="row items-center">
                   <q-icon name="help" class="q-mr-xs"/>
                   <div style="word-break:break-all;" class="ellipsis">
@@ -451,11 +452,17 @@
                   </div>
                 </div>
                 <q-menu class="q-pa-sm">
-                  BCH price as of {{ formatTimestampToText(formData?.bchPayment?.price?.timestamp) }}
+                  {{
+                    $t(
+                      'BchPriceAtValue',
+                      { value: formatTimestampToText(formData?.bchPayment?.price?.timestamp)},
+                      `BCH Price at ${formatTimestampToText(formData?.bchPayment?.price?.timestamp)}`,
+                    )
+                  }}
                 </q-menu>
               </div>
               <div v-if="formData?.bchPayment?.txid" class="row no-wrap items-start">
-                <div class="q-space q-mr-sm text-grey">Transaction</div>
+                <div class="q-space q-mr-sm text-grey">{{ $t('Transaction') }}</div>
                 <div style="word-break:break-all;" class="ellipsis">{{ formData?.bchPayment?.txid }}</div>
                 <q-btn
                   flat round
@@ -466,7 +473,7 @@
               </div>
             </template>
             <div class="row items-start text-h5">
-              <div class="q-space">Total</div>
+              <div class="q-space">{{ $t('Total') }}</div>
               <div v-if="formData.paymentMode == 'BCH'" class="text-right">
                 <div>{{ formComputedData.bchSubtotal }} BCH</div>
                 <div class="text-grey text-caption bottom">
@@ -479,11 +486,11 @@
             </div>
             <template v-if="formData.paymentMode == 'Other' && formData.receivedAmount">
               <div class="row no-wrap items-start q-mt-md">
-                <div class="q-space q-mr-sm text-grey">Amount Received</div>
+                <div class="q-space q-mr-sm text-grey">{{ $t('ReceivedAmount', {}, 'Received amount') }}</div>
                 <div>{{ formData.receivedAmount }} {{ marketplaceStore?.currency }}</div>
               </div>
               <div v-if="formComputedData.changeAmount" class="row no-wrap items-start text-h6">
-                <div class="q-space q-mr-sm">Change</div>
+                <div class="q-space q-mr-sm">{{ $t('Change') }}</div>
                 <div>{{ formComputedData.changeAmount }} {{ marketplaceStore?.currency }}</div>
               </div>
             </template>
@@ -494,7 +501,7 @@
             :disable="loading"
             :loading="loading"
             no-caps
-            label="Create Sale"
+            :label="$t('CreateSale', {}, 'Create Sale')"
             color="brandblue"
             class="full-width"
             @click="() => createSale({ draft: false, silent: false })"
@@ -511,7 +518,7 @@
           dense
           outlined
           :disable="loading"
-          label="Quantity"
+          :label="$t('Quantity')"
           v-model="variantInfoDialog.item.quantity"
         >
           <template v-slot:prepend>
@@ -532,7 +539,7 @@
         <q-btn
           no-caps
           :disable="loading"
-          label="Load"
+          :label="$t('Load')"
           color="brandblue"
           class="full-width q-mt-md"
           v-close-popup

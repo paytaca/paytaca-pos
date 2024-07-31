@@ -3,7 +3,7 @@
     <q-card>
       <q-card-section>
         <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Update Items</div>
+          <div class="text-h5 q-space">{{ $t('UpdateItems', {}, 'Update Items') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <q-form ref="form" @submit="() => submit()">
@@ -52,14 +52,14 @@
                 <q-input
                   dense outlined
                   :disable="loading"
-                  label="Quantity"
+                  :label="$t('Quantity')"
                   type="number"
                   v-model.number="orderItem.quantity"
                   hide-bottom-space
                   :error="Boolean(formErrors?.items?.[index]?.quantity)"
                   :error-message="formErrors?.items?.[index]?.quantity"
                   :rules="[
-                    val => val > 0 || 'Invalid',
+                    val => val > 0 || $t('Invalid'),
                   ]"
                 />
               </div>
@@ -68,7 +68,7 @@
                   <q-input
                     dense outlined
                     :disable="loading"
-                    label="Price"
+                    :label="$t('Price')"
                     :placeholder="orderItem?.variant?.price"
                     :suffix="orderCurrency"
                     type="number"
@@ -82,7 +82,7 @@
                   <q-input
                     dense outlined
                     :disable="loading"
-                    label="Markup price"
+                    :label="$t('MarkupPrice', {}, 'Markup price')"
                     :placeholder="orderItem?.variant?.markupPrice"
                     :suffix="orderCurrency"
                     type="number"
@@ -96,7 +96,7 @@
               <q-field
                 v-if="orderItem?.variant?.product?.hasCartOptions"
                 dense outlined
-                label="Item options"
+                :label="$t('ItemOptions', {}, 'Item options')"
                 :model-value="orderItem?.properties"
                 bottom-slots
               >
@@ -117,20 +117,20 @@
           <q-btn
             no-caps
             :disable="loading"
-            label="Add Item"
+            :label="$t('AddItem', {}, 'Add Item')"
             class="full-width"
             @click="() => showVariantSearchDialog = true"
           />
 
           <div class="q-mt-sm" @click="() => toggleAmountsDisplay()">
             <div class="row items-start text-subtitle2">
-              <div class="q-space">Subtotal</div>
+              <div class="q-space">{{ $t('Subtotal') }}</div>
               <div v-if="displayBch">{{ itemAmounts.subtotal.bch }} BCH</div>
               <div v-else>{{ itemAmounts.subtotal.currency }} {{ orderCurrency }}</div>
             </div>
   
             <div class="row items-start text-subtitle2">
-              <div class="q-space">Markup</div>
+              <div class="q-space">{{ $t('Markup') }}</div>
               <div v-if="displayBch">{{ itemAmounts.markupAmount.bch }} BCH</div>
               <div v-else>{{ itemAmounts.markupAmount.currency }} {{ orderCurrency }}</div>
             </div>
@@ -141,7 +141,7 @@
           <q-btn
             no-caps
             :disable="loading"
-            label="Update"
+            :label="$t('Update')"
             color="brandblue"
             class="full-width"
             type="submit"
@@ -164,6 +164,7 @@ import { backend } from 'src/marketplace/backend'
 import { Order, Variant } from 'src/marketplace/objects'
 import { errorParser, lineItemPropertiesToText } from 'src/marketplace/utils'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import VariantSearchDialog from '../sales/VariantSearchDialog.vue'
 import JSONFormDataDialog from '../jsonform/JSONFormDataDialog.vue'
@@ -186,6 +187,7 @@ export default defineComponent({
     ...useDialogPluginComponent.emits,
   ],
   setup(props, { emit: $emit }) {
+    const { t: $t } = useI18n()
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
     const innerVal = ref(props.modelValue)
@@ -334,7 +336,7 @@ export default defineComponent({
           const data = error?.response?.data
           if (!data) {
             formErrors.value.detail = [
-              `Encountered error in updating items`,
+              $t('EncounteredError'),,
               error?.message,
             ].filter(Boolean)
             return

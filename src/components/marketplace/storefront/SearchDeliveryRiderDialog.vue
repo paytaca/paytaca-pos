@@ -3,10 +3,13 @@
     <q-card>
       <q-card-section class="q-pb-none">
         <div class="row items-center q-pb-sm">
-          <div class="text-subtitle1 text-grey q-space">Search Riders</div>
+          <div class="text-subtitle1 text-grey q-space">{{ $t('SearchRiders', {}, 'Search riders')}}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
-        <div class="text-body2 q-mb-xs">Search radius (in meters)</div>
+        <div class="text-body2 q-mb-xs">
+          {{ $t('SearchRadius', {}, 'Search radius' )}}
+          ({{ $t('InMeters',{} , 'in meters') }})
+        </div>
         <q-btn-toggle
           no-caps
           v-model="searchOpts.radius"
@@ -93,7 +96,7 @@
       </template>
       <q-list v-else>
         <div v-if="!riders?.length" class="text-center text-grey q-py-md">
-          No riders found
+          {{ $t('NoRidersFound', {}, 'No riders found') }}
         </div>
         <q-item
           v-for="rider in riders" :key="rider?.id"
@@ -118,13 +121,13 @@
         <q-btn
           flat
           no-caps
-          label="Cancel"
+          :label="$t('Cancel')"
           class="col-6"
           @click="onDialogCancel"
         />
         <q-btn
           no-caps
-          label="Select"
+          :label="$t('Select')"
           color="brandblue"
           class="col-6"
           @click="() => onDialogOK(selected)"

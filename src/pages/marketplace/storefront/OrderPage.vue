@@ -14,13 +14,7 @@
       <div class="row items-start no-wrap">
         <div class="row items-center q-space">
           <div class="text-h5 q-space">
-            {{
-              $t(
-                'OrderId',
-                { id: order?.id },
-                `Order #${order?.id}`
-              )
-            }}
+            {{ $t('Order')}} #{{order?.id}}
           </div>
           <div v-if="order?.id" style="margin-left:-4px;">
             <q-chip
@@ -30,10 +24,10 @@
               clickable
               @click="() => showPaymentsDialog = true"
             >
-              {{ formatOrderStatus(order?.paymentStatus) }}
+              {{ order?.formattedPaymentStatus }}
             </q-chip>
             <q-chip :color="parseOrderStatusColor(order?.status)" class="text-weight-medium text-white">
-              {{ formatOrderStatus(order?.status) }}
+              {{ order?.formattedStatus }}
             </q-chip>
           </div>
         </div>
@@ -152,11 +146,20 @@
         class="q-mb-md shadow-3"
       >
         <div class="text-h6">
-          Ready for customer pickup
+          {{
+            $t(
+              'ReadyForCustomerPickup', {},
+              'Ready for customer pickup',
+            )
+          }}
         </div>
         <div class="text-grey q-space">
-          Customer is notified that the order is ready for pickup.
-          You can also contact customer through
+          {{
+            $t(
+              'CustomerPickupHelpText', {},
+              'Customer is notified that the order is ready for pickup. You can also contact customer through',
+            )
+          }}
         </div>
         <div class="row items-center justify-around q-mt-sm">
           <div class="column items-center">
@@ -167,7 +170,7 @@
               color="brandblue"
               @click="() => openChatDialog()"
             />
-            <div class="q-mt-xs text-caption">Chat</div>
+            <div class="q-mt-xs text-caption">{{ $t('Chat') }}</div>
           </div>
           <div class="column items-center">
             <q-btn
@@ -177,7 +180,7 @@
               color="brandblue"
               :href="`tel:${order?.deliveryAddress?.phoneNumber}`"
             />
-            <div class="q-mt-xs text-caption">Call</div>
+            <div class="q-mt-xs text-caption">{{ $t('Call') }}</div>
           </div>
         </div>            
       </q-banner>
@@ -855,8 +858,8 @@ export default defineComponent({
     const updatingStatus = ref(false)
     function updateStatus(opts={ status: '', errorMessage: '', cancelReason: '', preparationDeadline: 0 }) {
       const dialog = $q.dialog({
-        title: 'Order status',
-        message: opts?.status == prevStatus.value ? 'Reverting order status' : 'Updating order status',
+        title: t('OrderStatus', {}, 'Order status'),
+        message: opts?.status == prevStatus.value ? t('RevertingOrderStatus') : t('UpdatingOrderStatus'),
         progress: true,
         persistent: true,
         color: 'brandblue',
@@ -895,7 +898,7 @@ export default defineComponent({
           dense: true,
           outlined: true,
           type: 'number',
-          suffix: 'minute/s',
+          suffix: t('minutes'),
           color: 'brandblue',
         },
         ok: {

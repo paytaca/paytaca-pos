@@ -67,13 +67,9 @@
             class="ellipsis filter-opt q-px-xs"
             @click="openFilterOptsForm = true"
           >
-            {{
-              $t(
-                'CollectionType',
-                { type: filterOpts?.auto ? $t('Auto') : $t('Manual') },
-                `Collection Type: ${ filterOpts?.auto ? $t('Auto') : $t('Manual') }`
-              )
-            }}
+            {{ $t('CollectionType', {}, 'CollectionType') }}
+            :
+            {{ filterOpts?.auto ? $t('Auto') : $t('Manual') }}
           </div>
         </div>
       </div>
