@@ -342,12 +342,6 @@ export default defineComponent({
       salesOrder.value.bchRecipientAddress = addresses[nextIndex]
     }
 
-    // window.t = () => {
-    //   const data = {"token_name": "bch", "token_id": "slp/bch", "token_symbol": "bch", "token_decimals": 8, "amount": null, "value": 3280456, "address": "bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5", "source": "WatchTower", "txid": "6414eab1068fa86aaff06860ea23169037287fd0d3d009474519c3ad27420a92", "block": null, "index": 0, "address_path": "0/0", "senders": ["bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5", "bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5"]}
-    //   const parsedData = txListener.value.parseWebsocketDataReceived(data)
-    //   txListenerCallback(undefined, parsedData)
-    // }
-
     const txListenerCallback = (msg, parsedData) => {
       const price = parseFloat(salesOrder.value?.bchPrice?.price)
       const marketValue = {

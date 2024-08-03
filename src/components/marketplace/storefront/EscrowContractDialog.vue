@@ -3,7 +3,7 @@
     <q-card>
       <q-card-section>
         <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Escrow</div>
+          <div class="text-h5 q-space">{{ $t('Escrow') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
 
@@ -22,13 +22,13 @@
                   <q-icon :name="escrowContract?.settlementType == 'released' ? 'check_circle' : 'mdi-cash-refund'" class="q-ml-xs"/>
                 </template>
                 <template v-else-if="escrowContract?.isFunded">
-                  Payment received by escrow
+                  {{ $t('PaymentReceivedByEscrow', {}, 'Payment received by escrow')}}
                   <q-icon name="credit_score" class="q-ml-xs"/>
                 </template>
 
                 <q-menu class="q-pa-sm">
                   <template v-if="escrowContract?.settlementTxid">
-                    <div class="text-caption top">Settlement transaction:</div>
+                    <div class="text-caption top">{{ $t('SettlementTx', {}, 'Settlement transaction') }}:</div>
                     <div class="ellipsis">{{ escrowContract?.settlementTxid }}</div>
                     <q-btn
                       flat padding="none"
@@ -43,7 +43,7 @@
                     spaced
                   />
                   <template v-if="escrowContract?.fundingTxid">
-                    <div class="text-caption top">Payment transaction:</div>
+                    <div class="text-caption top">{{ $t('PaymentTx', {}, 'Payment transaction') }}:</div>
                     <div class="ellipsis">{{ escrowContract?.fundingTxid }}</div>
                     <q-btn
                       flat padding="none"
@@ -62,7 +62,7 @@
                 style="position:relative;" v-ripple
                 @click="copyToClipboard(escrowContract?.address)"
               >
-                <div class="text-caption text-grey top">Address</div>
+                <div class="text-caption text-grey top">{{ $t('Address') }}</div>
                 <div style="word-break: break-all;">
                   {{ escrowContract?.address }}
                   <q-icon name="content_copy"/>
@@ -83,7 +83,7 @@
               style="position:relative;" v-ripple
               @click="copyToClipboard(escrowContract?.sellerAddress)"
             >
-              <div class="text-caption text-grey top">Recipient</div>
+              <div class="text-caption text-grey top">{{ $t('Recipient') }}</div>
               <div style="word-break: break-all;">
                 {{ escrowContract?.sellerAddress }}
                 <q-icon name="content_copy"/>
@@ -95,51 +95,51 @@
               style="position:relative;" v-ripple
               @click="copyToClipboard(escrowContract?.deliveryFeeKeyNft?.currentAddress)"
             >
-              <div class="text-caption text-grey top">Delivery fee receipient</div>
+              <div class="text-caption text-grey top">{{ $t('DeliveryFeeRecipient', {}, 'Delivery fee receipient') }}</div>
               <div v-if="escrowContract?.deliveryFeeKeyNft?.currentAddress" style="word-break: break-all;">
                 {{ escrowContract?.deliveryFeeKeyNft?.currentAddress }}
                 <q-icon name="content_copy"/>
               </div>
               <div v-else class="text-grey">
-                None
+                {{ $t('None') }}
               </div>
             </div>
 
             <q-separator spaced/>
             <div class="q-mb-sm" @click="() => toggleAmountsDisplay()">
               <div class="row items-start">
-                <div class="text-grey q-space">Amount</div>
+                <div class="text-grey q-space">{{ $t('Amount') }}</div>
                 <div v-if="displayBch">{{ escrowContract?.bchAmounts?.amount }} BCH</div>
                 <div v-else>{{ fiatAmounts?.amount }} {{ currency }}</div>
               </div>
               <div class="q-pl-sm">
                 <div class="row items-start">
-                  <div class="text-grey q-space">Delivery fee</div>
+                  <div class="text-grey q-space">{{ $t('DeliveryFee', {}, 'Delivery fee') }}</div>
                   <div v-if="displayBch">{{ escrowContract?.bchAmounts?.deliveryFee }} BCH</div>
                   <div v-else>{{ fiatAmounts?.deliveryFee }} {{ currency }}</div>
                 </div>
         
                 <div class="row items-start">
-                  <div class="text-grey q-space">Service fee</div>
+                  <div class="text-grey q-space">{{ $t('ServiceFee', {}, 'Service fee') }}</div>
                   <div v-if="displayBch">{{ escrowContract?.bchAmounts?.serviceFee }} BCH</div>
                   <div v-else>{{ fiatAmounts?.serviceFee }} {{ currency }}</div>
                 </div>
         
                 <div class="row items-start">
-                  <div class="text-grey q-space">Arbitration fee</div>
+                  <div class="text-grey q-space">{{ $t('ArbitrationFee', {}, 'Arbitration fee') }}</div>
                   <div v-if="displayBch">{{ escrowContract?.bchAmounts?.arbitrationFee }} BCH</div>
                   <div v-else>{{ fiatAmounts?.arbitrationFee }} {{ currency }}</div>
                 </div>
     
                 <div class="row items-start">
-                  <div class="text-grey q-space">Network fee</div>
+                  <div class="text-grey q-space">{{ $t('NetworkFee', {}, 'Network fee') }}</div>
                   <div v-if="displayBch">{{ escrowContract?.bchAmounts?.networkFee }} BCH</div>
                   <div v-else>{{ fiatAmounts?.networkFee }} {{ currency }}</div>
                 </div>
               </div>
     
               <div class="row items-start">
-                <div class="text-grey q-space">Total</div>
+                <div class="text-grey q-space">{{ $t('Total') }}</div>
                 <div v-if="displayBch">{{ escrowContract?.bchAmounts?.total }} BCH</div>
                 <div v-else>{{ fiatAmounts?.total }} {{ currency }}</div>
               </div>
@@ -148,7 +148,7 @@
           <q-tab-panel name="qrcode" class="q-pa-none">
             <div class="row items-center no-wrap">
               <q-btn flat round icon="arrow_back" @click="() => tab = 'details'"/>
-              <div class="q-space text-h5">Scan to pay</div>
+              <div class="q-space text-h5">{{ $t('ScanToPay', {}, 'Scan to pay')}}</div>
             </div>
             <div class="row items-center justify-center">
               <div class="col-qr-code">

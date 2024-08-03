@@ -148,6 +148,7 @@
             v-if="formData.addons?.length"
             :addons="formData.addons"
             :currency="marketplaceStore.currency"
+            class="q-mb-sm"
           />
           <q-btn
             :flat="!formData.addons?.length"
@@ -238,6 +239,7 @@
                 :disable="loading"
                 :loading="loading"
                 type="number"
+                step="0.001"
                 :suffix="marketplaceStore?.currency"
                 v-model.number="variant.price"
                 :error="Boolean(variantErrorAt(index)?.price)"
@@ -304,6 +306,7 @@
                 :disable="loading"
                 :loading="loading"
                 type="number"
+                step="0.001"
                 :suffix="marketplaceStore?.currency"
                 v-model.number="variant.price"
                 :error="Boolean(newVariantErrorAt(index)?.price)"
@@ -338,6 +341,7 @@
                     :loading="loading"
                     :disable="variant.initialStock <= 0 || loading"
                     type="number"
+                    step="0.001"
                     :suffix="marketplaceStore?.currency"
                     v-model.number="variant.costPrice"
                     :error="Boolean(newVariantErrorAt(index)?.costPrice)"

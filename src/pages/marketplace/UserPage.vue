@@ -141,7 +141,8 @@ import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
-import { defineComponent, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { defineComponent, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import UserProfileForm from 'src/components/marketplace/UserProfileForm.vue'
 
@@ -151,11 +152,26 @@ export default defineComponent({
     MarketplaceHeader,
     UserProfileForm,
   },
-  setup() {
+  props: {
+    edit: String,
+  },
+  setup(props) {
     const { t } = useI18n()
+    const $router = useRouter()
     const $q = useQuasar()
     const marketplaceStore = useMarketplaceStore()
+
     const profileEditMode = ref(false)
+    watch(profileEditMode, () => {
+      const query = {
+        edit: profileEditMode.value ? 'true' : undefined,
+      }
+      $router.replace({ query })
+    })
+    watch(() => props?.edit, () => {
+      profileEditMode.value = props.edit?.toLowerCase()?.trim?.() === 'true'
+    })
+
     const form = ref()
     const formData = ref({
       loading: false,

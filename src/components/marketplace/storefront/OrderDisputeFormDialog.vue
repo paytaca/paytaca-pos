@@ -7,8 +7,8 @@
           <q-space/>
           <q-btn v-close-popup flat icon="close" class="q-r-mr-sm"/>
         </div>
-        <div v-if="innerReadonly" class="text-subtitle1">Issues</div>
-        <div v-else class="text-subtitle1">List reason/s</div>
+        <div v-if="innerReadonly" class="text-subtitle1">{{ $t('Issues')}}</div>
+        <div v-else class="text-subtitle1">{{ $t('ListReasons', {}, 'List reasons') }}</div>
         <TransitionGroup name="slide-group" tag="div" style="overflow:hidden;">
           <div
             v-for="(reason, index) in formData.reasons" :key="reason"
@@ -36,7 +36,7 @@
               hide-dropdown-icon
               :options="filteredReasonOptions"
               behavior="menu"
-              placeholder="Issue"
+              :placeholder="$t('Issue')"
               bottom-slots
               @new-value="(inputValue, done) => done(inputValue, 'add-unique')"
               @update:model-value="val => appendReason(val)"
@@ -54,7 +54,7 @@
           <q-btn
             outline
             no-caps
-            label="Edit"
+            :label="$t('Edit')"
             color="brandblue"
             class="full-width"
             @click="() => innerReadonly = false"
@@ -68,7 +68,7 @@
           <div class="row items-center justify-between">
             <q-icon name="check_circle" :size="resolveActionText ? '2.5em' : '1.2em'"/>
             <div>
-              Resolved
+              {{ $t('Resolved') }}
               <div v-if="resolveActionText" class="text-caption bottom text-grey-4">
                 {{ resolveActionText }}
               </div>
@@ -79,18 +79,18 @@
         </q-banner>
         <q-expansion-item
           v-if="innerReadonly && !orderDispute?.resolvedAt"
-          no-caps label="Resolve dispute"
+          no-caps :label="$t('Resolve')"
           header-class="bg-brandblue text-white text-weight-medium"
           header-style="border-radius:4px;"
         >
           <q-btn
-            no-caps label="Complete order"
+            no-caps :label="$t('CompleteOrder', {}, 'Complete order')"
             color="green"
             class="full-width q-mt-sm"
             @click="() => resolve(OrderDispute.resolveActions.completeOrder)"
           />
           <q-btn
-            no-caps label="Cancel order"
+            no-caps :label="$t('CancelOrder', {}, 'Cancel order')"
             color="red"
             class="full-width q-mt-sm"
             @click="() => resolve(OrderDispute.resolveActions.cancelOrder)"
@@ -132,15 +132,15 @@ watch(innerReadonly, () => $emit('update:readonly', innerReadonly.value))
 
 const resolveActionText = computed(() => {
   const resolveAction = props.orderDispute?.resolveAction
-  if (resolveAction == OrderDispute.resolveActions.cancelOrder) return 'Order cancelled'
-  if (resolveAction == OrderDispute.resolveActions.completeOrder) return 'Order completed'
+  if (resolveAction == OrderDispute.resolveActions.cancelOrder) return $t('OrderCancelled', {}, 'Order cancelled')
+  if (resolveAction == OrderDispute.resolveActions.completeOrder) return $t('OrderCompleted', {}, 'Order completed')
   return ''
 })
 
 const reasonOptions = [
-  'Defective or Damaged Goods',
-  'Non-Delivery or Late Delivery',
-  'Inaccurate Product Descriptions',
+  $t('DefectiveOrDamagedGoods', {}, 'Defective or Damaged Goods'),
+  $t('NonDeliveryOrLateDelivery', {}, 'Non-Delivery or Late Delivery'),
+  $t('InaccurateProductDescriptions', {}, 'Inaccurate Product Descriptions'),
 ]
 
 const filteredReasonOptions = ref([...reasonOptions])

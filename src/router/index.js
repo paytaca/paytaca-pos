@@ -2,7 +2,6 @@ import { route } from 'quasar/wrappers'
 import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory } from 'vue-router'
 import routes from './routes'
 import { App } from '@capacitor/app'
-window.App = App
 
 /*
  * If not building with SSR mode, you can

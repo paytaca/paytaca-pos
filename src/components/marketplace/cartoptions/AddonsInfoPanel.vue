@@ -1,8 +1,8 @@
 <template>
   <div>
-    <div v-for="(addon, index) in addons" :key="index" class="q-pb-sm">
+    <div v-for="(addon, index) in addons" :key="index" class="">
       <div class="row items-center">
-        <div class="text-body">{{ addon?.label }}</div>
+        <div class="text-body2">{{ addon?.label }}</div>
         <q-icon v-if="!hasOptions(addon) && hasInputRequired(addon)" name="keyboard" size="1.2em" color="grey" class="q-ml-xs"/>
         <q-space/>
         <div class="text-right">
@@ -18,7 +18,7 @@
           </div>
         </div>
       </div>
-      <div v-if="hasOptions(addon)" class="q-pl-sm text-caption">
+      <div v-if="hasOptions(addon)" class="q-pl-md text-caption">
         <div
           v-for="(option, index2) in addon.options" :key="`${index}-${index2}`"
           class="row items-center"
@@ -31,6 +31,7 @@
           <div>{{ option?.price }} {{ currency }}</div>
         </div>
       </div>
+      <q-separator v-if="index < addons?.length-1" spaced />
     </div>
   </div>
 </template>

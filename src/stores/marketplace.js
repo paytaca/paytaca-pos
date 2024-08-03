@@ -9,6 +9,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
   state: () => {
     return {
       fetchingUser: false,
+      lastLoggedInUsername: '',
       user: {
         id: 0,
         profilePictureUrl: '',
@@ -34,7 +35,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
         watchtower_branch_id: null,
         merchant_id: 0,
         name: '',
-        location: { id: 0, address1: '', address2: '', street: '', city: '', state: '', country: '', longitude: '', latitude: '' },
+        location: { id: 0, address1: '', address2: '', street: '', city: '', state: '', country: '', longitude: '', latitude: '', utc_offset: null },
       },
       shopSettingsData: {
         id: 0,
@@ -245,6 +246,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
           country: data?.location?.country,
           longitude: data?.location?.longitude,
           latitude: data?.location?.latitude,
+          utc_offset: data?.location?.utc_offset,
         },
       }
     },

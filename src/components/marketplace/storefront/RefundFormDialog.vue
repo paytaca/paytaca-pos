@@ -3,7 +3,7 @@
     <q-card>
       <q-card-section>
         <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Refund</div>
+          <div class="text-h5 q-space">{{ $t('Refund') }}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <q-form ref="form" @submit="() => saveRefund()">
@@ -16,7 +16,7 @@
             </ul>
           </q-banner>
           <div class="row items-end">
-            <div>Refund amount</div>
+            <div>{{ $t('RefundAmount', {}, 'Refund amount') }}</div>
             <q-space/>
             <q-btn
               flat round
@@ -39,7 +39,7 @@
           </div>
           <q-slide-transition>
             <div v-if="formData.expandAmounts">
-              <div>Amount</div>
+              <div>{{ $t('Amount') }}</div>
               <q-input
                 dense
                 outlined
@@ -55,7 +55,7 @@
                 ]"
               />
     
-              <div>Delivery fee</div>
+              <div>{{ $t('DeliveryFee', {}, 'Delivery fee') }}</div>
               <q-input
                 dense
                 outlined
@@ -71,7 +71,7 @@
                 ]"
               />
     
-              <div>Markup Amount</div>
+              <div>{{ $t('MarkupAmount', {}, 'Markup amount') }}</div>
               <q-input
                 dense
                 outlined
@@ -92,7 +92,7 @@
           <q-btn
             :disable="loading"
             :loading="loading"
-            no-caps label="Refund"
+            no-caps :label="$t('Refund')"
             color="brandblue"
             class="full-width"
             type="submit"

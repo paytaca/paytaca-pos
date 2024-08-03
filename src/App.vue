@@ -38,6 +38,7 @@ export default defineComponent({
     const walletStore = useWalletStore()
     const notificationsStore = useNotificationsStore()
     const $rpc = inject('$rpc')
+    window.dark = $q.dark
 
     const pingIntervalId = ref(null)
     onMounted(() => {

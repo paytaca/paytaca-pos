@@ -80,6 +80,7 @@ export default defineComponent({
   name: 'LoginPage',
   props: {
     redirectTo: String,
+    username: String,
   },
   setup(props) {
     const { t } = useI18n()
@@ -88,7 +89,7 @@ export default defineComponent({
     const marketplaceStore = useMarketplaceStore()
     const loading = ref(false)
     const formData = ref({
-      username: '',
+      username: (props.username ?? marketplaceStore.lastLoggedInUsername) || '',
       password: '',
     })
     const errors = ref({
@@ -119,11 +120,16 @@ export default defineComponent({
             marketplaceStore.setUser({ id: response?.data?.user_id })
             marketplaceStore.refetchShop()
             marketplaceStore.refreshUser({ silent: false })
-              .catch(() => {
+              .then(response => {
+                marketplaceStore.lastLoggedInUsername = response?.data?.username || ''
+                return response
+              })
+              .catch(error => {
                 $q.notify({
                   message: t('FailedToFetchUserData'),
                   type: 'negative',
                 })
+                return Promise.reject(error)
               })
               .then(() => {
                 if (props.redirectTo) $router.replace(props.redirectTo)

@@ -3,7 +3,7 @@
     <q-card>
       <q-card-section>
         <div class="row items-center q-pb-sm">
-          <div class="text-h5 q-space">Delivery address</div>
+          <div class="text-h5 q-space">{{ $t('DeliveryAddress', {}, 'Delivery address' )}}</div>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <q-form ref="form" @submit="() => submit()">
@@ -16,7 +16,7 @@
             </ul>
           </q-banner>
           <div class="row items-center q-mb-sm">
-            <div class="text-subtitle1">Contact</div>
+            <div class="text-subtitle1">{{ $t('Contact') }}</div>
             <q-space/>
           </div>
           <div class="row items-start">
@@ -24,26 +24,26 @@
               outlined
               dense
               :disable="loading"
-              label="First name*"
+              :label="$t('FirstName') + '*'"
               v-model="formData.firstName"
               class="col-12 col-sm-6"    
               :error="Boolean(formErrors?.firstName)"
               :error-message="formErrors?.firstName"
               :rules="[
-                val => Boolean(val) || 'Required',
+                val => Boolean(val) || $t('Required'),
               ]"
             /> 
             <q-input
               outlined
               dense
               :disable="loading"
-              label="Last name*"
+              :label="$t('LastName') + '*'"
               v-model="formData.lastName"
               class="col-12 col-sm-6"
               :error="Boolean(formErrors?.lastName)"
               :error-message="formErrors?.lastName"
               :rules="[
-                val => Boolean(val) || 'Required',
+                val => Boolean(val) || $t('Required'),
               ]"
             />
           </div>
@@ -51,7 +51,7 @@
             outlined
             dense
             :disable="loading"
-            label="Phone number*"
+            :label="$t('PhoneNumber') + '*'"
             v-model="formData.phoneNumber"
             :error="Boolean(formErrors?.phoneNumber)"
             :error-message="formErrors?.phoneNumber"
@@ -62,7 +62,7 @@
           />
           
           <div class="row items-center q-mb-sm">
-            <div class="text-subtitle1">Address</div>
+            <div class="text-subtitle1">{{ $t('Address') }}</div>
             <q-space/>
             <!-- <GeolocateBtn @geolocate="position => onGeolocate(position)"/> -->
           </div>
@@ -71,7 +71,7 @@
             outlined
             dense
             :disable="loading"
-            label="Address"
+            :label="$t('Address')"
             v-model="formData.location.address1"
             :error="Boolean(formErrors.location?.address1)"
             :error-message="formErrors?.location?.address1"
@@ -81,26 +81,26 @@
               outlined
               dense
               :disable="loading"
-              label="Street*"
+              :label="$t('Street') + '*'"
               v-model="formData.location.street"
               class="col-12 col-sm-6"
               :error="Boolean(formErrors?.location?.street)"
               :error-message="formErrors?.location?.street"
               :rules="[
-                val => Boolean(val) || 'Required',
+                val => Boolean(val) || $t('Required'),
               ]"
             />
             <q-input
               outlined
               dense
               :disable="loading"
-              label="City*"
+              :label="$t('City') + '*'"
               v-model="formData.location.city"
               class="col-12 col-sm-6"
               :error="Boolean(formErrors?.location?.city)"
               :error-message="formErrors?.location?.city"
               :rules="[
-                // val => Boolean(val) || 'Required',
+                // val => Boolean(val) || $t('Required'),
               ]"
             />
           </div>
@@ -110,13 +110,13 @@
               outlined
               dense
               :disable="loading"
-              label="State / Province *"
+              :label="`${$t('State')} / ${$t('Province')} *`"
               v-model="formData.location.state"
               class="col-12 col-sm-6"
               :error="Boolean(formErrors?.location?.state)"
               :error-message="formErrors?.location?.state"
               :rules="[
-                val => Boolean(val) || 'Required',
+                val => Boolean(val) || $t('Required'),
               ]"
             />
             <CountriesFieldWrapper v-slot="{ filteredCountriesOpts, filterCountriesOpts }">
@@ -124,7 +124,7 @@
                 outlined
                 dense
                 :disable="loading"
-                label="Country*"
+                :label="$t('Country') + '*'"
                 clearable
                 use-input
                 fill-input
@@ -136,7 +136,7 @@
                 :error="Boolean(formErrors?.location?.country)"
                 :error-message="formErrors?.location?.country"
                 :rules="[
-                  val => Boolean(val) || 'Required',
+                  val => Boolean(val) || $t('Required'),
                 ]"
               />
             </CountriesFieldWrapper>
@@ -153,7 +153,7 @@
                 {{ formData.location.latitude }}, {{ formData.location.longitude }}
               </template>
               <template v-else>
-                Pin location
+                {{ $t('PinLocation', {}, 'Pin location') }}
               </template>
             </q-btn>
             <q-btn
@@ -171,7 +171,7 @@
           <q-btn
             :disable="loading"
             :loading="loading"
-            no-caps label="Save"
+            no-caps :label="$t('Save')"
             color="brandblue"
             class="full-width"
             type="submit"
@@ -184,6 +184,7 @@
 <script>
 import { Order } from 'src/marketplace/objects'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import CountriesFieldWrapper from 'src/components/CountriesFieldWrapper.vue'
 import PinLocationDialog from '../PinLocationDialog.vue'
@@ -208,6 +209,7 @@ export default defineComponent({
     ...useDialogPluginComponent.emits,
   ],
   setup(props, { emit: $emit }) {
+    const { t: $t } = useI18n()
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
     const innerVal = ref(props.modelValue)
@@ -337,7 +339,7 @@ export default defineComponent({
           const data = error?.response?.data
           if (!data) {
             formErrors.value.detail = [
-              `Encountered error in updating items`,
+              $t('EncounteredError'),
               error?.message,
             ].filter(Boolean)
             return

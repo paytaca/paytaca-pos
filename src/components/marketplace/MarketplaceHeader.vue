@@ -1,5 +1,5 @@
 <template>
-  <div class="row q-mt-sm q-mb-md q-r-ml-lg">
+  <div class="row no-wrap q-mt-sm q-mb-md q-r-ml-lg">
     <slot name="title">
       <div class="q-space">
         <div class="text-h4">{{ title }}</div>
@@ -28,6 +28,18 @@
               <div class="text-grey">
                 {{ marketplaceStore.user.username }}
               </div>
+            </div>
+            <q-space/>
+            <div>
+              <q-btn
+                outline
+                rounded
+                icon="chevron_right"
+                color="brandblue"
+                padding="sm"
+                size="sm"
+                @click="$router.push({ name: 'marketplace-user' })"
+              />
             </div>
           </div>
           <div v-if="marketplaceStore?.userRoles?.length" class="q-mt-xs q-gutter-sm">
@@ -87,7 +99,9 @@ export default defineComponent({
     async function logOut() {
       try{
         $q.loading.show({ group: 'logout' })
-        await backend.post(`users/revoke_token/`).catch(console.error)
+        const customConfig = { forceHeartbeat: true }
+        await backend.post(`users/revoke_token/`, undefined, { customConfig })
+          .catch(console.error)
           .then(() => $q.loading.hide('logout'))
         setAuthToken(undefined)
         marketplaceStore.setUser(null)

@@ -69,7 +69,7 @@ export default defineComponent({
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
     const userImage = computed(() => {
-      if (props.user?.imageUrl) return props.user?.imageUrl
+      if (props.user?.profilePictureUrl) return props.user?.profilePictureUrl
       const fullName = `${props.user?.firstName} ${props.user?.lastName}`
       return `https://api.dicebear.com/5.x/initials/svg?seed=${fullName}`
     })

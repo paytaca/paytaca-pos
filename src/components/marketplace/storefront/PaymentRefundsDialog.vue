@@ -4,15 +4,15 @@
       <q-card-section>
         <div class="row items-center q-pb-sm">
           <div>
-            <div class="text-h5">Refunds</div>
-            <div class="text-caption bottom text-grey">Payment #{{ payment?.id }}</div>
+            <div class="text-h5">{{ $t('Refunds') }}</div>
+            <div class="text-caption bottom text-grey">{{ $t('Payment') }} #{{ payment?.id }}</div>
           </div>
           <q-space/>
           <q-btn flat icon="close" padding="sm" v-close-popup/>
         </div>
         <q-linear-progress v-if="fetchingRefunds" :color="$q.dark.isActive ? 'white' : 'brandblue'" query/>
         <div v-if="!payment?.refunds?.length && !fetchingRefunds" class="text-grey text-center q-py-md">
-          No data
+          {{ $t('NoData', {}, 'No data') }}
         </div>
         <q-list v-else dense separator>
           <q-item v-for="refund in payment?.refunds" :key="refund?.id">
@@ -24,19 +24,19 @@
                 </div>
                 <q-menu class="q-pa-sm">
                   <div class="row items-center">
-                    <div class="q-mr-xs">Amount</div>
+                    <div class="q-mr-xs">{{ $t('Amount') }}</div>
                     <q-space/>
                     <div>{{ refund?.amount }} {{ payment?.currency?.symbol }}</div>
                   </div>
 
                   <div class="row items-center">
-                    <div class="q-mr-xs">Delivery fee</div>
+                    <div class="q-mr-xs">{{ $t('DeliveryFee', {}, 'Delivery fee') }}</div>
                     <q-space/>
                     <div>{{ refund?.deliveryFee }} {{ payment?.currency?.symbol }}</div>
                   </div>
 
                   <div class="row items-center">
-                    <div class="q-mr-xs">Markup amount</div>
+                    <div class="q-mr-xs">{{ $t('MarkupAmount', {}, 'Markup amount') }}</div>
                     <q-space/>
                     <div>{{ refund?.markupAmount }} {{ payment?.currency?.symbol }}</div>
                   </div>
@@ -57,7 +57,7 @@
                 <q-item clickable v-close-popup @click="() => deleteRefund(refund)">
                   <q-item-section>
                     <q-item-label>
-                      Remove refund
+                      {{ $t('Delete') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -72,6 +72,7 @@
 <script>
 import { Payment, Refund } from 'src/marketplace/objects'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { defineComponent, ref, watch } from 'vue'
 import { formatTimestampToText, formatDateRelative, errorParser } from 'src/marketplace/utils'
 import { backend } from 'src/marketplace/backend'
@@ -92,6 +93,7 @@ export default defineComponent({
     ...useDialogPluginComponent.emits,
   ],
   setup(props, { emit: $emit }) {
+    const { t: $t } = useI18n()
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
     const innerVal = ref(props.modelValue)
@@ -126,7 +128,7 @@ export default defineComponent({
         .catch(error => {
           $q.notify({
             type: 'negative',
-            message: 'Unable to remove refund',
+            message: $t('EncounteredError'),
             caption: errorParser?.firstElementOrValue(error?.response?.data?.detail) || '',
           })
         })

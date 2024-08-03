@@ -1,9 +1,11 @@
+import { i18n } from "src/boot/i18n"
 import { capitalize } from "vue"
 import { backend } from "./backend"
 import { getOrderUpdatesTexts, getPurchaseOrderUpdatesTexts } from "./edit-history-utils"
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from "./chat/encryption"
-import { formatOrderStatus, formatPurchaseOrderStatus, lineItemPropertiesToText, parseOrderStatusColor, parsePurchaseOrderStatusColor } from './utils'
+import { formatOrderStatus, formatPurchaseOrderStatus, formatStatusGeneric, lineItemPropertiesToText, parseOrderStatusColor, parsePurchaseOrderStatusColor } from './utils'
 
+const { t: $t } = i18n.global
 export const ROLES = Object.freeze({
   admin: 'shop_admin',
   inventory: 'inventory_control_manager',
@@ -35,6 +37,7 @@ export class Location {
    * @param {String} data.country
    * @param {String} data.longitude
    * @param {String} data.latitude
+   * @param {Number} data.utc_offset
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -47,6 +50,7 @@ export class Location {
     this.country = data?.country
     this.longitude = data?.longitude
     this.latitude = data?.latitude
+    this.utcOffset = data?.utc_offset
   }
 
   get formatted() {
@@ -853,6 +857,7 @@ export class SalesOrder {
    * @param {String} data.bch_txid
    * @param {Number} data.received_amount
    * @param {String} data.created_at
+   * @param {Number[]} [data.order_ids]
    * @param {{ id:Number, first_name:String, last_name:String }} data.created_by
    * @param {{ code:String, symbol:String }} data.currency
    * @param {{ id:Number, name:String }} data.shop
@@ -877,6 +882,7 @@ export class SalesOrder {
     this.bchRecipientAddress = data?.bch_recipient_address
     this.bchTxid = data?.bch_txid
     this.receivedAmount = parseFloat(data?.received_amount)
+    this.orderIds = data?.order_ids
     if(data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt
     this.createdBy = User.parse(data?.created_by)
@@ -1360,7 +1366,7 @@ export class CollectionCondition {
 
   static fieldOpts = [
     { label: 'Price', value: this.fields.price },
-    { label: 'Markup price', value: this.fields.markupPrice },
+    { label: 'MarkupPrice', value: this.fields.markupPrice },
     { label: 'Name', value: this.fields.name, },
     { label: 'Categories', value: this.fields.categories, },
     { label: 'Created', value: this.fields.created, },
@@ -1371,24 +1377,24 @@ export class CollectionCondition {
       case this.fields.price:
       case this.fields.markupPrice:
         return [
-          { label: 'Equals', value: '' },
-          { label: 'Less than', value: 'lt' },
-          { label: 'Greater than', value: 'gt' },
+          { label: $t('Equals'), value: '' },
+          { label: $t('LessThan'), value: 'lt' },
+          { label: $t('GreaterThan'), value: 'gt' },
         ]
       case this.fields.name:
         return [
-          { label: 'Equals', value: '' },
-          { label: 'Contains', value: 'contains' },
-          { label: 'Starts with', value: 'startswith' },
+          { label: $t('Equals'), value: '' },
+          { label: $t('Contains'), value: 'contains' },
+          { label: $t('StartsWith'), value: 'startswith' },
         ]
       case this.fields.categories:
         return [
-          { label: 'Contains', value: 'in' },
+          { label: $t('Contains'), value: 'in' },
         ]
       case this.fields.created:
         return [
-          { label: 'Before', value: 'lt' },
-          { label: 'After', value: 'gt'},
+          { label: $t('Before'), value: 'lt' },
+          { label: $t('After'), value: 'gt'},
         ]
       default:
         return []
@@ -1815,7 +1821,7 @@ export class Order {
   get formattedDeliveryType() {
     if (typeof this.deliveryType !== 'string') return this.deliveryType
 
-    return capitalize(this.deliveryType).replace('_', ' ')
+    return formatStatusGeneric(this.deliveryType)
   }
 
   get markupAmount() {
@@ -1863,6 +1869,18 @@ export class Order {
   }
 
   get formattedPaymentStatus() {
+    switch(this.paymentStatus) {
+      case 'partially_refunded':
+        return $t('PartiallyRefunded', {}, formatOrderStatus(this.paymentStatus))
+      case 'payment_in_escrow':
+        return $t('PaymentInEscrow', {}, formatOrderStatus(this.paymentStatus))
+      case 'partially_paid':
+        return $t('PariallyPaid', {}, formatOrderStatus(this.paymentStatus))
+      case 'partial_payment_in_escrow':
+        return $t('PartialPaymentInEscrow', {}, formatOrderStatus(this.paymentStatus))
+      case 'payment_pending':
+        return $t('PaymentPending', {}, formatOrderStatus(this.paymentStatus))
+    }
     return formatOrderStatus(this.paymentStatus)
   }
 

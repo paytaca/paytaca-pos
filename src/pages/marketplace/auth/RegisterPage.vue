@@ -184,7 +184,7 @@ export default defineComponent({
             ok: true,
           })
             .onDismiss(() => {
-              $router.push({ name: 'marketplace-login' })
+              $router.push({ name: 'marketplace-login', query: { username: response?.data?.username } })
             })
           return response
         })

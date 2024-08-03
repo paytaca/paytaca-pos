@@ -114,7 +114,6 @@ export default defineComponent({
 
     const menu = ref()
     const openMenu = ref(false)
-    window.t = () => menu.value?.updatePosition?.()
     function updateMenuPosition() {
       setTimeout(() => {
         menu.value?.updatePosition?.()
