@@ -79,6 +79,7 @@ export const useAddressesStore = defineStore('addresses', {
         )
     },
     async fillAddressSets() {
+      console.log('Test 1', this.addressSets.length, this.maxPresavedAddresses)
       this.cleanAddressSets()
       if (this.addressSets.length >= this.maxPresavedAddresses) return
 
@@ -104,6 +105,7 @@ export const useAddressesStore = defineStore('addresses', {
         const { paymentIndex } = await wallet.getLastPaymentIndex()
         lastPaymentIndex = await paymentIndex || 0
       }
+      console.log('Test 2, lastPaymentIndex:', lastPaymentIndex)
 
       // setup hard limit on filling address
       let loopsLeft = 20
@@ -132,6 +134,7 @@ export const useAddressesStore = defineStore('addresses', {
       }
     },
     removeAddressSet(address) {
+      console.log('Removed:', address)
       this.addressSets = this.addressSets
         .filter(addressSet => addressSet?.receiving != address && addressSet?.change != address)
     },

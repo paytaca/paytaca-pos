@@ -205,6 +205,7 @@ import { useI18n } from 'vue-i18n'
 import QRCode from 'vue-qrcode-component'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
+import { sha256 } from 'src/wallet/utils'
 import axios from 'axios'
 import ConfettiExplosion from "vue-confetti-explosion"
 
@@ -680,8 +681,6 @@ export default defineComponent({
     }
 
     function displayReceivedTransaction (data) {
-      console.log('transactions received: ', transactionsReceived.value)
-
       const _qrData = qrData.value
       let marketValue = data?.marketValue || { amount: 0, currency: '' }
       const value = data?.value / 1e8
@@ -693,6 +692,17 @@ export default defineComponent({
           marketValue.currency = currencyBchRate.value.currency
         }
       }
+
+      if (paid.value) {
+        addressesStore.removeAddressSet(data?.address)
+        receiveAmount.value = 0
+        transactionsReceived.value = []
+        promptOnLeave.value = false
+
+        const qrDataHash = sha256(_qrData)
+        delete walletStore.qrDataTimestampCache[qrDataHash]
+      }
+
       $q.dialog({
         component: ReceiveUpdateDialog,
         componentProps: {
@@ -705,16 +715,7 @@ export default defineComponent({
           logo: data?.logo,
         }
       })
-        .onOk(() => {
-          receiveAmount.value = 0
-          transactionsReceived.value = []
-          promptOnLeave.value = false
-
-          const qrDataHash = sha256(_qrData)
-          delete walletStore.qrDataTimestampCache[qrDataHash]
-
-          addressesStore.removeAddressSet(data?.address)
-          addressesStore.fillAddressSets()
+        .onCancel(() => {
           $router.push({ name: 'home' })
         })
     }
