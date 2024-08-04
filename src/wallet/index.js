@@ -1,12 +1,9 @@
 import Watchtower from 'watchtower-cash-js'
 import BCHJS from '@psf/bch-js'
-import { generateTOTP } from './utils'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 
 const bchjs = new BCHJS()
 const projectId = process.env.WATCHTOWER_PROJECT_ID
-
-const TOTP_SECRET_KEY = process.env.TOTP_SECRET_KEY
 
 class PaymentIndexValidator {
   static MAX_UNHARDENED_ADDRESS_INDEX = 2**31-1
@@ -90,48 +87,6 @@ export class Wallet {
 
   get mainHDNode() {
     return this._mainHDNode
-  }
-
-  generateOtp(opts) {
-    const secret = `${TOTP_SECRET_KEY}:${this.walletHash}-${this.posId}`
-    return generateTOTP(secret, opts) 
-  }
-
-  /**
-   * 
-   * @param {String} otp
-   * @param {Object} opts 
-   * @param {Number} [opts.digits]
-   * @param {Number} [opts.interval]
-   * @param {Number} [opts.offset]
-   * @param {Number} [opts.refTimestamp]
-   * @param {Number} [opts.prevWindows] number of previous windows of OTPs that can be regarded as valid
-   * @param {Number} [opts.nextWindows] number of future windows of OTPs that can be regarded as valid
-   */
-  checkOTP(otp, opts) {
-    const response = { valid: false, otps: [], matchIndex: -1 }
-    const _opts = {
-      digits: opts?.digits || 6,
-      interval: opts?.interval || 30,
-      offset: opts?.offset || 0,
-    }
-    const prevWindows = Number.isSafeInteger(opts?.prevWindows) ? opts?.prevWindows : 3
-    const nextWindows = Number.isSafeInteger(opts?.nextWindows) ? opts?.nextWindows : 0
-
-    let startTimestamp = Math.floor(Date.now()/1000)
-    if (Number.isSafeInteger(opts?.refTimestamp)) startTimestamp = opts.refTimestamp
-    for (var i = -prevWindows; i <= nextWindows; i++) {
-      _opts.timestamp = startTimestamp + (_opts.interval * i)
-      const generatedOTP = this.generateOtp(_opts)
-      response.otps.push(generatedOTP)
-      if (otp === generatedOTP) {
-        response.valid = true
-        response.matchIndex = i
-        return response
-      }
-    }
-
-    return response
   }
 
   getAddressSetAt(index) {

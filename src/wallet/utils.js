@@ -17,39 +17,6 @@ const bchjs = new BCHJS()
   return val
 }
 
-/**
- * 
- * @param {String} secret digest string
- * @param {Object} [opts]
- * @param {Number} opts.digits
- * @param {Number} opts.interval
- * @param {Number} opts.offset
- * @param {Number} opts.timestamp
- */
-export function generateTOTP(secret, opts) {
-  const _opts = {
-    digits: 6,
-    interval: 30,
-    offset: 0,
-    timestamp: Math.floor(Date.now()/1000),
-  }
-
-  if (opts?.digits !== undefined) _opts.digits = opts.digits
-  if (opts?.interval !== undefined) _opts.interval = opts.interval
-  if (opts?.offset !== undefined) _opts.offset = opts.offset
-  if (opts?.timestamp !== undefined) _opts.timestamp = opts.timestamp
-
-  const timecode = Math.floor((_opts.timestamp - _opts.offset) / _opts.interval)
-
-  const hexDigest = hmacSha256Hex(secret, timecode.toString())
-  const digestNumber = BigInt('0x'+hexDigest).toString()
-  let codeStr = digestNumber.substring(digestNumber.length-_opts.digits)
-  while (codeStr.length < _opts.digits) {
-    codeStr = "0" + codeStr
-  }
-  return codeStr
-}
-
 export function hmacSha256Hex(secret, message) {
   const hmac = createHmac("SHA256", Buffer.from(secret, "utf8"))
   hmac.update(Buffer.from(message, "utf8"))
