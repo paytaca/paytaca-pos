@@ -499,6 +499,7 @@ export default defineComponent({
       if (newVal) {
         closeWebsocket()
         stopQrExpirationCountdown()
+        addressesStore.dequeueAddress()
         setTimeout(() => triggerSecondConfetti.value = true, 1500)
       }
     })
