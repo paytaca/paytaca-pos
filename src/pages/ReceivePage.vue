@@ -110,6 +110,16 @@
       </div>
     </div>
 
+    <div class="flex flex-center">
+      <q-icon
+        v-for="x in [...Array(vouchersProcessed).keys()]"
+        :key="x"
+        name="mdi-cash"
+        size="sm"
+        color="green-3"
+      />
+    </div>
+
     <div v-if="canViewPayments" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
@@ -206,7 +216,6 @@ import QRCode from 'vue-qrcode-component'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
-import axios from 'axios'
 import ConfettiExplosion from "vue-confetti-explosion"
 
 
@@ -247,7 +256,7 @@ export default defineComponent({
     const marketStore = useMarketStore()
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
-    const wakeLock = reactive(useWakeLock())
+    // const wakeLock = reactive(useWakeLock())
 
     const dustBch = 546e-8
 
@@ -287,7 +296,7 @@ export default defineComponent({
       })
     }
 
-    onMounted(async () => await wakeLock.request('screen'))
+    // onMounted(async () => await wakeLock.request('screen'))
     onMounted(() => {
       generatingAddress.value = true
       addressesStore.fillAddressSets()
@@ -325,7 +334,7 @@ export default defineComponent({
     onMounted(() => refreshQrCountdown())
     watch(currency, () => updateSelectedCurrencyRate())
 
-
+    const vouchersProcessed = ref(0)
     const status = {
       '0': { icon: 'mdi-equal', color: 'brandblue' },
       '1': { icon: 'mdi-arrow-up', color: 'green-6' },
@@ -500,7 +509,7 @@ export default defineComponent({
         closeWebsocket()
       }
     })
-    onUnmounted(async () => await wakeLock.release())
+    // onUnmounted(async () => await wakeLock.release())
     onUnmounted(() => {
       enableReconnect.value = false
       closeWebsocket()
@@ -566,23 +575,6 @@ export default defineComponent({
       displayReceivedTransaction(transaction)
     }
 
-    function updateClaimTxnAttr (txid) {
-      const posId = walletStore.posId
-      const key = `voucher_claim_${posId}`
-
-      const payload = {
-        wallet_hash: walletStore.merchantInfo?.walletHash,
-        value: "Voucher Claim",
-        remove: false,
-        txid,
-        key
-      }
-      const watchtowerTxnAttrUrl = `${process.env.WATCHTOWER_API}/transactions/attributes/`
-      axios.post(watchtowerTxnAttrUrl, payload)
-        .then(response => console.log('Added transaction attribute as voucher claim: ', response))
-        .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
-    }
-
     function processLiveUpdate (data) {
       const updateType = data?.update_type
       let message = null
@@ -603,9 +595,8 @@ export default defineComponent({
         qrScanned.value = false
         refreshQrCountdown()
       }
-      else if (updateType === 'voucher_claimed') {
-        if (!data?.txid || !data?.category) return
-        updateClaimTxnAttr(data.txid)
+      else if (updateType === 'voucher_processed') {
+        vouchersProcessed.value += 1
       }
 
       if (message) {
@@ -790,6 +781,7 @@ export default defineComponent({
       isBchMode,
       qrScanned,
       qrCodeContainerClass,
+      vouchersProcessed,
     }
   },
 })
