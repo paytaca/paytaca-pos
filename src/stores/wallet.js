@@ -6,7 +6,6 @@ import {
   sha256,
   decodePaymentUri,
   getPubkeyAt,
-  pubkeyToCashAddress,
 } from 'src/wallet/utils';
 
 
@@ -36,6 +35,10 @@ export const useWalletStore = defineStore('wallet', {
           updatedAt: '',
         },
       },
+      vault: {
+        address: '',
+        tokenAddress: '',
+      },
     },
 
     merchantInfo: {
@@ -51,14 +54,6 @@ export const useWalletStore = defineStore('wallet', {
         country: '',
         longitude: null,
         latitude: null,
-      },
-      vault: {
-        receiving: {
-          address: '',
-          pubkey: '',
-        },
-        address: '',
-        tokenAddress: '',
       }
     },
 
@@ -224,8 +219,6 @@ export const useWalletStore = defineStore('wallet', {
      * @param {String} data.wallet_hash
      * @param {String} data.primary_contact_number
      * 
-     * @param {String} data.receiving_pubkey
-     * 
      * @param {Object} [data.location]
      * @param {String} data.location.landmark
      * @param {String} data.location.location
@@ -235,9 +228,6 @@ export const useWalletStore = defineStore('wallet', {
      * @param {String} data.location.longitude
      * @param {String} data.location.latitude
      * 
-     * @param {Object} [data.vault]
-     * @param {String} data.vault.address
-     * @param {String} data.vault.token_address
     */
     setMerchantInfo(data) {
       const merchantInfo = {
@@ -253,14 +243,6 @@ export const useWalletStore = defineStore('wallet', {
           country: data?.location?.country,
           longitude: data?.location?.longitude,
           latitude: data?.location?.latitude,
-        },
-        vault: {
-          receiving: {
-            address: pubkeyToCashAddress(data?.receiving_pubkey),
-            pubkey: data?.receiving_pubkey,
-          },
-          address: data?.vault?.address,
-          tokenAddress: data?.vault?.token_address,
         }
       }
 
@@ -299,7 +281,11 @@ export const useWalletStore = defineStore('wallet', {
      * @param {Boolean} data.linked_device.unlink_request.force
      * @param {Number} data.linked_device.unlink_request.nonce
      * @param {String} data.linked_device.unlink_request.signature
-     * @param {String} data.linked_device.unlink_request.updated_at
+     * @param {String} data.linked_device.unlink_request.updated_a
+     * @param {Object} data.vault
+     * @param {String} data.vault.address
+     * @param {String} data.vault.token_address
+     * 
      */
     setDeviceInfo(data) {
       this.deviceInfo = {
@@ -320,6 +306,10 @@ export const useWalletStore = defineStore('wallet', {
             signature: data?.linked_device?.unlink_request?.signature,
             updatedAt: data?.linked_device?.unlink_request?.updated_at,
           },
+        },
+        vault: {
+          address: data?.vault?.address,
+          tokenAddress: data?.vault?.token_address,
         }
       }
     },

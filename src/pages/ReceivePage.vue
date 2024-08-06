@@ -256,7 +256,7 @@ export default defineComponent({
     const marketStore = useMarketStore()
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
-    // const wakeLock = reactive(useWakeLock())
+    const wakeLock = reactive(useWakeLock())
 
     const dustBch = 546e-8
 
@@ -280,7 +280,7 @@ export default defineComponent({
     const paid = computed(() => remainingPayment.value === 0)
 
     const receivingAddress = addressSet.value?.receiving
-    const vault = ref(walletStore.merchantInfo?.vault)
+    const vault = ref(walletStore.deviceInfo?.vault)
     const generatingAddress = ref(false)
     const promptOnLeave = ref(true)
     const refreshQr = ref(false)
@@ -296,7 +296,7 @@ export default defineComponent({
       })
     }
 
-    // onMounted(async () => await wakeLock.request('screen'))
+    onMounted(async () => await wakeLock.request('screen'))
     onMounted(() => {
       generatingAddress.value = true
       addressesStore.fillAddressSets()
@@ -418,14 +418,14 @@ export default defineComponent({
     const qrData = computed(() => {
       if (!receiveAmount.value) return ''
 
-      const merchantVaultTokenAddress = vault.value?.tokenAddress?.split?.(':')?.[1]
+      const vaultTokenAddress = vault.value?.tokenAddress?.split?.(':')?.[1]
       const currentTimestamp = Date.now() / 1000
-      const unusedVar = bchValue.value  // trigger only for setting of total payment
+      const unusedVar = bchValue.value  // dont remove: trigger for setting of total payment
 
       let paymentUri = receivingAddress
       paymentUri += `?POS=${posId.value}`
       paymentUri += `&amount=${remainingPaymentRounded.value}`
-      paymentUri += `&vault=${merchantVaultTokenAddress}`    // recipient of voucher NFT
+      paymentUri += `&vault=${vaultTokenAddress}`
 
       if (!isBchMode.value) {
         const expiryDuration = currencyRateUpdateRate / 1000
@@ -439,19 +439,22 @@ export default defineComponent({
     })
 
     function cacheQrData() {
-      // walletStore.cacheQrData(qrData.value)
       walletStore.removeOldQrDataCache(86400*2) // remove qr data older than 2 days
     }
+    async function generateFirstReceivingAddress () {
+      const addressSet = await wallet.generateReceivingAddress(1, { skipSubscription: false })
+      return addressSet.receiving
+    }
+
+    const voucherClaimerAddress = null
+    
     watch(qrData, () => cacheQrData())
     onMounted(() => cacheQrData())
-    
+    onMounted(async () => voucherClaimerAddress = await generateFirstReceivingAddress())
     const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
     const merchantReceivingAddress = addressSet.value?.receiving
-    const voucherClaimerAddress  = vault.value?.receiving?.address
-    const vaultTokenAddress = vault.value?.address
     const websocketInits = [
       merchantReceivingAddress,
-      vaultTokenAddress,
       voucherClaimerAddress,
     ]
       .filter(Boolean)
@@ -463,7 +466,7 @@ export default defineComponent({
       })
 
     const isZerothAddress = voucherClaimerAddress === merchantReceivingAddress
-    const websockets = ref(isZerothAddress ? websocketInits.slice(0,2) : websocketInits)
+    const websockets = ref(isZerothAddress ? websocketInits.slice(0,1) : websocketInits)
     const websocketsReady = computed(() => {
       const readySockets = websockets.value.filter((websocket) => websocket.instance?.readyState === 1)
       return readySockets.length === websockets.value.length
@@ -509,17 +512,15 @@ export default defineComponent({
         closeWebsocket()
       }
     })
-    // onUnmounted(async () => await wakeLock.release())
+    onUnmounted(async () => await wakeLock.release())
     onUnmounted(() => {
       enableReconnect.value = false
       closeWebsocket()
       clearTimeout(reconnectTimeout.value)
     })
     function setupListener(opts) {
-      const merchantReceivingAddress = addressSet.value?.receiving
-      const vaultTokenAddress = vault.value?.address
-      
-      if (!merchantReceivingAddress && !vaultTokenAddress) return
+      const merchantReceivingAddress = addressSet.value?.receiving      
+      if (!merchantReceivingAddress) return
 
       for (let x = 0; x < websockets.value.length; x++) {
         const url = websockets.value[x].url
