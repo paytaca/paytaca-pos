@@ -200,7 +200,7 @@ export default defineComponent({
     }
 
     const walletLinkComponent = ref()
-    watch(() => [props.walletLinkUrl], linkWalletFromUrl())
+    watch(() => [props.walletLinkUrl], () => linkWalletFromUrl())
     async function linkWalletFromUrl() {
       if (!props.walletLinkUrl) return
       if (walletStore.walletHash && walletStore.isDeviceValid) return
