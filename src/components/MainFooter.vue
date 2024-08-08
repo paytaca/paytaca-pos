@@ -50,6 +50,7 @@ import { useRouter } from 'vue-router'
 import { defineComponent, computed } from 'vue'
 
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
+import Watchtower from 'watchtower-cash-js'
 
 
 export default defineComponent({
@@ -58,8 +59,22 @@ export default defineComponent({
     const walletStore = useWalletStore()
     const $q = useQuasar()
     const $router = useRouter()
+    const watchtower = new Watchtower()
 
     const selectedCurrency = computed(() => walletStore.preferences.selectedCurrency)
+    
+    async function createPaymentRequest (amount) {
+      const url = 'paytacapos/payment-request/'
+      const data = {
+        pos_device: {
+          wallet_hash: walletStore.deviceInfo.walletHash,
+          posid: walletStore.deviceInfo.posId,
+        },
+        receiving_address: undefined,
+        amount,
+      }
+      await watchtower.BCH._api.post(url, data)
+    }
 
     function promptAmount () {
       $q.dialog({
@@ -68,11 +83,12 @@ export default defineComponent({
           currencies: ['BCH'],
           initialValue: { currency: selectedCurrency.value }
         },
-      }).onOk(data => {
+      }).onOk(async (data) => {
         const amount = data?.amount
-
         if (!amount?.value) return
 
+        await createPaymentRequest(amount.value)
+s
         const name = 'receive-page'
         const query = {
           setAmount: amount?.value || undefined,

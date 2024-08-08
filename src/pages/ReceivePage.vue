@@ -217,6 +217,7 @@ import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
 import ConfettiExplosion from "vue-confetti-explosion"
+import Watchtower from 'watchtower-cash-js'
 
 
 export default defineComponent({
@@ -257,6 +258,7 @@ export default defineComponent({
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
     const wakeLock = reactive(useWakeLock())
+    const watchtower = new Watchtower()
 
     const dustBch = 546e-8
 
@@ -713,11 +715,25 @@ export default defineComponent({
         })
     }
 
+    async function cancelPaymentRequest () {
+      const url = 'paytacapos/payment-request/cancel/'
+      const data = {
+        pos_device: {
+          wallet_hash: walletStore.deviceInfo.walletHash,
+          posid: walletStore.deviceInfo.posid,
+        }
+      }
+      await watchtower.BCH._api.post(url, data)
+    }
+
     onBeforeRouteLeave(async (to, from, next) => {
-      if (!qrData.value || !promptOnLeave.value) return next()
+      const leave = false
+
+      if (!qrData.value || !promptOnLeave.value) leave = true
       const isPaid = remainingPaymentRounded.value < 1000 / 1e8 // provide margin
+
       if (promptOnLeave.value && !isPaid) {
-        const proceed = await new Promise((resolve) => {
+        leave = await new Promise((resolve) => {
           $q.dialog({
             title: t('LeavePage'),
             message: t('LeavePagePromptMsg'),
@@ -726,8 +742,10 @@ export default defineComponent({
             color: 'brandblue',
           }).onOk(() => resolve(true)).onDismiss(() => resolve(false))
         })
-        return next(proceed)
-      } else {
+      }
+
+      if (leave) {
+        await cancelPaymentRequest()
         return next()
       }
     })
