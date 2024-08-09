@@ -392,9 +392,23 @@ export default defineComponent({
       return finalBchValue
     })
 
+    async function createPaymentRequest () {
+      const url = 'paytacapos/payment-request/'
+      const data = {
+        pos_device: {
+          wallet_hash: walletStore.deviceInfo.walletHash,
+          posid: walletStore.deviceInfo.posId,
+        },
+        receiving_address: undefined,
+        amount: bchValue.value,
+      }
+      await watchtower.BCH._api.post(url, data)
+    }
+
     // 0.015ms - 0.031ms
     onMounted(() => {
       paymentsStore.resetPayment()
+      createPaymentRequest()
 
       if (props.setAmount) receiveAmount.value = props.setAmount
       if (props.setCurrency) currency.value = props.setCurrency
@@ -422,7 +436,6 @@ export default defineComponent({
 
       const vaultTokenAddress = vault.value?.tokenAddress?.split?.(':')?.[1]
       const currentTimestamp = Date.now() / 1000
-      const unusedVar = bchValue.value  // dont remove: trigger for setting of total payment
 
       let paymentUri = receivingAddress
       paymentUri += `?POS=${posId.value}`
