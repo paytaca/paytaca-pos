@@ -34,14 +34,14 @@
         </div>
         <template v-else>
           <div v-if="!websocketsReady || refreshingQr" :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
-            <q-skeleton height="200px" width="200px" />
+            <q-skeleton :height="$q.platform.is.ios ? '250px' : '200px'" :width="$q.platform.is.ios ? '250px' : '200px'" />
           </div>
           <template v-else>
             <img src="~assets/bch-logo.webp" height="50" class="qr-code-icon"/>
             <QRCode
               :text="qrData"
               color="#253933"
-              :size="200"
+              :size="$q.platform.is.ios ? 250 : 200"
               error-level="H"
               class="q-mb-sm"
               :style="qrData ? '' : 'opacity:0;'"
@@ -178,7 +178,7 @@
         </q-item>
       </template>
       <div v-else-if="websocketsReady" class="row items-center justify-center">
-        <div class="text-grey text-center q-mt-xs q-pt-xs">
+        <div v-if="!paid" class="text-grey text-center q-mt-xs q-pt-xs">
           <q-spinner size="30px" class="q-mb-md" />
           <div>{{ $t('WaitingForPayment') }}</div>
         </div>
