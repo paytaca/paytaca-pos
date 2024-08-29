@@ -13,6 +13,7 @@
             <q-input
               :label="$t('Amount')"
               type="number"
+              inputmode="decimal"
               :step="amount.currency === 'BCH' ? 0.00000001 : 0.01"
               v-model.number="amount.value"
               outlined

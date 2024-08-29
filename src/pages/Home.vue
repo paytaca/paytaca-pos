@@ -6,7 +6,7 @@
       :display-link-button="forceDisplayWalletLink"
       @device-linked="() => forceDisplayWalletLink = false"
     />
-    <div v-else class="home-main-content q-py-md full-width">
+    <div v-else class="home-main-content q-py-md full-width" :style="$q.platform.is.ios ? 'padding-top:75px;' : ''">
       <div class="text-h5 text-brandblue q-mx-md q-px-sm q-mb-md">
         <div class="ellipsis">{{ walletStore.merchantInfo?.name || 'Paytaca POS' }}</div>
         <div
