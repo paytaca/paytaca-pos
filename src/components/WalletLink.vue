@@ -92,6 +92,7 @@ export default defineComponent({
         prompt: { outlined: true },
         // ok: { color: 'brandblue', flat: true },
         position: 'bottom',
+        color: 'brandblue',
       })
         .onOk(data => {
           if(data) onQrDecode(data)
@@ -122,6 +123,7 @@ export default defineComponent({
         message:t('LinkingDevice'),
         persistent: true,
         progress: true,
+        color: 'brandblue',
       })
 
       return Promise.resolve(content)
