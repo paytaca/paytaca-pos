@@ -271,7 +271,6 @@ export default defineComponent({
     const paid = computed(() => remainingPayment.value === 0)
 
     const receivingAddress = addressSet.value?.receiving
-    const vault = ref(walletStore.merchantInfo?.vault)
     const generatingAddress = ref(false)
     const promptOnLeave = ref(true)
     const refreshQr = ref(false)
@@ -409,14 +408,12 @@ export default defineComponent({
     const qrData = computed(() => {
       if (!receiveAmount.value) return ''
 
-      const merchantVaultTokenAddress = vault.value?.tokenAddress?.split?.(':')?.[1]
       const currentTimestamp = Date.now() / 1000
       const unusedVar = bchValue.value  // trigger only for setting of total payment
 
       let paymentUri = receivingAddress
       paymentUri += `?POS=${posId.value}`
       paymentUri += `&amount=${remainingPaymentRounded.value}`
-      paymentUri += `&vault=${merchantVaultTokenAddress}`    // recipient of voucher NFT
 
       if (!isBchMode.value) {
         const expiryDuration = currencyRateUpdateRate / 1000
@@ -438,12 +435,8 @@ export default defineComponent({
     
     const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
     const merchantReceivingAddress = addressSet.value?.receiving
-    const voucherClaimerAddress  = vault.value?.receiving?.address
-    const vaultTokenAddress = vault.value?.address
     const websocketInits = [
-      merchantReceivingAddress,
-      vaultTokenAddress,
-      voucherClaimerAddress,
+      merchantReceivingAddress
     ]
       .filter(Boolean)
       .map(address => {
@@ -453,8 +446,7 @@ export default defineComponent({
         }
       })
 
-    const isZerothAddress = voucherClaimerAddress === merchantReceivingAddress
-    const websockets = ref(isZerothAddress ? websocketInits.slice(0,2) : websocketInits)
+    const websockets = ref(websocketInits)
     const websocketsReady = computed(() => {
       const readySockets = websockets.value.filter((websocket) => websocket.instance?.readyState === 1)
       return readySockets.length === websockets.value.length
@@ -508,9 +500,8 @@ export default defineComponent({
     })
     function setupListener(opts) {
       const merchantReceivingAddress = addressSet.value?.receiving
-      const vaultTokenAddress = vault.value?.address
       
-      if (!merchantReceivingAddress && !vaultTokenAddress) return
+      if (!merchantReceivingAddress) return
 
       for (let x = 0; x < websockets.value.length; x++) {
         const url = websockets.value[x].url
