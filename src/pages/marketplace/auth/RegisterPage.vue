@@ -114,6 +114,7 @@
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
+import { User } from 'src/marketplace/objects'
 import { errorParser } from 'src/marketplace/utils'
 import { useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref } from 'vue'
@@ -178,13 +179,23 @@ export default defineComponent({
       backend.post('users/register/', data)
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
+          const user = User.parse(response?.data)
+          const roles = user.getRolesFromShop(marketplaceStore.activeShopId)
           $q.dialog({
+            color: 'brandblue',
             title: 'Registered!',
-            message: 'Registration successful!',
+            message: roles.length
+              ? 'Registration successful!'
+              : 'Contact a shop admin to assign a role/position to your account.',
             ok: true,
           })
             .onDismiss(() => {
-              $router.push({ name: 'marketplace-login', query: { username: response?.data?.username } })
+              $router.push({
+                name: 'marketplace-login',
+                query: {
+                  username: response?.data?.username,
+                },
+              })
             })
           return response
         })

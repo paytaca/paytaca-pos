@@ -13,6 +13,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
       user: {
         id: 0,
         profilePictureUrl: '',
+        hasPassword: [].map(Boolean)[0],
         username: '',
         email: '',
         firstName: '',
@@ -302,6 +303,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
      * @param {String} data.username
      * @param {String} data.email
      * @param {String} data.phone_number
+     * @param {Boolean} data.has_password
      * @param {{ shop_id:Number, roles: String[] }[]} data.shop_roles
      */
     setUser(data) {
@@ -313,6 +315,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
         username: data?.username,
         email: data?.email,
         phoneNumber: data?.phone_number,
+        hasPassword: data?.has_password,
         shopRoles: data?.shop_roles?.map?.(shopRole => {
           return { shopId: shopRole?.shop_id, roles: shopRole.roles }
         }),
