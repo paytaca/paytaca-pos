@@ -72,8 +72,9 @@
         </template>
         <template v-slot:body-cell-name="props">
           <q-td :props="props">
-            <q-btn no-caps flat @click="() => displayStaffInfo(props.row)" padding="0">
-              {{ props.row.fullName }}
+            <q-btn no-caps flat @click="() => displayStaffInfo(props.row)" padding="0" no-wrap>
+              {{ props.row.fullName || props.row.username }} 
+              <q-icon v-if="props.row?.hasPassword === false" name="key_off" size="1em" class="q-ml-xs text-grey"/>
             </q-btn>
           </q-td>
         </template>
@@ -108,6 +109,56 @@
         </template>
       </q-table>
     </q-pull-to-refresh>
+    <UserInfoDialog
+      v-model="userInfoDialog.show"
+      :user="userInfoDialog.user"
+      :shop-id="marketplaceStore?.activeShopId"
+      v-slot="{ userRoles, user }"
+    >
+      <div class="q-mt-md">
+        <q-banner
+          v-if="typeof user?.hasPassword === 'boolean'"
+          dense
+          :class="[
+            'q-mb-sm rounded-borders text-caption',
+            $q.dark.isActive ? 'bg-brandblue' : 'shadow-2',
+          ]"
+        >
+          <template v-slot:avatar>
+            <q-icon :name="user?.hasPassword ? 'key' : 'key_off'"/>
+          </template>
+          <template v-if="user?.hasPassword">
+            This account requires password to sign-in
+          </template>
+          <template v-else>
+            This account does not require a password to sign-in
+          </template>
+        </q-banner>
+        <div v-if="userRoles?.length" class="q-mb-sm">
+          <div class="q-gutter-sm">
+            <q-badge v-for="(role, index) in userRoles" :key="index">
+              {{ formatRole(role) }}
+            </q-badge>
+          </div>
+        </div>
+        <div v-if="user.username" class="q-mb-sm">
+          <div>{{ user.username }}</div>
+          <div class="text-caption bottom text-grey">{{ $t('Username') }}</div>
+        </div>
+        <div v-if="user.email" class="q-mb-sm">
+          <div>{{ user.email }}</div>
+          <div class="text-caption bottom text-grey">{{ $t('Email') }}</div>
+        </div>
+        <div v-if="marketplaceStore.userPermissions.admin && user?.id !== marketplaceStore?.user?.id">
+          <q-btn
+            no-caps label="Delete"
+            color="red"
+            v-close-popup
+            @click="() => removeUserAsStaff(user)"
+          />
+        </div>
+      </div>
+    </UserInfoDialog>
   </q-page>
 </template>
 <script>
@@ -118,15 +169,16 @@ import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { useMarketplaceStore } from 'src/stores/marketplace'
-import AddShopUserRoleFormDialog from 'src/components/marketplace/staff/AddShopUserRoleFormDialog.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import UserInfoDialog from 'src/components/marketplace/UserInfoDialog.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
+import AddStaffFormDialog from 'src/components/marketplace/staff/AddStaffFormDialog.vue'
 
 export default defineComponent({
   components: {
     MarketplaceHeader,
     LimitOffsetPagination,
+    UserInfoDialog,
   },
   setup() {
     const $q = useQuasar()
@@ -221,29 +273,32 @@ export default defineComponent({
       return rows
     }
 
+    const userInfoDialog = ref({ show: false, user: User.parse() })
     function displayStaffInfo(staff=User.parse()) {
-      $q.dialog({
-        component: UserInfoDialog,
-        componentProps: {
-          user: staff, shopId: marketplaceStore.activeShopId,
-          editableRoles: true,
-        },
-      })
+      userInfoDialog.value = { show: true, user: staff }
     }
 
     function openAddUserDialog() {
       $q.dialog({
-        component: AddShopUserRoleFormDialog,
+        component: AddStaffFormDialog,
       }).onOk(() => fetchStaff())
     }
 
     function getUpdateRoleOpts(staffObj=User.parse()) {
       const _roleOpts = roleOpts.value.map(opt => Object.assign({}, opt))
         .map(opt => {
+
           if (staffObj?.id === marketplaceStore?.user?.id) {
             if (opt.value === marketplaceStore.roles.admin) opt.disabled = true
           }
           return opt
+        })
+        .filter(opt => {
+          const isAdminOpt = opt.value === marketplaceStore.roles.admin
+          if (staffObj.hasPassword === false && isAdminOpt) {
+            return false
+          }
+          return true
         })
         return _roleOpts
     }
@@ -282,6 +337,27 @@ export default defineComponent({
         })
     }
 
+    function removeUserAsStaff(staffObj=User.parse()) {
+      const dialog = $q.dialog({
+        color: 'brandblue',
+        message: 'Removing user from shop',
+        progress: true,
+        ok: false,
+        cancel: false,
+        persistent: true,
+      })
+
+      return backend.delete(`users/${staffObj.id}/shop_roles/${marketplaceStore.activeShopId}/`)
+        .then(response => {
+          fetchStaff()
+          dialog.hide()
+          return response
+        })
+        .finally(() => {
+          dialog.update({ ok: true, persistent: false, progress: false })
+        })
+    }
+
     async function refreshPage(done) {
       try {
         await fetchStaff()
@@ -303,10 +379,13 @@ export default defineComponent({
       table,
       staffTableColumns,
       sortMethod,
+
+      userInfoDialog,
       displayStaffInfo,
       openAddUserDialog,
       getUpdateRoleOpts,
       updateStaffRoles,
+      removeUserAsStaff,
       refreshPage,
 
       // utils funcs
