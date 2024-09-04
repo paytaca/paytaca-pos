@@ -746,6 +746,7 @@ export class User {
     this.$state = {
       updating: false,
     }
+    this.currentShopId = NaN
   }
 
   get raw() {
@@ -762,6 +763,7 @@ export class User {
    * @param {String} data.last_name
    * @param {String} [data.phone_number]
    * @param {{ user_id:Number, shop_id:Number, roles:String[] }[]} [data.shop_roles]
+   * @param {Boolean} [data.has_password]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -777,10 +779,16 @@ export class User {
     } else {
       this.shopRoles = [].map(User.parseShopRole)
     }
+
+    this.hasPassword = data?.has_password
   }
 
   get fullName() {
     return [this.firstName, this.lastName].filter(Boolean).join(' ')
+  }
+
+  get currentShopRole() {
+    return this.shopRoles?.find?.(shopRole => shopRole?.shopId == this.currentShopId)
   }
 
   getRolesFromShop(shopId) {

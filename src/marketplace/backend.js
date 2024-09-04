@@ -7,6 +7,7 @@ const marketplaceStore = useMarketplaceStore()
 const marketplaceHeartbeatStore = useMarketplaceHeartbeatStore()
 
 const AUTH_TOKEN_STORAGE_KEY = 'marketplace-api-auth-token'
+export const TOTP_AUTH_BASE_SECRET_KEY = process.env.MARKETPLACE_AUTH_TOTP_BASE_SECRET
 
 export const backend = axios.create({
   baseURL: process.env.MARKETPLACE_BASE_URL || 'https://commercehub.paytaca.com/api',
