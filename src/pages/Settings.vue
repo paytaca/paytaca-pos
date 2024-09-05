@@ -153,7 +153,7 @@
           </q-item-section>
           <q-item-section>
             <q-item-label>
-              <a :href="repoUrl" style="text-decoration: none; color: white;" target="_blank">
+              <a :href="repoUrl" style="text-decoration: none;" :style="{color: $q.dark.isActive ? 'white' : 'black'}" target="_blank">
                 Paytaca POS Repo @ Github
               </a>
             </q-item-label>
