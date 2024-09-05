@@ -154,7 +154,7 @@
           <q-item-section>
             <q-item-label>
               <a :href="repoUrl" style="text-decoration: none; color: white;" target="_blank">
-                {{ repoUrl }}
+                Paytaca POS App Code @ Github
               </a>
             </q-item-label>
           </q-item-section>
