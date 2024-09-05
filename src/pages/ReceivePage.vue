@@ -433,14 +433,13 @@ export default defineComponent({
 
     const qrData = computed(() => {
       if (!receiveAmount.value) return ''
-
-      const vaultTokenAddress = vault.value?.tokenAddress?.split?.(':')?.[1]
+      
       const currentTimestamp = Date.now() / 1000
+      const unusedValue = bchValue.value  // trigger for setting of total payment
 
       let paymentUri = receivingAddress
       paymentUri += `?POS=${posId.value}`
       paymentUri += `&amount=${remainingPaymentRounded.value}`
-      paymentUri += `&vault=${vaultTokenAddress}`
 
       if (!isBchMode.value) {
         const expiryDuration = currencyRateUpdateRate / 1000
