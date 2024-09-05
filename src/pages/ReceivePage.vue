@@ -356,10 +356,23 @@ export default defineComponent({
       clearTimeout(qrExpirationPrompt)
     }
 
+    async function updatePaymentRequest () {
+      const url = 'paytacapos/payment-request/update_amount/'
+      const data = {
+        pos_device: {
+          wallet_hash: walletStore.deviceInfo.walletHash,
+          posid: walletStore.deviceInfo.posId,
+        },
+        amount: bchValue.value,
+      }
+      await watchtower.BCH._api.post(url, data)
+    }
+
     function refreshQrCountdown () {
       if (isBchMode.value) return
 
       updateSelectedCurrencyRate()
+      updatePaymentRequest()
       stopQrExpirationCountdown()
 
       qrExpirationTimer.value = 1
