@@ -64,7 +64,8 @@ const routes = [
         path: 'auth',
         meta: { requireAuth: false },
         children: [
-          { path: 'login', component: () => import('src/pages/marketplace/auth/LoginPage.vue'), name: 'marketplace-login', props: route => route?.query},
+          { path: 'login', component: () => import('src/pages/marketplace/auth/SelectProfilePage.vue'), name: 'marketplace-login', props: route => route?.query},
+          { path: 'login-password', component: () => import('src/pages/marketplace/auth/LoginPage.vue'), name: 'marketplace-login-password', props: route => route?.query},
           { path: 'register', component: () => import('src/pages/marketplace/auth/RegisterPage.vue'), name: 'marketplace-register', props: route => route?.query},
         ]
       },

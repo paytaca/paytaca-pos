@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md">
+  <q-page class="q-pa-md" :style="$q.platform.is.ios ? 'padding-top: 35px;' : ''">
     <div class="row items-center q-mt-lg q-mb-md">
       <div class="q-space">
         <div class="text-h4">{{ $t('Marketplace') }}</div>

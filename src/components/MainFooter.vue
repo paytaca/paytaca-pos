@@ -4,7 +4,7 @@
     reveal
     class="layout-footer q-footer fixed-bottom shadow-up-1"
   >
-    <div class="row items-center justify-around">
+    <div class="row items-center justify-around" :style="$q.platform.is.ios ? 'padding-bottom: 15px;' : ''">
       <div>
         <q-btn
           color="brandblue"

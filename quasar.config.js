@@ -34,6 +34,7 @@ module.exports = configure(function (ctx) {
       'qrcodereader',
       'websocket',
       'i18n',
+      'keyboard',
     ],
 
     // https://v2.quasar.dev/quasar-cli-webpack/quasar-config-js#Property%3A-css
@@ -113,7 +114,7 @@ module.exports = configure(function (ctx) {
     // Full list of options: https://v2.quasar.dev/quasar-cli-webpack/quasar-config-js#Property%3A-devServer
     devServer: {
       server: {
-        type: 'https'
+        type: 'http'
       },
       port: 8080,
       open: true // opens browser window automatically

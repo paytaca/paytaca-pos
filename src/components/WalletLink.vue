@@ -34,9 +34,8 @@
     </q-card-actions>
   </div>
   <QRCodeReader
-    v-if="showQrScanner"
+    v-model="showQrScanner"
     :text="$t('ScanQrCodeForWalletLink')"
-    :toggle="toggleQrScanner"
     @decode="onQrDecode"
     @error="onQrError"
   />
@@ -93,6 +92,7 @@ export default defineComponent({
         prompt: { outlined: true },
         // ok: { color: 'brandblue', flat: true },
         position: 'bottom',
+        color: 'brandblue',
       })
         .onOk(data => {
           if(data) onQrDecode(data)
@@ -105,8 +105,8 @@ export default defineComponent({
     }
 
     function onQrError (error) {
-      toggleQrScanner()
       $q.notify({
+        type: 'negative',
         message: t('QrScannerError'),
         caption: typeof error === 'string' ? error : '',
       })
@@ -123,6 +123,7 @@ export default defineComponent({
         message:t('LinkingDevice'),
         persistent: true,
         progress: true,
+        color: 'brandblue',
       })
 
       return Promise.resolve(content)

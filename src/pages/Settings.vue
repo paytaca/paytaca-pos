@@ -1,5 +1,5 @@
 <template>
-  <q-page class="settings-page">
+  <div class="q-pb-md">
     <MainHeader :title="$t('Settings')"/>
     <q-card class="q-mx-md q-mt-lg text-weight-medium" style="border-radius:16px;">
       <q-list separator>
@@ -153,15 +153,15 @@
           </q-item-section>
           <q-item-section>
             <q-item-label>
-              <a :href="repoUrl" style="text-decoration: none; color: white;" target="_blank">
-                {{ repoUrl }}
+              <a :href="repoUrl" style="text-decoration: none;" :style="{color: $q.dark.isActive ? 'white' : 'black'}" target="_blank">
+                Paytaca POS Repo @ Github
               </a>
             </q-item-label>
           </q-item-section>
         </q-item>
       </q-list>
     </q-card>
-  </q-page>
+  </div>
 </template>
 
 <script>

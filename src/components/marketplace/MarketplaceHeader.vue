@@ -1,5 +1,5 @@
 <template>
-  <div class="row no-wrap q-mt-sm q-mb-md q-r-ml-lg">
+  <div class="row no-wrap q-mt-sm q-mb-md q-r-ml-lg" :style="$q.platform.is.ios ? 'padding-top: 35px;' : ''">
     <slot name="title">
       <div class="q-space">
         <div class="text-h4">{{ title }}</div>

@@ -9,14 +9,13 @@
               class="rounded-borders q-mr-sm"
             />
             <div class="text-subtitle1">
-                {{ user.firstName }}
-                {{ user.lastName }}
+                {{ user.fullName || user?.username || user?.email }}
                 <span class="text-grey">#{{ user.id }}</span>
             </div>
           </div>
         </slot>
         
-        <slot v-bind="{ userImage, user }">
+        <slot v-bind="{ userImage, user, userRoles }">
           <div class="row q-gutter-md q-mt-sm">
             <div class="user-info-attribute">
               <div>{{ user.firstName }}</div>
@@ -27,11 +26,11 @@
               <div class="text-caption text-grey">{{ $t('LastName') }}</div>
             </div>
           </div>
-          <div class="user-info-attribute">
+          <div v-if="user.username" class="user-info-attribute">
             <div>{{ user.username }}</div>
             <div class="text-caption text-grey">{{ $t('Username') }}</div>
           </div>
-          <div class="user-info-attribute">
+          <div v-if="user.email" class="user-info-attribute">
             <div>{{ user.email }}</div>
             <div class="text-caption text-grey">{{ $t('Email') }}</div>
           </div>
