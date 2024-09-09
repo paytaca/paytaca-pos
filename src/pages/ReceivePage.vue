@@ -110,16 +110,6 @@
       </div>
     </div>
 
-    <div class="flex flex-center">
-      <q-icon
-        v-for="x in [...Array(vouchersProcessed).keys()]"
-        :key="x"
-        name="mdi-cash"
-        size="sm"
-        color="green-3"
-      />
-    </div>
-
     <div v-if="canViewPayments" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
@@ -216,8 +206,8 @@ import QRCode from 'vue-qrcode-component'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
+import axios from 'axios'
 import ConfettiExplosion from "vue-confetti-explosion"
-import Watchtower from 'watchtower-cash-js'
 
 
 export default defineComponent({
@@ -258,7 +248,6 @@ export default defineComponent({
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
     const wakeLock = reactive(useWakeLock())
-    const watchtower = new Watchtower()
 
     const dustBch = 546e-8
 
@@ -282,7 +271,6 @@ export default defineComponent({
     const paid = computed(() => remainingPayment.value === 0)
 
     const receivingAddress = addressSet.value?.receiving
-    const vault = ref(walletStore.deviceInfo?.vault)
     const generatingAddress = ref(false)
     const promptOnLeave = ref(true)
     const refreshQr = ref(false)
@@ -336,7 +324,7 @@ export default defineComponent({
     onMounted(() => refreshQrCountdown())
     watch(currency, () => updateSelectedCurrencyRate())
 
-    const vouchersProcessed = ref(0)
+
     const status = {
       '0': { icon: 'mdi-equal', color: 'brandblue' },
       '1': { icon: 'mdi-arrow-up', color: 'green-6' },
@@ -356,23 +344,10 @@ export default defineComponent({
       clearTimeout(qrExpirationPrompt)
     }
 
-    async function updatePaymentRequest () {
-      const url = 'paytacapos/payment-request/update_amount/'
-      const data = {
-        pos_device: {
-          wallet_hash: walletStore.deviceInfo.walletHash,
-          posid: walletStore.deviceInfo.posId,
-        },
-        amount: bchValue.value,
-      }
-      await watchtower.BCH._api.post(url, data)
-    }
-
     function refreshQrCountdown () {
       if (isBchMode.value) return
 
       updateSelectedCurrencyRate()
-      updatePaymentRequest()
       stopQrExpirationCountdown()
 
       qrExpirationTimer.value = 1
@@ -405,23 +380,9 @@ export default defineComponent({
       return finalBchValue
     })
 
-    async function createPaymentRequest () {
-      const url = 'paytacapos/payment-request/'
-      const data = {
-        pos_device: {
-          wallet_hash: walletStore.deviceInfo.walletHash,
-          posid: walletStore.deviceInfo.posId,
-        },
-        receiving_address: undefined,
-        amount: bchValue.value,
-      }
-      await watchtower.BCH._api.post(url, data)
-    }
-
     // 0.015ms - 0.031ms
     onMounted(() => {
       paymentsStore.resetPayment()
-      createPaymentRequest()
 
       if (props.setAmount) receiveAmount.value = props.setAmount
       if (props.setCurrency) currency.value = props.setCurrency
@@ -446,8 +407,9 @@ export default defineComponent({
 
     const qrData = computed(() => {
       if (!receiveAmount.value) return ''
+
       const currentTimestamp = Date.now() / 1000
-      const unusedValue = bchValue.value  // trigger for setting of total payment
+      const unusedVar = bchValue.value  // trigger only for setting of total payment
 
       let paymentUri = receivingAddress
       paymentUri += `?POS=${posId.value}`
@@ -465,23 +427,16 @@ export default defineComponent({
     })
 
     function cacheQrData() {
+      // walletStore.cacheQrData(qrData.value)
       walletStore.removeOldQrDataCache(86400*2) // remove qr data older than 2 days
     }
-    async function generateFirstReceivingAddress () {
-      const addressSet = await wallet.generateReceivingAddress(1, { skipSubscription: false })
-      return addressSet.receiving
-    }
-
-    const voucherClaimerAddress = null
-    
     watch(qrData, () => cacheQrData())
     onMounted(() => cacheQrData())
-    onMounted(async () => voucherClaimerAddress = await generateFirstReceivingAddress())
+    
     const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
     const merchantReceivingAddress = addressSet.value?.receiving
     const websocketInits = [
-      merchantReceivingAddress,
-      voucherClaimerAddress
+      merchantReceivingAddress
     ]
       .filter(Boolean)
       .map(address => {
@@ -491,8 +446,7 @@ export default defineComponent({
         }
       })
 
-    const isZerothAddress = voucherClaimerAddress === merchantReceivingAddress
-    const websockets = ref(isZerothAddress ? websocketInits.slice(0,1) : websocketInits)
+    const websockets = ref(websocketInits)
     const websocketsReady = computed(() => {
       const readySockets = websockets.value.filter((websocket) => websocket.instance?.readyState === 1)
       return readySockets.length === websockets.value.length
@@ -525,7 +479,6 @@ export default defineComponent({
       if (newVal) {
         closeWebsocket()
         stopQrExpirationCountdown()
-        addressesStore.dequeueAddress()
         setTimeout(() => triggerSecondConfetti.value = true, 1500)
       }
     })
@@ -604,6 +557,23 @@ export default defineComponent({
       displayReceivedTransaction(transaction)
     }
 
+    function updateClaimTxnAttr (txid) {
+      const posId = walletStore.posId
+      const key = `voucher_claim_${posId}`
+
+      const payload = {
+        wallet_hash: walletStore.merchantInfo?.walletHash,
+        value: "Voucher Claim",
+        remove: false,
+        txid,
+        key
+      }
+      const watchtowerTxnAttrUrl = `${process.env.WATCHTOWER_API}/transactions/attributes/`
+      axios.post(watchtowerTxnAttrUrl, payload)
+        .then(response => console.log('Added transaction attribute as voucher claim: ', response))
+        .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
+    }
+
     function processLiveUpdate (data) {
       const updateType = data?.update_type
       let message = null
@@ -624,8 +594,9 @@ export default defineComponent({
         qrScanned.value = false
         refreshQrCountdown()
       }
-      else if (updateType === 'voucher_processed') {
-        vouchersProcessed.value += 1
+      else if (updateType === 'voucher_claimed') {
+        if (!data?.txid || !data?.category) return
+        updateClaimTxnAttr(data.txid)
       }
 
       if (message) {
@@ -740,25 +711,11 @@ export default defineComponent({
         })
     }
 
-    async function cancelPaymentRequest () {
-      const url = 'paytacapos/payment-request/cancel/'
-      const data = {
-        pos_device: {
-          wallet_hash: walletStore.deviceInfo.walletHash,
-          posid: walletStore.deviceInfo.posid,
-        }
-      }
-      await watchtower.BCH._api.post(url, data)
-    }
-
     onBeforeRouteLeave(async (to, from, next) => {
-      const leave = false
-
-      if (!qrData.value || !promptOnLeave.value) leave = true
+      if (!qrData.value || !promptOnLeave.value) return next()
       const isPaid = remainingPaymentRounded.value < 1000 / 1e8 // provide margin
-
       if (promptOnLeave.value && !isPaid) {
-        leave = await new Promise((resolve) => {
+        const proceed = await new Promise((resolve) => {
           $q.dialog({
             title: t('LeavePage'),
             message: t('LeavePagePromptMsg'),
@@ -767,10 +724,8 @@ export default defineComponent({
             color: 'brandblue',
           }).onOk(() => resolve(true)).onDismiss(() => resolve(false))
         })
-      }
-
-      if (leave) {
-        await cancelPaymentRequest()
+        return next(proceed)
+      } else {
         return next()
       }
     })
@@ -826,7 +781,6 @@ export default defineComponent({
       isBchMode,
       qrScanned,
       qrCodeContainerClass,
-      vouchersProcessed,
     }
   },
 })
