@@ -50,6 +50,7 @@ import { useRouter } from 'vue-router'
 import { defineComponent, computed } from 'vue'
 
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
+import Watchtower from 'watchtower-cash-js'
 
 
 export default defineComponent({
@@ -68,9 +69,8 @@ export default defineComponent({
           currencies: ['BCH'],
           initialValue: { currency: selectedCurrency.value }
         },
-      }).onOk(data => {
+      }).onOk(async (data) => {
         const amount = data?.amount
-
         if (!amount?.value) return
 
         const name = 'receive-page'

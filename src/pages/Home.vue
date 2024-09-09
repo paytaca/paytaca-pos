@@ -71,6 +71,7 @@ import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { useAddressesStore } from 'src/stores/addresses'
 
 // import historyData from 'src/wallet/mockers/history.json'
 
