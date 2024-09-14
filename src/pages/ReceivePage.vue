@@ -218,6 +218,7 @@ import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
 import ConfettiExplosion from "vue-confetti-explosion"
 import { Wallet } from 'src/wallet'
+import Watchtower from 'watchtower-cash-js'
 
 
 export default defineComponent({
@@ -258,6 +259,7 @@ export default defineComponent({
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
     const wakeLock = reactive(useWakeLock())
+    const watchtower = new Watchtower()
 
     const dustBch = 546e-8
 
@@ -358,6 +360,7 @@ export default defineComponent({
       if (isBchMode.value) return
 
       updateSelectedCurrencyRate()
+      updatePaymentRequest()
       stopQrExpirationCountdown()
 
       qrExpirationTimer.value = 1
@@ -390,9 +393,46 @@ export default defineComponent({
       return finalBchValue
     })
 
+    async function updatePaymentRequest () {
+      const url = 'paytacapos/payment-request/update_amount/'
+      const data = {
+        pos_device: {
+          wallet_hash: walletStore.walletHash,
+          posid: walletStore.posId,
+        },
+        amount: bchValue.value,
+      }
+      await watchtower.BCH._api.post(url, data)
+    }
+
+    async function generateFirstReceivingAddress () {
+      const wallet = new Wallet({
+        xPubKey: walletStore.xPubKey,
+        walletHash: walletStore.walletHash,
+        posId: walletStore.posId,
+      })
+      const addressSet = await wallet.generateReceivingAddress(1, { skipSubscription: false })
+      return addressSet.receiving
+    }
+
+    async function createPaymentRequest () {
+      const url = 'paytacapos/payment-request/'
+      const receiving_address = await generateFirstReceivingAddress()
+      const data = {
+        pos_device: {
+          wallet_hash: walletStore.walletHash,
+          posid: walletStore.posId,
+        },
+        amount: bchValue.value,
+        receiving_address,
+      }
+      await watchtower.BCH._api.post(url, data)
+    }
+
     // 0.015ms - 0.031ms
     onMounted(() => {
       paymentsStore.resetPayment()
+      createPaymentRequest()
 
       if (props.setAmount) receiveAmount.value = props.setAmount
       if (props.setCurrency) currency.value = props.setCurrency
@@ -443,18 +483,10 @@ export default defineComponent({
     watch(qrData, () => cacheQrData())
     onMounted(() => cacheQrData())
 
-    async function generateFirstReceivingAddress () {
-      const wallet = new Wallet({
-        xPubKey: walletStore.xPubKey,
-        walletHash: walletStore.walletHash,
-        posId: walletStore.posId,
-      })
-      const addressSet = await wallet.generateReceivingAddress(1, { skipSubscription: false })
-      return addressSet.receiving
-    }
-    const voucherClaimerAddress = null
-
+    
+    let voucherClaimerAddress = null
     onMounted(async () => voucherClaimerAddress = await generateFirstReceivingAddress())
+
     const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
     const merchantReceivingAddress = addressSet.value?.receiving
     const websocketInits = [
@@ -468,7 +500,6 @@ export default defineComponent({
           url: `${websocketUrl}/${address}/`,
         }
       })
-
 
     const isZerothAddress = voucherClaimerAddress === merchantReceivingAddress
     const websockets = ref(isZerothAddress ? websocketInits.slice(0,1) : websocketInits)
@@ -717,12 +748,26 @@ export default defineComponent({
           $router.push({ name: 'home' })
         })
     }
+    
+    async function cancelPaymentRequest () {
+      const url = 'paytacapos/payment-request/cancel/'
+      const data = {
+        pos_device: {
+          wallet_hash: walletStore.walletHash,
+          posid: walletStore.posId,
+        }
+      }
+      await watchtower.BCH._api.post(url, data)
+    }
 
     onBeforeRouteLeave(async (to, from, next) => {
-      if (!qrData.value || !promptOnLeave.value) return next()
+      let leave = false
+
+      if (!qrData.value || !promptOnLeave.value) leave = true
       const isPaid = remainingPaymentRounded.value < 1000 / 1e8 // provide margin
+
       if (promptOnLeave.value && !isPaid) {
-        const proceed = await new Promise((resolve) => {
+        leave = await new Promise((resolve) => {
           $q.dialog({
             title: t('LeavePage'),
             message: t('LeavePagePromptMsg'),
@@ -731,8 +776,10 @@ export default defineComponent({
             color: 'brandblue',
           }).onOk(() => resolve(true)).onDismiss(() => resolve(false))
         })
-        return next(proceed)
-      } else {
+      }
+
+      if (leave) {
+        await cancelPaymentRequest()
         return next()
       }
     })
