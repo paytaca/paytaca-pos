@@ -217,6 +217,7 @@ import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
 import ConfettiExplosion from "vue-confetti-explosion"
+import { Wallet } from 'src/wallet'
 
 
 export default defineComponent({
@@ -441,11 +442,24 @@ export default defineComponent({
     }
     watch(qrData, () => cacheQrData())
     onMounted(() => cacheQrData())
-    
+
+    async function generateFirstReceivingAddress () {
+      const wallet = new Wallet({
+        xPubKey: walletStore.xPubKey,
+        walletHash: walletStore.walletHash,
+        posId: walletStore.posId,
+      })
+      const addressSet = await wallet.generateReceivingAddress(1, { skipSubscription: false })
+      return addressSet.receiving
+    }
+    const voucherClaimerAddress = null
+
+    onMounted(async () => voucherClaimerAddress = await generateFirstReceivingAddress())
     const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
     const merchantReceivingAddress = addressSet.value?.receiving
     const websocketInits = [
-      merchantReceivingAddress
+      merchantReceivingAddress,
+      voucherClaimerAddress,
     ]
       .filter(Boolean)
       .map(address => {
@@ -455,7 +469,9 @@ export default defineComponent({
         }
       })
 
-    const websockets = ref(websocketInits)
+
+    const isZerothAddress = voucherClaimerAddress === merchantReceivingAddress
+    const websockets = ref(isZerothAddress ? websocketInits.slice(0,1) : websocketInits)
     const websocketsReady = computed(() => {
       const readySockets = websockets.value.filter((websocket) => websocket.instance?.readyState === 1)
       return readySockets.length === websockets.value.length
@@ -488,6 +504,7 @@ export default defineComponent({
       if (newVal) {
         closeWebsocket()
         stopQrExpirationCountdown()
+        addressesStore.dequeueAddress()
         setTimeout(() => triggerSecondConfetti.value = true, 1500)
       }
     })
@@ -509,7 +526,6 @@ export default defineComponent({
     })
     function setupListener(opts) {
       const merchantReceivingAddress = addressSet.value?.receiving
-      
       if (!merchantReceivingAddress) return
 
       for (let x = 0; x < websockets.value.length; x++) {

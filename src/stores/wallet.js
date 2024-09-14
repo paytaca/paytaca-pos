@@ -6,7 +6,6 @@ import {
   sha256,
   decodePaymentUri,
   getPubkeyAt,
-  pubkeyToCashAddress,
 } from 'src/wallet/utils';
 
 
@@ -224,8 +223,6 @@ export const useWalletStore = defineStore('wallet', {
      * @param {String} data.wallet_hash
      * @param {String} data.primary_contact_number
      * 
-     * @param {String} data.receiving_pubkey
-     * 
      * @param {Object} [data.location]
      * @param {String} data.location.landmark
      * @param {String} data.location.location
@@ -234,10 +231,6 @@ export const useWalletStore = defineStore('wallet', {
      * @param {String} data.location.country
      * @param {String} data.location.longitude
      * @param {String} data.location.latitude
-     * 
-     * @param {Object} [data.vault]
-     * @param {String} data.vault.address
-     * @param {String} data.vault.token_address
     */
     setMerchantInfo(data) {
       const merchantInfo = {
@@ -253,14 +246,6 @@ export const useWalletStore = defineStore('wallet', {
           country: data?.location?.country,
           longitude: data?.location?.longitude,
           latitude: data?.location?.latitude,
-        },
-        vault: {
-          receiving: {
-            address: pubkeyToCashAddress(data?.receiving_pubkey),
-            pubkey: data?.receiving_pubkey,
-          },
-          address: data?.vault?.address,
-          tokenAddress: data?.vault?.token_address,
         }
       }
 
