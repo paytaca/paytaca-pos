@@ -748,7 +748,18 @@ export default defineComponent({
           $router.push({ name: 'home' })
         })
     }
-    
+
+    async function paidPaymentRequest () {
+      const url = 'paytacapos/payment-request/paid/'
+      const data = {
+        pos_device: {
+          wallet_hash: walletStore.walletHash,
+          posid: walletStore.posId,
+        }
+      }
+      await watchtower.BCH._api.post(url, data)
+    }
+
     async function cancelPaymentRequest () {
       const url = 'paytacapos/payment-request/cancel/'
       const data = {
@@ -779,7 +790,8 @@ export default defineComponent({
       }
 
       if (leave) {
-        await cancelPaymentRequest()
+        if (paid.value) await paidPaymentRequest()
+        else await cancelPaymentRequest()
         return next()
       }
     })
