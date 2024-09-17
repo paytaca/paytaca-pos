@@ -21,6 +21,7 @@ export const useWalletStore = defineStore('wallet', {
       posId: -1,
       walletHash: null,
       branchId: null,
+      merchantId: null,
       linkedDevice: {
         linkCode: '',
         name: '',
@@ -50,14 +51,6 @@ export const useWalletStore = defineStore('wallet', {
         country: '',
         longitude: null,
         latitude: null,
-      },
-      vault: {
-        receiving: {
-          address: '',
-          pubkey: '',
-        },
-        address: '',
-        tokenAddress: '',
       }
     },
 
@@ -252,9 +245,9 @@ export const useWalletStore = defineStore('wallet', {
       this.merchantInfo = merchantInfo
     },
     refetchMerchantInfo() {
-      if (!this.walletHash) return this.setMerchantInfo(null)
+      if (!this.deviceInfo?.merchantId) return this.setMerchantInfo(null)
       const watchtower = new Watchtower()
-      return watchtower.BCH._api.get(`paytacapos/merchants/${this.walletHash}/`)
+      return watchtower.BCH._api.get(`paytacapos/merchants/${this.deviceInfo?.merchantId}/`)
         .then(response => {
           if (response?.data?.wallet_hash == this.walletHash) {
             this.setMerchantInfo(response.data)
@@ -272,6 +265,7 @@ export const useWalletStore = defineStore('wallet', {
      * @param {Object} data 
      * @param {String} data.wallet_hash
      * @param {Number} data.posid
+     * @param {Number} data.merchant_id
      * @param {Number} [data.branch_id]
      * @param {Object} [data.linked_device]
      * @param {String} [data.linked_device.link_code]
@@ -292,6 +286,7 @@ export const useWalletStore = defineStore('wallet', {
         walletHash: data?.wallet_hash,
         posId: data?.posid,
         branchId: data?.branch_id,
+        merchantId: data?.merchant_id,
         linkedDevice: {
           linkCode: data?.linked_device?.link_code,
           name: data?.linked_device?.name,
@@ -319,6 +314,7 @@ export const useWalletStore = defineStore('wallet', {
         .then(response => {
           if (response?.data?.wallet_hash == this.walletHash) {
             this.setDeviceInfo(response.data)
+            this.refetchMerchantInfo()
             return Promise.resolve(response)
           }
           return Promise.reject({ response })

@@ -95,10 +95,8 @@ export default defineComponent({
 
     onMounted(() => fetchTransactions())
     onMounted(() => walletStore.refetchSalesReport())
-    onMounted(() => walletStore.refetchMerchantInfo())
-    onMounted(() => walletStore.refetchDeviceInfo())
     onMounted(() => walletStore.refetchPreferences())
-    watch(() => [walletStore.walletHash], () => walletStore.refetchMerchantInfo())
+    onMounted(() => walletStore.refetchDeviceInfo())
     watch(() => [walletStore.walletHash, walletStore.posId], () => walletStore.refetchDeviceInfo())
     watch(() => [walletStore.walletHash], () => walletStore.refetchPreferences())
 
