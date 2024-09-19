@@ -359,7 +359,6 @@ export default defineComponent({
       if (isBchMode.value) return
 
       updateSelectedCurrencyRate()
-      updatePaymentRequest()
       stopQrExpirationCountdown()
 
       qrExpirationTimer.value = 1
@@ -391,20 +390,10 @@ export default defineComponent({
       paymentsStore.setTotalPayment(finalBchValue)
       return finalBchValue
     })
-
-    async function updatePaymentRequest () {
-      const url = 'paytacapos/payment-request/update_amount/'
-      const data = {
-        pos_device: {
-          wallet_hash: walletStore.walletHash,
-          posid: walletStore.posId,
-        },
-        amount: bchValue.value,
-      }
-      await watchtower.BCH._api.post(url, data)
-    }
+    watch(bchValue, () => createPaymentRequest())
 
     async function createPaymentRequest () {
+      console.log('bch value: ', bchValue.value)
       const url = 'paytacapos/payment-request/'
       const data = {
         pos_device: {
@@ -741,7 +730,8 @@ export default defineComponent({
         pos_device: {
           wallet_hash: walletStore.walletHash,
           posid: walletStore.posId,
-        }
+        },
+        amount: bchValue.value,
       }
       await watchtower.BCH._api.post(url, data)
     }
