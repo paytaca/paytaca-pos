@@ -15,6 +15,7 @@ export const useWalletStore = defineStore('wallet', {
     walletHash: null,
     xPubKey: null,
     linkCode: null,
+    firstReceivingAddress: '',
 
     deviceInfo: {
       name: '',

@@ -217,7 +217,6 @@ import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
 import ConfettiExplosion from "vue-confetti-explosion"
-import { Wallet } from 'src/wallet'
 import Watchtower from 'watchtower-cash-js'
 
 
@@ -405,26 +404,15 @@ export default defineComponent({
       await watchtower.BCH._api.post(url, data)
     }
 
-    async function generateFirstReceivingAddress () {
-      const wallet = new Wallet({
-        xPubKey: walletStore.xPubKey,
-        walletHash: walletStore.walletHash,
-        posId: walletStore.posId,
-      })
-      const addressSet = await wallet.generateReceivingAddress(1, { skipSubscription: false })
-      return addressSet.receiving
-    }
-
     async function createPaymentRequest () {
       const url = 'paytacapos/payment-request/'
-      const receiving_address = await generateFirstReceivingAddress()
       const data = {
         pos_device: {
           wallet_hash: walletStore.walletHash,
           posid: walletStore.posId,
         },
         amount: bchValue.value,
-        receiving_address,
+        receiving_address: walletStore.firstReceivingAddress,
       }
       await watchtower.BCH._api.post(url, data)
     }
@@ -484,11 +472,9 @@ export default defineComponent({
     onMounted(() => cacheQrData())
 
     
-    let voucherClaimerAddress = null
-    onMounted(async () => voucherClaimerAddress = await generateFirstReceivingAddress())
-
     const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
     const merchantReceivingAddress = addressSet.value?.receiving
+    const voucherClaimerAddress = walletStore.firstReceivingAddress
     const websocketInits = [
       merchantReceivingAddress,
       voucherClaimerAddress,
