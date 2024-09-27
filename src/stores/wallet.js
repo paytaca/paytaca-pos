@@ -21,6 +21,7 @@ export const useWalletStore = defineStore('wallet', {
       name: '',
       posId: -1,
       walletHash: null,
+      merchantId: null,
       branchId: null,
       linkedDevice: {
         linkCode: '',
@@ -267,9 +268,11 @@ export const useWalletStore = defineStore('wallet', {
       this.merchantInfo = merchantInfo
     },
     refetchMerchantInfo() {
-      if (!this.walletHash) return this.setMerchantInfo(null)
+      if (!this.walletHash || Number.isNaN(this.deviceInfo.merchantId)) return this.setMerchantInfo(null)
+      if (!this.deviceInfo.merchantId) return this.setMerchantInfo(null)
+
       const watchtower = new Watchtower()
-      return watchtower.BCH._api.get(`paytacapos/merchants/${this.walletHash}/`)
+      return watchtower.BCH._api.get(`paytacapos/merchants/${this.deviceInfo.merchantId}/`)
         .then(response => {
           if (response?.data?.wallet_hash == this.walletHash) {
             this.setMerchantInfo(response.data)
@@ -280,14 +283,17 @@ export const useWalletStore = defineStore('wallet', {
         .catch(error => {
           if (error?.response.status === 404) {
             this.setMerchantInfo(null)
+            return
           }
+          return Promise.reject(error)
         })
     },
     /**
      * @param {Object} data 
      * @param {String} data.wallet_hash
      * @param {Number} data.posid
-     * @param {Number} [data.branch_id]
+     * @param {Number} data.branch_id
+     * @param {Number} data.merchant_id
      * @param {Object} [data.linked_device]
      * @param {String} [data.linked_device.link_code]
      * @param {String} [data.linked_device.name]
@@ -307,6 +313,7 @@ export const useWalletStore = defineStore('wallet', {
         walletHash: data?.wallet_hash,
         posId: data?.posid,
         branchId: data?.branch_id,
+        merchantId: data?.merchant_id,
         linkedDevice: {
           linkCode: data?.linked_device?.link_code,
           name: data?.linked_device?.name,
@@ -341,10 +348,13 @@ export const useWalletStore = defineStore('wallet', {
         .catch(error => {
           if (error?.response.status === 404) {
             this.setDeviceInfo(null)
+            return
           }
+          return Promise.reject(error)
         })
         .finally(() => {
           this.refetchBranchInfo()
+          this.refetchMerchantInfo()
         })
     },
     confirmUnlinkRequest() {
