@@ -33,8 +33,20 @@
           />
         </div>
         <div>
-          <div>Receiving address</div>
+          <div class="row items-center">
+            <div class="q-space">Receiving address</div>
+            <q-btn
+              flat
+              :loading="updatingReceivingAddress"
+              :disable="updatingReceivingAddress"
+              no-caps label="Change"
+              padding="xs sm"
+              class="text-underline q-r-mr-sm"
+              @click="() => updateReceivingAddress()"
+            />
+          </div>
           <q-input
+            readonly
             dense outlined
             :disable="loading"
             autogrow
@@ -42,14 +54,6 @@
             :error="Boolean(formErrors?.receivingAddress)"
             :error-message="formErrors?.receivingAddress"
           >
-            <template v-slot:append>
-              <q-btn
-                flat
-                icon="refresh"
-                padding="sm"
-                @click="() => updateReceivingAddress()"
-              />
-            </template>
           </q-input>
         </div>
 
@@ -92,9 +96,10 @@
 import { Product } from 'src/marketplace/objects'
 import { backend } from 'src/marketplace/backend'
 import { errorParser } from 'src/marketplace/utils'
+import { asyncSleep } from 'src/wallet/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useAddressesStore } from 'src/stores/addresses'
-import { defineComponent, ref } from 'vue'
+import { defineComponent, onMounted, ref } from 'vue'
 import UploadImageField from 'src/components/marketplace/UploadImageField.vue'
 import ProductSearchPanel from 'src/components/marketplace/ProductSearchPanel.vue'
 
@@ -122,23 +127,49 @@ export default defineComponent({
       subscribeProducts: [].map(Product.parse)
     })
 
-    function updateReceivingAddress() {
-      let address = formData.value.receivingAddress
+    onMounted(() => {
+      if (!marketplaceStore.storefrontData?.id && !formData.value?.receivingAddress) {
+        updateReceivingAddress()
+      }
+    })
 
-      const opts = addressesStore.addressSets
-        .map(addressSet => addressSet?.receiving)
-        .filter((e, i, s) => s.indexOf(e) === i)
-        .filter(Boolean)
+    const updatingReceivingAddress = ref(false)
+    async function updateReceivingAddress() {
+      try {
+        updatingReceivingAddress.value = true
+        let address = formData.value.receivingAddress
+        if (!addressesStore.addressSets.length) await addressesStore.fillAddressSets().catch(console.error)
+        else await asyncSleep(250).catch(console.error)
 
-      if (opts?.length <= 0) return
-
-      const index = opts.indexOf(address)
-      // we want to change address like it's rotating around the address sets stored
-      const rotatedOpts = [
-        ...opts.slice(index+1),
-        ...opts.slice(0, index+1),
-      ]
-      formData.value.receivingAddress = rotatedOpts.find(addr => addr != address)
+        const opts = addressesStore.addressSets
+          .map(addressSet => addressSet?.receiving)
+          .filter((e, i, s) => s.indexOf(e) === i)
+          .filter(Boolean)
+  
+        if (opts?.length <= 0) return
+  
+        const index = opts.indexOf(address)
+        // we want to change address like it's rotating around the address sets stored
+        const rotatedOpts = [
+          ...opts.slice(index+1),
+          ...opts.slice(0, index+1),
+        ]
+  
+        const newAddress = rotatedOpts.find(addr => addr != address)
+        const noNewAddressError = 'Unable to find new address'
+        if (!newAddress) {
+          if (!formErrors.value.receivingAddress) {
+            formErrors.value.receivingAddress = noNewAddressError
+          }
+          return
+        }
+        formData.value.receivingAddress = newAddress
+        if (noNewAddressError == formErrors.value.receivingAddress) {
+          formErrors.value.receivingAddress = ''
+        }
+      } finally {
+        updatingReceivingAddress.value = false
+      }
     }
 
     const formErrors = ref({
@@ -208,6 +239,7 @@ export default defineComponent({
 
       loading,
       formData,
+      updatingReceivingAddress,
       updateReceivingAddress,
 
       formErrors,
