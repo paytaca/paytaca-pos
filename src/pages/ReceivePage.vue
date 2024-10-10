@@ -419,7 +419,7 @@ export default defineComponent({
         const expiryDuration = currencyRateUpdateRate / 1000
         const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
         const diffSeconds = networkTimeDiff.value ? networkTimeDiff.value / 1000 : 0
-        const adjustedExpirationTimestamp = expirationTimestamp + diffSeconds  
+        const adjustedExpirationTimestamp = expirationTimestamp + diffSeconds
         paymentUri += `&expires=${adjustedExpirationTimestamp}`
       }
 
@@ -436,7 +436,8 @@ export default defineComponent({
     const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
     const merchantReceivingAddress = addressSet.value?.receiving
     const websocketInits = [
-      merchantReceivingAddress
+      merchantReceivingAddress,
+      walletStore.firstReceivingAddress,
     ]
       .filter(Boolean)
       .map(address => {
@@ -446,7 +447,9 @@ export default defineComponent({
         }
       })
 
-    const websockets = ref(websocketInits)
+      
+    const isZerothAddress = walletStore.firstReceivingAddress === merchantReceivingAddress
+    const websockets = ref(isZerothAddress ? websocketInits.slice(0,1) : websocketInits)
     const websocketsReady = computed(() => {
       const readySockets = websockets.value.filter((websocket) => websocket.instance?.readyState === 1)
       return readySockets.length === websockets.value.length
@@ -479,6 +482,7 @@ export default defineComponent({
       if (newVal) {
         closeWebsocket()
         stopQrExpirationCountdown()
+        addressesStore.dequeueAddress()
         setTimeout(() => triggerSecondConfetti.value = true, 1500)
       }
     })
