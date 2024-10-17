@@ -47,9 +47,10 @@
 import { useWalletStore } from 'src/stores/wallet';
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
-import { defineComponent, computed } from 'vue'
+import { defineComponent, computed, onMounted } from 'vue'
 
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
+import { Wallet } from 'src/wallet'
 
 
 export default defineComponent({
@@ -60,6 +61,20 @@ export default defineComponent({
     const $router = useRouter()
 
     const selectedCurrency = computed(() => walletStore.preferences.selectedCurrency)
+
+    async function generateFirstReceivingAddress () {
+      const wallet = new Wallet({
+        xPubKey: walletStore.xPubKey,
+        walletHash: walletStore.walletHash,
+        posId: walletStore.posId,
+      })
+      const addressSet = await wallet.generateReceivingAddress(1, { skipSubscription: false })
+      return addressSet.receiving
+    }
+    onMounted(async () => {
+      const firstReceivingAddress = await generateFirstReceivingAddress()
+      walletStore.$patch({ firstReceivingAddress })
+    })
 
     function promptAmount () {
       $q.dialog({
