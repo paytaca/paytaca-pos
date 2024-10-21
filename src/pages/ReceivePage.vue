@@ -410,11 +410,9 @@ export default defineComponent({
 
       const currentTimestamp = Date.now() / 1000
       const unusedVar = bchValue.value  // trigger only for setting of total payment
-      const merchantId = walletStore.merchantInfo.id
 
       let paymentUri = receivingAddress
       paymentUri += `?POS=${posId.value}`
-      paymentUri += `&M=${merchantId}`
       paymentUri += `&amount=${remainingPaymentRounded.value}`
 
       if (!isBchMode.value) {
