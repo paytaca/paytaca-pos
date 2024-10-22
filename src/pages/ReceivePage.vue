@@ -561,23 +561,6 @@ export default defineComponent({
       displayReceivedTransaction(transaction)
     }
 
-    function updateClaimTxnAttr (txid) {
-      const posId = walletStore.posId
-      const key = `voucher_claim_${posId}`
-
-      const payload = {
-        wallet_hash: walletStore.merchantInfo?.walletHash,
-        value: "Voucher Claim",
-        remove: false,
-        txid,
-        key
-      }
-      const watchtowerTxnAttrUrl = `${process.env.WATCHTOWER_API}/transactions/attributes/`
-      axios.post(watchtowerTxnAttrUrl, payload)
-        .then(response => console.log('Added transaction attribute as voucher claim: ', response))
-        .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
-    }
-
     function processLiveUpdate (data) {
       const updateType = data?.update_type
       let message = null
@@ -597,10 +580,6 @@ export default defineComponent({
         message = t('PaymentCancelled')
         qrScanned.value = false
         refreshQrCountdown()
-      }
-      else if (updateType === 'voucher_claimed') {
-        if (!data?.txid || !data?.category) return
-        updateClaimTxnAttr(data.txid)
       }
 
       if (message) {
