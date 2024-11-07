@@ -419,7 +419,7 @@ export default defineComponent({
         const expiryDuration = currencyRateUpdateRate / 1000
         const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
         const diffSeconds = networkTimeDiff.value ? networkTimeDiff.value / 1000 : 0
-        const adjustedExpirationTimestamp = expirationTimestamp + diffSeconds  
+        const adjustedExpirationTimestamp = expirationTimestamp + diffSeconds
         paymentUri += `&expires=${adjustedExpirationTimestamp}`
       }
 
@@ -436,7 +436,8 @@ export default defineComponent({
     const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
     const merchantReceivingAddress = addressSet.value?.receiving
     const websocketInits = [
-      merchantReceivingAddress
+      merchantReceivingAddress,
+      walletStore.firstReceivingAddress,
     ]
       .filter(Boolean)
       .map(address => {
@@ -446,7 +447,9 @@ export default defineComponent({
         }
       })
 
-    const websockets = ref(websocketInits)
+      
+    const isZerothAddress = walletStore.firstReceivingAddress === merchantReceivingAddress
+    const websockets = ref(isZerothAddress ? websocketInits.slice(0,1) : websocketInits)
     const websocketsReady = computed(() => {
       const readySockets = websockets.value.filter((websocket) => websocket.instance?.readyState === 1)
       return readySockets.length === websockets.value.length
@@ -479,6 +482,7 @@ export default defineComponent({
       if (newVal) {
         closeWebsocket()
         stopQrExpirationCountdown()
+        addressesStore.dequeueAddress()
         setTimeout(() => triggerSecondConfetti.value = true, 1500)
       }
     })
@@ -557,23 +561,6 @@ export default defineComponent({
       displayReceivedTransaction(transaction)
     }
 
-    function updateClaimTxnAttr (txid) {
-      const posId = walletStore.posId
-      const key = `voucher_claim_${posId}`
-
-      const payload = {
-        wallet_hash: walletStore.merchantInfo?.walletHash,
-        value: "Voucher Claim",
-        remove: false,
-        txid,
-        key
-      }
-      const watchtowerTxnAttrUrl = `${process.env.WATCHTOWER_API}/transactions/attributes/`
-      axios.post(watchtowerTxnAttrUrl, payload)
-        .then(response => console.log('Added transaction attribute as voucher claim: ', response))
-        .catch(err => console.log('Error on adding transaction attribute as voucher claim: ', err))
-    }
-
     function processLiveUpdate (data) {
       const updateType = data?.update_type
       let message = null
@@ -593,10 +580,6 @@ export default defineComponent({
         message = t('PaymentCancelled')
         qrScanned.value = false
         refreshQrCountdown()
-      }
-      else if (updateType === 'voucher_claimed') {
-        if (!data?.txid || !data?.category) return
-        updateClaimTxnAttr(data.txid)
       }
 
       if (message) {
