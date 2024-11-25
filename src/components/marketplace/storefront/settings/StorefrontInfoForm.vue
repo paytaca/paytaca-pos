@@ -141,7 +141,7 @@ export default defineComponent({
       receivingAddress: marketplaceStore?.storefrontData?.receiving_address,
       deliveryTypes: Array.isArray(marketplaceStore?.storefrontData?.delivery_types)
         ? marketplaceStore?.storefrontData?.delivery_types
-        : [],
+        : ['local_delivery', 'store_pickup'],
       autoSubscribeProducts: Boolean(marketplaceStore?.storefrontData?.auto_subscribe_products),
       subscribeProducts: [].map(Product.parse)
     })
