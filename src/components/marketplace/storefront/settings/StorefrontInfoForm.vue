@@ -57,6 +57,22 @@
           </q-input>
         </div>
 
+        <div>
+          <div>Delivery Types</div>
+          <q-option-group
+            :loading="loading"
+            :disable="loading"
+            v-model="formData.deliveryTypes"
+            :options="deliveryTypeOptions"
+            color="brandblue"
+            type="checkbox"
+          />
+          <div v-if="Boolean(formErrors?.deliveryTypes)" class="text-red">
+            {{ formErrors?.deliveryTypes }}
+          </div>
+          <div v-else class="q-mb-md"></div>
+        </div>
+
         <q-checkbox
           dense
           :disable="loading"
@@ -123,9 +139,16 @@ export default defineComponent({
       name: marketplaceStore?.storefrontData?.name,
       phoneNumber: marketplaceStore?.storefrontData?.phone_number,
       receivingAddress: marketplaceStore?.storefrontData?.receiving_address,
+      deliveryTypes: Array.isArray(marketplaceStore?.storefrontData?.delivery_types)
+        ? marketplaceStore?.storefrontData?.delivery_types
+        : ['local_delivery', 'store_pickup'],
       autoSubscribeProducts: Boolean(marketplaceStore?.storefrontData?.auto_subscribe_products),
       subscribeProducts: [].map(Product.parse)
     })
+    const deliveryTypeOptions = [
+      { label: 'Delivery', value: 'local_delivery' },
+      { label: 'Store pickup', value: 'store_pickup' },
+    ]
 
     onMounted(() => {
       if (!marketplaceStore.storefrontData?.id && !formData.value?.receivingAddress) {
@@ -177,11 +200,14 @@ export default defineComponent({
       name: '',
       phoneNumber: '',
       receivingAddress: '',
+      deliveryTypes: '',
       subscribeProductIds: '',
     })
     function clearFormErrors() {
       formErrors.value.detail = []
       formErrors.value.name = ''
+      formErrors.value.receivingAddress = ''
+      formErrors.value.deliveryTypes = ''
       formErrors.value.subscribeProductIds = ''
     }
 
@@ -192,6 +218,7 @@ export default defineComponent({
         name: formData.value.name || undefined,
         phone_number: formData.value.phoneNumber,
         receiving_address: formData.value.receivingAddress,
+        delivery_types: formData.value.deliveryTypes,
         auto_subscribe_products: formData.value.autoSubscribeProducts,
         subscribe_product_ids: formData.value.subscribeProducts.map(product => product?.id),
       }
@@ -214,6 +241,7 @@ export default defineComponent({
           formErrors.value.name = errorParser.firstElementOrValue(data?.name)
           formErrors.value.phoneNumber = errorParser.firstElementOrValue(data?.phone_number)
           formErrors.value.receivingAddress = errorParser.firstElementOrValue(data?.receiving_address)
+          formErrors.value.deliveryTypes = errorParser.firstElementOrValue(data?.delivery_types)
           formErrors.value.subscribeProductIds = errorParser.firstElementOrValue(data?.subscribe_product_ids)
           if (data?.detail) formErrors.value.detail.unshift(data?.detail)
           if (Array.isArray(data) && !formErrors.value.detail?.length) formErrors.value.detail = data
@@ -221,6 +249,7 @@ export default defineComponent({
           if (!formErrors.value.detail?.length &&
               !formErrors.value.name &&
               !formErrors.value.receivingAddress && 
+              !formErrors.value.deliveryTypes && 
               !formErrors.value.subscribeProductIds
           ) formErrors.value.detail = [
             marketplaceStore?.storefrontData?.id
@@ -239,6 +268,7 @@ export default defineComponent({
 
       loading,
       formData,
+      deliveryTypeOptions,
       updatingReceivingAddress,
       updateReceivingAddress,
 
