@@ -308,7 +308,7 @@ export default defineComponent({
     const currency = ref('BCH')
     const disableAmount = ref(false)
 
-    const currencyRateUpdateRate = 60 * 1000
+    const currencyRateUpdateRate = 5 * 60 * 1000
     const currencyBchRate = computed(() => {
       if (!currency.value) return
       if (isBchMode.value) return { currency: 'BCH', rate: 1, timestamp: Date.now(), status: 2 }
