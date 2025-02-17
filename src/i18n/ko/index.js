@@ -705,6 +705,7 @@ export default {
   UnassignRider: "Unsign Rider",
   UnassigningRider: "할당되지 않은 라이더",
   UnconfirmOrder: "확인되지 않은 순서",
+  UndoVoid: "void를 취소합니다",
   UnitNo: "단위 번호 / 바닥 번호",
   UnknownError: "알수없는 오류",
   UnknownErrorOccurred: "알 수없는 오류가 발생했습니다",

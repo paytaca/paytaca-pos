@@ -705,6 +705,7 @@ export default {
   UnassignRider: "Nie -verskoonde ruiter",
   UnassigningRider: "Onaantasbare ruiter",
   UnconfirmOrder: "Onbevestigde orde",
+  UndoVoid: "Ongedaan",
   UnitNo: "Eenheid nr. / Vloer nr.",
   UnknownError: "Onbekende fout",
   UnknownErrorOccurred: "Onbekende fout het voorgekom",

@@ -32,16 +32,23 @@
             </q-chip>
             <q-space/>
             <q-btn
-              v-if="!salesOrder?.isVoid || true"
+              v-if="salesOrder?.draft === false"
               flat
               padding="xs"
               icon="more_vert"
             >
               <q-menu>
-                <q-item clickable v-ripple v-close-popup @click="() => confirmVoidSale()">
+                <q-item v-if="!salesOrder?.isVoid" clickable v-ripple v-close-popup @click="() => confirmVoidSale()">
                   <q-item-section>
                     <q-item-label>
                       {{ $t('VoidSale') }}
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item v-if="salesOrder?.isVoid" clickable v-ripple v-close-popup @click="() => undoVoidSale()">
+                  <q-item-section>
+                    <q-item-label style="white-space: nowrap;">
+                      {{ $t('UndoVoid') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -485,6 +492,38 @@ export default defineComponent({
         })
     }
 
+    function undoVoidSale() {
+      const dialog = $q.dialog({
+        title: 'Reverting voided sale',
+        progress: true,
+        persistent: true,
+        ok: false,
+      })
+
+      return backend.post(`sales-orders/${salesOrder?.value?.id}/undo_void/`)
+        .then(response => {
+          if (!response?.data?.id) fetchSalesOrder()
+          else salesOrder.value.raw = response?.data
+          dialog.hide()
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          const errorMessage = data?.detail || (Array.isArray(data) ? data?.[0] : null)
+          dialog.update({
+            title: errorMessage ? 'Error' : '',
+            message: errorMessage || 'Failed to undo void sale',
+          })
+        })
+        .finally(() => {
+          dialog.update({
+            progress: false,
+            persistent: false,
+            ok: false,
+            cancel: { flat: true, noCaps: true, label: 'Close', color: 'grey' },
+          })
+        })
+    }
+
     function copyToClipboard(value, message='') {
       this.$copyText(value)
         .then(() => {
@@ -520,6 +559,7 @@ export default defineComponent({
 
       confirmVoidSale,
       voidSale,
+      undoVoidSale,
 
       copyToClipboard,
 

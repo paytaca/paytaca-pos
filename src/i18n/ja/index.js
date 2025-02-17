@@ -705,6 +705,7 @@ export default {
   UnassignRider: "登録解除ライダー",
   UnassigningRider: "ライダーを廃止しません",
   UnconfirmOrder: "非正規順序",
+  UndoVoid: "無効を元に戻します",
   UnitNo: "ユニット番号 /フロア番号",
   UnknownError: "不明なエラー",
   UnknownErrorOccurred: "不明なエラーが発生しました",

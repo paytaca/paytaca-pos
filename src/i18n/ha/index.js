@@ -705,6 +705,7 @@ export default {
   UnassignRider: "Unassign Rider",
   UnassigningRider: "Ridiyon da ba ta dace ba",
   UnconfirmOrder: "Oda ba tare da izini ba",
+  UndoVoid: "Gyara komai",
   UnitNo: "Unit No. / bene A'a.",
   UnknownError: "Ba a sani ba",
   UnknownErrorOccurred: "Kuskuren da ba a sani ba ya faru",

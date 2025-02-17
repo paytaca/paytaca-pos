@@ -705,6 +705,7 @@ export default {
   UnassignRider: "Ciclista de inesperación",
   UnassigningRider: "Ciclista sin asignar",
   UnconfirmOrder: "Orden no confirm",
+  UndoVoid: "Deshacer nulo",
   UnitNo: "Unidad No. / Piso No.",
   UnknownError: "Error desconocido",
   UnknownErrorOccurred: "Ocurrió un error desconocido",

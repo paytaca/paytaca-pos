@@ -705,6 +705,7 @@ export default {
   UnassignRider: "Ungewissender Fahrer",
   UnassigningRider: "Reiter unglaublich",
   UnconfirmOrder: "Unbeständige Ordnung",
+  UndoVoid: "Leere",
   UnitNo: "Einheit Nr. / Boden Nr.",
   UnknownError: "Unbekannter Fehler",
   UnknownErrorOccurred: "Unbekannter Fehler aufgetreten",

@@ -705,6 +705,7 @@ export default {
   UnassignRider: "Unassign rider",
   UnassigningRider: "Unassigning rider",
   UnconfirmOrder: "Unconfirm order",
+  UndoVoid: "Undo void",
   UnitNo: "Unit No. / Floor No.",
   UnknownError: "Unknown error",
   UnknownErrorOccurred: "Unknown error occurred",

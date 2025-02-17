@@ -705,6 +705,7 @@ export default {
   UnassignRider: "统一的骑手",
   UnassigningRider: "统一的骑手",
   UnconfirmOrder: "未经证实的命令",
+  UndoVoid: "撤消空白",
   UnitNo: "单位号 /地板号",
   UnknownError: "未知错误",
   UnknownErrorOccurred: "发生未知错误",
