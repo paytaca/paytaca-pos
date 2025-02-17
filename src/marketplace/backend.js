@@ -28,7 +28,7 @@ backend.interceptors.response.use(
     return response
   },
   async (error) => {
-    if (!error?.response) return error
+    if (!error?.response) return Promise.reject(error)
     error.response = heartbeat.parseResponse(error?.response)
     return Promise.reject(error)
   }
