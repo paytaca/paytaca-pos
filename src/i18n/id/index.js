@@ -705,6 +705,7 @@ export default {
   UnassignRider: "Pengendara Unaksi",
   UnassigningRider: "Pengendara yang tidak menugaskan",
   UnconfirmOrder: "Pesanan yang tidak dikonfirmasi",
+  UndoVoid: "Undo void",
   UnitNo: "Unit No. / Lantai No.",
   UnknownError: "Kesalahan yang tidak diketahui",
   UnknownErrorOccurred: "Terjadi kesalahan yang tidak diketahui",

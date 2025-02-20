@@ -233,7 +233,7 @@ export const time = {
     const hours12 = hours % 12 || 12;
 
     // Format the time as a string in AM/PM format
-    const AMPMTime = `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+    const AMPMTime = `${hours12.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${period}`;
 
     return AMPMTime;
   },
@@ -246,7 +246,7 @@ export const time = {
   
     let hours = parseInt(match[1], 10);
     const minutes = parseInt(match[2], 10);
-    const period = match[3] ? match[3].toLowerCase() : null;
+    const period = match[4] ? match[4].toLowerCase() : null;
   
     if (period === 'pm' && hours !== 12) {
       hours += 12;

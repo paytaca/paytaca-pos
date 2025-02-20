@@ -35,7 +35,11 @@
             </template>
           </q-field>
           <div :class="[disableHours ? 'text-grey' : '']">
-            <div class="text-subtitle1">Hours</div>
+            <div class="row items-center">
+              <div class="text-subtitle1">Hours</div>
+              <q-space/>
+              <q-btn flat round :disable="disableHours" icon="add" padding="sm" @click="() => openTimeForm()"/>
+            </div>
             <q-banner v-if="deviceOffsetHours" rounded class="bg-cyan text-white q-my-xs">
               <template v-slot:avatar>
                 <q-icon name="info"  size="1.5rem"/>
@@ -70,17 +74,14 @@
                     v-model="formData.openStatus"
                     :error="Boolean(formErrors?.weekdays?.[index])"
                     :error-message="formErrors?.weekdays?.[index]"
-                    reactive-rules
-                    :rules="[
-                      // () => disableHours || !hasConflictingTimeslots[index] || 'Has conflict',
-                    ]"
                   >
                     <template v-slot:control>
                       <div class="text-subtitle2">{{ weekday.substring(0, 3) }}</div>
                     </template>
                   </q-field>
                 </td>
-                <td>
+                <td style="vertical-align: top;">
+                  <div class="text-center text-grey q-py-sm q-mt-xs visible-only-child"> No hours set </div>
                   <div
                     v-for="(weeklyHour, index) in formData.weeklyHours.filter(e => e?.weekday == index)"
                     :key="index"
@@ -102,14 +103,6 @@
                       @click="() => formData.weeklyHours = formData.weeklyHours.filter(e => e !== weeklyHour)"
                     />
                   </div>
-                  <q-btn
-                    :outline="$q.dark.isActive"
-                    :disable="disableHours || loading"
-                    no-caps
-                    label="Add"
-                    class="full-width"
-                    @click="() => addTimeslot(index)"
-                  />
                 </td>
               </tr>
             </table>
@@ -133,7 +126,7 @@ import { errorParser, time } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref } from 'vue'
-import TimeRangeFormDialogVue from 'src/components/marketplace/storefront/settings/TimeRangeFormDialog.vue'
+import StorefrontTimeFormDialog from './StorefrontTimeFormDialog.vue'
 
 export default defineComponent({
   name: 'StorefrontHoursForm',
@@ -217,6 +210,16 @@ export default defineComponent({
       })
     }
 
+    function reorderWeeklyHours() {
+      formData.value.weeklyHours.sort((slot1, slot2) => {
+        if (slot1.weekday !== slot2.weekday) return slot1.weekday - slot2.weekday
+
+        const start1 = time.toInteger(slot1.startTime)
+        const start2 = time.toInteger(slot2.startTime)
+        return start1 - start2
+      })
+    }
+
     function createEmptyFormErrors() {
       return { detail: [], openStatus: '', weekdays: [] }
     }
@@ -244,24 +247,6 @@ export default defineComponent({
       return `${time.to12Hour(weeklyHour?.startTime)} - ${time.to12Hour(weeklyHour?.endTime)}`
     }
 
-    function addTimeslot(weekday=-1) {
-      const weekdayStr = weekdays[weekday]
-      if (!weekdayStr) return
-
-      $q.dialog({
-        component: TimeRangeFormDialogVue,
-        componentProps: {
-          title: weekdayStr,
-        },
-      }).onOk(payload => {
-        const weeklyHour = createEmptyWeeklyHour()
-        weeklyHour.weekday = weekday
-        weeklyHour.startTime = payload?.startTime
-        weeklyHour.endTime = payload?.endTime
-        formData.value.weeklyHours.push(weeklyHour)
-      })
-    }
-
     /**
      * @param {Object} weeklyHour
      * @param {Number} weeklyHour.weekday
@@ -274,19 +259,56 @@ export default defineComponent({
       const weekdayStr = weekdays[weeklyHour?.weekday]
       if (!weekdayStr) return
 
+
       $q.dialog({
-        component: TimeRangeFormDialogVue,
+        component: StorefrontTimeFormDialog,
         componentProps: {
           title: weekdayStr,
           subtitle: weeklyHourToText(weeklyHour),
+          hideWeekdays: true,
+          existingTimeslots: formData.value.weeklyHours
+            .filter(slot => slot?.weekday === weeklyHour.weekday)
+            .filter(slot => slot?._index !== weeklyHour._index),
           initialValue: {
+            weekdays: [weeklyHour.weekday],
             startTime: weeklyHour?.startTime,
             endTime: weeklyHour?.endTime,
           }
         },
       }).onOk(payload => {
-        weeklyHour.startTime = payload?.startTime
-        weeklyHour.endTime = payload?.endTime
+        weeklyHour.startTime = time.to24Hour(payload?.startTime)
+        weeklyHour.endTime = time.to24Hour(payload?.endTime)
+        reorderWeeklyHours()
+      })
+    }
+
+    function openTimeForm() {
+      $q.dialog({
+        component: StorefrontTimeFormDialog,
+        componentProps: {
+          existingTimeslots: formData.value.weeklyHours,
+        },
+      }).onOk(value => {
+        const weekdays = value?.weekdays
+        if (!Array.isArray(weekdays)) return
+
+        const startTimeInt = time.toInteger(value?.startTime)
+        const endTimeInt = time.toInteger(value?.endTime)
+        if (Number.isNaN(startTimeInt) || Number.isNaN(endTimeInt)) return
+        if (startTimeInt > endTimeInt) return
+
+        const parsedStartTime = time.to24Hour(value.startTime)
+        const parsedEndTime = time.to24Hour(value.endTime)
+        const weeklyHours = weekdays.map(weekday => {
+          const weeklyHour = createEmptyWeeklyHour()
+          weeklyHour.weekday = weekday
+          weeklyHour.startTime = parsedStartTime
+          weeklyHour.endTime = parsedEndTime
+          return weeklyHour
+        })
+
+        formData.value.weeklyHours.push(...weeklyHours)
+        reorderWeeklyHours()
       })
     }
 
@@ -337,8 +359,8 @@ export default defineComponent({
       formErrors,
       timeOpts,
       weeklyHourToText,
-      addTimeslot,
       editWeeklyHour,
+      openTimeForm,
       saveStorefrontHours,
       time,
     }
@@ -349,5 +371,9 @@ export default defineComponent({
 .q-banner .banner-error:not(:only-child) {
   display: list-item;
   margin-left: 0.75em;
+}
+
+.visible-only-child:not(:only-child) {
+  display: none;
 }
 </style>

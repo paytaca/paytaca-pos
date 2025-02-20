@@ -705,6 +705,7 @@ export default {
   UnassignRider: "Unassign Rider",
   UnassigningRider: "Dili maayo nga Rider",
   UnconfirmOrder: "Dili katuohan nga Order",
+  UndoVoid: "Pag-undo",
   UnitNo: "Unit No. / Floor No.",
   UnknownError: "Wala mailhi nga sayup",
   UnknownErrorOccurred: "Ang wala mailhi nga sayup nahitabo",

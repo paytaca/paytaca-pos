@@ -705,6 +705,7 @@ export default {
   UnassignRider: "統一的騎手",
   UnassigningRider: "統一的騎手",
   UnconfirmOrder: "未經證實的命令",
+  UndoVoid: "撤消空白",
   UnitNo: "單位號 /地板號",
   UnknownError: "未知錯誤",
   UnknownErrorOccurred: "發生未知錯誤",

@@ -705,6 +705,7 @@ export default {
   UnassignRider: "Niet -aanvaardrijder",
   UnassigningRider: "Ruiter",
   UnconfirmOrder: "Onbevestiging bestelling",
+  UndoVoid: "Nietig ongedaan maken",
   UnitNo: "Unit No. / Floor Nr.",
   UnknownError: "Onbekende fout",
   UnknownErrorOccurred: "Er is een onbekende fout opgetreden",

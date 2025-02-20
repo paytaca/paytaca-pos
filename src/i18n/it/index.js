@@ -705,6 +705,7 @@ export default {
   UnassignRider: "Rider UNASSIGN",
   UnassigningRider: "Cavaliere senza assegnazione",
   UnconfirmOrder: "Ordine non conferma",
+  UndoVoid: "Annullare il vuoto",
   UnitNo: "Unità n. / Piano n.",
   UnknownError: "Errore sconosciuto",
   UnknownErrorOccurred: "Errore sconosciuto",

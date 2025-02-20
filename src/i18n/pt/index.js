@@ -705,6 +705,7 @@ export default {
   UnassignRider: "Cavaleiro não atribuído",
   UnassigningRider: "Rider desconhecido",
   UnconfirmOrder: "Ordem não confirmada",
+  UndoVoid: "Desfazer o vazio",
   UnitNo: "Unidade No. / Piso No.",
   UnknownError: "Erro desconhecido",
   UnknownErrorOccurred: "Ocorreu um erro desconhecido",
