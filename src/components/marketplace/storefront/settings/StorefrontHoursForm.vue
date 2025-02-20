@@ -276,8 +276,8 @@ export default defineComponent({
           }
         },
       }).onOk(payload => {
-        weeklyHour.startTime = payload?.startTime
-        weeklyHour.endTime = payload?.endTime
+        weeklyHour.startTime = time.to24Hour(payload?.startTime)
+        weeklyHour.endTime = time.to24Hour(payload?.endTime)
         reorderWeeklyHours()
       })
     }
@@ -297,11 +297,13 @@ export default defineComponent({
         if (Number.isNaN(startTimeInt) || Number.isNaN(endTimeInt)) return
         if (startTimeInt > endTimeInt) return
 
+        const parsedStartTime = time.to24Hour(value.startTime)
+        const parsedEndTime = time.to24Hour(value.endTIme)
         const weeklyHours = weekdays.map(weekday => {
           const weeklyHour = createEmptyWeeklyHour()
           weeklyHour.weekday = weekday
-          weeklyHour.startTime = value.startTime
-          weeklyHour.endTime = value.endTime
+          weeklyHour.startTime = parsedStartTime
+          weeklyHour.endTime = parsedEndTime
           return weeklyHour
         })
 
