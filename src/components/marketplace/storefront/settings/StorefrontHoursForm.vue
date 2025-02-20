@@ -298,7 +298,7 @@ export default defineComponent({
         if (startTimeInt > endTimeInt) return
 
         const parsedStartTime = time.to24Hour(value.startTime)
-        const parsedEndTime = time.to24Hour(value.endTIme)
+        const parsedEndTime = time.to24Hour(value.endTime)
         const weeklyHours = weekdays.map(weekday => {
           const weeklyHour = createEmptyWeeklyHour()
           weeklyHour.weekday = weekday
