@@ -187,7 +187,7 @@ class PushNotificationsManager {
   requestPermission() {
     return PushNotifications.requestPermissions()
       .then(response => {
-        this.permissionStatus = response?.receive
+        this.permissionStatus = response?.receive 
         return Promise.resolve(response)
       })
   }
