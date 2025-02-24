@@ -146,6 +146,7 @@ export default {
   CustomerNameOrOrderId: "顧客名 /注文ID",
   CustomerPickupHelpText: "顧客には、注文がピックアップの準備ができていることが通知されます。顧客に連絡することもできます",
   CustomerReview: "カスタマーレビュー",
+  CutleryCost: "カトラリーコスト",
   Daily: "毎日",
   DarkMode: "ダークモード",
   Date: "日付",

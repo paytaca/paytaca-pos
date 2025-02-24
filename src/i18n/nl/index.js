@@ -146,6 +146,7 @@ export default {
   CustomerNameOrOrderId: "Klantnaam / bestel -ID",
   CustomerPickupHelpText: "De klant wordt op de hoogte gebracht dat de bestelling klaar is om op te halen.U kunt ook contact opnemen met de klant",
   CustomerReview: "Klantreview",
+  CutleryCost: "Bestekkosten",
   Daily: "Dagelijks",
   DarkMode: "Donkere modus",
   Date: "Datum",

@@ -146,6 +146,7 @@ export default {
   CustomerNameOrOrderId: "客户名称 /订单ID",
   CustomerPickupHelpText: "通知客户该订单已准备就绪。您也可以通过",
   CustomerReview: "客户评论",
+  CutleryCost: "餐具成本",
   Daily: "日常的",
   DarkMode: "黑暗模式",
   Date: "日期",

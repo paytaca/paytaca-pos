@@ -34,6 +34,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar()
+    window.toggleDark = () => $q.dark.toggle()
     const { t } = useI18n()
     const walletStore = useWalletStore()
     const notificationsStore = useNotificationsStore()

@@ -146,6 +146,7 @@ export default {
   CustomerNameOrOrderId: "Ngalan sa Kostumer / Order ID",
   CustomerPickupHelpText: "Gipahibalo ang customer nga ang order andam na alang sa pagkuha.Mahimo ka usab makontak ang Customer pinaagi sa",
   CustomerReview: "Pagrepaso sa Customer",
+  CutleryCost: "Gasto sa Cutery",
   Daily: "Inadlaw",
   DarkMode: "Itom nga mode",
   Date: "Petsa",

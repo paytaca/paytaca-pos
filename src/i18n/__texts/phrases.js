@@ -90,8 +90,8 @@ const phrases = {
       RemoveProductsStorefrontMsg: 'Removing products from storefront',
       EncounteredUnknownError: 'Encountered unknown error',
       UnknownError: 'Unknown error',
-      CartOptions: 'Cart options',
       CartOptionsUpdated: 'Cart options updated',
+      CutleryCost: 'Cutlery cost',
       AddonOptionsUpdated: 'Addon options updated',
       AddingProducts: 'Adding products',
       UnableToAddProducts: 'Unable to add products',
@@ -513,6 +513,7 @@ const phrases = {
       AddRefund: 'Add refund',
       MarkupAmount: 'Markup amount',
       RefundAmount: 'Refund amount',
+      
     },
     {
       PaymentReceivedByEscrow: 'Payment received by escrow',

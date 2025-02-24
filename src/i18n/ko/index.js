@@ -146,6 +146,7 @@ export default {
   CustomerNameOrOrderId: "고객 이름 / 주문 ID",
   CustomerPickupHelpText: "고객은 주문이 픽업 준비가되었음을 알립니다.고객에게 연락 할 수도 있습니다",
   CustomerReview: "고객 검토",
+  CutleryCost: "칼 비용",
   Daily: "일일",
   DarkMode: "다크 모드",
   Date: "날짜",
