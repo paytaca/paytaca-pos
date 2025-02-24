@@ -333,6 +333,7 @@ export class Variant {
    * @param {String} data.name
    * @param {Number} data.price
    * @param {Number} data.markup_price
+   * @param {Number} data.cutlery_cost
    * @param {Number} data.total_stocks
    * @param {Number} data.expired_stocks
    * @param {{ id:Number, name:String, image_url:String }} [data.product]
@@ -347,6 +348,7 @@ export class Variant {
     this.name = data?.name
     this.price = data?.price
     this.markupPrice = data?.markup_price
+    this.cutleryCost = data?.cutlery_cost
     this.totalStocks = data?.total_stocks
     this.expiredStocks = data?.expired_stocks
 
@@ -417,6 +419,8 @@ export class Product {
    * @param {Number} data.variants_count
    * @param {Number} data.min_markup_price
    * @param {Number} data.max_markup_price
+   * @param {Number} data.min_cutlery_cost
+   * @param {Number} data.max_cutlery_cost
    * @param {String} [data.created_at]
    * @param {Number[]} data.shop_ids
    * @param {Object[]} [data.variants]
@@ -441,6 +445,8 @@ export class Product {
     this.variantsCount = data?.variants_count
     this.minMarkupPrice = data?.min_markup_price
     this.maxMarkupPrice = data?.max_markup_price
+    this.minCutleryCost = data?.min_cutlery_cost
+    this.maxCutleryCost = data?.max_cutlery_cost
     this.shopIds = data?.shop_ids
     if(data?.created_at) this.createdAt = new Date(data?.created_at)
 
@@ -455,6 +461,10 @@ export class Product {
     } else if (this.reviewSummary) delete this.reviewSummary
   }
 
+  updateData(data) {
+    this.raw = data
+  }
+
   get hasVariants() {
     return (this.variantsCount || this.variants?.length) > 1
   }
@@ -462,6 +472,12 @@ export class Product {
   get markupPriceRangeText() {
     let text = `${this.minMarkupPrice}`
     if (this.minMarkupPrice != this.maxMarkupPrice) text += ` - ${this.maxMarkupPrice}`
+    return text
+  }
+
+  get cutleryCostRangeText() {
+    let text = `${this.minCutleryCost}`
+    if (this.minCutleryCost != this.maxCutleryCost) text += ` - ${this.maxCutleryCost}`
     return text
   }
 
@@ -570,6 +586,24 @@ export class Product {
       .then(response => {
         if (!response?.data?.id) return Promise.reject({ response })
         this.raw = response.data
+        return response
+      })
+      .finally(() => {
+        this.$state.updating = false
+      })
+  }
+
+  async refetchInfo(opts = { persistVariantData: false }) {
+    if (!this.id) return
+    this.$state.updating = true
+
+    const params = { ids: this.id }
+    return backend.get(`products/info/`, { params })
+      .then(response => {
+        const data = response?.data?.results?.find(product => product?.id === this.id)
+        if (!data) return Promise.reject({ response })
+        if (opts?.persistVariantData) Object.assign(data, { variants: this.raw?.variants })
+        this.raw = data
         return response
       })
       .finally(() => {

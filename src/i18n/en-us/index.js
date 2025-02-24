@@ -146,6 +146,7 @@ export default {
   CustomerNameOrOrderId: "Customer name / Order ID",
   CustomerPickupHelpText: "Customer is notified that the order is ready for pickup. You can also contact customer through",
   CustomerReview: "Customer review",
+  CutleryCost: "Cutlery cost",
   Daily: "Daily",
   DarkMode: "Dark Mode",
   Date: "Date",

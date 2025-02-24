@@ -146,6 +146,7 @@ export default {
   CustomerNameOrOrderId: "Sunan Abokin Ciniki / Umurnin ID",
   CustomerPickupHelpText: "An sanar da abokin ciniki cewa oda ta shirya don ɗaukar kaya.Hakanan zaka iya tuntuɓar abokin ciniki ta hanyar",
   CustomerReview: "Neman Abokin Ciniki",
+  CutleryCost: "Yanke Cost",
   Daily: "Na kullum",
   DarkMode: "Yanayin duhu",
   Date: "Rana",

@@ -146,6 +146,7 @@ export default {
   CustomerNameOrOrderId: "Nama Pelanggan / ID Pesanan",
   CustomerPickupHelpText: "Pelanggan diberitahu bahwa pesanan siap untuk diambil.Anda juga dapat menghubungi pelanggan melalui",
   CustomerReview: "Ulasan pelanggan",
+  CutleryCost: "Biaya peralatan makan",
   Daily: "Sehari-hari",
   DarkMode: "Mode gelap",
   Date: "Tanggal",

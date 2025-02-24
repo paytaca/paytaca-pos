@@ -223,6 +223,11 @@
             {{ props?.row?.availableAtStorefrontText?.(marketplaceStore.storefrontData.id) }}
           </q-td>
         </template>
+        <template v-slot:body-cell-cutlery-cost="props">
+          <q-td :props="props" @click="() => editCutleryCost(props.row)">
+            {{ props?.value }}
+          </q-td>
+        </template>
         <template v-slot:body-cell-cart-options="props">
           <q-td :props="props">
             <q-btn
@@ -301,6 +306,7 @@ import JSONFormDialog from 'src/components/marketplace/jsonform/JSONFormDialog.v
 import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue';
 import AddonsFormDialog from 'src/components/marketplace/cartoptions/AddonsFormDialog.vue';
 import AddonsInfoDialog from 'src/components/marketplace/cartoptions/AddonsInfoDialog.vue';
+import ProductCutleryCostFormDialog from 'src/components/marketplace/inventory/ProductCutleryCostFormDialog.vue';
 
 export default defineComponent({
   name: 'StorefrontProducts',
@@ -392,6 +398,7 @@ export default defineComponent({
       { name: 'reviews', align: 'left', label: t('Reviews') },
       { name: 'available', align: 'left', label: t('Available'), sortable: true },
       { name: 'markup-price', align: 'left', label: t('MarkupPrice'), field: 'markupPriceRangeText', format: val => `${val} ${marketplaceStore?.currency}`, sortable: true },
+      { name: 'cutlery-cost', align: 'left', label: t('CutleryCost'), field: 'cutleryCostRangeText', format: val => `${val} ${marketplaceStore?.currency}`, sortable: true },
       { name: 'cart-options', align: 'left', label: t('CartOptions') },
       { name: 'addons', align: 'left', label: t('AddonOptions') },
       { name: 'created', align: 'center', label: t('Created'), field: 'createdAt', format: formatTimestampToText, sortable: true },
@@ -400,6 +407,7 @@ export default defineComponent({
     const sortFieldNameMap = {
       product: 'name',
       'markup-price': 'markup_price',
+      'cutlery-cost': 'cutlery_cost',
       created: 'created_at',
     }
     function sortMethod(rows, sortBy, descending) {
@@ -490,6 +498,17 @@ export default defineComponent({
       })
 
       return Promise.all(promises)
+    }
+
+    async function editCutleryCost(product=Product.parse()) {
+      $q.dialog({
+        component: ProductCutleryCostFormDialog,
+        componentProps: {
+          product: product,
+        }
+      }).onOk(() => {
+        product.refetchInfo()
+      })
     }
 
     async function updateCartOptions(product=Product.parse()) {
@@ -685,6 +704,7 @@ export default defineComponent({
       toggleProductSelection,
       confirmRemoveSelectedProducts,
       updateSelectedProductsAvailability,
+      editCutleryCost,
       updateCartOptions,
       viewAddons,
       updateAddons,
