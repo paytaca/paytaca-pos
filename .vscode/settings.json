@@ -12,5 +12,8 @@
     "typescript",
     "vue"
   ],
-  "editor.fontWeight": "bold"
+  "editor.fontWeight": "bold",
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  }
 }

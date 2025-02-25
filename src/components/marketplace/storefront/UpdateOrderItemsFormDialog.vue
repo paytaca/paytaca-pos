@@ -93,6 +93,23 @@
                   />
                 </div>
               </div>
+              <div class="q-pa-xs q-r-mx-sm">
+                <q-input
+                  dense outlined
+                  :disable="loading"
+                  :label="$t('CutleryCost', {}, 'Cutlery cost')"
+                  :suffix="orderCurrency"
+                  type="number"
+                  step="0.001"
+                  v-model.number="orderItem.cutleryCost"
+                  bottom-slots
+                  :error="Boolean(formErrors?.items?.[index]?.cutleryCost)"
+                  :error-message="formErrors?.items?.[index]?.cutleryCost"
+                  :rules="[
+                    val => val > 0 || $t('Invalid'),
+                  ]"
+                />
+              </div>
               <q-field
                 v-if="orderItem?.variant?.product?.hasCartOptions"
                 dense outlined
@@ -213,6 +230,7 @@ export default defineComponent({
         quantity: 0,
         price: 0,
         markupPrice: 0,
+        cutleryCost: 0,
         properties: undefined,
       }
     }
@@ -227,6 +245,7 @@ export default defineComponent({
           quantity: item.quantity,
           price: item.price,
           markupPrice: item.markupPrice,
+          cutleryCost: item.cutleryCost,
           properties: item.properties ? Object.assign({}, item.properties) : undefined,
         }
       }) || []
@@ -286,6 +305,7 @@ export default defineComponent({
           quantity: '',
           price: '',
           markupPrice: '',
+          cutleryCost: '',
         }
       })
     })
@@ -319,6 +339,7 @@ export default defineComponent({
             quantity: item?.quantity,
             price: item?.price || undefined,
             markup_price: item?.markupPrice || undefined,
+            cutlery_cost: item?.cutleryCost || undefined,
             properties: item?.properties,
           }
         })
@@ -349,6 +370,7 @@ export default defineComponent({
                 quantity: errorParser.firstElementOrValue(itemError?.quantity),
                 price: errorParser.firstElementOrValue(itemError?.price),
                 markupPrice: errorParser.firstElementOrValue(itemError?.markup_price),
+                cutleryCost: errorParser.firstElementOrValue(itemError?.cutlery_cost),
               }
             })
           }

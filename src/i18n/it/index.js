@@ -146,6 +146,7 @@ export default {
   CustomerNameOrOrderId: "Nome cliente / ID ordine",
   CustomerPickupHelpText: "Il cliente viene avvisato che l'ordine è pronto per il ritiro.Puoi anche contattare il cliente tramite",
   CustomerReview: "Recensione del cliente",
+  CutleryCost: "Costo delle posate",
   Daily: "Quotidiano",
   DarkMode: "Modalità scura",
   Date: "Data",
