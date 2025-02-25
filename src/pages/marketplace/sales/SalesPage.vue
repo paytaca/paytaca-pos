@@ -166,6 +166,9 @@
                 {{ $t('Order') }}#{{orderId}}
               </q-chip>
             </template>
+            <div v-else class="text-grey">
+              {{ $t('None') }}
+            </div>
           </q-td>
         </template>
       </q-table>

@@ -950,6 +950,7 @@ export class SalesOrder {
     switch(this.status) {
       case 'completed':
       case 'void':
+      case 'pending':
         return capitalize(this.status)
     }
   }
@@ -960,6 +961,8 @@ export class SalesOrder {
         return 'green'
       case 'void':
         return 'grey'
+      case 'pending':
+        return 'amber'
       default:
         return 
     }
