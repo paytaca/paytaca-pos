@@ -529,6 +529,12 @@ const phrases = {
       NonDeliveryOrLateDelivery: 'Non-Delivery or Late Delivery',
       InaccurateProductDescriptions: 'Inaccurate Product Descriptions',
       UndoVoid: 'Undo void',
+    },
+    {
+      RequireStock: 'Require stocks',
+      RemoveStockRequirement: 'Remove stock requirement',
+      RequireStockDesc: 'The product will require stock availability when ordering',
+      RemoveStockRequirementDesc: 'The product will not require stock availability when ordering',
     }
   ],
   dynamic: [
@@ -602,6 +608,10 @@ const phrases = {
       AddedQuantity: 'Added {quantity}',
       ShopTimezoneOffsetAhead: 'You are {hours} hours ahead of the shop address\' timezone',
       ShopTimezoneOffsetBehind: 'You are {hours} hours behind of the shop address\' timezone',
+    },
+    {
+      NumberInStock: '{num} in stock',
+      SelectedCount: '{count} selected',
     },
   ]
 }

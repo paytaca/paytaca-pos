@@ -491,6 +491,19 @@ export class Product {
     return ''
   }
 
+  get availableStocks() {
+    if (this.expiredStocks === null || this.expiredStocks === undefined) {
+      return this.totalStocks
+    }
+    return this.totalStocks - this.expiredStocks
+  }
+
+  get availableStocksText() {
+    if (!Number.isSafeInteger(this.availableStocks)) return $t('NoStocks')
+
+    return $t('NumberInStock', { num: this.availableStocks }, `${this.availableStocks} in stock`)
+  }
+
   updateVariants(variantsData=[]) {
     const oldVariants = this.variants
     this.variants = [].map(Variant.parse)
@@ -516,6 +529,12 @@ export class Product {
     const available = this.availableAtStorefront(storefrontId)
     if (typeof available !== 'boolean') return 
     return available ? 'Available' : 'Unavailable'
+  }
+
+  requireStocksAtStorefront(storefrontId) {
+    if (!Array.isArray(this.storefrontProducts)) return
+    const data = this.storefrontProducts.find(storefrontProduct => storefrontProduct?.storefrontId == storefrontId)
+    return data?.requireStocks
   }
 
   addStorefrontProductData(data) {
@@ -2166,12 +2185,14 @@ export class StorefrontProduct {
    * @param {Number} data.storefront_id
    * @param {Number} data.product_id
    * @param {Boolean} data.available
+   * @param {Boolean} data.require_stocks
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.storefrontId = data?.storefront_id
     this.productId = data?.product_id
     this.available = data?.available
+    this.requireStocks = data?.require_stocks
   }
 }
 

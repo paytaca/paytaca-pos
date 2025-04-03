@@ -100,40 +100,59 @@
           </div>
         </div>
       </div>
-
-      <q-slide-transition>
-        <div v-if="productsTableState.selected?.length" class="q-mb-sm row items-center q-gutter-sm">
-          <q-btn
-            rounded
-            :outline="$q.dark.isActive"
-            padding="2px 0.75em"
-            no-caps
-            :label="$t('Remove')"
-            @click="() => confirmRemoveSelectedProducts()"
-          />
-          <q-btn
-            rounded
-            :outline="$q.dark.isActive"
-            padding="2px 0.75em"
-            no-caps
-            :label="$t('MarkAvailable')"
-            @click="() => updateSelectedProductsAvailability(true)"
-          />
-
-          <q-btn
-            rounded
-            :outline="$q.dark.isActive"
-            padding="2px 0.75em"
-            no-caps
-            :label="$t('MarkUnavailable')"
-            @click="() => updateSelectedProductsAvailability(false)"
-          />
-        </div>
-      </q-slide-transition>
+      
+      <q-btn-dropdown
+        :outline="$q.dark.isActive"
+        :disable="!productsTableState.selected?.length"
+        padding="xs sm"
+        no-caps
+        color="brandblue"
+        class="q-mb-md"
+      >
+        <template v-slot:label>
+          <template v-if="productsTableState.selected?.length">
+            {{ $t('SelectedCount', { count: productsTableState.selected?.length }) }}
+          </template>
+          <template v-else>
+            {{ $t('Select') }}
+          </template>
+        </template>
+        <q-list>
+          <q-item clickable v-close-popup @click="() => confirmRemoveSelectedProducts()">
+            <q-item-section>
+              <q-item-label>{{ $t('Remove') }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator/>
+          <q-item clickable v-close-popup @click="() => updateSelectedProductsAvailability(true)">
+            <q-item-section>
+              <q-item-label>{{ $t('MarkAvailable') }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="() => updateSelectedProductsAvailability(false)">
+            <q-item-section>
+              <q-item-label>{{ $t('MarkUnavailable') }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator/>
+          <q-item clickable v-close-popup @click="() => updateSelectedProductsStockRequirementConfirm(true)">
+            <q-item-section>
+              <q-item-label>{{ $t('RequireStock') }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="() => updateSelectedProductsStockRequirementConfirm(false)">
+            <q-item-section>
+              <q-item-label>{{ $t('RemoveStockRequirement') }}</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-btn-dropdown>
 
       <q-table
         ref="table"
+        color="brandblue"
         :loading="fetchingProducts"
+        :visible-columns="visibleColumns"
         :columns="productsTableColumns"
         :rows="products"
         :pagination="{ rowsPerPage: 0 }"
@@ -228,6 +247,22 @@
             {{ props?.value }}
           </q-td>
         </template>
+
+        <template v-slot:body-cell-stocks="props">
+          <q-td :props="props" @click="() => toggleProductSelection(props.row)">
+            <div class="row items-center no-wrap">
+              <q-icon
+                class="q-mr-xs"
+                size="1.5rem"
+                :name="props?.row?.requireStocksAtStorefront?.(marketplaceStore.storefrontData.id) ? 'check' : 'close'"
+              />
+              <div v-if="props.row?.availableStocksText">
+                {{ props?.row?.availableStocksText }}
+              </div>
+            </div>
+          </q-td>
+        </template>
+        
         <template v-slot:body-cell-cart-options="props">
           <q-td :props="props">
             <q-btn
@@ -297,7 +332,7 @@ import { errorParser, formatTimestampToText } from 'src/marketplace/utils';
 import { useMarketplaceStore } from 'src/stores/marketplace';
 import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar';
-import { defineComponent, onMounted, ref, watch } from 'vue'
+import { defineComponent, onMounted, ref, computed, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue';
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue';
 import ProductInventoryDialog from 'src/components/marketplace/inventory/ProductInventoryDialog.vue';
@@ -319,6 +354,7 @@ export default defineComponent({
   setup() {
     const $q = useQuasar()
     const { t } = useI18n()
+    const $t = t
     const marketplaceStore = useMarketplaceStore()
 
     const categoriesFilter = ref({
@@ -393,10 +429,10 @@ export default defineComponent({
 
     const table = ref()
     const productsTableColumns = [
-      { name: 'product', align: 'left', label: t('Product'), field: 'name', sortable: true },
-      // { name: 'total-quantity', align: 'center', label: t('Stock'), field: 'totalStocks' },
+      { name: 'product', align: 'left', label: t('Product'), field: 'name', sortable: true, required: true },
       { name: 'reviews', align: 'left', label: t('Reviews') },
       { name: 'available', align: 'left', label: t('Available'), sortable: true },
+      { name: 'stocks', align: 'center', label: t('RequireStock') },
       { name: 'markup-price', align: 'left', label: t('MarkupPrice'), field: 'markupPriceRangeText', format: val => `${val} ${marketplaceStore?.currency}`, sortable: true },
       { name: 'cutlery-cost', align: 'left', label: t('CutleryCost'), field: 'cutleryCostRangeText', format: val => `${val} ${marketplaceStore?.currency}`, sortable: true },
       { name: 'cart-options', align: 'left', label: t('CartOptions') },
@@ -404,6 +440,11 @@ export default defineComponent({
       { name: 'created', align: 'center', label: t('Created'), field: 'createdAt', format: formatTimestampToText, sortable: true },
       // { name: 'actions', align: 'center', label: '' },
     ]
+    const visibleColumns = computed(() => {
+      return productsTableState.value.selected.length
+        ? ['product', 'available', 'stocks']
+        : productsTableColumns.map(column => column.name)
+    })
     const sortFieldNameMap = {
       product: 'name',
       'markup-price': 'markup_price',
@@ -509,6 +550,41 @@ export default defineComponent({
       }).onOk(() => {
         product.refetchInfo()
       })
+    }
+
+    function updateSelectedProductsStockRequirementConfirm(required) {
+      if (typeof required !== 'boolean') return
+
+      $q.dialog({
+        title: required ? $t('RequireStock') : $t('RemoveStockRequirement'),
+        message: required ? $t('RequireStockDesc') : $t('RemoveStockRequirementDesc'),
+        ok: { color: 'brandblue', label: $t('Okay'), noCaps: true },
+        cancel: { flat: true, color: 'grey', label: $t('Cancel'), noCaps: true },
+      })
+        .onOk(() => updateSelectedProductsStockRequirement(required))
+    }
+
+    /**
+     * @param {Bool} required 
+     */
+     function updateSelectedProductsStockRequirement(required) {
+      if (typeof required !== 'boolean') return
+
+      const promises = productsTableState.value.selected.map(product => {
+        const handle = `${marketplaceStore.storefrontData?.id}-${product?.id}`
+        const data = { require_stocks: required }
+        product.$state.updating = true
+        return backend.patch(`connecta/storefront-products/${handle}/`, data)
+          .then(response => {
+            product.addStorefrontProductData(response?.data)
+            return response
+          })
+          .finally(() => {
+            product.$state.updating = false
+          })
+      })
+
+      return Promise.all(promises)
     }
 
     async function updateCartOptions(product=Product.parse()) {
@@ -697,6 +773,7 @@ export default defineComponent({
       fetchProducts,
 
       table,
+      visibleColumns,
       productsTableColumns,
       sortMethod,
 
@@ -705,6 +782,8 @@ export default defineComponent({
       confirmRemoveSelectedProducts,
       updateSelectedProductsAvailability,
       editCutleryCost,
+      updateSelectedProductsStockRequirementConfirm,
+      updateSelectedProductsStockRequirement,
       updateCartOptions,
       viewAddons,
       updateAddons,
