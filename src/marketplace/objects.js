@@ -333,6 +333,7 @@ export class Variant {
    * @param {String} data.name
    * @param {Number} data.price
    * @param {Number} data.markup_price
+   * @param {Number} data.cutlery_cost
    * @param {Number} data.total_stocks
    * @param {Number} data.expired_stocks
    * @param {{ id:Number, name:String, image_url:String }} [data.product]
@@ -347,6 +348,7 @@ export class Variant {
     this.name = data?.name
     this.price = data?.price
     this.markupPrice = data?.markup_price
+    this.cutleryCost = data?.cutlery_cost
     this.totalStocks = data?.total_stocks
     this.expiredStocks = data?.expired_stocks
 
@@ -417,6 +419,8 @@ export class Product {
    * @param {Number} data.variants_count
    * @param {Number} data.min_markup_price
    * @param {Number} data.max_markup_price
+   * @param {Number} data.min_cutlery_cost
+   * @param {Number} data.max_cutlery_cost
    * @param {String} [data.created_at]
    * @param {Number[]} data.shop_ids
    * @param {Object[]} [data.variants]
@@ -441,6 +445,8 @@ export class Product {
     this.variantsCount = data?.variants_count
     this.minMarkupPrice = data?.min_markup_price
     this.maxMarkupPrice = data?.max_markup_price
+    this.minCutleryCost = data?.min_cutlery_cost
+    this.maxCutleryCost = data?.max_cutlery_cost
     this.shopIds = data?.shop_ids
     if(data?.created_at) this.createdAt = new Date(data?.created_at)
 
@@ -455,6 +461,10 @@ export class Product {
     } else if (this.reviewSummary) delete this.reviewSummary
   }
 
+  updateData(data) {
+    this.raw = data
+  }
+
   get hasVariants() {
     return (this.variantsCount || this.variants?.length) > 1
   }
@@ -462,6 +472,12 @@ export class Product {
   get markupPriceRangeText() {
     let text = `${this.minMarkupPrice}`
     if (this.minMarkupPrice != this.maxMarkupPrice) text += ` - ${this.maxMarkupPrice}`
+    return text
+  }
+
+  get cutleryCostRangeText() {
+    let text = `${this.minCutleryCost}`
+    if (this.minCutleryCost != this.maxCutleryCost) text += ` - ${this.maxCutleryCost}`
     return text
   }
 
@@ -473,6 +489,19 @@ export class Product {
       return this.variants.map(variant => variant.imageUrl).find(Boolean)
     }
     return ''
+  }
+
+  get availableStocks() {
+    if (this.expiredStocks === null || this.expiredStocks === undefined) {
+      return this.totalStocks
+    }
+    return this.totalStocks - this.expiredStocks
+  }
+
+  get availableStocksText() {
+    if (!Number.isSafeInteger(this.availableStocks)) return $t('NoStocks')
+
+    return $t('NumberInStock', { num: this.availableStocks }, `${this.availableStocks} in stock`)
   }
 
   updateVariants(variantsData=[]) {
@@ -500,6 +529,12 @@ export class Product {
     const available = this.availableAtStorefront(storefrontId)
     if (typeof available !== 'boolean') return 
     return available ? 'Available' : 'Unavailable'
+  }
+
+  requireStocksAtStorefront(storefrontId) {
+    if (!Array.isArray(this.storefrontProducts)) return
+    const data = this.storefrontProducts.find(storefrontProduct => storefrontProduct?.storefrontId == storefrontId)
+    return data?.requireStocks
   }
 
   addStorefrontProductData(data) {
@@ -570,6 +605,24 @@ export class Product {
       .then(response => {
         if (!response?.data?.id) return Promise.reject({ response })
         this.raw = response.data
+        return response
+      })
+      .finally(() => {
+        this.$state.updating = false
+      })
+  }
+
+  async refetchInfo(opts = { persistVariantData: false }) {
+    if (!this.id) return
+    this.$state.updating = true
+
+    const params = { ids: this.id }
+    return backend.get(`products/info/`, { params })
+      .then(response => {
+        const data = response?.data?.results?.find(product => product?.id === this.id)
+        if (!data) return Promise.reject({ response })
+        if (opts?.persistVariantData) Object.assign(data, { variants: this.raw?.variants })
+        this.raw = data
         return response
       })
       .finally(() => {
@@ -916,6 +969,7 @@ export class SalesOrder {
     switch(this.status) {
       case 'completed':
       case 'void':
+      case 'pending':
         return capitalize(this.status)
     }
   }
@@ -926,6 +980,8 @@ export class SalesOrder {
         return 'green'
       case 'void':
         return 'grey'
+      case 'pending':
+        return 'amber'
       default:
         return 
     }
@@ -1691,6 +1747,7 @@ export class OrderItem {
    * @param {Number} data.quantity
    * @param {Number} data.price
    * @param {Number} data.markup_price
+   * @param {Number} data.cutlery_cost
    * @param {{ schema:Array, data:Object }} [data.properties]
    * @param {Object[]} [data.addons]
    */
@@ -1702,6 +1759,7 @@ export class OrderItem {
     this.quantity = data?.quantity
     this.price = data?.price
     this.markupPrice = data?.markup_price
+    this.cutleryCost = data?.cutlery_cost
     this.properties = data?.properties
     this.addons = (Array.isArray(data?.addons) ? data.addons: []).map(LineItemAddon.parse)
   }
@@ -1743,6 +1801,8 @@ export class Order {
    * @param {'local_delivery' | 'store_pickup' | 'shipping'} data.delivery_type
    * @param {Object} data.delivery_address
    * @param {Object[]} data.items
+   * @param {Boolean} data.require_cutlery
+   * @param {Number} data.cutlery_subtotal
    * @param {Number} data.subtotal
    * @param {Number} data.markup_subtotal
    * @param {Number} data.total_paid
@@ -1770,6 +1830,8 @@ export class Order {
     this.deliveryType = data?.delivery_type
     this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
     this.items = data?.items?.map?.(OrderItem.parse)
+    this.requireCutlery = data?.require_cutlery
+    this.cutlerySubtotal = data?.cutlery_subtotal
     this.subtotal = data?.subtotal
     this.markupSubtotal = data?.markup_subtotal
     this.totalPaid = data?.total_paid
@@ -2123,12 +2185,14 @@ export class StorefrontProduct {
    * @param {Number} data.storefront_id
    * @param {Number} data.product_id
    * @param {Boolean} data.available
+   * @param {Boolean} data.require_stocks
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.storefrontId = data?.storefront_id
     this.productId = data?.product_id
     this.available = data?.available
+    this.requireStocks = data?.require_stocks
   }
 }
 

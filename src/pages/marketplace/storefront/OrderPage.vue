@@ -500,9 +500,28 @@
                 <td class="text-center" style="white-space:nowrap;">{{ round(addon?.price * orderItem?.quantity, 3) }} {{ orderCurrency }}</td>
               </tr>
             </template>
+            <tr v-if="order?.cutlerySubtotal">
+              <td colspan="2" class="text-weight-medium">
+                <div class="q-py-sm text-weight-medium">Cutlery</div>
+              </td>
+              <td></td>
+              <td></td>
+              <td class="text-center" style="white-space:nowrap;">
+                {{ round(order?.cutlerySubtotal, 3) }} {{ orderCurrency }}
+              </td>
+            </tr>
           </tbody>
         </q-markup-table>
       </q-card>
+
+      <q-banner v-if="order?.requireCutlery" class="rounded-borders q-mb-md">
+        <template v-slot:avatar>
+          <q-icon name="flatware" class="q-my-xs"/>
+        </template>
+        <div class="text-subtitle1">
+          Customer requested to provide cutlery
+        </div>
+      </q-banner>
 
       <div class="q-px-xs" @click="toggleAmountsDisplay">
         <div class="row items-start text-subtitle2">

@@ -90,8 +90,8 @@ const phrases = {
       RemoveProductsStorefrontMsg: 'Removing products from storefront',
       EncounteredUnknownError: 'Encountered unknown error',
       UnknownError: 'Unknown error',
-      CartOptions: 'Cart options',
       CartOptionsUpdated: 'Cart options updated',
+      CutleryCost: 'Cutlery cost',
       AddonOptionsUpdated: 'Addon options updated',
       AddingProducts: 'Adding products',
       UnableToAddProducts: 'Unable to add products',
@@ -513,6 +513,7 @@ const phrases = {
       AddRefund: 'Add refund',
       MarkupAmount: 'Markup amount',
       RefundAmount: 'Refund amount',
+      
     },
     {
       PaymentReceivedByEscrow: 'Payment received by escrow',
@@ -528,6 +529,12 @@ const phrases = {
       NonDeliveryOrLateDelivery: 'Non-Delivery or Late Delivery',
       InaccurateProductDescriptions: 'Inaccurate Product Descriptions',
       UndoVoid: 'Undo void',
+    },
+    {
+      RequireStock: 'Require stocks',
+      RemoveStockRequirement: 'Remove stock requirement',
+      RequireStockDesc: 'The product will require stock availability when ordering',
+      RemoveStockRequirementDesc: 'The product will not require stock availability when ordering',
     }
   ],
   dynamic: [
@@ -601,6 +608,10 @@ const phrases = {
       AddedQuantity: 'Added {quantity}',
       ShopTimezoneOffsetAhead: 'You are {hours} hours ahead of the shop address\' timezone',
       ShopTimezoneOffsetBehind: 'You are {hours} hours behind of the shop address\' timezone',
+    },
+    {
+      NumberInStock: '{num} in stock',
+      SelectedCount: '{count} selected',
     },
   ]
 }
