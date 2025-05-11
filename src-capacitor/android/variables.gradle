@@ -1,6 +1,6 @@
 ext {
     minSdkVersion = 22
-    compileSdkVersion = 30
+    compileSdkVersion = 33
     targetSdkVersion = 34
     androidxActivityVersion = '1.2.0'
     androidxAppCompatVersion = '1.2.0'
