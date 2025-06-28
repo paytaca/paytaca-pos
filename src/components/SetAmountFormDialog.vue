@@ -81,10 +81,6 @@ export default defineComponent({
     })
 
     function checkAmount () {
-      if (amount.value.currency !== 'BCH' && amount.value.value < 1) {
-        onDialogCancel()
-        return
-      }
       onDialogOK({ amount: amount.value })
     }
     
