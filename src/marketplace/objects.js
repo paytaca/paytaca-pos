@@ -63,6 +63,40 @@ export class Location {
   }
 }
 
+export class FungibleCashToken {
+  static parse(data) {
+    return new FungibleCashToken(data)
+  }
+  
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data 
+   * @param {String} data.category
+   * @param {String} data.name
+   * @param {String} data.description
+   * @param {String} data.symbol
+   * @param {Number} data.decimals
+   * @param {String} data.image_url
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.category = data?.category
+    this.name = data?.name
+    this.description = data?.description
+    this.symbol = data?.symbol
+    this.decimals = data?.decimals
+    this.imageUrl = data?.image_url
+  }
+}
+
 export class StockAdjustment {
   static parse(data) {
     return new StockAdjustment(data)

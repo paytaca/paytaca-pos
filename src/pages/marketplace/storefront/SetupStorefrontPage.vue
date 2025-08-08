@@ -26,6 +26,9 @@
       <q-tab-panel name="hours" class="q-px-none">
         <StorefrontHoursForm @saved="() => onStorefrontHoursSaved()"/>
       </q-tab-panel>
+      <q-tab-panel name="payments" class="q-px-none">
+        <StorefrontPaymentSettingsForm @saved="() => onStorefrontPaymentSettingsSaved()"/>
+      </q-tab-panel>
     </q-tab-panels>
   </q-page>
 </template>
@@ -38,6 +41,7 @@ import { defineComponent, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import StorefrontInfoForm from 'src/components/marketplace/storefront/settings/StorefrontInfoForm.vue'
 import StorefrontHoursForm from 'src/components/marketplace/storefront/settings/StorefrontHoursForm.vue'
+import StorefrontPaymentSettingsForm from 'src/components/marketplace/storefront/settings/StorefrontPaymentSettingsForm.vue'
 
 export default defineComponent({
   name: 'SetupStorefrontPage.vue',
@@ -45,6 +49,7 @@ export default defineComponent({
     MarketplaceHeader,
     StorefrontInfoForm,
     StorefrontHoursForm,
+    StorefrontPaymentSettingsForm,
   },
   props: {
     tabParam: String,
@@ -59,6 +64,7 @@ export default defineComponent({
     const tabs = ref([
       { label: t('Info'), name: 'info', disable: false, },
       { label: t('Hours'), name: 'hours', disable: !Boolean(marketplaceStore?.storefrontData?.id), },
+      { label: t('Payments'), name: 'payments', disable: !Boolean(marketplaceStore?.storefrontData?.id), },
     ])
 
     watch(tab, () => $router.replace({ params: { tabParam: tab.value } }))
@@ -85,6 +91,15 @@ export default defineComponent({
       }).onOk(() => $router.go(-1))
     }
 
+    function onStorefrontPaymentSettingsSaved() {
+      $q.dialog({
+        title: t('StorefrontUpdated'),
+        color: 'brandblue',
+        ok: { noCaps: true, label: t('Return') },
+        cancel: { noCaps: true, label: t('StayInPage'), flat: true },
+      }).onOk(() => $router.go(-1))
+    }
+
     return {
       marketplaceStore,
       tab,
@@ -92,6 +107,7 @@ export default defineComponent({
 
       onStorefrontInfoSaved,
       onStorefrontHoursSaved,
+      onStorefrontPaymentSettingsSaved,
     }
   },
 })

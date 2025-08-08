@@ -121,6 +121,8 @@ const phrases = {
       RefundFailed: 'Refund failed',
       FetchingDetails: 'Fetching details',
       FetchingOrder: 'Fetching order',
+      AcceptedTokens: 'Accepted Tokens',
+      FungibleTokenFilterPlaceholder: 'Filter by token ID, symbol, or name',
     },
     {
       PaymentStatus: 'Payment Status',
@@ -535,7 +537,7 @@ const phrases = {
       RemoveStockRequirement: 'Remove stock requirement',
       RequireStockDesc: 'The product will require stock availability when ordering',
       RemoveStockRequirementDesc: 'The product will not require stock availability when ordering',
-    }
+    },
   ],
   dynamic: [
     {

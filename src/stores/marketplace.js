@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { backend } from 'src/marketplace/backend'
-import { Shop, ROLES, User, Storefront } from 'src/marketplace/objects';
+import { Shop, ROLES, User, Storefront, FungibleCashToken } from 'src/marketplace/objects';
 import { time } from 'src/marketplace/utils';
 import { useWalletStore } from './wallet';
 
@@ -65,6 +65,20 @@ export const useMarketplaceStore = defineStore('marketplace', {
             weekday: -1,
             start_time: '',
             end_time: '',
+          }
+        })
+      },
+      acceptedTokensData: {
+        id: 1,
+        accepted_tokens: [].map(() => {
+          return {
+            category: '',
+            decimals: 0,
+            description: '',
+            name: '',
+            symbol: '',
+            image_url: '',
+            is_active: false,
           }
         })
       },
@@ -139,6 +153,11 @@ export const useMarketplaceStore = defineStore('marketplace', {
           return [start, end]
         })
         .sort((a, b) => a[0] - b[0])
+    },
+    acceptedTokens() {
+      const storefrontId = this.storefrontData?.id;
+      if (storefrontId !== this.acceptedTokensData?.id) return []
+      return this.acceptedTokensData?.accepted_tokens?.map(FungibleCashToken.parse)
     }
   },
   actions: {
@@ -381,6 +400,25 @@ export const useMarketplaceStore = defineStore('marketplace', {
             end_time: weekly_hour?.end_time,
           }
         })
+      }
+    },
+    fetchAcceptedTokens() {
+      const storefrontId = this.storefrontData?.id;
+      return backend.get(`connecta/storefronts/${storefrontId}/accepted_tokens/`)
+        .then(response => {
+          this.setAcceptedTokensData(response.data)
+          return this.acceptedTokens
+        })
+    },
+    /**
+     * @param {Object} data
+     * @param {Number} data.id
+     * @param {Object[]} data.accepted_tokens
+     */
+    setAcceptedTokensData(data) {
+      this.acceptedTokensData = {
+        id: data?.id,
+        accepted_tokens: data?.accepted_tokens
       }
     }
   }
