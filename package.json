@@ -34,7 +34,7 @@
     "axios-cache-adapter": "^2.7.3",
     "capacitor-secure-storage-plugin": "^0.8.1",
     "cashc": "^0.8.0",
-    "cashscript": "^0.8.0",
+    "cashscript": "^0.11.4",
     "core-js": "^3.6.5",
     "leaflet": "^1.9.2",
     "net": "^1.0.2",
