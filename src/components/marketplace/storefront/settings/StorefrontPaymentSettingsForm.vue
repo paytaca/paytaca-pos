@@ -9,8 +9,15 @@
       bottom-slots
       class="q-mx-sm"
     />
-    <q-list style="max-height:50vh; overflow-y:auto;">
+    <q-list style="max-height:calc(100vh - 27rem); overflow-y:auto;">
       <TransitionGroup tag="ul" name="fade" class="container">
+        <q-item v-if="fetchingFungibleTokens" dense>
+          <q-item-section>
+            <q-item-label class="text-center">
+              Fetching Tokens <q-spinner/>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item
           v-for="fungibleCashtoken in filteredFungibleCt"
           :key="fungibleCashtoken.category"
