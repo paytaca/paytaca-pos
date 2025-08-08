@@ -16,7 +16,7 @@ export const useMarketStore = defineStore('market', {
     getRate() {
       return (currency, resetLastRate = false) => {
         const bchRate = this.bchRates.find(rate => rate.currency === currency)
-        const bchRateUsed = bchRate && currency !== 'ARS'
+        const bchRateUsed = bchRate
         let rate = 0
 
         if (bchRateUsed) {
