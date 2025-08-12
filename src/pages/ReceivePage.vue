@@ -193,7 +193,6 @@
 import { getNetworkTimeDiff } from 'src/utils/time.js'
 import { useWalletStore } from 'stores/wallet'
 import { usePaymentsStore } from 'stores/payments'
-import { useTxCacheStore } from 'src/stores/tx-cache'
 import { useAddressesStore } from 'stores/addresses'
 import { useMarketStore } from 'src/stores/market'
 import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
@@ -206,7 +205,6 @@ import QRCode from 'vue-qrcode-component'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
-import axios from 'axios'
 import ConfettiExplosion from "vue-confetti-explosion"
 
 
@@ -243,7 +241,6 @@ export default defineComponent({
     const { t } = useI18n()
     const $router = useRouter()
     const walletStore = useWalletStore()
-    const txCacheStore = useTxCacheStore()
     const marketStore = useMarketStore()
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
@@ -426,13 +423,6 @@ export default defineComponent({
       return paymentUri
     })
 
-    function cacheQrData() {
-      // walletStore.cacheQrData(qrData.value)
-      walletStore.removeOldQrDataCache(86400*2) // remove qr data older than 2 days
-    }
-    watch(qrData, () => cacheQrData())
-    onMounted(() => cacheQrData())
-    
     const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
     const merchantReceivingAddress = addressSet.value?.receiving
     const websocketInits = [
@@ -730,7 +720,6 @@ export default defineComponent({
 
     return {
       isOnline,
-      txCacheStore,
       promptOnLeave,
       addressSet,
       loading,
