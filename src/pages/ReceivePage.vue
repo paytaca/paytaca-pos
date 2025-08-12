@@ -51,7 +51,7 @@
       </div>
     </div>
 
-    <div v-if="showExpirationTimer && !isBchMode" class="flex flex-center">
+    <div v-if="!isBchMode" class="flex flex-center">
       <q-linear-progress
         v-if="!qrScanned && !paid"
         :value="qrExpirationTimer"
@@ -244,46 +244,30 @@ export default defineComponent({
     const marketStore = useMarketStore()
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
-    const wakeLock = reactive(useWakeLock())
 
     const dustBch = 546e-8
 
-    const isBchMode = ref(props.setCurrency === 'BCH')
-
-    const addressSet = computed(() => addressesStore.currentAddressSet)
     const loading = computed(() => generatingAddress.value && !addressSet.value?.receiving)
-    let qrScanned = ref(false)
-    
-    const remainingPayment = computed(() => {
-      const remaining = paymentsStore.total - paymentsStore.paid
-      if (remaining < 0 || (remaining <= dustBch && paymentsStore.paid !== 0)) return 0
-      return remaining
-    })
-    const paymentProgress = computed(() => {
-      if (remainingPayment.value === 0) return 1
-      return paymentsStore.paid / paymentsStore.total
-    })
-    const remainingPaymentRounded = computed(() => Number(remainingPayment.value.toFixed(8)))
-    const triggerSecondConfetti = ref(false)
-    const paid = computed(() => remainingPayment.value === 0)
+    const promptOnLeave = ref(true)
 
+    /* <-- Core details */
+    onMounted(() => {
+      paymentsStore.resetPayment()
+
+      if (props.setAmount) receiveAmount.value = props.setAmount
+      if (props.setCurrency) currency.value = props.setCurrency
+      if (props.setAmount && props.lockAmount) disableAmount.value = true
+    })
+    const receiveAmount = ref(0)
+    const currency = ref('BCH')
+    const disableAmount = ref(false)
+    const isBchMode = ref(props.setCurrency === 'BCH')
+    /* Core details --> */
+
+    /* <-- Wallet/address */
+    const addressSet = computed(() => addressesStore.currentAddressSet)  
     const receivingAddress = addressSet.value?.receiving
     const generatingAddress = ref(false)
-    const promptOnLeave = ref(true)
-    const refreshQr = ref(false)
-    const refreshingQr = ref(false)
-    const qrExpirationTimer = ref(1)
-    const showExpirationTimer = ref(true)
-    const networkTimeDiff = ref(0)
-    const networkTimeDiffSeconds = computed(() => Math.round(networkTimeDiff.value/1000))
-    onMounted(() => updateNetworkTimeDiff())
-    function updateNetworkTimeDiff() {
-      getNetworkTimeDiff().then(result => {
-        networkTimeDiff.value = result?.timeDifference
-      })
-    }
-
-    onMounted(async () => await wakeLock.request('screen'))
     onMounted(() => {
       generatingAddress.value = true
       addressesStore.fillAddressSets()
@@ -300,28 +284,30 @@ export default defineComponent({
     function updatePaymentUriLabel() {
       posId.value = walletStore.posId
     }
+    /* Wallet/address --> */
 
-    const receiveAmount = ref(0)
-    const currency = ref('BCH')
-    const disableAmount = ref(false)
+    /* <-- Network diff */
+    /** - Used to adjust expiration timestamp since device's clock might not be in sync
+     *    with the timestamp of payer's clock.
+     *  - Network diff is how much seconds the server(watchtower) is ahead of device's time
+    */
+    const networkTimeDiff = ref(0)
+    const networkTimeDiffSeconds = computed(() => Math.round(networkTimeDiff.value/1000))
+    onMounted(() => updateNetworkTimeDiff())
+    function updateNetworkTimeDiff() {
+      getNetworkTimeDiff().then(result => {
+        networkTimeDiff.value = result?.timeDifference
+      })
+    }
+    /* Network diff --> */
 
+    /* <-- Conversion rates */
     const currencyRateUpdateRate = 5 * 60 * 1000
     const currencyBchRate = computed(() => {
       if (!currency.value) return
       if (isBchMode.value) return { currency: 'BCH', rate: 1, timestamp: Date.now(), status: 2 }
       return marketStore.getRate(currency.value)
     })
-    const currencyAmountRemaining = computed(() => {
-      const currencyRemaining = currencyBchRate?.value?.rate * remainingPaymentRounded.value
-      return Number(currencyRemaining.toFixed(2))
-    })
-    let qrExpirationPrompt = null
-    let qrExpirationCountdown = null
-
-    onMounted(() => refreshQrCountdown())
-    watch(currency, () => updateSelectedCurrencyRate())
-
-
     const status = {
       '0': { icon: 'mdi-equal', color: 'brandblue' },
       '1': { icon: 'mdi-arrow-up', color: 'green-6' },
@@ -329,12 +315,78 @@ export default defineComponent({
     }
     const bchRateStatus = computed(() => status[currencyBchRate.value.status.toString()])
 
-
     function updateSelectedCurrencyRate () {
       if (isBchMode.value) return
       marketStore.refreshBchPrice(currency.value)
       setTimeout(() => {refreshingQr.value = false}, 3000)
     }
+    /* Conversion rates --> */
+
+    /* <-- Value/amounts */
+    const bchValue = computed(() => {
+      if (isBchMode.value) {
+        paymentsStore.setTotalPayment(receiveAmount.value)
+        return receiveAmount.value
+      }
+      const rateValue = currencyBchRate.value?.rate
+      const finalBchValue = Number((receiveAmount.value / rateValue).toFixed(8))
+      paymentsStore.setTotalPayment(finalBchValue)
+      return finalBchValue
+    })
+
+
+    function showSetAmountDialog(opts={force:false}) {
+      if (disableAmount.value && !opts?.force) return
+
+      const currencies = ['BCH']
+      $q.dialog({
+        component: SetAmountFormDialog,
+        componentProps: {
+          currencies,
+          initialValue: { amount: receiveAmount.value, currency: currency.value }
+        }
+      }).onOk(data => {
+        receiveAmount.value = data?.value
+        currency.value = data?.currency || 'BCH'
+      })
+    }
+    /* Value/amounts --> */
+
+
+    /* <-- Remaining amount */
+    const triggerSecondConfetti = ref(false)
+    const paid = computed(() => remainingPayment.value === 0)
+    const showRemainingCurrencyAmount = computed(() => {
+      return !isBchMode.value && !paid.value
+    })
+    const remainingPayment = computed(() => {
+      const remaining = paymentsStore.total - paymentsStore.paid
+      if (remaining < 0 || (remaining <= dustBch && paymentsStore.paid !== 0)) return 0
+      return remaining
+    })
+    const remainingPaymentRounded = computed(() => Number(remainingPayment.value.toFixed(8)))
+    const currencyAmountRemaining = computed(() => {
+      const currencyRemaining = currencyBchRate?.value?.rate * remainingPaymentRounded.value
+      return Number(currencyRemaining.toFixed(2))
+    })
+    const paymentProgress = computed(() => {
+      if (remainingPayment.value === 0) return 1
+      return paymentsStore.paid / paymentsStore.total
+    })
+    /* Remaining amount --> */
+
+
+    /* <-- QR code related */
+    const refreshQr = ref(false) // dialog state
+    const refreshingQr = ref(false) // 
+    const qrExpirationTimer = ref(1)
+
+    let qrScanned = ref(false)
+    let qrExpirationPrompt = null
+    let qrExpirationCountdown = null
+
+    onMounted(() => refreshQrCountdown())
+    watch(currency, () => updateSelectedCurrencyRate())
 
     function stopQrExpirationCountdown () {
       clearInterval(qrExpirationCountdown)
@@ -360,48 +412,9 @@ export default defineComponent({
         currencyRateUpdateRate + (3 * milliseconds)
       )
     }
+    /* QR code related --> */
 
-    const showRemainingCurrencyAmount = computed(() => {
-      return !isBchMode.value && !paid.value
-    })
-
-    const bchValue = computed(() => {
-      if (isBchMode.value) {
-        paymentsStore.setTotalPayment(receiveAmount.value)
-        return receiveAmount.value
-      }
-
-      const rateValue = currencyBchRate.value?.rate
-      const finalBchValue = Number((receiveAmount.value / rateValue).toFixed(8))
-      paymentsStore.setTotalPayment(finalBchValue)
-      return finalBchValue
-    })
-
-    // 0.015ms - 0.031ms
-    onMounted(() => {
-      paymentsStore.resetPayment()
-
-      if (props.setAmount) receiveAmount.value = props.setAmount
-      if (props.setCurrency) currency.value = props.setCurrency
-      if (props.setAmount && props.lockAmount) disableAmount.value = true
-    })
-
-    function showSetAmountDialog(opts={force:false}) {
-      if (disableAmount.value && !opts?.force) return
-
-      const currencies = ['BCH']
-      $q.dialog({
-        component: SetAmountFormDialog,
-        componentProps: {
-          currencies,
-          initialValue: { amount: receiveAmount.value, currency: currency.value }
-        }
-      }).onOk(data => {
-        receiveAmount.value = data?.value
-        currency.value = data?.currency || 'BCH'
-      })
-    }
-
+    /* <-- Websocket tx-listener */
     const qrData = computed(() => {
       if (!receiveAmount.value) return ''
 
@@ -486,13 +499,12 @@ export default defineComponent({
         closeWebsocket()
       }
     })
-    onUnmounted(async () => await wakeLock.release())
     onUnmounted(() => {
       enableReconnect.value = false
       closeWebsocket()
       clearTimeout(reconnectTimeout.value)
     })
-    function setupListener(opts) {
+    function setupListener() {
       const merchantReceivingAddress = addressSet.value?.receiving
       
       if (!merchantReceivingAddress) return
@@ -643,6 +655,7 @@ export default defineComponent({
       if (response.tokenSymbol === 'BCH') response.logo = 'bch-logo.png'
       return response
     }
+    /* Websocket tx-listener --> */
 
     function displayReceivedTransaction (data) {
       const _qrData = qrData.value
@@ -718,12 +731,16 @@ export default defineComponent({
       }
     })
 
+    /** Keeps screen on */
+    const wakeLock = reactive(useWakeLock())
+    onMounted(async () => await wakeLock.request('screen'))
+    onUnmounted(async () => await wakeLock.release())
+    /** --------------- */
+
     return {
       isOnline,
       promptOnLeave,
-      addressSet,
       loading,
-      generatingAddress,
       receiveAmount,
       currency,
       disableAmount,
@@ -747,7 +764,6 @@ export default defineComponent({
       refreshingQr,
       refreshQrCountdown,
       qrExpirationTimer,
-      showExpirationTimer,
       networkTimeDiff,
       networkTimeDiffSeconds,
       isBchMode,
