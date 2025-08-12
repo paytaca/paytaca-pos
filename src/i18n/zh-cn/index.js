@@ -48,6 +48,7 @@ export default {
   Amount: "数量",
   AmountErrMsg: "金额与预期金额不符。继续？",
   AmountErrTitle: "金额不匹配",
+  AmountLeftValue: "{price} {symbol}左",
   AnyCondition: "任何条件",
   AppOfflineMessage: "该应用程序是离线的，您将不会收到付款通知。",
   AppVersion: "应用版本",

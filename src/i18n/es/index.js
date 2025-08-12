@@ -48,6 +48,7 @@ export default {
   Amount: "Cantidad",
   AmountErrMsg: "La cantidad no coincide con el monto esperado.¿Continuar?",
   AmountErrTitle: "La cantidad no coincide",
+  AmountLeftValue: "{price} {símbolo} izquierda",
   AnyCondition: "cualquier condición",
   AppOfflineMessage: "La aplicación está fuera de línea, no recibirá notificaciones de pago.",
   AppVersion: "Version de aplicacion",

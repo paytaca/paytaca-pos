@@ -48,6 +48,7 @@ export default {
   Amount: "Amount",
   AmountErrMsg: "Amount does not match with expected amount. Continue?",
   AmountErrTitle: "Amount does not match",
+  AmountLeftValue: "{price} {symbol} left",
   AnyCondition: "any condition",
   AppOfflineMessage: "The app is offline, you will not receive payment notifications.",
   AppVersion: "App version",

@@ -48,6 +48,7 @@ export default {
   Amount: "Jimla",
   AmountErrMsg: "Adadin bai dace ba tare da adadin da ake tsammanin.Ci gaba?",
   AmountErrTitle: "Adadin bai dace ba",
+  AmountLeftValue: "{price} {symbol} hagu",
   AnyCondition: "kowane yanayi",
   AppOfflineMessage: "A app shine layi, ba za ku karɓi sanarwar biyan kuɗi ba.",
   AppVersion: "Version",

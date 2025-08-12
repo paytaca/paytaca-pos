@@ -103,7 +103,13 @@
 
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
-        <div>{{ receiveAmount }} {{ currency }}</div>
+        <div>
+          {{ receiveAmount }}
+          <template v-if="isCashtoken && cashtokenMetadata?.symbol && cashtokenMetadata?.symbol !== currency">
+            {{ cashtokenMetadata?.symbol }}
+          </template>
+          <template v-else>{{ currency }}</template>
+        </div>
         <div v-if="currency !== 'BCH' && !isNaN(bchValue)" class="text-caption text-grey">
           {{ bchValue }} BCH
         </div>
@@ -119,16 +125,16 @@
           <div v-if="paid" class="text-green">{{ $t('PaymentComplete') }}</div>
           <div v-if="!paid" style="color: #ed5f59">
             <q-icon
-              v-if="currencyBchRate.status !== 2"
+              v-if="currencyBchRate && currencyBchRate.status !== 2"
               :name="bchRateStatus.icon"
               :color="bchRateStatus.color"
               size="xs"
             />
             {{
               $t(
-                'BchLeftValue',
-                { price: remainingPaymentRounded },
-                `${remainingPaymentRounded} BCH left`
+                'AmountLeftValue',
+                { price: remainingPaymentRounded, symbol: remainingPaymentSymbol },
+                `${remainingPaymentRounded} ${remainingPaymentSymbol} left`
               )
             }}            
             <q-btn v-if="showRemainingCurrencyAmount" color="grey" icon="info" flat size="xs" class="q-px-xs" style="width: 20px">
@@ -191,9 +197,11 @@
 </template>
 <script>
 import { getNetworkTimeDiff } from 'src/utils/time.js'
+import { toTokenAddress } from 'src/utils/crypto'
 import { useWalletStore } from 'stores/wallet'
 import { usePaymentsStore } from 'stores/payments'
 import { useAddressesStore } from 'stores/addresses'
+import { useCashtokenStore } from 'src/stores/cashtoken'
 import { useMarketStore } from 'src/stores/market'
 import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
 import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, markRaw, inject, provide } from 'vue'
@@ -218,6 +226,7 @@ export default defineComponent({
   props: {
     setAmount: Number,
     setCurrency: String,
+    setTokenCategory: String,
     lockAmount: Boolean, // should only work if setAmount is given
   },
   methods: {
@@ -244,6 +253,7 @@ export default defineComponent({
     const marketStore = useMarketStore()
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
+    const cashTokenStore = useCashtokenStore();
 
     const dustBch = 546e-8
 
@@ -257,11 +267,20 @@ export default defineComponent({
       if (props.setAmount) receiveAmount.value = props.setAmount
       if (props.setCurrency) currency.value = props.setCurrency
       if (props.setAmount && props.lockAmount) disableAmount.value = true
+      if (props.setTokenCategory) tokenCategory.value = props.setTokenCategory
+
+      if (tokenCategory.value && !cashtokenMetadata.value) {
+        cashTokenStore.fetchTokenMetadata(tokenCategory.value)
+      }
     })
     const receiveAmount = ref(0)
-    const currency = ref('BCH')
+    const currency = ref(props.setCurrency|| 'BCH')
+    const tokenCategory = ref('')
     const disableAmount = ref(false)
-    const isBchMode = ref(props.setCurrency === 'BCH')
+    const isBchMode = computed(() => currency.value === 'BCH')
+    const isCashtoken = computed(() => Boolean(tokenCategory.value))
+
+    const cashtokenMetadata = computed(() => cashTokenStore.getTokenMetadata(tokenCategory.value))
     /* Core details --> */
 
     /* <-- Wallet/address */
@@ -324,13 +343,26 @@ export default defineComponent({
 
     /* <-- Value/amounts */
     const bchValue = computed(() => {
+      if (isCashtoken.value) return NaN
       if (isBchMode.value) return receiveAmount.value
 
       const rateValue = currencyBchRate.value?.rate
       const finalBchValue = Number((receiveAmount.value / rateValue).toFixed(8))
       return finalBchValue
     })
-    watch(bchValue, newVal => paymentsStore.setTotalPayment(newVal))
+    const tokenAmount = computed(() => {
+      if (!isCashtoken.value) return NaN
+      return receiveAmount.value
+    })
+
+    const totalCryptoAmount = computed(() => {
+      if (isCashtoken.value) return tokenAmount.value
+      return bchValue.value
+    })
+    watch(totalCryptoAmount, newVal => {
+      if (isNaN(newVal)) return
+      paymentsStore.setTotalPayment(newVal)
+    })
 
     function showSetAmountDialog(opts={force:false}) {
       if (disableAmount.value && !opts?.force) return
@@ -354,14 +386,30 @@ export default defineComponent({
     const triggerSecondConfetti = ref(false)
     const paid = computed(() => remainingPayment.value === 0)
     const showRemainingCurrencyAmount = computed(() => {
-      return !isBchMode.value && !paid.value
+      return !isBchMode.value && !isCashtoken.value && !paid.value
     })
     const remainingPayment = computed(() => {
       const remaining = paymentsStore.total - paymentsStore.paid
       if (remaining < 0 || (remaining <= dustBch && paymentsStore.paid !== 0)) return 0
       return remaining
     })
-    const remainingPaymentRounded = computed(() => Number(remainingPayment.value.toFixed(8)))
+    const remainingPaymentRounded = computed(() => {
+      let decimals = 8;
+      const cashtokenDecimals = cashtokenMetadata.value?.decimals;
+      if (isCashtoken.value && Number.isSafeInteger(cashtokenDecimals)) {
+        decimals = cashtokenDecimals;
+      }
+      return Number(remainingPayment.value.toFixed(decimals))
+    })
+    const remainingPaymentInTokenUnits = computed(() => {
+      const decimals = cashtokenMetadata.value?.decimals;
+      const tokenUnits = remainingPayment.value * 10 ** decimals;
+      return Number(tokenUnits.toFixed(decimals));
+    })
+    const remainingPaymentSymbol = computed(() => {
+      if (!isCashtoken.value) return 'BCH'
+      return cashtokenMetadata.value?.symbol;
+    })
     const currencyAmountRemaining = computed(() => {
       const currencyRemaining = currencyBchRate?.value?.rate * remainingPaymentRounded.value
       return Number(currencyRemaining.toFixed(2))
@@ -409,30 +457,57 @@ export default defineComponent({
         currencyRateUpdateRate + (3 * milliseconds)
       )
     }
-    /* QR code related --> */
 
-    /* <-- Websocket tx-listener */
     const qrData = computed(() => {
       if (!receiveAmount.value) return ''
 
       const currentTimestamp = Date.now() / 1000
-      const unusedVar = bchValue.value  // trigger only for setting of total payment
 
-      let paymentUri = receivingAddress
-      paymentUri += `?POS=${posId.value}`
-      paymentUri += `&amount=${remainingPaymentRounded.value}`
+      const params = [];
+      let address = receivingAddress
+      if (isCashtoken.value) {
+        address = toTokenAddress(receivingAddress);
+        params.push('t');
+      }
+      params.push(`POS=${posId.value}`)
+      if (isCashtoken.value) {
+        params.push(`c=${tokenCategory.value}`)
+        params.push(`f=${remainingPaymentInTokenUnits.value}`)
+      } else {
+        params.push(`amount=${remainingPaymentRounded.value}`)
+      }
 
-      if (!isBchMode.value) {
+      if (!isBchMode.value && !isCashtoken.value) {
         const expiryDuration = currencyRateUpdateRate / 1000
         const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
         const diffSeconds = networkTimeDiff.value ? networkTimeDiff.value / 1000 : 0
         const adjustedExpirationTimestamp = expirationTimestamp + diffSeconds
-        paymentUri += `&expires=${adjustedExpirationTimestamp}`
+        params.push(`expires=${adjustedExpirationTimestamp}`)
       }
 
-      return paymentUri
+      return address + '?' + params.join('&')
     })
+    /* QR code related --> */
 
+    /* <-- Received transactions */
+    const transactionsReceived = ref([].map(parseWebsocketDataReceived))
+    function transactionExists(transaction) {
+      return transactionsReceived.value?.some?.(
+        obj => (
+          obj.txid === transaction.txid &&
+          obj.index === transaction.index
+        )
+      )
+    }
+
+    function updateTransactionList (transaction) {
+      if (transactionExists(transaction)) return false
+      transactionsReceived.value?.push?.(transaction)
+      return true
+    }
+    /* Received transactions --> */
+
+    /* <-- Websocket tx-listener */
     const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
     const merchantReceivingAddress = addressSet.value?.receiving
     const websocketInits = [
@@ -456,7 +531,6 @@ export default defineComponent({
     })
     const enableReconnect = ref(true)
     const reconnectTimeout = ref(null)
-    const transactionsReceived = ref([])
     const canViewPayments = computed(() => {
       return transactionsReceived.value?.length || websocketsReady.value
     })
@@ -537,25 +611,21 @@ export default defineComponent({
       }
     }
 
-    function updateTransactionList (transaction) {
-      const transactionExists = transactionsReceived.value?.some?.(
-        obj => (
-          obj.txid === transaction.txid &&
-          obj.index === transaction.index
-        )
-      )
-      if (transactionExists) return false
-
-      transactionsReceived.value?.push?.(transaction)
-      return true
-    }
-
     function updatePayment (transaction) {
       if (!updateTransactionList(transaction)) return
 
-      const paidBchValue = transaction.value / 1e8
-      const paidBch = Number((paidBchValue).toFixed(8))
-      paymentsStore.addPayment(paidBch)
+      if (isCashtoken.value) {
+        if (transaction?.tokenId === `ct/${tokenCategory.value}`) {
+          const decimals = transaction.tokenDecimals;
+          const tokenAmount = transaction.tokenAmount;
+          const tokenAmountRounded = Number(tokenAmount.toFixed(decimals));
+          paymentsStore.addPayment(tokenAmountRounded);
+        }
+      } else {
+        const paidBchValue = transaction.value / 1e8
+        const paidBch = Number((paidBchValue).toFixed(8))
+        paymentsStore.addPayment(paidBch)
+      }
       promptOnLeave.value = false
       displayReceivedTransaction(transaction)
     }
@@ -599,16 +669,18 @@ export default defineComponent({
       if (data?.voucher) return
 
       const parsedData = parseWebsocketDataReceived(data)
-      updatePayment(parsedData)
+      updatePayment(parsedData);
     }
 
     /**
      * @param {Object} data 
+     * @param {String} data.token_id ct/xxxx
      * @param {String} data.token_name
-     * @param {String} data.token_id
-     * @param {String} data.token_symbol
-     * @param {Number} data.amount
-     * @param {Number} data.value
+     * @param {String} data.token_symbol 
+     * @param {Number} data.token_decimals
+     * @param {String} data.image_url for cashtokens only
+     * @param {Number} data.amount token units if cashtoken
+     * @param {Number} data.value satoshis
      * @param {String} data.address
      * @param {String} data.source
      * @param {String} data.txid
@@ -637,6 +709,7 @@ export default defineComponent({
         tokenName: data?.token_name,
         tokenId: data?.token_id,
         tokenSymbol: data?.token_symbol,
+        tokenDecimals: data?.token_decimals,
         addressPath: data?.address_path,
         senders: Array.isArray(data?.senders) ? data?.senders : [],
         source: data?.source,
@@ -647,9 +720,15 @@ export default defineComponent({
       if (!response?.amount && response?.value) response.amount = Math.round(response?.value) / 10 ** 8
       if (typeof response.tokenSymbol === 'string') {
         response.tokenSymbol = response.tokenSymbol.toUpperCase()
-        if (response.voucher !== null) response.tokenSymbol = 'BCH'
+        if (!isCashtoken.value && response.voucher !== null) response.tokenSymbol = 'BCH'
       }
       if (response.tokenSymbol === 'BCH') response.logo = 'bch-logo.png'
+      else if(data?.image_url) response.logo = data?.image_url
+
+      if (response?.tokenId && response?.amount) {
+        const decimals = response?.tokenDecimals;
+        response.tokenAmount = response?.amount / 10 ** decimals;
+      }
       return response
     }
     /* Websocket tx-listener --> */
@@ -657,11 +736,13 @@ export default defineComponent({
     function displayReceivedTransaction (data) {
       const _qrData = qrData.value
       let marketValue = data?.marketValue || { amount: 0, currency: '' }
-      const value = data?.value / 1e8
+      let receivedAmount = isCashtoken.value && data?.tokenId
+       ? data?.tokenAmount
+       : data?.value / 1e8;
       if (!marketValue?.amount || !marketValue?.currency) {
         if (data?.tokenSymbol === 'BCH' && currencyBchRate.value.rate) {
           marketValue.amount = Number(
-            (Number(value) * currencyBchRate.value.rate).toFixed(3)
+            (Number(receivedAmount) * currencyBchRate.value.rate).toFixed(3)
           )
           marketValue.currency = currencyBchRate.value.currency
         }
@@ -682,7 +763,7 @@ export default defineComponent({
         componentProps: {
           txid: data?.txid,
           address: data?.address,
-          amount: value,
+          amount: receivedAmount,
           tokenCurrency: data?.tokenSymbol,
           marketValue: marketValue.amount,
           marketValueCurrency: marketValue.currency,
@@ -741,6 +822,8 @@ export default defineComponent({
       receiveAmount,
       currency,
       disableAmount,
+      isCashtoken,
+      cashtokenMetadata,
       currencyBchRate,
       bchValue,
       showSetAmountDialog,
@@ -752,6 +835,7 @@ export default defineComponent({
       displayReceivedTransaction,
       paymentProgress,
       remainingPaymentRounded,
+      remainingPaymentSymbol,
       currencyAmountRemaining,
       paid,
       triggerSecondConfetti,

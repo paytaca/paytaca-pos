@@ -48,6 +48,7 @@ export default {
   Amount: "Hoeveelheid",
   AmountErrMsg: "Het bedrag komt niet overeen met het verwachte bedrag.Doorgaan?",
   AmountErrTitle: "Het bedrag komt niet overeen",
+  AmountLeftValue: "{price} {symbol} links",
   AnyCondition: "Elke voorwaarde",
   AppOfflineMessage: "De app is offline, u ontvangt geen betalingsmeldingen.",
   AppVersion: "App versie",

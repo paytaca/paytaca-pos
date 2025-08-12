@@ -564,6 +564,7 @@ const phrases = {
       AddItemValue: 'Add item {value}',
       BchPriceAtValue: 'BCH Price at {value}',
       BchLeftValue: '{price} BCH left',
+      AmountLeftValue: '{price} {symbol} left',
       MarkupSaleRateValue: 'Items are sold with {rate} change from their original price',
       StatusValue: 'Status: {value}',
       OrderId: 'Order #{id}',

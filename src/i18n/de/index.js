@@ -48,6 +48,7 @@ export default {
   Amount: "Menge",
   AmountErrMsg: "Die Menge entspricht nicht mit dem erwarteten Betrag.Weitermachen?",
   AmountErrTitle: "Betrag stimmt nicht überein",
+  AmountLeftValue: "{price} {symbol} links",
   AnyCondition: "jede Bedingung",
   AppOfflineMessage: "Die App ist offline, Sie erhalten keine Zahlungsbenachrichtigungen.",
   AppVersion: "App Version",

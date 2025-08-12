@@ -48,6 +48,7 @@ export default {
   Amount: "額",
   AmountErrMsg: "金額は予想される金額と一致しません。続く？",
   AmountErrTitle: "金額は一致しません",
+  AmountLeftValue: "{price} {symbol}左",
   AnyCondition: "任意の状態",
   AppOfflineMessage: "アプリはオフラインで、支払い通知を受け取りません。",
   AppVersion: "アプリバージョン",

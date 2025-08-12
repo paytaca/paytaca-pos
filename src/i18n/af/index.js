@@ -48,6 +48,7 @@ export default {
   Amount: "Bedrag",
   AmountErrMsg: "Bedrag stem nie ooreen met die verwagte bedrag nie.Aanhou?",
   AmountErrTitle: "Bedrag stem nie ooreen nie",
+  AmountLeftValue: "{price} {symbol} links",
   AnyCondition: "Enige toestand",
   AppOfflineMessage: "Die app is vanlyn, u sal geen betalingskennisgewings ontvang nie.",
   AppVersion: "App -weergawe",
