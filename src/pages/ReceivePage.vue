@@ -324,16 +324,13 @@ export default defineComponent({
 
     /* <-- Value/amounts */
     const bchValue = computed(() => {
-      if (isBchMode.value) {
-        paymentsStore.setTotalPayment(receiveAmount.value)
-        return receiveAmount.value
-      }
+      if (isBchMode.value) return receiveAmount.value
+
       const rateValue = currencyBchRate.value?.rate
       const finalBchValue = Number((receiveAmount.value / rateValue).toFixed(8))
-      paymentsStore.setTotalPayment(finalBchValue)
       return finalBchValue
     })
-
+    watch(bchValue, newVal => paymentsStore.setTotalPayment(newVal))
 
     function showSetAmountDialog(opts={force:false}) {
       if (disableAmount.value && !opts?.force) return
