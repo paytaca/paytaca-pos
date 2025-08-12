@@ -48,6 +48,7 @@ export default {
   Amount: "Quantità",
   AmountErrMsg: "L'importo non corrisponde all'importo previsto.Continua?",
   AmountErrTitle: "L'importo non corrisponde",
+  AmountLeftValue: "{price} {symbol} Left",
   AnyCondition: "qualsiasi condizione",
   AppOfflineMessage: "L'app è offline, non riceverai notifiche di pagamento.",
   AppVersion: "Versione app",

@@ -48,6 +48,7 @@ export default {
   Amount: "Kantidad",
   AmountErrMsg: "Ang kantidad dili katumbas sa gipaabut nga kantidad.Padayon?",
   AmountErrTitle: "Ang kantidad dili katugma",
+  AmountLeftValue: "{price} {symbol}",
   AnyCondition: "bisan unsang kahimtang",
   AppOfflineMessage: "Ang App Offline, dili ka makadawat mga pahibalo sa pagbayad.",
   AppVersion: "Bersyon sa App",

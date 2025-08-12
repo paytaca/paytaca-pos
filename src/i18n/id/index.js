@@ -48,6 +48,7 @@ export default {
   Amount: "Jumlah",
   AmountErrMsg: "Jumlah tidak cocok dengan jumlah yang diharapkan.Melanjutkan?",
   AmountErrTitle: "Jumlah tidak cocok",
+  AmountLeftValue: "{price} {symbol} kiri",
   AnyCondition: "kondisi apa pun",
   AppOfflineMessage: "Aplikasi ini offline, Anda tidak akan menerima pemberitahuan pembayaran.",
   AppVersion: "Versi Aplikasi",

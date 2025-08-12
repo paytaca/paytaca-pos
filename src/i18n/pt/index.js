@@ -48,6 +48,7 @@ export default {
   Amount: "Quantia",
   AmountErrMsg: "O valor não corresponde ao valor esperado.Continuar?",
   AmountErrTitle: "O valor não corresponde",
+  AmountLeftValue: "{price} {símbolo} à esquerda",
   AnyCondition: "qualquer condição",
   AppOfflineMessage: "O aplicativo está offline, você não receberá notificações de pagamento.",
   AppVersion: "Versão do aplicativo",

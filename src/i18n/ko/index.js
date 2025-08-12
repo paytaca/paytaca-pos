@@ -48,6 +48,7 @@ export default {
   Amount: "양",
   AmountErrMsg: "금액은 예상 금액과 일치하지 않습니다.계속하다?",
   AmountErrTitle: "금액이 일치하지 않습니다",
+  AmountLeftValue: "{price} {symbol} 왼쪽",
   AnyCondition: "모든 조건",
   AppOfflineMessage: "앱은 오프라인 상태이므로 결제 알림을받지 못합니다.",
   AppVersion: "앱 버전",
