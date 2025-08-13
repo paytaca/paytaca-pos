@@ -51,7 +51,7 @@
       </div>
     </div>
 
-    <div v-if="!isBchMode" class="flex flex-center">
+    <div v-if="!isBchMode && !isCashtoken" class="flex flex-center">
       <q-linear-progress
         v-if="!qrScanned && !paid"
         :value="qrExpirationTimer"
@@ -439,7 +439,7 @@ export default defineComponent({
     }
 
     function refreshQrCountdown () {
-      if (isBchMode.value) return
+      if (isBchMode.value || isCashtoken.value) return
 
       updateSelectedCurrencyRate()
       stopQrExpirationCountdown()
