@@ -45,6 +45,7 @@
 </template>
 <script>
 import { useWalletStore } from 'src/stores/wallet';
+import { useMarketplaceStore } from 'src/stores/marketplace';
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 import { defineComponent, computed, onMounted } from 'vue'
@@ -57,6 +58,7 @@ export default defineComponent({
   name: 'MainFooter',
   setup() {
     const walletStore = useWalletStore()
+    const marketplaceStore = useMarketplaceStore();
     const $q = useQuasar()
     const $router = useRouter()
 
@@ -77,10 +79,21 @@ export default defineComponent({
     })
 
     function promptAmount () {
+      const tokenCategories = [];
+      const acceptedTokensData = marketplaceStore.acceptedTokensData?.accepted_tokens;
+      if (Array.isArray(acceptedTokensData)) {
+        tokenCategories.push(...acceptedTokensData.map(tokenData => tokenData?.category));
+      }
+
+      const musdTokenCategory = 'b38a33f750f84c5c169a6f23cb873e6e79605021585d4f3408789689ed87f366'
+      if (!tokenCategories.includes(musdTokenCategory)) {
+        tokenCategories.unshift(musdTokenCategory);
+      }
+
       $q.dialog({
         component: SetAmountFormDialog,
         componentProps: {
-          currencies: ['BCH'],
+          currencies: ['BCH', ...tokenCategories],
           hideInvalidOptions: true,
           initialValue: { currency: selectedCurrency.value }
         },
