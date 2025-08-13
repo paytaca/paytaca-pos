@@ -192,6 +192,7 @@ export default defineComponent({
         })
         .then(response => {
           const data = response?.data
+          marketplaceStore.setAcceptedTokensData(data);
           $emit('saved', data)
           return response
         })
