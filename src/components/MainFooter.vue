@@ -81,6 +81,7 @@ export default defineComponent({
         component: SetAmountFormDialog,
         componentProps: {
           currencies: ['BCH'],
+          hideInvalidOptions: true,
           initialValue: { currency: selectedCurrency.value }
         },
       }).onOk(data => {
@@ -92,6 +93,7 @@ export default defineComponent({
         const query = {
           setAmount: amount?.value || undefined,
           setCurrency: amount?.currency || undefined,
+          setTokenCategory: amount?.tokenCategory || undefined,
           lockAmount: true,
         }
         $router.push({ name, query })
