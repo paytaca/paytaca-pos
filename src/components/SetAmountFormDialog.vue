@@ -14,7 +14,7 @@
               :label="$t('Amount')"
               type="number"
               inputmode="decimal"
-              :step="selectedCurrency?.decimals || 0"
+              :step="10 ** -(selectedCurrency?.decimals || 0)"
               v-model.number="amountValue"
               outlined
               autofocus
