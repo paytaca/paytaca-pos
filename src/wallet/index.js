@@ -183,7 +183,13 @@ export class Wallet {
         response.success = true
         response.transactions = cachedPageData
       } else {
-        const request = await this.watchtower.BCH._api.get(`history/wallet/${this.walletHash}/`, { params: queryParams })
+        // For backwards compatibility, include old endpoint as fallback
+        const request = await this.watchtower.BCH._api.get(`paytacapos/wallet-history/${this.walletHash}/`, { params: queryParams })
+          .catch(error => {
+            if (error?.response?.status === 404) {
+              return this.watchtower.BCH._api.get(`history/wallet/${this.walletHash}/`, { params: queryParams })
+            }
+          })
         response.success = true
         response.transactions = request?.data
         txCacheStore.cachePage(pageKey, response.transactions)
