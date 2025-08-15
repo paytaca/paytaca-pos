@@ -346,6 +346,8 @@ const phrases = {
       MinerFee: 'Miner fee',
       ViewInfo: 'View Info',
       ExplorerLink: 'Explorer Link',
+      TokenID: 'Token ID',
+      TokenName: 'Token Name',
       ViewInExplorer: 'View in explorer',
       SetAmount: 'Set Amount',
       CreatePaymentQR: 'Create Payment QR',

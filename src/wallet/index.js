@@ -171,7 +171,8 @@ export class Wallet {
     try {
       const queryParams = {
         page: opts?.page || 1,
-        posid: this.posId
+        posid: this.posId,
+        include_attrs: true,
       }
 
       if (opts?.type === 'incoming' || opts?.type === 'outgoing') queryParams.type = opts.type

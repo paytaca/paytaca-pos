@@ -683,6 +683,8 @@ export default {
   Timestamp: "Cap waktu",
   ToReview: "Untuk meninjau",
   Today: "Hari ini",
+  TokenID: "Token ID",
+  TokenName: "Nama token",
   Total: "Total",
   TotalPaid: "Total dibayar",
   TotalRefunded: "Total dikembalikan",

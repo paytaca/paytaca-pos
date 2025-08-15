@@ -33,8 +33,8 @@
           </div>
         </div>
         <div class="text-body2 text-weight-medium text-right">
-          <div v-if="tx.amount">
-            {{ tx.amount }} BCH
+          <div v-if="getTxAmount(tx)?.value">
+            {{ getTxAmount(tx)?.value }} {{ getTxAmount(tx)?.symbol }}
           </div>
           <div v-else-if="tx?._offline && tx?.marketValue?.currency && tx?.marketValue?.amount">
             {{ tx?.marketValue?.amount }} {{ tx?.marketValue?.currency }}
@@ -86,8 +86,8 @@ export default defineComponent({
     const {
       selectedMarketCurrency,
       getTxMarketValue,
+      getTxAmount,
     } = useTransactionHelpers();
-
 
     const txHistoryTimestampBounds = computed(() => {
       const data = { min: undefined, max: undefined }
@@ -160,6 +160,7 @@ export default defineComponent({
       recordTypeMap,
       selectedMarketCurrency,
       getTxMarketValue,
+      getTxAmount,
       offlineTransactionsToShow,
       transactionsList,
 

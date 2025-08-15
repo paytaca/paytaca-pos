@@ -683,6 +683,8 @@ export default {
   Timestamp: "Katima",
   ToReview: "Yin bita",
   Today: "Yau",
+  TokenID: "Teken ID",
+  TokenName: "Sunan Token",
   Total: "Duka",
   TotalPaid: "Duka an biya",
   TotalRefunded: "Jimlar mayar da kai",

@@ -683,6 +683,8 @@ export default {
   Timestamp: "時間戳",
   ToReview: "回顧",
   Today: "今天",
+  TokenID: "令牌ID",
+  TokenName: "令牌名稱",
   Total: "全部的",
   TotalPaid: "總支付",
   TotalRefunded: "全額退款",

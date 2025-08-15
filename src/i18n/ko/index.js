@@ -683,6 +683,8 @@ export default {
   Timestamp: "타임 스탬프",
   ToReview: "검토",
   Today: "오늘",
+  TokenID: "토큰 ID",
+  TokenName: "토큰 이름",
   Total: "총",
   TotalPaid: "전체 지불금",
   TotalRefunded: "총 환불",

@@ -683,6 +683,8 @@ export default {
   Timestamp: "Zeitstempel",
   ToReview: "Überprüfung",
   Today: "Heute",
+  TokenID: "Token ID",
+  TokenName: "Token -Name",
   Total: "Gesamt",
   TotalPaid: "Ganz bezahlt",
   TotalRefunded: "Total erstattet",

@@ -66,11 +66,13 @@ import { defineAsyncComponent } from 'vue'
 import { defineComponent, markRaw, nextTick, onMounted, ref, watch } from 'vue'
 import MainFooter from 'src/components/MainFooter.vue'
 import MarketplaceWidget from 'src/components/marketplace/MarketplaceWidget.vue'
-import { paymentUriHasMatch, findMatchingPaymentLink } from 'src/wallet/utils'
+import { paymentUriHasMatch, findMatchingPaymentLink, asyncSleep } from 'src/wallet/utils'
 import { useTxCacheStore } from 'src/stores/tx-cache'
+import { useCashtokenStore } from 'src/stores/cashtoken'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+
 
 // import historyData from 'src/wallet/mockers/history.json'
 
@@ -91,6 +93,7 @@ export default defineComponent({
     const $router = useRouter()
     const walletStore = useWalletStore()
     const txCacheStore = useTxCacheStore()
+    const cashtokenStore = useCashtokenStore()
     const { t } = useI18n()
 
     onMounted(() => fetchTransactions())
@@ -113,8 +116,11 @@ export default defineComponent({
 
       fetchingTransactions.value = true
       walletStore.walletObj.getTransactions(opts)
-        .then(response => {
-          if (response.success) transactions.value = response.transactions
+        .then(async response => {
+          if (response.success) {
+            await fetchCashtokenMetadata(response.transactions?.history).catch(console.error)
+            transactions.value = response.transactions
+          }
           transactions.value.page = Number(transactions.value.page)
           searchUnconfirmedPaymentsTransaction()
         })
@@ -150,6 +156,20 @@ export default defineComponent({
 
           if (hasMatch) txCacheStore.removeQrDataFromUnconfirmedPayments(qrData)
         })
+    }
+
+    function fetchCashtokenMetadata(transactions=[]) {
+      const tokenCategories = transactions
+        .map(tx => [tx?.ft_category, tx?.nft_category])
+        .flatMap(category => category)
+        .filter(Boolean)
+        .filter((category, index, self) => self.indexOf(category) === index)
+
+      const tokenMetadatafetch = tokenCategories.map(category => {
+        if (cashtokenStore.getTokenMetadata(category)) return Promise.resolve()
+        return cashtokenStore.fetchTokenMetadata(category)
+      })
+      return Promise.race([Promise.allSettled(tokenMetadatafetch), asyncSleep(5000)]);
     }
 
     const forceDisplayWalletLink = ref(false)

@@ -683,6 +683,8 @@ export default {
   Timestamp: "Tydstempel",
   ToReview: "Te hersien",
   Today: "Vandag",
+  TokenID: "Token ID",
+  TokenName: "Token Naam",
   Total: "Totaal",
   TotalPaid: "Totaal betaal",
   TotalRefunded: "Totaal terugbetaal",

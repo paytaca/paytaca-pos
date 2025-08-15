@@ -683,6 +683,8 @@ export default {
   Timestamp: "Tsaestamp",
   ToReview: "Pagribyu",
   Today: "Karon",
+  TokenID: "Token ID",
+  TokenName: "Ngalan sa Token",
   Total: "Katibuk-an",
   TotalPaid: "Total nga Gibayran",
   TotalRefunded: "Total nga gi-refund",

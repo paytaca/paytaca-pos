@@ -33,12 +33,20 @@
       <q-card-section class="q-mt-xs">
         <q-item clickable v-ripple @click="copyToClipboard(String(transaction.amount))">
           <q-item-section v-if="!transaction?._offline || transaction?.amount" side>
-            <img src="~assets/bch-logo.webp" height="30"/>
+            <img
+              v-if="tokenMetadata?.imageUrl"
+              height="35"
+              :src="convertIpfsUrl(tokenMetadata?.imageUrl)"
+              :fallback-src="convertIpfsUrl(tokenMetadata?.imageUrl, 1)"
+              @error="onImgErrorIpfsSrc"
+            />
+            <img v-else src="~assets/bch-logo.webp" height="30"/>
           </q-item-section>
           <q-item-section v-if="!transaction?._offline || transaction?.amount">
             <q-item-label class="text-h5">
-              <template v-if="transaction.record_type === 'outgoing'">{{ transaction.amount * -1 }} BCH</template>
-              <template v-else> {{ transaction.amount }} BCH </template>
+              <template v-if="transaction.record_type === 'outgoing'">{{ transactionAmount?.value * -1 }}</template>
+              <template v-else> {{ transactionAmount?.value }}</template>
+              {{ transactionAmount?.symbol }}
             </q-item-label>
             <q-item-label v-if="transactionAmountMarketValue" caption>
               {{ transactionAmountMarketValue }} {{ selectedMarketCurrency }}
@@ -69,6 +77,18 @@
           <q-item-section>
             <q-item-label caption class="text-grey">{{ $t('TransactionID') }}</q-item-label>
             <q-item-label>{{ transaction?.txid }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item v-if="tokenCategory" clickable v-ripple @click="copyToClipboard(tokenCategory)" style="overflow-wrap: anywhere;">
+          <q-item-section>
+            <q-item-label caption class="text-grey">{{ $t('TokenID') }}</q-item-label>
+            <q-item-label>{{ tokenCategory }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item v-if="tokenMetadata?.name" clickable v-ripple @click="copyToClipboard(tokenMetadata.name)" style="overflow-wrap: anywhere;">
+          <q-item-section>
+            <q-item-label caption class="text-grey">{{ $t('TokenName') }}</q-item-label>
+            <q-item-label>{{ tokenMetadata.name }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item v-if="transaction.record_type === 'incoming' && transaction?.senders?.length" style="overflow-wrap: anywhere;">
@@ -118,9 +138,11 @@
   </q-dialog>
 </template>
 <script>
+import { convertIpfsUrl, onImgErrorIpfsSrc } from 'src/utils/ipfs'
 import { SalesOrder } from 'src/marketplace/objects'
 import { resolveTransactionSalesOrderId } from 'src/marketplace/utils'
 import { useTransactionHelpers } from 'src/composables/transaction'
+import { useCashtokenStore } from 'src/stores/cashtoken'
 import { useI18n } from 'vue-i18n'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, defineComponent, inject, ref, watch } from 'vue'
@@ -144,6 +166,7 @@ export default defineComponent({
     // dialog plugins requirement
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
     const $q = useQuasar()
+    const cashtokenStore = useCashtokenStore();
     const { t: $t } = useI18n()
 
     const innerVal = ref(props.modelValue)
@@ -156,14 +179,24 @@ export default defineComponent({
     const {
       selectedMarketCurrency,
       getTxMarketValue,
+      getTxAmount,
     } = useTransactionHelpers();
 
+    const transactionAmount = computed(() => getTxAmount(props.transaction));
     const transactionAmountMarketValue = computed(() => {
       const marketValue = parseFloat(getTxMarketValue(props.transaction)?.marketValue);
       if (Number.isNaN(marketValue)) return null;
       if (marketValue < 10 ** -2) return marketValue;
       return marketValue.toFixed(2);
     });
+
+    const tokenCategory = computed(() => props.transaction?.ft_category || props.transaction?.nft_category);
+    const tokenMetadata = computed(() => cashtokenStore.getTokenMetadata(tokenCategory.value))
+    watch(tokenCategory, (newVal) => {
+      if (!newVal) return;
+      if (cashtokenStore.getTokenMetadata(newVal)) return
+      cashtokenStore.fetchTokenMetadata(newVal);
+    })
 
     const salesOrder = ref(SalesOrder.parse())
     const commerceHubSalesOrderId = computed(() => resolveTransactionSalesOrderId(props.transaction))
@@ -214,7 +247,11 @@ export default defineComponent({
       iconMap,
 
       selectedMarketCurrency,
+      transactionAmount,
       transactionAmountMarketValue,
+    
+      tokenCategory,
+      tokenMetadata,
 
       commerceHubSalesOrderId,
       displayCommerceHubSalesOrder,
@@ -222,6 +259,9 @@ export default defineComponent({
       concatenate,
       formatDate,
       copyToClipboard,
+
+      convertIpfsUrl,
+      onImgErrorIpfsSrc,
     }
   },
 })

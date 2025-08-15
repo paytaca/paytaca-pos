@@ -683,6 +683,8 @@ export default {
   Timestamp: "タイムスタンプ",
   ToReview: "レビューする",
   Today: "今日",
+  TokenID: "トークンID",
+  TokenName: "トークン名",
   Total: "合計",
   TotalPaid: "支払総額",
   TotalRefunded: "合計返金",
