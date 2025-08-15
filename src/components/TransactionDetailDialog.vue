@@ -120,13 +120,12 @@
 <script>
 import { SalesOrder } from 'src/marketplace/objects'
 import { resolveTransactionSalesOrderId } from 'src/marketplace/utils'
-import { useDialogPluginComponent, useQuasar } from 'quasar'
-import { computed, defineComponent, ref, watch } from 'vue'
-import { useWalletStore } from 'src/stores/wallet'
-import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
+import { useTransactionHelpers } from 'src/composables/transaction'
 import { useI18n } from 'vue-i18n'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { computed, defineComponent, inject, ref, watch } from 'vue'
+import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
 
-const walletStore = useWalletStore()
 
 export default defineComponent({
   name: 'TransactionDetailDialog',
@@ -141,70 +140,30 @@ export default defineComponent({
     modelValue: Boolean,
     transaction: Object,
   },
-  computed: {
-    asset() {
-      return {
-        symbol: 'BCH',
-        logo: '~assets/bch-logo.webp',
-      }
-    }
-  },
-  computed: {
-    selectedMarketCurrency () {
-      return walletStore?.preferences?.selectedCurrency || 'USD'
-    },
-    marketPrice() {
-      if(this.transaction?.usd_price && this.selectedMarketCurrency === 'USD') return this.transaction?.usd_price
-      if (this.transaction?.market_prices?.[this.selectedMarketCurrency]) return this.transaction?.market_prices?.[this.selectedMarketCurrency]
-      return null
-    },
-    transactionAmountMarketValue() {
-      if (!this.marketPrice) return
-
-      const value = Number(this.transaction.amount) * Number(this.marketPrice)
-      if (value < 10 ** -2) return value
-      return value.toFixed(2)
-    },
-  },
-  methods: {
-    concatenate (array) {
-      if (!Array.isArray(array)) return ''
-      let addresses = array
-        .map(item => item?.[0])
-        .filter(Boolean)
-        .filter((e, i , s) => s.indexOf(e) === i)
-
-      return addresses.join(', ')
-    },
-    formatDate (date) {
-      const dateObj = new Date(date)
-      return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
-    },
-    copyToClipboard(value, message='') {
-      this.$copyText(value)
-        .then(() => {
-          this.$q.notify({
-            message: message || this.$t('Copied to clipboard'),
-            timeout: 800,
-            icon: 'mdi-clipboard-check',
-            color: 'blue-9'
-          })
-        })
-        .catch(() => {})
-    }
-  },
   setup(props, ctx, ) {
     // dialog plugins requirement
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
     const $q = useQuasar()
-    const { t } = useI18n()
+    const { t: $t } = useI18n()
 
     const innerVal = ref(props.modelValue)
     watch(innerVal, () => ctx.emit('update:model-value', innerVal.value))
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
 
-    const actionMap = ref({ incoming: t('RECEIVED'), outgoing: t('SENT')})
+    const actionMap = ref({ incoming: $t('RECEIVED'), outgoing: $t('SENT')})
     const iconMap = ref({ incoming: 'arrow_downward', outgoing: 'arrow_upward'})
+
+    const {
+      selectedMarketCurrency,
+      getTxMarketValue,
+    } = useTransactionHelpers();
+
+    const transactionAmountMarketValue = computed(() => {
+      const marketValue = parseFloat(getTxMarketValue(props.transaction)?.marketValue);
+      if (Number.isNaN(marketValue)) return null;
+      if (marketValue < 10 ** -2) return marketValue;
+      return marketValue.toFixed(2);
+    });
 
     const salesOrder = ref(SalesOrder.parse())
     const commerceHubSalesOrderId = computed(() => resolveTransactionSalesOrderId(props.transaction))
@@ -220,14 +179,49 @@ export default defineComponent({
       })
     }
 
+    function concatenate (array) {
+      if (!Array.isArray(array)) return ''
+      let addresses = array
+        .map(item => item?.[0])
+        .filter(Boolean)
+        .filter((e, i , s) => s.indexOf(e) === i)
+
+      return addresses.join(', ')
+    }
+
+    function formatDate (date) {
+      const dateObj = new Date(date)
+      return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
+    }
+
+    const $copyText = inject('$copyText');
+    function copyToClipboard(value, message='') {
+      $copyText(value).then(() => {
+        $q.notify({
+          message: message || $t('Copied to clipboard'),
+          timeout: 800,
+          icon: 'mdi-clipboard-check',
+          color: 'blue-9'
+        })
+      })
+      .catch(() => {})
+    }
+
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
       actionMap,
       iconMap,
 
+      selectedMarketCurrency,
+      transactionAmountMarketValue,
+
       commerceHubSalesOrderId,
       displayCommerceHubSalesOrder,
+
+      concatenate,
+      formatDate,
+      copyToClipboard,
     }
   },
 })

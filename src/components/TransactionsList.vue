@@ -40,12 +40,12 @@
             {{ tx?.marketValue?.amount }} {{ tx?.marketValue?.currency }}
           </div>
           <div 
-            v-if="marketValue(tx)?.marketValue"
+            v-if="getTxMarketValue(tx)?.marketValue"
             class="text-caption text-grey"
             :class="[$q.dark.isActive ? 'text-weight-light' : '']"
             style="margin-top:-0.25em;"
           >
-            {{ parseFloat(marketValue(tx)?.marketValue).toFixed(2) }} {{ selectedMarketCurrency }}
+            {{ parseFloat(getTxMarketValue(tx)?.marketValue).toFixed(2) }} {{ selectedMarketCurrency }}
           </div>
         </div>
       </div>
@@ -60,15 +60,14 @@
 <script>
 import { SalesOrder } from 'src/marketplace/objects'
 import { resolveTransactionSalesOrderId } from 'src/marketplace/utils'
+import { useTransactionHelpers } from 'src/composables/transaction'
 import ago from 's-ago'
 import { useQuasar } from 'quasar'
 import { defineComponent, computed, ref } from 'vue'
 import TransactionDetailDialog from 'src/components/TransactionDetailDialog.vue'
-import { useWalletStore } from 'src/stores/wallet'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
-
-const walletStore = useWalletStore()
+import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
   components: {
@@ -77,44 +76,19 @@ export default defineComponent({
   props: {
     transactions: Object,
   },
-  data() {
-    return {
-      recordTypeMap: {
-        incoming: this.$t('RECEIVED'),
-        outgoing: this.$t('SENT')
-      },
-    }
-  },
-  computed: {
-    selectedMarketCurrency () {
-      return walletStore?.preferences?.selectedCurrency || 'USD'
-    },
-  },
-  methods: {
-    formatDate (date) {
-      return ago(new Date(date))
-    },
-    marketValue(transaction) {
-      const data = {
-        marketAssetPrice: null,
-        marketValue: null,
-      }
-
-      if (this.selectedMarketCurrency === 'USD' && transaction?.usd_price) {
-        data.marketAssetPrice = transaction.usd_price
-      } else if (transaction?.market_prices?.[this.selectedMarketCurrency]) {
-        data.marketAssetPrice = transaction?.market_prices?.[this.selectedMarketCurrency]
-      }
-
-      if (data.marketAssetPrice) {
-        data.marketValue = (Number(transaction?.amount) * Number(data.marketAssetPrice)).toFixed(5)
-      }
-      return data
-    }
-  },
   setup(props) {
+    const { t : $t } = useI18n();
     const $q = useQuasar()
     const txCacheStore = useTxCacheStore()
+
+    const recordTypeMap = { incoming: $t('RECEIVED'), outgoing: $t('SENT')}
+
+    const {
+      selectedMarketCurrency,
+      getTxMarketValue,
+    } = useTransactionHelpers();
+
+
     const txHistoryTimestampBounds = computed(() => {
       const data = { min: undefined, max: undefined }
       if (!Array.isArray(props.transactions.history)) return data
@@ -178,8 +152,14 @@ export default defineComponent({
       })
     }
 
+    function formatDate (date) {
+      return ago(new Date(date))
+    }
 
     return {
+      recordTypeMap,
+      selectedMarketCurrency,
+      getTxMarketValue,
       offlineTransactionsToShow,
       transactionsList,
 
@@ -190,6 +170,7 @@ export default defineComponent({
       displayCommerceHubSalesOrder,
 
       resolveTransactionSalesOrderId,
+      formatDate,
     }
   }
 })
