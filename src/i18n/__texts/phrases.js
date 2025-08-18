@@ -350,6 +350,8 @@ const phrases = {
       TokenName: 'Token Name',
       ViewInExplorer: 'View in explorer',
       SetAmount: 'Set Amount',
+      SetFiatAmount: 'Set fiat amount',
+      SetTokenAmount: 'Set token amount',
       CreatePaymentQR: 'Create Payment QR',
       ScanQrCode: 'Scan QR code',
       TransactionIdCopied: 'Transaction ID Copied',

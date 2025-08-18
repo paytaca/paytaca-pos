@@ -9,12 +9,33 @@
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
           </div>
+
+          <div v-if="isSelectedCurrencyToken && fiatCurrencyOpts.length > 0" class="row items-center justify-end no-wrap q-mb-sm">
+            <img
+              height="35"
+              :src="convertIpfsUrl(selectedCurrency?.imageUrl)"
+              :fallback-src="convertIpfsUrl(selectedCurrency?.imageUrl, 1)"
+              @error="onImgErrorIpfsSrc"
+              class="q-mr-xs"
+            />
+            <div>
+              {{ selectedCurrency?.name }} - {{ selectedCurrency?.symbol }}
+            </div>
+            <q-space/>
+            <q-btn
+              flat
+              no-caps :label="useFiatCurrency ? $t('SetTokenAmount') : $t('SetFiatAmount')"
+              padding="sm"
+              class="text-underline"
+              @click="() => useFiatCurrency = !useFiatCurrency"
+            />
+          </div>
           <div class="row items-center no-wrap q-gutter-x-sm">
             <q-input
               :label="$t('Amount')"
               type="number"
               inputmode="decimal"
-              :step="10 ** -(selectedCurrency?.decimals || 0)"
+              :step="10 ** -(amountFieldDecimals || 0)"
               v-model.number="amountValue"
               outlined
               autofocus
@@ -22,6 +43,14 @@
               class="q-space"
             />
             <q-select
+              v-if="isSelectedCurrencyToken && useFiatCurrency"
+              outlined
+              v-model="selectedFiatCurrency"
+              :options="fiatCurrencyOpts"
+              :option-label="resolveAssetSymbol"
+            />
+            <q-select
+              v-else
               outlined
               v-model="selectedCurrency"
               :options="filteredCurrencyOpts"
@@ -95,7 +124,23 @@ export default defineComponent({
     const cashtokenStore = useCashtokenStore();
 
     const amountValue = ref(props.initialValue?.amount || null);
+    const amountFieldDecimals = computed(() => {
+      if (isSelectedCurrencyToken.value && useFiatCurrency.value) {
+        return selectedFiatCurrency.value?.decimals;
+      }
+      return selectedCurrency.value?.decimals;
+    })
+
     const selectedCurrency = ref(parseAsset(props.initialValue?.currency))
+    const isSelectedCurrencyToken = computed(() => selectedCurrency.value?.id?.startsWith?.('ct/'))
+    const useFiatCurrency = ref(false);
+    const selectedFiatCurrency = ref(parseAsset());
+    watch(useFiatCurrency, (newVal) => {
+      if (!newVal) return
+      if (selectedFiatCurrency.value?.id) return
+      selectedFiatCurrency.value = fiatCurrencyOpts.value[0];
+    })
+
     const currencyOpts = computed(() => {
       const initialCurrency = parseAsset(props?.initialValue?.currency)
       let opts = [bchAsset]
@@ -109,6 +154,10 @@ export default defineComponent({
       if (props.hideInvalidOptions) return currencyOpts.value.filter(asset => asset?.valid !== false)
       return currencyOpts.value
     })  
+
+    const fiatCurrencyOpts = computed(() => {
+      return currencyOpts.value.filter(asset => asset?.id?.startsWith?.('fiat/'))
+    })
 
     onMounted(() => fetchMissingCashtokenDataFromOptions())
     watch(currencyOpts, () => fetchMissingCashtokenDataFromOptions())
@@ -127,9 +176,14 @@ export default defineComponent({
       let tokenCategory;
       if (assetId?.startsWith?.('ct/')) tokenCategory = assetId.replace('ct/', '');
 
+      let currency = selectedCurrency.value?.symbol;
+      if (isSelectedCurrencyToken.value && useFiatCurrency.value) {
+        currency = selectedFiatCurrency.value?.symbol;
+      }
+
       const data = {
         value: amountValue.value,
-        currency: selectedCurrency.value?.symbol,
+        currency,
         assetId,
         tokenCategory,
       }
@@ -143,9 +197,16 @@ export default defineComponent({
       onDialogOK,
       onDialogCancel,
       amountValue,
+      amountFieldDecimals,
       selectedCurrency,
+
+      isSelectedCurrencyToken,
+      useFiatCurrency,
+      selectedFiatCurrency,
+
       currencyOpts,
       filteredCurrencyOpts,
+      fiatCurrencyOpts,
 
       resolveAssetSymbol,
       convertIpfsUrl,
