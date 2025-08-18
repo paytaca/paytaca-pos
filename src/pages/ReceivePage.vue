@@ -51,7 +51,7 @@
       </div>
     </div>
 
-    <div v-if="!isBchMode && !isCashtoken" class="flex flex-center">
+    <div v-if="!isBchMode" class="flex flex-center">
       <q-linear-progress
         v-if="!qrScanned && !paid"
         :value="qrExpirationTimer"
@@ -104,14 +104,13 @@
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
         <div>
-          {{ receiveAmount }}
-          <template v-if="isCashtoken && cashtokenMetadata?.symbol && cashtokenMetadata?.symbol !== currency">
-            {{ cashtokenMetadata?.symbol }}
-          </template>
-          <template v-else>{{ currency }}</template>
+          {{ receiveAmount }} {{ currency }}
         </div>
         <div v-if="currency !== 'BCH' && !isNaN(bchValue)" class="text-caption text-grey">
           {{ bchValue }} BCH
+        </div>
+        <div v-else-if="cashtokenMetadata?.symbol !== currency && !isNaN(tokenAmount)" class="text-caption text-grey">
+          {{ tokenAmount }} {{ cashtokenMetadata?.symbol }}
         </div>
       </div>
     </div>
@@ -277,8 +276,11 @@ export default defineComponent({
     const currency = ref(props.setCurrency|| 'BCH')
     const tokenCategory = ref('')
     const disableAmount = ref(false)
-    const isBchMode = computed(() => currency.value === 'BCH')
     const isCashtoken = computed(() => Boolean(tokenCategory.value))
+    const isBchMode = computed(() => {
+      if (!isCashtoken.value) return currency.value === 'BCH'
+      return currency.value === cashtokenMetadata.value?.symbol;
+    })
 
     const cashtokenMetadata = computed(() => cashTokenStore.getTokenMetadata(tokenCategory.value))
     /* Core details --> */
@@ -333,10 +335,24 @@ export default defineComponent({
       '-1': { icon: 'mdi-arrow-down', color: 'red-9' },
     }
     const bchRateStatus = computed(() => status[currencyBchRate.value.status.toString()])
+    const tokenBchRate = computed(() => {
+      if (!tokenCategory.value) return
+      return marketStore.getTokenRate(tokenCategory.value)
+    })
+
+    const currencyTokenPrice = computed(() => {
+      if (!isCashtoken.value) return
+      if (isBchMode.value) return
+      const currencyPerBchRate = currencyBchRate.value?.rate
+      const tokenPerBchRate = tokenBchRate.value?.rate
+
+      return currencyPerBchRate / tokenPerBchRate // currency per token
+    })
 
     function updateSelectedCurrencyRate () {
       if (isBchMode.value) return
       marketStore.refreshBchPrice(currency.value)
+      if (isCashtoken.value) marketStore.refreshBchPrice(tokenCategory.value)
       setTimeout(() => {refreshingQr.value = false}, 3000)
     }
     /* Conversion rates --> */
@@ -352,7 +368,12 @@ export default defineComponent({
     })
     const tokenAmount = computed(() => {
       if (!isCashtoken.value) return NaN
-      return receiveAmount.value
+      if (isBchMode.value) return receiveAmount.value
+
+      const cashtokenDecimals = cashtokenMetadata.value?.decimals;
+      const rateValue = currencyTokenPrice.value
+      const tokenAmount = Number((receiveAmount.value / rateValue).toFixed(cashtokenDecimals));
+      return tokenAmount;
     })
 
     const totalCryptoAmount = computed(() => {
@@ -386,7 +407,7 @@ export default defineComponent({
     const triggerSecondConfetti = ref(false)
     const paid = computed(() => remainingPayment.value === 0)
     const showRemainingCurrencyAmount = computed(() => {
-      return !isBchMode.value && !isCashtoken.value && !paid.value
+      return !isBchMode.value && !paid.value
     })
     const remainingPayment = computed(() => {
       const remaining = paymentsStore.total - paymentsStore.paid
@@ -411,7 +432,11 @@ export default defineComponent({
       return cashtokenMetadata.value?.symbol;
     })
     const currencyAmountRemaining = computed(() => {
-      const currencyRemaining = currencyBchRate?.value?.rate * remainingPaymentRounded.value
+      const priceValue = isCashtoken.value
+        ? currencyTokenPrice.value
+        : currencyBchRate?.value?.rate
+
+      const currencyRemaining = priceValue * remainingPaymentRounded.value
       return Number(currencyRemaining.toFixed(2))
     })
     const paymentProgress = computed(() => {
@@ -439,7 +464,7 @@ export default defineComponent({
     }
 
     function refreshQrCountdown () {
-      if (isBchMode.value || isCashtoken.value) return
+      if (isBchMode.value) return
 
       updateSelectedCurrencyRate()
       stopQrExpirationCountdown()
@@ -477,7 +502,7 @@ export default defineComponent({
         params.push(`amount=${remainingPaymentRounded.value}`)
       }
 
-      if (!isBchMode.value && !isCashtoken.value) {
+      if (!isBchMode.value) {
         const expiryDuration = currencyRateUpdateRate / 1000
         const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
         const diffSeconds = networkTimeDiff.value ? networkTimeDiff.value / 1000 : 0
@@ -826,6 +851,7 @@ export default defineComponent({
       cashtokenMetadata,
       currencyBchRate,
       bchValue,
+      tokenAmount,
       showSetAmountDialog,
       qrData,
       websockets,
