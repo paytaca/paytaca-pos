@@ -19,12 +19,18 @@ export function useTransactionHelpers() {
   function getTxMarketValue(transaction) {
     const data = { marketAssetPrice: null, marketValue: null };
 
-    // no idea how to calculate market value for cashtoken transactions
-    if (transaction?.ft_category || transaction?.nft_category) return data;
+    // no idea how to calculate market value for nft transactions
+    if (transaction?.nft_category) return data;
 
     data.marketAssetPrice = getTxMarketPrice(transaction);
     if (data.marketAssetPrice) {
       data.marketValue = (Number(transaction?.amount) * Number(data.marketAssetPrice)).toFixed(5)
+      
+      if (transaction?.ft_category) {
+        const metadata = cashtokenStore.getTokenMetadata(transaction.ft_category);
+        const decimals = metadata?.decimals;
+        data.marketValue = (data.marketValue / 10 ** decimals).toFixed(5);
+      }
     }
     return data
   }
