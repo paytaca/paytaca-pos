@@ -51,7 +51,7 @@
       </div>
     </div>
 
-    <div v-if="!isBchMode" class="flex flex-center">
+    <div v-if="!isNotFiatMode" class="flex flex-center">
       <q-linear-progress
         v-if="!qrScanned && !paid"
         :value="qrExpirationTimer"
@@ -277,7 +277,7 @@ export default defineComponent({
     const tokenCategory = ref('')
     const disableAmount = ref(false)
     const isCashtoken = computed(() => Boolean(tokenCategory.value))
-    const isBchMode = computed(() => {
+    const isNotFiatMode = computed(() => {
       if (!isCashtoken.value) return currency.value === 'BCH'
       return currency.value === cashtokenMetadata.value?.symbol;
     })
@@ -326,7 +326,7 @@ export default defineComponent({
     const currencyRateUpdateRate = 5 * 60 * 1000
     const currencyBchRate = computed(() => {
       if (!currency.value) return
-      if (isBchMode.value) return { currency: 'BCH', rate: 1, timestamp: Date.now(), status: 2 }
+      if (isNotFiatMode.value) return { currency: 'BCH', rate: 1, timestamp: Date.now(), status: 2 }
       return marketStore.getRate(currency.value)
     })
     const status = {
@@ -342,7 +342,7 @@ export default defineComponent({
 
     const currencyTokenPrice = computed(() => {
       if (!isCashtoken.value) return
-      if (isBchMode.value) return
+      if (isNotFiatMode.value) return
       const currencyPerBchRate = currencyBchRate.value?.rate
       const tokenPerBchRate = tokenBchRate.value?.rate
 
@@ -350,7 +350,7 @@ export default defineComponent({
     })
 
     function updateSelectedCurrencyRate () {
-      if (isBchMode.value) return
+      if (isNotFiatMode.value) return
       marketStore.refreshBchPrice(currency.value)
       if (isCashtoken.value) marketStore.refreshBchPrice(tokenCategory.value)
       setTimeout(() => {refreshingQr.value = false}, 3000)
@@ -360,7 +360,7 @@ export default defineComponent({
     /* <-- Value/amounts */
     const bchValue = computed(() => {
       if (isCashtoken.value) return NaN
-      if (isBchMode.value) return receiveAmount.value
+      if (isNotFiatMode.value) return receiveAmount.value
 
       const rateValue = currencyBchRate.value?.rate
       const finalBchValue = Number((receiveAmount.value / rateValue).toFixed(8))
@@ -368,7 +368,7 @@ export default defineComponent({
     })
     const tokenAmount = computed(() => {
       if (!isCashtoken.value) return NaN
-      if (isBchMode.value) return receiveAmount.value
+      if (isNotFiatMode.value) return receiveAmount.value
 
       const cashtokenDecimals = cashtokenMetadata.value?.decimals;
       const rateValue = currencyTokenPrice.value
@@ -407,7 +407,7 @@ export default defineComponent({
     const triggerSecondConfetti = ref(false)
     const paid = computed(() => remainingPayment.value === 0)
     const showRemainingCurrencyAmount = computed(() => {
-      return !isBchMode.value && !paid.value
+      return !isNotFiatMode.value && !paid.value
     })
     const remainingPayment = computed(() => {
       const remaining = paymentsStore.total - paymentsStore.paid
@@ -464,7 +464,7 @@ export default defineComponent({
     }
 
     function refreshQrCountdown () {
-      if (isBchMode.value) return
+      if (isNotFiatMode.value) return
 
       updateSelectedCurrencyRate()
       stopQrExpirationCountdown()
@@ -502,7 +502,7 @@ export default defineComponent({
         params.push(`amount=${remainingPaymentRounded.value}`)
       }
 
-      if (!isBchMode.value) {
+      if (!isNotFiatMode.value) {
         const expiryDuration = currencyRateUpdateRate / 1000
         const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
         const diffSeconds = networkTimeDiff.value ? networkTimeDiff.value / 1000 : 0
@@ -873,7 +873,7 @@ export default defineComponent({
       qrExpirationTimer,
       networkTimeDiff,
       networkTimeDiffSeconds,
-      isBchMode,
+      isNotFiatMode,
       qrScanned,
       qrCodeContainerClass,
     }
