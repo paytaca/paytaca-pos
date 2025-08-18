@@ -1,53 +1,35 @@
+import { isHex } from '@bitauth/libauth';
 import axios from 'axios'
 import { defineStore } from 'pinia';
+import { backend } from 'src/marketplace/backend';
 
 export const useMarketStore = defineStore('market', {
   state: () => ({
     bchRates: [
-      { currency: '', rate: 0, timestamp: 0 },
+      { currency: '', rate: 0, timestamp: 0, category: '' },
     ],
     lastRate: 0
   }),
 
-  getters: {
-    getRate() {
-      return (currency, resetLastRate = false) => {
-        const bchRate = this.bchRates.find(rate => rate.currency === currency)
-        const bchRateUsed = bchRate && currency !== 'ARS'
-        let rate = 0
-
-        if (bchRateUsed) {
-          rate = bchRate.rate
-        } else {
-          const bchUsdRate = this.bchRates.find(rate => rate.currency === 'USD')
-          if (!bchUsdRate) return
-          const usdRate = this.usdRates.find(rate => rate.currency === currency)
-          if (!usdRate) return
-          
-          rate = bchUsdRate.rate * usdRate.rate
-        }
-
-        const status = this.getRateStatus(rate)
-        if (resetLastRate) this.lastRate = 0
-
-        if (bchRateUsed) {
-          return {
-            ...bchRate,
-            status,
-            rate,
-          }
-        }
-        return {
-          currency: usdRate.currency,
-          timestamp: usdRate.timestamp,
-          status,
-          rate
-        }
-      }
-    }
-  },
 
   actions: {
+    getRate(currency, resetLastRate = false) {
+      const bchRate = this.bchRates.find(rate => rate.currency === currency)
+      if (!bchRate) return
+
+      const status = this.getRateStatus(bchRate.rate)
+      if (resetLastRate) this.lastRate = 0
+
+      return {
+        ...bchRate,
+        status,
+      }
+    },
+
+    getTokenRate(category) {
+      return this.bchRates.find(rate => rate.category === category)
+    },
+
     getRateStatus (rate) {
       const status = {
         increased: 1,
@@ -69,13 +51,32 @@ export const useMarketStore = defineStore('market', {
      * @param {String} newRate.currency
      * @param {Number} newRate.rate
      * @param {Number} newRate.timestamp
+     * @param {String} newRate.category
      */
     updateBchPrice(newRate) {
-      const index = this.bchRates.findIndex(_rate => _rate?.currency === newRate.currency)
+      const index = this.bchRates.findIndex(_rate => {
+        return _rate?.currency === newRate.currency && _rate.category === newRate.category
+      })
       if (index >= 0) this.bchRates[index] = newRate
       else this.bchRates.push(newRate)
     },
-    refreshBchPrice(currency, opts) {
+    async refreshBchPrice(categorOrCurrency, opts) {
+      if (typeof categorOrCurrency !== 'string') return Promise.reject()
+
+      if (categorOrCurrency?.startsWith?.('fiat/')) {
+        return this.refreshCurrencyBchPrice(categorOrCurrency.replace('fiat/', ''), opts)
+      }
+      if (categorOrCurrency?.startsWith?.('ct/')) {
+        return this.refreshTokenBchPrice(categorOrCurrency.replace('ct/', ''), opts)
+      }
+
+      if (isHex(categorOrCurrency) && categorOrCurrency.length == 64) {
+        return this.refreshTokenBchPrice(categorOrCurrency, opts)
+      }
+
+      return this.refreshCurrencyBchPrice(categorOrCurrency, opts)
+    },
+    async refreshCurrencyBchPrice(currency, opts) {
       if (!currency) return Promise.reject()
       if (!Array.isArray(this.bchRates)) return Promise.reject()
 
@@ -86,8 +87,7 @@ export const useMarketStore = defineStore('market', {
         return Promise.resolve(rate)
       }
 
-      return axios.get(`https://watchtower.cash/api/bch-prices`, { params: { currencies: currency }})
-        .catch(() => this.refreshBchPriceOld(currency, opts))
+      return axios.get(`https://watchtower.cash/api/bch-prices/`, { params: { currencies: currency }})
         .then(response => {
           const priceData = response?.data?.find?.(result => result?.relative_currency === 'BCH' && result?.currency === currency)
           if (!priceData) return Promise.reject({ response })
@@ -102,5 +102,28 @@ export const useMarketStore = defineStore('market', {
           return newRate
         })
     },
+    refreshTokenBchPrice(category, opts) {
+      if (!category) return Promise.reject()
+      if (!Array.isArray(this.bchRates)) return Promise.reject()
+
+      const rate = this.bchRates.find(_rate => _rate?.category === category)
+      if (rate?.timestamp && opts?.age && Date.now() - opts?.age <= rate?.timestamp) {
+        return Promise.resolve(rate)
+      }
+
+      return backend.get(`prices/bch/ct:${category}/`)
+        .then(response => {
+          const data = response?.data;
+          const newRate = {
+            category: category,
+            rate: parseFloat(data?.price),
+            timestamp: new Date(data?.timestamp) * 1,
+          }
+
+          if (!newRate.rate) return
+          this.updateBchPrice(newRate);
+          return newRate;
+        })
+    }
   },
 })
