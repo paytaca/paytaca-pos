@@ -97,7 +97,10 @@ export default defineComponent({
     const { t } = useI18n()
 
     onMounted(() => fetchTransactions())
-    onMounted(() => walletStore.refetchSalesReport())
+    onMounted(() => {
+      walletStore.refetchSalesReport()
+        .then(() => walletStore.refetchSalesReportTokenMetadata())
+    })
     // onMounted(() => walletStore.refetchMerchantInfo())
     onMounted(() => walletStore.refetchDeviceInfo())
     onMounted(() => walletStore.refetchPreferences())

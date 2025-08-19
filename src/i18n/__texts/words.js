@@ -198,6 +198,8 @@ const words = [
     Checkbox: 'Checkbox',
     More: 'More',
     Vendor: 'Vendor',
+    Token: 'Token',
+    Tokens: 'Tokens',
     Language: 'Language',
     Afrikaans: 'Afrikaans',
     Cebuano: 'Cebuano',
