@@ -121,6 +121,8 @@ const phrases = {
       RefundFailed: 'Refund failed',
       FetchingDetails: 'Fetching details',
       FetchingOrder: 'Fetching order',
+      AcceptedTokens: 'Accepted Tokens',
+      FungibleTokenFilterPlaceholder: 'Filter by token ID, symbol, or name',
     },
     {
       PaymentStatus: 'Payment Status',
@@ -344,8 +346,12 @@ const phrases = {
       MinerFee: 'Miner fee',
       ViewInfo: 'View Info',
       ExplorerLink: 'Explorer Link',
+      TokenID: 'Token ID',
+      TokenName: 'Token Name',
       ViewInExplorer: 'View in explorer',
       SetAmount: 'Set Amount',
+      SetFiatAmount: 'Set fiat amount',
+      SetTokenAmount: 'Set token amount',
       CreatePaymentQR: 'Create Payment QR',
       ScanQrCode: 'Scan QR code',
       TransactionIdCopied: 'Transaction ID Copied',
@@ -535,7 +541,7 @@ const phrases = {
       RemoveStockRequirement: 'Remove stock requirement',
       RequireStockDesc: 'The product will require stock availability when ordering',
       RemoveStockRequirementDesc: 'The product will not require stock availability when ordering',
-    }
+    },
   ],
   dynamic: [
     {
@@ -562,6 +568,7 @@ const phrases = {
       AddItemValue: 'Add item {value}',
       BchPriceAtValue: 'BCH Price at {value}',
       BchLeftValue: '{price} BCH left',
+      AmountLeftValue: '{price} {symbol} left',
       MarkupSaleRateValue: 'Items are sold with {rate} change from their original price',
       StatusValue: 'Status: {value}',
       OrderId: 'Order #{id}',

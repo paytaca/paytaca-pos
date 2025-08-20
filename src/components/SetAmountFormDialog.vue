@@ -9,23 +9,76 @@
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
           </div>
+
+          <div v-if="isSelectedCurrencyToken && fiatCurrencyOpts.length > 0" class="row items-center justify-end no-wrap q-mb-sm">
+            <img
+              height="35"
+              :src="convertIpfsUrl(selectedCurrency?.imageUrl)"
+              :fallback-src="convertIpfsUrl(selectedCurrency?.imageUrl, 1)"
+              @error="onImgErrorIpfsSrc"
+              class="q-mr-xs"
+            />
+            <div>
+              {{ selectedCurrency?.name }} - {{ selectedCurrency?.symbol }}
+            </div>
+            <q-space/>
+            <q-btn
+              flat
+              no-caps :label="useFiatCurrency ? $t('SetTokenAmount') : $t('SetFiatAmount')"
+              padding="sm"
+              class="text-underline"
+              @click="() => useFiatCurrency = !useFiatCurrency"
+            />
+          </div>
           <div class="row items-center no-wrap q-gutter-x-sm">
             <q-input
               :label="$t('Amount')"
               type="number"
               inputmode="decimal"
-              :step="amount.currency === 'BCH' ? 0.00000001 : 0.01"
-              v-model.number="amount.value"
+              :step="10 ** -(amountFieldDecimals || 0)"
+              v-model.number="amountValue"
               outlined
               autofocus
               clearable
               class="q-space"
             />
             <q-select
+              v-if="isSelectedCurrencyToken && useFiatCurrency"
               outlined
-              v-model="amount.currency"
-              :options="currencyOpts"
+              v-model="selectedFiatCurrency"
+              :options="fiatCurrencyOpts"
+              :option-label="resolveAssetSymbol"
             />
+            <q-select
+              v-else
+              outlined
+              v-model="selectedCurrency"
+              :options="filteredCurrencyOpts"
+              :option-label="resolveAssetSymbol"
+            >
+              <template v-slot:option="ctx">
+                <q-item :active="ctx?.selected" clickable @click="() => ctx.toggleOption(ctx.opt)">
+                  <q-item-section>
+                    <q-item-label>{{ ctx.label }}</q-item-label>
+                    <q-item-label v-if="ctx.opt?.name" caption>{{ ctx?.opt?.name }}</q-item-label>
+                    <q-item-label
+                      v-if="ctx?.opt?.id?.startsWith?.('ct/') && ctx?.opt?.valid === false"
+                      caption style="text-overflow: ellipsis; overflow:hidden;"
+                    >
+                      {{ ctx?.opt?.id }}
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section v-if="ctx?.opt?.imageUrl" avatar>
+                    <img
+                      height="35"
+                      :src="convertIpfsUrl(ctx?.opt?.imageUrl)"
+                      :fallback-src="convertIpfsUrl(ctx?.opt?.imageUrl, 1)"
+                      @error="onImgErrorIpfsSrc"
+                    />
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
           </div>
         </q-card-section>
 
@@ -46,9 +99,11 @@
   </q-dialog>
 </template>
 <script>
-import { computed, defineComponent, ref, watch } from 'vue'
+import { bchAsset, parseAsset, resolveAssetSymbol } from '../utils/assets.js'
+import { convertIpfsUrl, onImgErrorIpfsSrc } from 'src/utils/ipfs'
+import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
-
+import { useCashtokenStore } from 'src/stores/cashtoken.js'
 
 export default defineComponent({
   name: 'SetAmountFormDialog',
@@ -57,6 +112,7 @@ export default defineComponent({
     currencies: Array,
     title: String,
     message: String,
+    hideInvalidOptions: Boolean,
   },
   emits: [
     // REQUIRED; need to specify some events that your
@@ -65,33 +121,96 @@ export default defineComponent({
   ],
   setup(props) {
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+    const cashtokenStore = useCashtokenStore();
 
-    const amount = ref({
-      value: props?.initialValue?.amount || null,
-      currency: props?.initialValue?.currency || 'BCH',
+    const amountValue = ref(props.initialValue?.amount || null);
+    const amountFieldDecimals = computed(() => {
+      if (isSelectedCurrencyToken.value && useFiatCurrency.value) {
+        return selectedFiatCurrency.value?.decimals;
+      }
+      return selectedCurrency.value?.decimals;
     })
+
+    const selectedCurrency = ref(parseAsset(props.initialValue?.currency))
+    const isSelectedCurrencyToken = computed(() => selectedCurrency.value?.id?.startsWith?.('ct/'))
+    const useFiatCurrency = ref(false);
+    const selectedFiatCurrency = ref(parseAsset());
+    watch(useFiatCurrency, (newVal) => {
+      if (!newVal) return
+      if (selectedFiatCurrency.value?.id) return
+      selectedFiatCurrency.value = fiatCurrencyOpts.value[0];
+    })
+
     const currencyOpts = computed(() => {
-      const initialCurrency = props?.initialValue?.currency
-      let opts = ['BCH']
-      if (Array.isArray(props.currencies)) opts = [...props.currencies]
-      if (initialCurrency && opts.indexOf(initialCurrency) < 0) {
+      const initialCurrency = parseAsset(props?.initialValue?.currency)
+      let opts = [bchAsset]
+      if (Array.isArray(props.currencies)) opts = [...props.currencies].map(parseAsset).filter(Boolean)
+      if (!opts.find(asset => asset?.id === initialCurrency?.id)) {
         opts.unshift(initialCurrency)
       }
       return opts
     })
+    const filteredCurrencyOpts = computed(() => {
+      if (props.hideInvalidOptions) return currencyOpts.value.filter(asset => asset?.valid !== false)
+      return currencyOpts.value
+    })  
+
+    const fiatCurrencyOpts = computed(() => {
+      return currencyOpts.value.filter(asset => asset?.id?.startsWith?.('fiat/'))
+    })
+
+    onMounted(() => fetchMissingCashtokenDataFromOptions())
+    watch(currencyOpts, () => fetchMissingCashtokenDataFromOptions())
+    function fetchMissingCashtokenDataFromOptions() {
+      for (const asset of currencyOpts.value) {
+        if (!asset?.id?.startsWith?.('ct/') || asset?.valid !== false) continue
+
+        const category = asset.id.replace('ct/', '');
+        cashtokenStore.fetchTokenMetadata(category);
+      }
+    }
 
     function checkAmount () {
-      onDialogOK({ amount: amount.value })
+      const assetId = selectedCurrency.value?.id;
+
+      let tokenCategory;
+      if (assetId?.startsWith?.('ct/')) tokenCategory = assetId.replace('ct/', '');
+
+      let currency = selectedCurrency.value?.symbol;
+      if (isSelectedCurrencyToken.value && useFiatCurrency.value) {
+        currency = selectedFiatCurrency.value?.symbol;
+      }
+
+      const data = {
+        value: amountValue.value,
+        currency,
+        assetId,
+        tokenCategory,
+      }
+      onDialogOK({ amount: data })
     }
-    
+
     return {
       dialogRef,
       checkAmount,
       onDialogHide,
       onDialogOK,
       onDialogCancel,
-      amount,
+      amountValue,
+      amountFieldDecimals,
+      selectedCurrency,
+
+      isSelectedCurrencyToken,
+      useFiatCurrency,
+      selectedFiatCurrency,
+
       currencyOpts,
+      filteredCurrencyOpts,
+      fiatCurrencyOpts,
+
+      resolveAssetSymbol,
+      convertIpfsUrl,
+      onImgErrorIpfsSrc,
     }
   },
 })

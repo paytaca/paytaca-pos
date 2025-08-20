@@ -3,14 +3,12 @@ import { HEARTBEAT_REQUEST_HEADER, useMarketplaceHeartbeatStore } from 'src/stor
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import axios from 'axios'
 
-const marketplaceStore = useMarketplaceStore()
-const marketplaceHeartbeatStore = useMarketplaceHeartbeatStore()
-
 const AUTH_TOKEN_STORAGE_KEY = 'marketplace-api-auth-token'
 export const TOTP_AUTH_BASE_SECRET_KEY = process.env.MARKETPLACE_AUTH_TOTP_BASE_SECRET
 
 export const backend = axios.create({
   baseURL: process.env.MARKETPLACE_BASE_URL || 'https://commercehub.paytaca.com/api',
+  // baseURL: 'http://localhost:8000/api',
 })
 backend.interceptors.request.use(async (config) => {
   const { value: token } = await getAuthToken()
@@ -60,7 +58,10 @@ export async function setAuthToken(value='') {
 }
 
 const heartbeat = {
-  parseForRequest(config, token) {    
+  parseForRequest(config, token) {  
+    const marketplaceStore = useMarketplaceStore()
+    const marketplaceHeartbeatStore = useMarketplaceHeartbeatStore()
+ 
     const forceHeartbeat = config?.customConfig?.forceHeartbeat
     const isLastHeartbeatExpired = marketplaceHeartbeatStore.isLastHeartbeatExpired()
     if (!isLastHeartbeatExpired && !forceHeartbeat) return config
@@ -77,6 +78,7 @@ const heartbeat = {
   parseResponse(response) {
     if (!response.config.headers[HEARTBEAT_REQUEST_HEADER]) return response
 
+    const marketplaceHeartbeatStore = useMarketplaceHeartbeatStore()
     const responseHeartbeatTimestamp = parseFloat(response?.headers?.['x-heartbeat-timestamp'])
     const lastHeartbeatTimestamp = Number.isFinite(responseHeartbeatTimestamp) ? responseHeartbeatTimestamp : Date.now()
     marketplaceHeartbeatStore.lastTimestamp = lastHeartbeatTimestamp
