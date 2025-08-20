@@ -2494,6 +2494,7 @@ export class EscrowContract {
 
   /**
    * @param {Object} data
+   * @param {String} data.contract_version
    * @param {String} data.address
    * @param {String} data.buyer_address
    * @param {String} data.seller_address
@@ -2529,6 +2530,7 @@ export class EscrowContract {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
 
+    this.contractVersion = data?.contract_version
     this.address = data?.address
     this.buyerAddress = data?.buyer_address
     this.sellerAddress = data?.seller_address
