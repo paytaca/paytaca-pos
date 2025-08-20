@@ -2,6 +2,7 @@
 // UPDATE ON i18n/translate.js and follow steps there to apply changes
 
 export default {
+  AcceptedTokens: "Token yang diterima",
   Actual: "Sebenarnya",
   ActualQty: "Aktual: {quantity}",
   Add: "Menambahkan",
@@ -254,6 +255,7 @@ export default {
   FromPurchaseOrder: "dari pesanan pembelian",
   FromSales: "dari penjualan",
   FromStockRecount: "dari penghitungan ulang stok",
+  FungibleTokenFilterPlaceholder: "Saring dengan ID Token, Simbol, atau Nama",
   GeneratingVerifyingXpubkey: "Menghasilkan verifikasi xpubkey",
   German: "Jerman",
   GoHome: "Pulang ke rumah",

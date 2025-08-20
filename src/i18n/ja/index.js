@@ -2,6 +2,7 @@
 // UPDATE ON i18n/translate.js and follow steps there to apply changes
 
 export default {
+  AcceptedTokens: "受け入れられたトークン",
   Actual: "実際の",
   ActualQty: "実際：{quantity}",
   Add: "追加",
@@ -254,6 +255,7 @@ export default {
   FromPurchaseOrder: "発注書から",
   FromSales: "販売から",
   FromStockRecount: "在庫の再集計から",
+  FungibleTokenFilterPlaceholder: "トークンID、シンボル、または名前でフィルターをかけます",
   GeneratingVerifyingXpubkey: "xpubkeyの検証を生成します",
   German: "ドイツ人",
   GoHome: "家に帰れ",

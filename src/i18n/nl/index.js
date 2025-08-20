@@ -2,6 +2,7 @@
 // UPDATE ON i18n/translate.js and follow steps there to apply changes
 
 export default {
+  AcceptedTokens: "Geaccepteerde tokens",
   Actual: "Werkelijk",
   ActualQty: "Actueel: {quantity}",
   Add: "Toevoegen",
@@ -254,6 +255,7 @@ export default {
   FromPurchaseOrder: "Van inkooporder",
   FromSales: "van verkoop",
   FromStockRecount: "van de voorraad hertelling",
+  FungibleTokenFilterPlaceholder: "Filter door token -ID, symbool of naam",
   GeneratingVerifyingXpubkey: "Het genereren van verifiërende xpubkey",
   German: "Duits",
   GoHome: "Ga naar huis",

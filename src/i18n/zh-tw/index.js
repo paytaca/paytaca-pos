@@ -2,6 +2,7 @@
 // UPDATE ON i18n/translate.js and follow steps there to apply changes
 
 export default {
+  AcceptedTokens: "接受的令牌",
   Actual: "實際的",
   ActualQty: "實際：{quantity}",
   Add: "添加",
@@ -254,6 +255,7 @@ export default {
   FromPurchaseOrder: "從採購訂單",
   FromSales: "來自銷售",
   FromStockRecount: "從股票重新計算",
+  FungibleTokenFilterPlaceholder: "通過令牌ID，符號或名稱過濾",
   GeneratingVerifyingXpubkey: "生成驗證XPUBKEY",
   German: "德語",
   GoHome: "回家",

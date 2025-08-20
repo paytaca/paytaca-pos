@@ -2,6 +2,7 @@
 // UPDATE ON i18n/translate.js and follow steps there to apply changes
 
 export default {
+  AcceptedTokens: "허용 된 토큰",
   Actual: "실제",
   ActualQty: "실제 : {수량}",
   Add: "추가하다",
@@ -254,6 +255,7 @@ export default {
   FromPurchaseOrder: "구매 주문에서",
   FromSales: "판매에서",
   FromStockRecount: "재고 recount에서",
+  FungibleTokenFilterPlaceholder: "토큰 ID, 기호 또는 이름으로 필터",
   GeneratingVerifyingXpubkey: "xpubkey 확인 생성",
   German: "독일 사람",
   GoHome: "집에가",
