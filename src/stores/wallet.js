@@ -399,8 +399,7 @@ export const useWalletStore = defineStore('wallet', {
         posid: this.posId,
       }
       const watchtower = new Watchtower()
-      // watchtower.BCH._api.get(`paytacapos/devices/sales_report/${this.walletHash}/`, { params })
-      return watchtower.BCH._api.get(`http://localhost:8000/api/paytacapos/devices/sales_report/${this.walletHash}/`, { params })
+      return watchtower.BCH._api.get(`paytacapos/devices/sales_report/${this.walletHash}/`, { params })
         .then(response => {
           const salesReport = {
             timestampFrom: response?.data?.timestamp_from,
