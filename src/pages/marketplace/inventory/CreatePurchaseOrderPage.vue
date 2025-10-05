@@ -162,7 +162,7 @@
               no-focus fit
               no-parent-event
               @hide="() => vendorSearch.search = ''"
-              @vnode-updated="onVendorSearchMenuUpdate"
+              @vue:updated="onVendorSearchMenuUpdate"
             >
               <q-input
                 dense
