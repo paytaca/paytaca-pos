@@ -102,6 +102,7 @@ export default defineComponent({
         .then(() => walletStore.refetchSalesReportTokenMetadata())
     })
     // onMounted(() => walletStore.refetchMerchantInfo())
+    onMounted(() => walletStore.fetchAcceptedTokens())
     onMounted(() => walletStore.refetchDeviceInfo())
     onMounted(() => walletStore.refetchPreferences())
     // watch(() => [walletStore.walletHash], () => walletStore.refetchMerchantInfo())

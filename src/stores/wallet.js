@@ -1,5 +1,7 @@
 import Watchtower from 'watchtower-cash-js';
 import { defineStore } from 'pinia';
+import { backend } from 'src/marketplace/backend';
+import { FungibleCashToken } from 'src/marketplace/objects';
 import { Wallet } from 'src/wallet';
 import { useAddressesStore } from './addresses';
 import {
@@ -69,6 +71,21 @@ export const useWalletStore = defineStore('wallet', {
         longitude: null,
         latitude: null,
       },
+    },
+
+    acceptedTokensData: {
+      merchantId: 0,
+      accepted_tokens: [].map(() => {
+        return {
+          category: '',
+          decimals: 0,
+          description: '',
+          name: '',
+          symbol: '',
+          image_url: '',
+          is_active: false,
+        }
+      })
     },
 
     preferences: {
@@ -174,6 +191,11 @@ export const useWalletStore = defineStore('wallet', {
         xPubKey: state.xPubKey,
         posId: state.posId,
       })
+    },
+    acceptedTokens() {
+      const merchantId = this.merchantInfo?.id;
+      if (merchantId !== this.acceptedTokensData?.merchantId) return []
+      return this.acceptedTokensData?.accepted_tokens?.map(FungibleCashToken.parse)
     }
   },
   
@@ -360,6 +382,28 @@ export const useWalletStore = defineStore('wallet', {
           }
         })
     },
+    fetchAcceptedTokens() {
+      const merchantId = this.merchantInfo?.id;
+      const params = { watchtower_merchant_ids: merchantId };
+      return backend.get(`merchants/watchtower/accepted_tokens/`, { params })
+        .then(response => {
+          const data = response.data?.find?.(record => record?.watchtower_merchant_id == merchantId)
+          if (!data || !Array.isArray(data?.accepted_tokens)) return Promise.reject({ response })
+          this.setAcceptedTokensData(data)
+          return this.acceptedTokens
+        })
+    },
+    /**
+     * @param {Object} data
+     * @param {Number} data.watchtower_merchant_id
+     * @param {Object[]} data.accepted_tokens
+     */
+    setAcceptedTokensData(data) {
+      this.acceptedTokensData = {
+        merchantId: data?.watchtower_merchant_id,
+        accepted_tokens: data?.accepted_tokens
+      }
+    },
     /**
      * @param {Object} data 
      * @param {Object} data.selected_currency
@@ -471,6 +515,7 @@ export const useWalletStore = defineStore('wallet', {
       this.setDeviceInfo(null)
       this.setBranchInfo(null)
       this.setMerchantInfo(null)
+      this.setAcceptedTokensData(null)
       this.setPreferences(null)
       this.clearQrDataTimestampCache()
       this.clearSalesReport()

@@ -80,7 +80,7 @@ export default defineComponent({
 
     function promptAmount () {
       const tokenCategories = [];
-      const acceptedTokensData = marketplaceStore.acceptedTokensData?.accepted_tokens;
+      const acceptedTokensData = walletStore.acceptedTokensData?.accepted_tokens;
       if (Array.isArray(acceptedTokensData)) {
         tokenCategories.push(...acceptedTokensData.map(tokenData => tokenData?.category));
       }
