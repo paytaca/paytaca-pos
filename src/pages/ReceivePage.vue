@@ -33,7 +33,7 @@
           <img src="~assets/success-check.gif" height="200" />
         </div>
         <template v-else>
-          <div v-if="!websocketsReady || refreshingQr" :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
+          <div v-if="!websocketsReady || refreshingQr || fiatRateLoading" :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
             <q-skeleton :height="$q.platform.is.ios ? '250px' : '200px'" :width="$q.platform.is.ios ? '250px' : '200px'" />
           </div>
           <template v-else>
@@ -356,11 +356,36 @@ export default defineComponent({
       return currencyPerBchRate / tokenPerBchRate // currency per token
     })
 
-    function updateSelectedCurrencyRate () {
+    async function updateSelectedCurrencyRate (opts = {}) {
       if (isNotFiatMode.value) return
-      marketStore.refreshBchPrice(currency.value)
-      if (isCashtoken.value) marketStore.refreshBchPrice(tokenCategory.value)
-      setTimeout(() => {refreshingQr.value = false}, 3000)
+
+      const refreshPromises = [marketStore.refreshBchPrice(currency.value)]
+      if (isCashtoken.value) refreshPromises.push(marketStore.refreshBchPrice(tokenCategory.value))
+
+      try {
+        await Promise.all(refreshPromises)
+      } finally {
+        if (!opts?.skipRefreshTimer) {
+          setTimeout(() => { refreshingQr.value = false }, 3000)
+        }
+      }
+    }
+
+    function ensureLatestFiatRateBeforeQr () {
+      if (!receiveAmount.value || isNotFiatMode.value) return
+      if (latestFiatRatePromise) return latestFiatRatePromise
+
+      fiatRateLoading.value = true
+      latestFiatRatePromise = updateSelectedCurrencyRate({ skipRefreshTimer: true })
+        .catch(error => {
+          console.error(error)
+        })
+        .finally(() => {
+          fiatRateLoading.value = false
+          latestFiatRatePromise = null
+        })
+
+      return latestFiatRatePromise
     }
     /* Conversion rates --> */
 
@@ -456,6 +481,8 @@ export default defineComponent({
     /* <-- QR code related */
     const refreshQr = ref(false) // dialog state
     const refreshingQr = ref(false) // 
+    const fiatRateLoading = ref(false)
+    let latestFiatRatePromise = null
     const qrExpirationTimer = ref(1)
 
     let qrScanned = ref(false)
@@ -464,6 +491,13 @@ export default defineComponent({
 
     onMounted(() => refreshQrCountdown())
     watch(currency, () => updateSelectedCurrencyRate())
+    watch(
+      () => [receiveAmount.value, currency.value],
+      () => {
+        if (!receiveAmount.value || isNotFiatMode.value) return
+        ensureLatestFiatRateBeforeQr()
+      }
+    )
 
     function stopQrExpirationCountdown () {
       clearInterval(qrExpirationCountdown)
@@ -877,6 +911,7 @@ export default defineComponent({
       bchRateStatus,
       refreshQr,
       refreshingQr,
+      fiatRateLoading,
       refreshQrCountdown,
       qrExpirationTimer,
       networkTimeDiff,
