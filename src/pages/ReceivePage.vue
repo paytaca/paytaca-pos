@@ -37,7 +37,7 @@
             <q-skeleton :height="$q.platform.is.ios ? '250px' : '200px'" :width="$q.platform.is.ios ? '250px' : '200px'" />
           </div>
           <template v-else>
-            <img src="~assets/bch-logo.webp" height="50" class="qr-code-icon"/>
+            <img v-if="qrCodeLogo" :src="qrCodeLogo" height="50" class="qr-code-icon"/>
             <QRCode
               :text="qrData"
               color="#253933"
@@ -213,6 +213,7 @@ import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
 import ConfettiExplosion from "vue-confetti-explosion"
+import bchLogo from 'src/assets/bch-logo.webp'
 
 
 export default defineComponent({
@@ -283,6 +284,12 @@ export default defineComponent({
     })
 
     const cashtokenMetadata = computed(() => cashTokenStore.getTokenMetadata(tokenCategory.value))
+    const qrCodeLogo = computed(() => {
+      if (isCashtoken.value) {
+        return cashtokenMetadata.value?.imageUrl || bchLogo
+      }
+      return bchLogo
+    })
     /* Core details --> */
 
     /* <-- Wallet/address */
@@ -849,6 +856,7 @@ export default defineComponent({
       disableAmount,
       isCashtoken,
       cashtokenMetadata,
+      qrCodeLogo,
       currencyBchRate,
       bchValue,
       tokenAmount,
