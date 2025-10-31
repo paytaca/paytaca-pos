@@ -635,8 +635,9 @@ export default defineComponent({
 })
 </script>
 <style lang="scss" scoped>
+@use 'sass:math';
 table.items-table {
-  border-spacing: (map-get($space-md, 'x'))/2;
+  border-spacing: math.div(map-get($space-md, 'x'), 2);
 }
 </style>
 

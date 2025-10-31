@@ -1,3 +1,5 @@
+@use 'sass:math';
+
 // app global css in SCSS form
 body.body--light {
   background-color: $brandlight;
@@ -69,15 +71,15 @@ body.body--light {
 
 @each $name, $spacing in $spaces {
   .q-r-ml-#{$name}, .q-r-mx-#{$name}, .q-r-ma-#{$name} {
-      margin-left: -(map-get($spacing, 'x'))/2;
+      margin-left: math.div(map-get($spacing, 'x'), -2);
   }
   .q-r-mr-#{$name}, .q-r-mx-#{$name}, .q-r-ma-#{$name} {
-      margin-right: -(map-get($spacing, 'x'))/2;
+      margin-right: math.div(map-get($spacing, 'x'), -2);
   }
   .q-r-mt-#{$name}, .q-r-my-#{$name}, .q-r-ma-#{$name} {
-      margin-top: -(map-get($spacing, 'y'))/2;
+      margin-top: math.div(map-get($spacing, 'y'), -2);
   }
   .q-r-mb-#{$name}, .q-r-my-#{$name}, .q-r-ma-#{$name} {
-      margin-bottom: -(map-get($spacing, 'y'))/2;
+      margin-bottom: math.div(map-get($spacing, 'y'), -2);
   }
 }

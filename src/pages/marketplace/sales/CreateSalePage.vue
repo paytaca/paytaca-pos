@@ -1225,6 +1225,7 @@ export default defineComponent({
 
 </style>
 <style scoped lang="scss">
+@use 'sass:math';
 /* 1. declare transition */
 .fade-move,
 .fade-enter-active,
@@ -1271,7 +1272,7 @@ export default defineComponent({
 }
 
 .q-r-ml-md {
-  margin-left: -(map-get($space-md, 'x'))/2;
+  margin-left: math.div(map-get($space-md, 'x'), -2);
 }
 
 table.items-tab-table  tr:nth-child(2n) {
