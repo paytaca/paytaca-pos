@@ -21,7 +21,8 @@
         <q-card-section>
           <template v-if="formData.items?.length">
             <table class="items-table full-width">
-              <tr v-for="item in formData.items" :key="item?.variant?.id">
+              <tbody>
+                <tr v-for="item in formData.items" :key="item?.variant?.id">
                 <td class="full-width">
                   <div class="row items-start no-wrap text-weight-medium">
                     <img
@@ -77,6 +78,7 @@
                   </q-popup-edit>
                 </td>
               </tr>
+              </tbody>
             </table>
           </template>
           <div v-else class="text-center text-grey">

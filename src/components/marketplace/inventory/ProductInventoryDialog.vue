@@ -45,15 +45,18 @@
         <q-spinner size="2.5em"/>
       </div>
       <table v-else class="full-width" style="border-spacing:8px;">
-        <tr>
-          <th v-if="hasVariantImage" class="image-col"></th>
-          <th v-if="product.hasVariants">{{ $t('Variant') }}</th>
-          <th>{{ $t('Price') }}</th>
-          <th>{{ $t('Quantity') }}</th>
-          <th></th>
-        </tr>
-        <template v-for="variant in product?.variants" :key="variant.id">
+        <thead>
           <tr>
+            <th v-if="hasVariantImage" class="image-col"></th>
+            <th v-if="product.hasVariants">{{ $t('Variant') }}</th>
+            <th>{{ $t('Price') }}</th>
+            <th>{{ $t('Quantity') }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-for="variant in product?.variants" :key="variant.id">
+            <tr>
             <td v-if="hasVariantImage" class="text-center image-col">
               <div class="row items-center justify-center">
                 <img
@@ -94,10 +97,11 @@
               </slot>
             </td>
           </tr>
-          <tr>
-            <td colspan="10"><q-separator/></td>
-          </tr>
-        </template>
+            <tr>
+              <td colspan="10"><q-separator/></td>
+            </tr>
+          </template>
+        </tbody>
       </table>
     </q-card>
   </q-dialog>

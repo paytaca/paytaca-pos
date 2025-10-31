@@ -48,14 +48,16 @@
       </q-banner>
       <div :class="{ dark: $q.dark.isActive }" class="row stocks-table-container" style="overflow:auto;">
         <table class="stocks-table full-width" :class="{ dark: $q.dark.isActive }">
-          <tr>
-            <th>{{ $t('Stock') }}</th>
-            <th>{{ $t('Expected') }}</th>
-            <th>{{ $t('Actual') }}</th>
-            <th>{{ $t('Remarks') }}</th>
-            <th></th>
-          </tr>
-          <TransitionGroup name="fade">
+          <thead>
+            <tr>
+              <th>{{ $t('Stock') }}</th>
+              <th>{{ $t('Expected') }}</th>
+              <th>{{ $t('Actual') }}</th>
+              <th>{{ $t('Remarks') }}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <TransitionGroup name="fade" tag="tbody">
             <tr v-for="(item, index) in formData.items" :key="item?.stock?.id">
               <td class="row items-center no-wrap text-weight-medium field" @click="() => displayStock(item.stock)">
                 <div class="q-space">

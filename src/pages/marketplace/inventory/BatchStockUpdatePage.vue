@@ -48,14 +48,17 @@
       </q-banner>
       <div :class="{ dark: $q.dark.isActive }" class="row stocks-table-container" style="overflow:auto;">
         <table class="stocks-table full-width" :class="{ dark: $q.dark.isActive }">
-          <tr>
-            <th>{{ $t('Stock') }}</th>
-            <th>{{ $t('Quantity') }}</th>
-            <th>{{ $t('CostPrice') }}</th>
-            <th>{{ $t('ExpiresAt') }}</th>
-            <th></th>
-          </tr>
-          <tr v-for="(formData, index) in formDataList" :key="index">
+          <thead>
+            <tr>
+              <th>{{ $t('Stock') }}</th>
+              <th>{{ $t('Quantity') }}</th>
+              <th>{{ $t('CostPrice') }}</th>
+              <th>{{ $t('ExpiresAt') }}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(formData, index) in formDataList" :key="index">
             <td class="text-weight-medium" @click="() => displayStock(formData.stock)">
               <div>
                 {{
@@ -156,6 +159,7 @@
               />
             </td>
           </tr>
+          </tbody>
         </table>
       </div>
       <div class="fixed-bottom q-pa-sm" style="z-index:5;">

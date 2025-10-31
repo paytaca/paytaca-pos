@@ -53,15 +53,18 @@
               </span>
             </div>
             <table v-if="Array.isArray(collection?.conditions)" class="full-width text-left">
-              <tr>
-                <th>{{ $t('Field') }}</th>
-                <th>{{ $t('Condition') }}</th>
-                <th>{{ $t('Value') }}</th>
-              </tr>
-              <tr v-for="(condition, index) in collection?.conditions" :key="index">
-                <td>{{ condition.fieldLabel }}</td>
-                <td>{{ condition?.expressionLabel }}</td>
-                <td>
+              <thead>
+                <tr>
+                  <th>{{ $t('Field') }}</th>
+                  <th>{{ $t('Condition') }}</th>
+                  <th>{{ $t('Value') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(condition, index) in collection?.conditions" :key="index">
+                  <td>{{ condition.fieldLabel }}</td>
+                  <td>{{ condition?.expressionLabel }}</td>
+                  <td>
                   <template v-if="condition.field === CollectionCondition.fields.price">
                     {{ condition.value }}
                     {{ marketplaceStore?.currency }}
@@ -82,8 +85,9 @@
                   <template v-else>
                     {{ condition.value }}
                   </template>
-                </td>
-              </tr>
+                  </td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </q-card-section>
