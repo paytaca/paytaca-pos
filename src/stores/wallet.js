@@ -1,5 +1,7 @@
 import Watchtower from 'watchtower-cash-js';
 import { defineStore } from 'pinia';
+import { backend } from 'src/marketplace/backend';
+import { FungibleCashToken } from 'src/marketplace/objects';
 import { Wallet } from 'src/wallet';
 import { useAddressesStore } from './addresses';
 import {
@@ -7,6 +9,8 @@ import {
   decodePaymentUri,
   getPubkeyAt,
 } from 'src/wallet/utils';
+import { summarizeSalesReports } from 'src/utils/sales-report';
+import { useCashtokenStore } from './cashtoken';
 
 
 export const useWalletStore = defineStore('wallet', {
@@ -69,6 +73,21 @@ export const useWalletStore = defineStore('wallet', {
       },
     },
 
+    acceptedTokensData: {
+      merchantId: 0,
+      accepted_tokens: [].map(() => {
+        return {
+          category: '',
+          decimals: 0,
+          description: '',
+          name: '',
+          symbol: '',
+          image_url: '',
+          is_active: false,
+        }
+      })
+    },
+
     preferences: {
       selectedCurrency: 'USD',
     },
@@ -76,7 +95,7 @@ export const useWalletStore = defineStore('wallet', {
     salesReport: {
       timestampFrom: 0,
       timestampTo: 0,
-      data: [{ month: 0, year: 0, day: 0, total: 0, currency: 0, totalMarketValue: 0, count: 0 }],
+      data: [{ month: 0, year: 0, day: 0, total: 0, currency: 0, totalMarketValue: 0, count: 0, ftCategory: '' }],
     },
 
     qrDataTimestampCache: {
@@ -89,37 +108,33 @@ export const useWalletStore = defineStore('wallet', {
 
   getters: {
     salesReportSummary() {
-      const data = {
-        today: { total: 0, currency: 0, totalMarketValue: 0, count: 0 },
-        yesterday: { total: 0, currency: 0, totalMarketValue: 0, count: 0 },
+      return {
+        today: this.salesReportToday,
+        yesterday: this.salesReportYesterday,
         last7Days: this.salesReportPastWeek,
         lastMonth: this.salesReportPastMonth,
       }
+    },
+    salesReportToday() {
       const today = new Date()
-      Object.assign(
-        data.today,
-        this.salesReport.data.find((record) => record?.year === today.getFullYear() && record?.month-1 === today.getMonth() && record?.day === today.getDate()),
-      )
-
-      data.today.total = Number(data.today.total.toFixed(8))
-      if (data.today.totalMarketValue) {
-        data.today.totalMarketValue = Number(data.today.totalMarketValue.toFixed(2))
-      }
-
+      const recordsToday = this.salesReport.data.filter((record) => {
+        return record?.year === today.getFullYear() &&
+               record?.month-1 === today.getMonth() &&
+               record?.day === today.getDate()
+      })
+      return summarizeSalesReports(recordsToday);
+    },
+    salesReportYesterday() {
       const yesterday = new Date()
       yesterday.setDate(yesterday.getDate() - 1)
-      Object.assign(
-        data.yesterday,
-        this.salesReport.data.find((record) => record?.year === yesterday.getFullYear() && record?.month-1 === yesterday.getMonth() && record?.day === yesterday.getDate()),
-      )
-      data.yesterday.total = Number(data.yesterday.total.toFixed(8))
-      if (data.yesterday.totalMarketValue) {
-        data.yesterday.totalMarketValue = Number(data.yesterday.totalMarketValue.toFixed(2))
-      }
-      return data
+      const recordsYesterday = this.salesReport.data.filter((record) => {
+        return record?.year === yesterday.getFullYear() &&
+               record?.month-1 === yesterday.getMonth() &&
+               record?.day === yesterday.getDate()
+      })
+      return summarizeSalesReports(recordsYesterday);
     },
     salesReportPastWeek() {
-      const data = { total: 0, currency: 0, totalMarketValue: 0, count: 0 }
       const today = new Date()
       const lastWeek = new Date()
       lastWeek.setDate(lastWeek.getDate() - 7)
@@ -127,46 +142,17 @@ export const useWalletStore = defineStore('wallet', {
         const timestamp = new Date(record.year, record.month-1, record.day)
         return timestamp <= today && timestamp >= lastWeek
       })
-
-      const currencies = records.map(record => record?.currency).filter(Boolean).filter((e, i, l) => l.indexOf(e) === i)
-      const hasMissingMarketValue = records.find(record => !record?.totalMarketValue || !record?.currency)
-      data.total = records.reduce((subtotal, record) => subtotal + record.total, 0)
-      data.count = records.reduce((subtotal, record) => subtotal + record.count, 0)
-      if (currencies.length === 1 && !hasMissingMarketValue) {
-        data.currency = records?.[0]?.currency
-        data.totalMarketValue = records.reduce((subtotal, record) => subtotal + record.totalMarketValue, 0)
-      }
-
-      data.total = Number(data.total.toFixed(8))
-      if (data.totalMarketValue) {
-        data.totalMarketValue = Number(data.totalMarketValue.toFixed(2))
-      }
-      return data
+      return summarizeSalesReports(records);
     },
     salesReportPastMonth() {
-      const data = { total: 0, currency: 0, totalMarketValue: 0, count: 0 }
       const today = new Date()
       const lastMonth = new Date()
-      lastMonth.setMonth(lastMonth.getMonth() - 7)
+      lastMonth.setMonth(lastMonth.getMonth() - 1)
       const records = this.salesReport.data.filter((record) => {
         const timestamp = new Date(record.year, record.month-1, record.day)
         return timestamp <= today && timestamp >= lastMonth
       })
-
-      const currencies = records.map(record => record?.currency).filter(Boolean).filter((e, i, l) => l.indexOf(e) === i)
-      const hasMissingMarketValue = records.find(record => !record?.totalMarketValue || !record?.currency)
-      data.total = records.reduce((subtotal, record) => subtotal + record.total, 0)
-      data.count = records.reduce((subtotal, record) => subtotal + record.count, 0)
-      if (currencies.length === 1 && !hasMissingMarketValue) {
-        data.currency = records?.[0]?.currency
-        data.totalMarketValue = records.reduce((subtotal, record) => subtotal + record.totalMarketValue, 0)
-      }
-
-      data.total = Number(data.total.toFixed(8))
-      if (data.totalMarketValue) {
-        data.totalMarketValue = Number(data.totalMarketValue.toFixed(2))
-      }
-      return data
+      return summarizeSalesReports(records)
     },
     walletHandle() {
       if (!this.walletHash) return ''
@@ -205,6 +191,11 @@ export const useWalletStore = defineStore('wallet', {
         xPubKey: state.xPubKey,
         posId: state.posId,
       })
+    },
+    acceptedTokens() {
+      const merchantId = this.merchantInfo?.id;
+      if (merchantId !== this.acceptedTokensData?.merchantId) return []
+      return this.acceptedTokensData?.accepted_tokens?.map(FungibleCashToken.parse)
     }
   },
   
@@ -391,6 +382,28 @@ export const useWalletStore = defineStore('wallet', {
           }
         })
     },
+    fetchAcceptedTokens() {
+      const merchantId = this.merchantInfo?.id;
+      const params = { watchtower_merchant_ids: merchantId };
+      return backend.get(`merchants/watchtower/accepted_tokens/`, { params })
+        .then(response => {
+          const data = response.data?.find?.(record => record?.watchtower_merchant_id == merchantId)
+          if (!data || !Array.isArray(data?.accepted_tokens)) return Promise.reject({ response })
+          this.setAcceptedTokensData(data)
+          return this.acceptedTokens
+        })
+    },
+    /**
+     * @param {Object} data
+     * @param {Number} data.watchtower_merchant_id
+     * @param {Object[]} data.accepted_tokens
+     */
+    setAcceptedTokensData(data) {
+      this.acceptedTokensData = {
+        merchantId: data?.watchtower_merchant_id,
+        accepted_tokens: data?.accepted_tokens
+      }
+    },
     /**
      * @param {Object} data 
      * @param {Object} data.selected_currency
@@ -406,7 +419,18 @@ export const useWalletStore = defineStore('wallet', {
           this.setPreferences(response?.data)
         })
     },
-    refetchSalesReport() {
+    refetchSalesReportTokenMetadata() {
+      const ftCategories = this.salesReport.data
+        .map(data => data.ftCategory)
+        .filter(Boolean)
+        .filter((element, index, list) => list.indexOf(element) === index)
+
+      const cashtokenStore = useCashtokenStore();
+      return ftCategories
+        .filter(category => !cashtokenStore.getTokenMetadata(category))
+        .map(category => cashtokenStore.fetchTokenMetadata(category))
+    },
+    async refetchSalesReport() {
       if (!this.walletHash) return this.clearSalesReport()
       const today = new Date()
       const lastMonth = new Date()
@@ -419,7 +443,7 @@ export const useWalletStore = defineStore('wallet', {
         posid: this.posId,
       }
       const watchtower = new Watchtower()
-      watchtower.BCH._api.get(`paytacapos/devices/sales_report/${this.walletHash}/`, { params })
+      return watchtower.BCH._api.get(`paytacapos/devices/sales_report/${this.walletHash}/`, { params })
         .then(response => {
           const salesReport = {
             timestampFrom: response?.data?.timestamp_from,
@@ -437,6 +461,7 @@ export const useWalletStore = defineStore('wallet', {
                 currency: record?.currency,
                 totalMarketValue: record?.total_market_value,
                 count: record?.count,
+                ftCategory: record?.ft_category,
               }
             })
           }
@@ -490,6 +515,7 @@ export const useWalletStore = defineStore('wallet', {
       this.setDeviceInfo(null)
       this.setBranchInfo(null)
       this.setMerchantInfo(null)
+      this.setAcceptedTokensData(null)
       this.setPreferences(null)
       this.clearQrDataTimestampCache()
       this.clearSalesReport()

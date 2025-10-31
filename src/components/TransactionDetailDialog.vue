@@ -33,12 +33,20 @@
       <q-card-section class="q-mt-xs">
         <q-item clickable v-ripple @click="copyToClipboard(String(transaction.amount))">
           <q-item-section v-if="!transaction?._offline || transaction?.amount" side>
-            <img src="~assets/bch-logo.webp" height="30"/>
+            <img
+              v-if="tokenMetadata?.imageUrl"
+              height="35"
+              :src="convertIpfsUrl(tokenMetadata?.imageUrl)"
+              :fallback-src="convertIpfsUrl(tokenMetadata?.imageUrl, 1)"
+              @error="onImgErrorIpfsSrc"
+            />
+            <img v-else src="~assets/bch-logo.webp" height="30"/>
           </q-item-section>
           <q-item-section v-if="!transaction?._offline || transaction?.amount">
             <q-item-label class="text-h5">
-              <template v-if="transaction.record_type === 'outgoing'">{{ transaction.amount * -1 }} BCH</template>
-              <template v-else> {{ transaction.amount }} BCH </template>
+              <template v-if="transaction.record_type === 'outgoing'">{{ transactionAmount?.value * -1 }}</template>
+              <template v-else> {{ transactionAmount?.value }}</template>
+              {{ transactionAmount?.symbol }}
             </q-item-label>
             <q-item-label v-if="transactionAmountMarketValue" caption>
               {{ transactionAmountMarketValue }} {{ selectedMarketCurrency }}
@@ -69,6 +77,18 @@
           <q-item-section>
             <q-item-label caption class="text-grey">{{ $t('TransactionID') }}</q-item-label>
             <q-item-label>{{ transaction?.txid }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item v-if="tokenCategory" clickable v-ripple @click="copyToClipboard(tokenCategory)" style="overflow-wrap: anywhere;">
+          <q-item-section>
+            <q-item-label caption class="text-grey">{{ $t('TokenID') }}</q-item-label>
+            <q-item-label>{{ tokenCategory }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item v-if="tokenMetadata?.name" clickable v-ripple @click="copyToClipboard(tokenMetadata.name)" style="overflow-wrap: anywhere;">
+          <q-item-section>
+            <q-item-label caption class="text-grey">{{ $t('TokenName') }}</q-item-label>
+            <q-item-label>{{ tokenMetadata.name }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item v-if="transaction.record_type === 'incoming' && transaction?.senders?.length" style="overflow-wrap: anywhere;">
@@ -118,15 +138,16 @@
   </q-dialog>
 </template>
 <script>
+import { convertIpfsUrl, onImgErrorIpfsSrc } from 'src/utils/ipfs'
 import { SalesOrder } from 'src/marketplace/objects'
 import { resolveTransactionSalesOrderId } from 'src/marketplace/utils'
-import { useDialogPluginComponent, useQuasar } from 'quasar'
-import { computed, defineComponent, ref, watch } from 'vue'
-import { useWalletStore } from 'src/stores/wallet'
-import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
+import { useTransactionHelpers } from 'src/composables/transaction'
+import { useCashtokenStore } from 'src/stores/cashtoken'
 import { useI18n } from 'vue-i18n'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { computed, defineComponent, inject, ref, watch } from 'vue'
+import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
 
-const walletStore = useWalletStore()
 
 export default defineComponent({
   name: 'TransactionDetailDialog',
@@ -141,70 +162,41 @@ export default defineComponent({
     modelValue: Boolean,
     transaction: Object,
   },
-  computed: {
-    asset() {
-      return {
-        symbol: 'BCH',
-        logo: '~assets/bch-logo.webp',
-      }
-    }
-  },
-  computed: {
-    selectedMarketCurrency () {
-      return walletStore?.preferences?.selectedCurrency || 'USD'
-    },
-    marketPrice() {
-      if(this.transaction?.usd_price && this.selectedMarketCurrency === 'USD') return this.transaction?.usd_price
-      if (this.transaction?.market_prices?.[this.selectedMarketCurrency]) return this.transaction?.market_prices?.[this.selectedMarketCurrency]
-      return null
-    },
-    transactionAmountMarketValue() {
-      if (!this.marketPrice) return
-
-      const value = Number(this.transaction.amount) * Number(this.marketPrice)
-      if (value < 10 ** -2) return value
-      return value.toFixed(2)
-    },
-  },
-  methods: {
-    concatenate (array) {
-      if (!Array.isArray(array)) return ''
-      let addresses = array
-        .map(item => item?.[0])
-        .filter(Boolean)
-        .filter((e, i , s) => s.indexOf(e) === i)
-
-      return addresses.join(', ')
-    },
-    formatDate (date) {
-      const dateObj = new Date(date)
-      return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
-    },
-    copyToClipboard(value, message='') {
-      this.$copyText(value)
-        .then(() => {
-          this.$q.notify({
-            message: message || this.$t('Copied to clipboard'),
-            timeout: 800,
-            icon: 'mdi-clipboard-check',
-            color: 'blue-9'
-          })
-        })
-        .catch(() => {})
-    }
-  },
   setup(props, ctx, ) {
     // dialog plugins requirement
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
     const $q = useQuasar()
-    const { t } = useI18n()
+    const cashtokenStore = useCashtokenStore();
+    const { t: $t } = useI18n()
 
     const innerVal = ref(props.modelValue)
     watch(innerVal, () => ctx.emit('update:model-value', innerVal.value))
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
 
-    const actionMap = ref({ incoming: t('RECEIVED'), outgoing: t('SENT')})
+    const actionMap = ref({ incoming: $t('RECEIVED'), outgoing: $t('SENT')})
     const iconMap = ref({ incoming: 'arrow_downward', outgoing: 'arrow_upward'})
+
+    const {
+      selectedMarketCurrency,
+      getTxMarketValue,
+      getTxAmount,
+    } = useTransactionHelpers();
+
+    const transactionAmount = computed(() => getTxAmount(props.transaction));
+    const transactionAmountMarketValue = computed(() => {
+      const marketValue = parseFloat(getTxMarketValue(props.transaction)?.marketValue);
+      if (Number.isNaN(marketValue)) return null;
+      if (marketValue < 10 ** -2) return marketValue;
+      return marketValue.toFixed(2);
+    });
+
+    const tokenCategory = computed(() => props.transaction?.ft_category || props.transaction?.nft_category);
+    const tokenMetadata = computed(() => cashtokenStore.getTokenMetadata(tokenCategory.value))
+    watch(tokenCategory, (newVal) => {
+      if (!newVal) return;
+      if (cashtokenStore.getTokenMetadata(newVal)) return
+      cashtokenStore.fetchTokenMetadata(newVal);
+    })
 
     const salesOrder = ref(SalesOrder.parse())
     const commerceHubSalesOrderId = computed(() => resolveTransactionSalesOrderId(props.transaction))
@@ -220,14 +212,56 @@ export default defineComponent({
       })
     }
 
+    function concatenate (array) {
+      if (!Array.isArray(array)) return ''
+      let addresses = array
+        .map(item => item?.[0])
+        .filter(Boolean)
+        .filter((e, i , s) => s.indexOf(e) === i)
+
+      return addresses.join(', ')
+    }
+
+    function formatDate (date) {
+      const dateObj = new Date(date)
+      return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
+    }
+
+    const $copyText = inject('$copyText');
+    function copyToClipboard(value, message='') {
+      $copyText(value).then(() => {
+        $q.notify({
+          message: message || $t('Copied to clipboard'),
+          timeout: 800,
+          icon: 'mdi-clipboard-check',
+          color: 'blue-9'
+        })
+      })
+      .catch(() => {})
+    }
+
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
       actionMap,
       iconMap,
 
+      selectedMarketCurrency,
+      transactionAmount,
+      transactionAmountMarketValue,
+    
+      tokenCategory,
+      tokenMetadata,
+
       commerceHubSalesOrderId,
       displayCommerceHubSalesOrder,
+
+      concatenate,
+      formatDate,
+      copyToClipboard,
+
+      convertIpfsUrl,
+      onImgErrorIpfsSrc,
     }
   },
 })
