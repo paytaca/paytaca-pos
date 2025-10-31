@@ -2,6 +2,7 @@
 // UPDATE ON i18n/translate.js and follow steps there to apply changes
 
 export default {
+  AcceptedTokens: "Yarda da alamomi",
   Actual: "Na haƙiƙa",
   ActualQty: "Ainihin: {quantity}",
   Add: "Haɗa",
@@ -254,6 +255,7 @@ export default {
   FromPurchaseOrder: "Daga tsari na siye",
   FromSales: "daga tallace-tallace",
   FromStockRecount: "Daga sake dubawa",
+  FungibleTokenFilterPlaceholder: "Filter ta hanyar Taro, alama, ko suna",
   GeneratingVerifyingXpubkey: "Samar da tabbatar da Xpubkey",
   German: "Na yar ƙasa",
   GoHome: "Tafi gida",

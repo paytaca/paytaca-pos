@@ -109,39 +109,73 @@
             <div class="q-mb-sm" @click="() => toggleAmountsDisplay()">
               <div class="row items-start">
                 <div class="text-grey q-space">{{ $t('Amount') }}</div>
-                <div v-if="displayBch">{{ escrowContract?.bchAmounts?.amount }} BCH</div>
+                <div v-if="displayBch">
+                  {{ cryptoAmounts?.amount?.value }}
+                  {{ cryptoAmounts?.amount?.symbol }}
+                </div>
                 <div v-else>{{ fiatAmounts?.amount }} {{ currency }}</div>
               </div>
               <div class="q-pl-sm">
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('DeliveryFee', {}, 'Delivery fee') }}</div>
-                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.deliveryFee }} BCH</div>
+                  <div v-if="displayBch">
+                    {{ cryptoAmounts?.deliveryFee?.value }}
+                    {{ cryptoAmounts?.deliveryFee?.symbol }}
+                  </div>
                   <div v-else>{{ fiatAmounts?.deliveryFee }} {{ currency }}</div>
                 </div>
         
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('ServiceFee', {}, 'Service fee') }}</div>
-                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.serviceFee }} BCH</div>
+                  <div v-if="displayBch">
+                    {{ cryptoAmounts?.serviceFee?.value }}
+                    {{ cryptoAmounts?.serviceFee?.symbol }}
+                  </div>
                   <div v-else>{{ fiatAmounts?.serviceFee }} {{ currency }}</div>
                 </div>
         
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('ArbitrationFee', {}, 'Arbitration fee') }}</div>
-                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.arbitrationFee }} BCH</div>
+                  <div v-if="displayBch">
+                    {{ cryptoAmounts?.arbitrationFee?.value }}
+                    {{ cryptoAmounts?.arbitrationFee?.symbol }}
+                  </div>
                   <div v-else>{{ fiatAmounts?.arbitrationFee }} {{ currency }}</div>
                 </div>
     
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('NetworkFee', {}, 'Network fee') }}</div>
-                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.networkFee }} BCH</div>
-                  <div v-else>{{ fiatAmounts?.networkFee }} {{ currency }}</div>
+                  <div v-if="displayBch">
+                    <template v-if="!Number.isNaN(cryptoAmounts?.networkFeeAndDust?.value)">
+                      {{ cryptoAmounts?.networkFeeAndDust?.value }}
+                      {{ cryptoAmounts?.networkFeeAndDust?.symbol }}
+                    </template>
+                    <span v-else class="text-grey">N/A</span>
+                  </div>
+                  <div v-else>
+                    <template v-if="!Number.isNaN(fiatAmounts?.networkFeeAndDust)">
+                      {{ fiatAmounts?.networkFeeAndDust }} {{ currency }}
+                    </template>
+                    <span v-else class="text-grey">N/A</span>
+                  </div>
                 </div>
               </div>
     
               <div class="row items-start">
                 <div class="text-grey q-space">{{ $t('Total') }}</div>
-                <div v-if="displayBch">{{ escrowContract?.bchAmounts?.total }} BCH</div>
-                <div v-else>{{ fiatAmounts?.total }} {{ currency }}</div>
+                <div v-if="displayBch">
+                  <template v-if="cryptoAmounts?.total?.value">
+                    {{ cryptoAmounts?.total?.value }}
+                    {{ cryptoAmounts?.total?.symbol }}
+                  </template>
+                  <span v-else class="text-grey">N/A</span>
+                </div>
+                <div v-else>
+                  <template v-if="!Number.isNaN(fiatAmounts?.total)">
+                    {{ fiatAmounts?.total }} {{ currency }}
+                  </template>
+                  <span v-else class="text-grey">N/A</span>
+                </div>
               </div>
             </div>
           </q-tab-panel>
@@ -171,9 +205,11 @@
 </template>
 <script>
 import { BchPrice, EscrowContract } from 'src/marketplace/objects'
+import { useEscrowAmountsCalculator } from 'src/composables/marketplace/escrow'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import QRCode from 'vue-qrcode-component'
+
 
 export default defineComponent({
   name: 'EscrowContractDialog',
@@ -184,6 +220,14 @@ export default defineComponent({
     modelValue: Boolean,
     escrowContract: EscrowContract,
     bchPrice: BchPrice,
+    tokenPrices: { default: () => [].map(BchPrice.parse) },
+    fundingRequirements: {
+      default: () => [].map(() => {
+        return {
+          amount: 0n, token: { category: '', amount: 0n },
+        }
+      })
+    },
     currency: String,
   },
   emits: [
@@ -202,27 +246,15 @@ export default defineComponent({
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
     const tab = ref('details');
 
-    const fiatAmounts = computed(() => {
-      const data = {
-        amount: null,
-        serviceFee: null,
-        arbitrationFee: null,
-        deliveryFee: null,
-        networkFee: null,
-        total: null,
-      }
-      if (!isFinite(props.bchPrice?.price)) return data
-      const rate = props.bchPrice?.price
-      const round = (amount, decimals) => Math.round(amount * 10 ** decimals) / 10 ** decimals
-      data.amount = round(props.escrowContract?.bchAmounts?.amount * rate, 3)
-      data.serviceFee = round(props.escrowContract?.bchAmounts?.serviceFee * rate, 3)
-      data.arbitrationFee = round(props.escrowContract?.bchAmounts?.arbitrationFee * rate, 3)
-      data.deliveryFee = round(props.escrowContract?.bchAmounts?.deliveryFee * rate, 3)
-      data.networkFee = round(props.escrowContract?.bchAmounts?.networkFee * rate, 3)
-      data.total = round(props.escrowContract?.bchAmounts?.total * rate, 3)
+    const bchPriceReactive = computed(() => props.bchPrice);
+    const tokenPricesReactive = computed(() => props.tokenPrices);
+    const {
+      resolveCryptoAmounts,
+      resolveFiatAmounts,
+    } = useEscrowAmountsCalculator(bchPriceReactive, tokenPricesReactive);
 
-      return data
-    })
+    const cryptoAmounts = computed(() => resolveCryptoAmounts(props.escrowContract))
+    const fiatAmounts = computed(() => resolveFiatAmounts(props.escrowContract))
 
     const displayBch = ref(true)
     function toggleAmountsDisplay() {
@@ -256,6 +288,7 @@ export default defineComponent({
       innerVal,
       tab,
 
+      cryptoAmounts,
       fiatAmounts,
       displayBch,
       toggleAmountsDisplay,

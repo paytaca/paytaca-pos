@@ -2,6 +2,7 @@
 // UPDATE ON i18n/translate.js and follow steps there to apply changes
 
 export default {
+  AcceptedTokens: "Gidawat nga mga Token",
   Actual: "Aktwal",
   ActualQty: "Tinuod: {quantity}",
   Add: "Modugang",
@@ -254,6 +255,7 @@ export default {
   FromPurchaseOrder: "gikan sa order sa pagpalit",
   FromSales: "gikan sa pagbaligya",
   FromStockRecount: "gikan sa pag-asoy sa stock",
+  FungibleTokenFilterPlaceholder: "Pagsala pinaagi sa Token ID, simbolo, o ngalan",
   GeneratingVerifyingXpubkey: "Pagmatngon sa pagtino sa Xpubkey",
   German: "Aleman",
   GoHome: "Pauli sa balay",
