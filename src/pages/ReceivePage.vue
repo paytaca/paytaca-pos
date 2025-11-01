@@ -437,7 +437,10 @@ export default defineComponent({
 
     /* <-- Remaining amount */
     const triggerSecondConfetti = ref(false)
-    const paid = computed(() => remainingPayment.value === 0)
+    const paid = computed(() => {
+      if (paymentsStore.total <= 0) return paymentsStore.paid > 0
+      return paymentsStore.paid > 0 && remainingPayment.value === 0
+    })
     const showRemainingCurrencyAmount = computed(() => {
       return !isNotFiatMode.value && !paid.value
     })
@@ -472,6 +475,7 @@ export default defineComponent({
       return Number(currencyRemaining.toFixed(2))
     })
     const paymentProgress = computed(() => {
+      if (paymentsStore.total <= 0) return paymentsStore.paid > 0 ? 1 : 0
       if (remainingPayment.value === 0) return 1
       return paymentsStore.paid / paymentsStore.total
     })

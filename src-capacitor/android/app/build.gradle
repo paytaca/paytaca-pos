@@ -8,8 +8,8 @@ android {
         applicationId "com.paytaca.pos"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 23
-        versionName "v0.5.0"
+        versionCode 24
+        versionName "v0.5.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
