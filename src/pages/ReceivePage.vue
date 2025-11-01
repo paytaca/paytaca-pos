@@ -428,8 +428,20 @@ export default defineComponent({
           initialValue: { amount: receiveAmount.value, currency: currency.value }
         }
       }).onOk(data => {
-        receiveAmount.value = data?.value
-        currency.value = data?.currency || 'BCH'
+        const newAmount = data?.value
+        const newCurrency = data?.currency || 'BCH'
+        const startingNewInvoice = paid.value
+
+        if (startingNewInvoice) {
+          prepareForNewInvoice()
+        }
+
+        receiveAmount.value = newAmount
+        currency.value = newCurrency
+
+        if (receiveAmount.value) {
+          refreshQrCountdown()
+        }
       })
     }
     /* Value/amounts --> */
@@ -437,6 +449,7 @@ export default defineComponent({
 
     /* <-- Remaining amount */
     const triggerSecondConfetti = ref(false)
+    let triggerSecondConfettiTimeout = null
     const paid = computed(() => {
       if (paymentsStore.total <= 0) return paymentsStore.paid > 0
       return paymentsStore.paid > 0 && remainingPayment.value === 0
@@ -561,6 +574,20 @@ export default defineComponent({
 
     /* <-- Received transactions */
     const transactionsReceived = ref([].map(parseWebsocketDataReceived))
+
+    function prepareForNewInvoice () {
+      clearTimeout(triggerSecondConfettiTimeout)
+      triggerSecondConfettiTimeout = null
+      triggerSecondConfetti.value = false
+      paymentsStore.resetPayment()
+      transactionsReceived.value = []
+      qrScanned.value = false
+      promptOnLeave.value = true
+      refreshingQr.value = false
+      refreshQr.value = false
+      closeWebsocket()
+      setupListener()
+    }
     function transactionExists(transaction) {
       return transactionsReceived.value?.some?.(
         obj => (
@@ -622,12 +649,17 @@ export default defineComponent({
     }
 
     watch(addressSet, () => setupListener())
-    watch(paid, (newVal) => {
+    watch(paid, (newVal, oldVal) => {
       if (newVal) {
         closeWebsocket()
         stopQrExpirationCountdown()
         addressesStore.dequeueAddress()
-        setTimeout(() => triggerSecondConfetti.value = true, 1500)
+        clearTimeout(triggerSecondConfettiTimeout)
+        triggerSecondConfettiTimeout = setTimeout(() => triggerSecondConfetti.value = true, 1500)
+      } else if (oldVal) {
+        clearTimeout(triggerSecondConfettiTimeout)
+        triggerSecondConfettiTimeout = null
+        triggerSecondConfetti.value = false
       }
     })
 
