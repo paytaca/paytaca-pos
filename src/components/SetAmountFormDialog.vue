@@ -5,80 +5,121 @@
         <q-card-section>
           <div class="q-mb-md">
             <div class="text-h5">{{ $t('SetAmount') }}</div>
+            <div class="text-caption text-grey-7">{{ $t('SelectPaymentCurrency') }}</div>
           </div>
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
           </div>
 
-          <div v-if="isSelectedCurrencyToken && fiatCurrencyOpts.length > 0" class="row items-center justify-end no-wrap q-mb-sm">
-            <img
-              height="35"
-              :src="convertIpfsUrl(selectedCurrency?.imageUrl)"
-              :fallback-src="convertIpfsUrl(selectedCurrency?.imageUrl, 1)"
-              @error="onImgErrorIpfsSrc"
-              class="q-mr-xs"
-            />
-            <div>
-              {{ selectedCurrency?.name }} - {{ selectedCurrency?.symbol }}
+          <!-- Amount Entry -->
+          <div class="q-mb-md">
+            <div class="text-subtitle2 q-mb-xs">{{ $t('EnterAmount') }}</div>
+            <div class="row items-center no-wrap q-gutter-x-sm">
+              <q-input
+                type="number"
+                inputmode="decimal"
+                :step="10 ** -(amountFieldDecimals || 0)"
+                v-model.number="fiatAmountValue"
+                outlined
+                autofocus
+                clearable
+                class="q-space amount-input-large"
+                @update:model-value="debouncedUpdateAmount"
+              >
+                <template v-slot:prepend>
+                  <img
+                    v-if="selectedCurrency?.imageUrl"
+                    height="24"
+                    :src="convertIpfsUrl(selectedCurrency?.imageUrl)"
+                    :fallback-src="convertIpfsUrl(selectedCurrency?.imageUrl, 1)"
+                    @error="onImgErrorIpfsSrc"
+                    class="q-mr-xs"
+                  />
+                  <img
+                    v-else-if="selectedCurrency?.id === 'bch'"
+                    src="~assets/bch-logo.webp"
+                    height="24"
+                    class="q-mr-xs"
+                  />
+                  <span v-else-if="selectedCurrencyFlag">{{ selectedCurrencyFlag }}</span>
+                  <span v-else>{{ selectedCurrency?.symbol }}</span>
+                </template>
+              </q-input>
+              <q-select
+                outlined
+                v-model="selectedCurrency"
+                :options="allCurrencyOpts"
+                :option-label="resolveAssetSymbol"
+                style="min-width: 120px"
+                class="currency-select-large"
+              >
+                <template v-slot:option="ctx">
+                  <q-item :active="ctx?.selected" clickable @click="() => ctx.toggleOption(ctx.opt)">
+                    <q-item-section v-if="ctx?.opt?.imageUrl || ctx?.opt?.id === 'bch' || ctx?.opt?.id?.startsWith('fiat/')" avatar>
+                      <img
+                        v-if="ctx?.opt?.imageUrl"
+                        height="30"
+                        :src="convertIpfsUrl(ctx?.opt?.imageUrl)"
+                        :fallback-src="convertIpfsUrl(ctx?.opt?.imageUrl, 1)"
+                        @error="onImgErrorIpfsSrc"
+                      />
+                      <img
+                        v-else-if="ctx?.opt?.id === 'bch'"
+                        src="~assets/bch-logo.webp"
+                        height="30"
+                      />
+                      <span v-else-if="ctx?.opt?.id?.startsWith('fiat/')" style="font-size: 30px; line-height: 30px;">
+                        {{ getCountryFlagEmoji(getCountryCodeFromCurrency(ctx?.opt?.symbol)) }}
+                      </span>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>{{ ctx.label }}</q-item-label>
+                      <q-item-label v-if="ctx.opt?.name" caption>{{ ctx?.opt?.name }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
             </div>
-            <q-space/>
-            <q-btn
-              flat
-              no-caps :label="useFiatCurrency ? $t('SetTokenAmount') : $t('SetFiatAmount')"
-              padding="sm"
-              class="text-underline"
-              @click="() => useFiatCurrency = !useFiatCurrency"
-            />
           </div>
-          <div class="row items-center no-wrap q-gutter-x-sm">
-            <q-input
-              :label="$t('Amount')"
-              type="number"
-              inputmode="decimal"
-              :step="10 ** -(amountFieldDecimals || 0)"
-              v-model.number="amountValue"
-              outlined
-              autofocus
-              clearable
-              class="q-space"
-            />
-            <q-select
-              v-if="isSelectedCurrencyToken && useFiatCurrency"
-              outlined
-              v-model="selectedFiatCurrency"
-              :options="fiatCurrencyOpts"
-              :option-label="resolveAssetSymbol"
-            />
-            <q-select
-              v-else
-              outlined
-              v-model="selectedCurrency"
-              :options="filteredCurrencyOpts"
-              :option-label="resolveAssetSymbol"
-            >
-              <template v-slot:option="ctx">
-                <q-item :active="ctx?.selected" clickable @click="() => ctx.toggleOption(ctx.opt)">
-                  <q-item-section>
-                    <q-item-label>{{ ctx.label }}</q-item-label>
-                    <q-item-label v-if="ctx.opt?.name" caption>{{ ctx?.opt?.name }}</q-item-label>
-                    <q-item-label
-                      v-if="ctx?.opt?.id?.startsWith?.('ct/') && ctx?.opt?.valid === false"
-                      caption style="text-overflow: ellipsis; overflow:hidden;"
-                    >
-                      {{ ctx?.opt?.id }}
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section v-if="ctx?.opt?.imageUrl" avatar>
-                    <img
-                      height="35"
-                      :src="convertIpfsUrl(ctx?.opt?.imageUrl)"
-                      :fallback-src="convertIpfsUrl(ctx?.opt?.imageUrl, 1)"
-                      @error="onImgErrorIpfsSrc"
-                    />
-                  </q-item-section>
-                </q-item>
-              </template>
-            </q-select>
+
+          <!-- Payment Currency Selection (only if fiat is selected) -->
+          <div v-if="isFiatSelected" class="q-mb-md">
+            <div class="text-subtitle2 q-mb-xs">{{ $t('PaymentCurrency') }}</div>
+            <div class="row q-gutter-xs">
+              <div
+                v-for="currency in filteredCurrencyOpts"
+                :key="currency.id"
+                class="payment-currency-card"
+                :class="{ 'selected': paymentCurrency?.id === currency.id }"
+                :style="paymentCurrency?.id === currency.id ? { borderColor: $q.dark.isActive ? 'white' : 'black' } : {}"
+                @click="paymentCurrency = currency"
+              >
+                <div class="flex row items-center justify-start q-pa-sm full-width">
+                  <img
+                    v-if="currency.imageUrl"
+                    height="32"
+                    :src="convertIpfsUrl(currency.imageUrl)"
+                    :fallback-src="convertIpfsUrl(currency.imageUrl, 1)"
+                    @error="onImgErrorIpfsSrc"
+                    class="q-mr-sm"
+                  />
+                  <img
+                    v-else-if="currency.id === 'bch'"
+                    src="~assets/bch-logo.webp"
+                    height="32"
+                    class="q-mr-sm"
+                  />
+                  <div class="flex column">
+                    <div class="text-weight-medium">{{ resolveAssetSymbol(currency) }}</div>
+                    <div v-if="!fiatAmountValue && currency.name" class="text-caption text-grey-6 ellipsis" style="max-width: 100px;">{{ currency.name }}</div>
+                    <div v-else-if="fiatAmountValue && paymentCurrency?.id === currency.id && isFiatSelected" class="text-caption">
+                      <q-spinner-dots v-if="conversionLoading" size="12px" />
+                      <span v-else>≈ {{ formatPaymentAmount }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </q-card-section>
 
@@ -90,8 +131,10 @@
             padding="sm md"
             :label="$t('CreatePaymentQR')"
             class="q-space"
+            :class="{ 'sparkle-button': isFormValid }"
             type="submit"
             icon="mdi-qrcode"
+            :disable="!isFormValid"
           />
         </q-card-actions>
       </q-form>
@@ -101,9 +144,12 @@
 <script>
 import { bchAsset, parseAsset, resolveAssetSymbol } from '../utils/assets.js'
 import { convertIpfsUrl, onImgErrorIpfsSrc } from 'src/utils/ipfs'
-import { computed, defineComponent, onMounted, ref, watch } from 'vue'
-import { useDialogPluginComponent } from 'quasar'
+import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useDialogPluginComponent, useQuasar, debounce } from 'quasar'
 import { useCashtokenStore } from 'src/stores/cashtoken.js'
+import { useMarketStore } from 'src/stores/market.js'
+import { useWalletStore } from 'src/stores/wallet.js'
+import fiatCurrencies from '../assets/currencies.json'
 
 export default defineComponent({
   name: 'SetAmountFormDialog',
@@ -121,48 +167,250 @@ export default defineComponent({
   ],
   setup(props) {
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+    const $q = useQuasar()
     const cashtokenStore = useCashtokenStore();
+    const marketStore = useMarketStore();
+    const walletStore = useWalletStore();
 
+    const initialParsedCurrency = parseAsset(props.initialValue?.currency)
+    
     const amountValue = ref(props.initialValue?.amount || null);
-    const amountFieldDecimals = computed(() => {
-      if (isSelectedCurrencyToken.value && useFiatCurrency.value) {
-        return selectedFiatCurrency.value?.decimals;
-      }
-      return selectedCurrency.value?.decimals;
+    const fiatAmountValue = ref(null);
+    
+    // Helper function to get country code from currency code
+    const getCountryCodeFromCurrency = (currencyCode) => {
+      const currencyCountryMap = {
+        'AED': 'AE', 'AFN': 'AF', 'ALL': 'AL', 'AMD': 'AM', 'ANG': 'AN', 'AOA': 'AO', 'ARS': 'AR', 'AUD': 'AU',
+        'AWG': 'AW', 'AZN': 'AZ', 'BAM': 'BA', 'BBD': 'BB', 'BDT': 'BD', 'BGN': 'BG', 'BHD': 'BH', 'BIF': 'BI',
+        'BMD': 'BM', 'BND': 'BN', 'BOB': 'BO', 'BRL': 'BR', 'BSD': 'BS', 'BTN': 'BT', 'BWP': 'BW', 'BYN': 'BY',
+        'BZD': 'BZ', 'CAD': 'CA', 'CDF': 'CD', 'CHF': 'CH', 'CLP': 'CL', 'CNY': 'CN', 'COP': 'CO', 'CRC': 'CR',
+        'CUP': 'CU', 'CVE': 'CV', 'CZK': 'CZ', 'DJF': 'DJ', 'DKK': 'DK', 'DOP': 'DO', 'DZD': 'DZ', 'EGP': 'EG',
+        'ERN': 'ER', 'ETB': 'ET', 'EUR': 'EU', 'FJD': 'FJ', 'FKP': 'FK', 'FOK': 'FO', 'GBP': 'GB', 'GEL': 'GE',
+        'GGP': 'GG', 'GHS': 'GH', 'GIP': 'GI', 'GMD': 'GM', 'GNF': 'GN', 'GTQ': 'GT', 'GYD': 'GY', 'HKD': 'HK',
+        'HNL': 'HN', 'HRK': 'HR', 'HTG': 'HT', 'HUF': 'HU', 'IDR': 'ID', 'ILS': 'IL', 'IMP': 'IM', 'INR': 'IN',
+        'IQD': 'IQ', 'IRR': 'IR', 'ISK': 'IS', 'JEP': 'JE', 'JMD': 'JM', 'JOD': 'JO', 'JPY': 'JP', 'KES': 'KE',
+        'KGS': 'KG', 'KHR': 'KH', 'KID': 'KI', 'KMF': 'KM', 'KRW': 'KR', 'KWD': 'KW', 'KYD': 'KY', 'KZT': 'KZ',
+        'LAK': 'LA', 'LBP': 'LB', 'LKR': 'LK', 'LRD': 'LR', 'LSL': 'LS', 'LYD': 'LY', 'MAD': 'MA', 'MDL': 'MD',
+        'MGA': 'MG', 'MKD': 'MK', 'MMK': 'MM', 'MNT': 'MN', 'MOP': 'MO', 'MRU': 'MR', 'MUR': 'MU', 'MVR': 'MV',
+        'MWK': 'MW', 'MXN': 'MX', 'MYR': 'MY', 'MZN': 'MZ', 'NAD': 'NA', 'NGN': 'NG', 'NIO': 'NI', 'NOK': 'NO',
+        'NPR': 'NP', 'NZD': 'NZ', 'OMR': 'OM', 'PAB': 'PA', 'PEN': 'PE', 'PGK': 'PG', 'PHP': 'PH', 'PKR': 'PK',
+        'PLN': 'PL', 'PYG': 'PY', 'QAR': 'QA', 'RON': 'RO', 'RSD': 'RS', 'RUB': 'RU', 'RWF': 'RW', 'SAR': 'SA',
+        'SBD': 'SB', 'SCR': 'SC', 'SDG': 'SD', 'SEK': 'SE', 'SGD': 'SG', 'SHP': 'SH', 'SLE': 'SL', 'SOS': 'SO',
+        'SRD': 'SR', 'SSP': 'SS', 'STN': 'ST', 'SYP': 'SY', 'SZL': 'SZ', 'THB': 'TH', 'TJS': 'TJ', 'TMT': 'TM',
+        'TND': 'TN', 'TOP': 'TO', 'TRY': 'TR', 'TTD': 'TT', 'TVD': 'TV', 'TZS': 'TZ', 'UAH': 'UA', 'UGX': 'UG',
+        'USD': 'US', 'UYU': 'UY', 'UZS': 'UZ', 'VES': 'VE', 'VND': 'VN', 'VUV': 'VU', 'WST': 'WS', 'XAF': 'CM',
+        'XCD': 'AG', 'XOF': 'SN', 'XPF': 'PF', 'YER': 'YE', 'ZAR': 'ZA', 'ZMW': 'ZM', 'ZWL': 'ZW'
+      };
+      return currencyCountryMap[currencyCode];
+    };
+
+    // Helper function to convert country code to flag emoji
+    const getCountryFlagEmoji = (countryCode) => {
+      if (!countryCode || countryCode === 'EU') return null; // EU has no single flag
+      
+      const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map(char => 127397 + char.charCodeAt());
+      return String.fromCodePoint(...codePoints);
+    };
+    
+    const fiatCurrencyOpts = computed(() => {
+      return fiatCurrencies.map(fiat => ({
+        id: `fiat/${fiat.code}`,
+        name: fiat.name,
+        symbol: fiat.code,
+        decimals: 2,
+      }))
     })
 
-    const selectedCurrency = ref(parseAsset(props.initialValue?.currency))
-    const isSelectedCurrencyToken = computed(() => selectedCurrency.value?.id?.startsWith?.('ct/'))
-    const useFiatCurrency = ref(false);
-    const selectedFiatCurrency = ref(parseAsset());
-    watch(useFiatCurrency, (newVal) => {
-      if (!newVal) return
-      if (selectedFiatCurrency.value?.id) return
-      selectedFiatCurrency.value = fiatCurrencyOpts.value[0];
-    })
-
-    const currencyOpts = computed(() => {
+    const cryptoCurrencyOpts = computed(() => {
       const initialCurrency = parseAsset(props?.initialValue?.currency)
       let opts = [bchAsset]
       if (Array.isArray(props.currencies)) opts = [...props.currencies].map(parseAsset).filter(Boolean)
-      if (!opts.find(asset => asset?.id === initialCurrency?.id)) {
+      // Only add initial currency if it's not a fiat currency
+      if (initialCurrency && !initialCurrency?.id?.startsWith?.('fiat/') && !opts.find(asset => asset?.id === initialCurrency?.id)) {
         opts.unshift(initialCurrency)
       }
       return opts
     })
     const filteredCurrencyOpts = computed(() => {
-      if (props.hideInvalidOptions) return currencyOpts.value.filter(asset => asset?.valid !== false)
-      return currencyOpts.value
+      let filtered = cryptoCurrencyOpts.value.filter(asset => !asset?.id?.startsWith?.('fiat/'))
+      if (props.hideInvalidOptions) filtered = filtered.filter(asset => asset?.valid !== false)
+      return filtered
     })  
 
-    const fiatCurrencyOpts = computed(() => {
-      return currencyOpts.value.filter(asset => asset?.id?.startsWith?.('fiat/'))
+    // Combined options: wallet's preferred fiat + BCH + tokens
+    const allCurrencyOpts = computed(() => {
+      const preferredFiat = walletStore.preferences.selectedCurrency;
+      const fiat = fiatCurrencyOpts.value.find(f => f.symbol === preferredFiat) || fiatCurrencyOpts.value.find(f => f.symbol === 'PHP') || fiatCurrencyOpts.value[0];
+      return [fiat, ...filteredCurrencyOpts.value];
     })
 
-    onMounted(() => fetchMissingCashtokenDataFromOptions())
-    watch(currencyOpts, () => fetchMissingCashtokenDataFromOptions())
+    // Start with wallet preferred fiat currency by default
+    const selectedCurrency = ref(parseAsset());
+    const paymentCurrency = ref(bchAsset);
+    const conversionLoading = ref(false);
+    let rateRefreshInterval = null;
+
+    const amountFieldDecimals = computed(() => {
+      return selectedCurrency.value?.decimals || 8;
+    })
+
+    const isSelectedCurrencyToken = computed(() => selectedCurrency.value?.id?.startsWith?.('ct/'))
+    const isFiatSelected = computed(() => selectedCurrency.value?.id?.startsWith?.('fiat/'))
+    
+    const selectedCurrencyFlag = computed(() => {
+      if (!isFiatSelected.value || !selectedCurrency.value?.symbol) return null;
+      const countryCode = getCountryCodeFromCurrency(selectedCurrency.value.symbol);
+      return getCountryFlagEmoji(countryCode);
+    })
+
+    // Conversion rates - from fiat to payment currency
+    const fiatBchRate = computed(() => {
+      if (!isFiatSelected.value) return null;
+      return marketStore.getRate(selectedCurrency.value.symbol)
+    })
+
+    const tokenBchRate = computed(() => {
+      const isPaymentToken = paymentCurrency.value?.id?.startsWith?.('ct/');
+      if (!isPaymentToken) return null;
+      const tokenCategory = paymentCurrency.value?.id?.replace('ct/', '');
+      return marketStore.getTokenRate(tokenCategory);
+    })
+
+    const fiatToPaymentRate = computed(() => {
+      if (!isFiatSelected.value || !paymentCurrency.value) return null;
+      
+      // For BCH directly from fiat
+      if (paymentCurrency.value?.id === 'bch') {
+        return fiatBchRate.value?.rate || null;
+      }
+      
+      // For tokens, convert through BCH
+      const fiatPerBch = fiatBchRate.value?.rate;
+      const tokenPerBch = tokenBchRate.value?.rate;
+      
+      if (!fiatPerBch || !tokenPerBch) return null;
+      return fiatPerBch / tokenPerBch; // fiat per token
+    })
+
+    async function fetchConversionRates() {
+      if (!fiatAmountValue.value || !isFiatSelected.value) return;
+      
+      conversionLoading.value = true;
+      try {
+        const promises = [];
+        if (isFiatSelected.value) {
+          promises.push(marketStore.refreshBchPrice(selectedCurrency.value.symbol));
+        }
+        if (paymentCurrency.value?.id?.startsWith?.('ct/')) {
+          const tokenCategory = paymentCurrency.value?.id?.replace('ct/', '');
+          if (tokenCategory) {
+            promises.push(marketStore.refreshBchPrice(tokenCategory));
+          }
+        }
+        await Promise.all(promises);
+      } catch (error) {
+        console.error('Error fetching conversion rates:', error);
+      } finally {
+        conversionLoading.value = false;
+      }
+    }
+
+    function startRateRefreshTimer() {
+      stopRateRefreshTimer();
+      
+      if (!isFiatSelected.value || !fiatAmountValue.value) return;
+      
+      // Refresh every minute (60000ms) while dialog is open
+      rateRefreshInterval = setInterval(async () => {
+        await fetchConversionRates();
+        if (fiatAmountValue.value) {
+          await updateAmount(fiatAmountValue.value);
+        }
+      }, 60000); // 1 minute
+    }
+
+    function stopRateRefreshTimer() {
+      if (rateRefreshInterval) {
+        clearInterval(rateRefreshInterval);
+        rateRefreshInterval = null;
+      }
+    }
+
+    async function updateAmount(amount) {
+      if (!amount) {
+        amountValue.value = null;
+        stopRateRefreshTimer();
+        return;
+      }
+
+      // If fiat is selected, we need conversion
+      if (isFiatSelected.value) {
+        // Always fetch fresh rates from server
+        await fetchConversionRates();
+
+        if (!fiatToPaymentRate.value) {
+          amountValue.value = null;
+          stopRateRefreshTimer();
+          return;
+        }
+
+        const decimals = paymentCurrency.value?.decimals || 8;
+        const paymentAmount = Number((amount / fiatToPaymentRate.value).toFixed(decimals));
+        amountValue.value = paymentAmount;
+        
+        // Start the timer for rate refresh
+        startRateRefreshTimer();
+      } else {
+        // Direct amount entry, no conversion needed
+        amountValue.value = amount;
+        stopRateRefreshTimer();
+      }
+    }
+    
+    // Debounced version for when user is typing
+    const debouncedUpdateAmount = debounce(updateAmount, 500)
+
+    const formatPaymentAmount = computed(() => {
+      if (!amountValue.value) return '0';
+      const decimals = paymentCurrency.value?.decimals || 8;
+      return amountValue.value.toFixed(decimals).replace(/\.?0+$/, '');
+    })
+
+    const isFormValid = computed(() => {
+      // Disable while conversion is loading
+      if (conversionLoading.value) return false;
+      
+      // Must have an amount entered
+      if (!fiatAmountValue.value) return false;
+      
+      // If fiat is selected, must have payment currency and valid conversion rate
+      if (isFiatSelected.value) {
+        if (!paymentCurrency.value || !fiatToPaymentRate.value) return false;
+      }
+      
+      // For crypto currencies, just need amount value
+      return true;
+    })
+
+    onMounted(() => {
+      fetchMissingCashtokenDataFromOptions();
+      // Initialize with wallet's preferred fiat currency or BCH
+      if (allCurrencyOpts.value.length > 0 && !selectedCurrency.value) {
+        selectedCurrency.value = allCurrencyOpts.value[0]; // First is the preferred fiat
+      }
+      paymentCurrency.value = bchAsset;
+    })
+    
+    onUnmounted(() => {
+      stopRateRefreshTimer();
+    })
+    
+    watch(cryptoCurrencyOpts, () => fetchMissingCashtokenDataFromOptions())
     function fetchMissingCashtokenDataFromOptions() {
-      for (const asset of currencyOpts.value) {
+      for (const asset of cryptoCurrencyOpts.value) {
         if (!asset?.id?.startsWith?.('ct/') || asset?.valid !== false) continue
 
         const category = asset.id.replace('ct/', '');
@@ -170,16 +418,36 @@ export default defineComponent({
       }
     }
 
+    // Watch selectedCurrency and paymentCurrency to handle currency selection
+    watch(selectedCurrency, (newCurrency) => {
+      // If fiat is selected, default payment currency to BCH
+      if (isFiatSelected.value && paymentCurrency.value?.id !== 'bch') {
+        paymentCurrency.value = bchAsset;
+      } else if (!isFiatSelected.value) {
+        // Crypto selected: use it directly, no conversion
+        paymentCurrency.value = newCurrency;
+        amountValue.value = fiatAmountValue.value;
+      }
+    })
+
+    watch([paymentCurrency], () => {
+      // If fiat is selected and amount is entered, recalculate conversion
+      if (isFiatSelected.value && fiatAmountValue.value) {
+        fetchConversionRates().then(() => {
+          updateAmount(fiatAmountValue.value);
+        });
+      }
+    })
+
     function checkAmount () {
-      const assetId = selectedCurrency.value?.id;
+      // Determine the payment asset
+      const paymentAsset = isFiatSelected.value ? paymentCurrency.value : selectedCurrency.value;
+      const assetId = paymentAsset?.id;
 
       let tokenCategory;
       if (assetId?.startsWith?.('ct/')) tokenCategory = assetId.replace('ct/', '');
 
-      let currency = selectedCurrency.value?.symbol;
-      if (isSelectedCurrencyToken.value && useFiatCurrency.value) {
-        currency = selectedFiatCurrency.value?.symbol;
-      }
+      const currency = paymentAsset?.symbol;
 
       const data = {
         value: amountValue.value,
@@ -187,6 +455,13 @@ export default defineComponent({
         assetId,
         tokenCategory,
       }
+      
+      // Include fiat reference data if fiat was used for input
+      if (isFiatSelected.value && fiatAmountValue.value) {
+        data.fiatAmount = fiatAmountValue.value;
+        data.fiatCurrency = selectedCurrency.value?.symbol;
+      }
+      
       onDialogOK({ amount: data })
     }
 
@@ -197,21 +472,96 @@ export default defineComponent({
       onDialogOK,
       onDialogCancel,
       amountValue,
+      fiatAmountValue,
       amountFieldDecimals,
       selectedCurrency,
+      paymentCurrency,
 
-      isSelectedCurrencyToken,
-      useFiatCurrency,
-      selectedFiatCurrency,
+      isFiatSelected,
+      conversionLoading,
+      selectedCurrencyFlag,
 
-      currencyOpts,
+      allCurrencyOpts,
       filteredCurrencyOpts,
-      fiatCurrencyOpts,
+
+      formatPaymentAmount,
+      isFormValid,
+      updateAmount,
+      debouncedUpdateAmount,
 
       resolveAssetSymbol,
       convertIpfsUrl,
       onImgErrorIpfsSrc,
+      getCountryFlagEmoji,
+      getCountryCodeFromCurrency,
     }
   },
 })
 </script>
+
+<style scoped>
+.amount-input-large :deep(.q-field__native) {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+.currency-select-large :deep(.q-field__native) {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+/* Gradient shine effect for active button */
+.sparkle-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.sparkle-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shine 3s ease-in-out infinite;
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 100%;
+  }
+}
+
+/* Payment currency cards */
+.payment-currency-card {
+  flex: 1 1 auto;
+  min-width: 0;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.payment-currency-card:hover:not(.selected) {
+  border-color: rgba(37, 57, 51, 0.3);
+  background-color: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+.payment-currency-card.selected {
+  border-width: 1px;
+  background-color: rgba(37, 57, 51, 0.2);
+  box-shadow: 0 4px 12px rgba(37, 57, 51, 0.4);
+  transform: scale(1.05);
+}
+</style>
