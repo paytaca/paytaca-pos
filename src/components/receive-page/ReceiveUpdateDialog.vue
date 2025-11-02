@@ -10,16 +10,20 @@
           :shouldDestroyAfterDone="true"
         />
       </div>
-      <div class="row no-wrap items-center justify-center q-pl-md q-pt-md q-pb-xs">
+      <div class="row no-wrap items-start q-pl-md q-pt-md q-pb-sm q-pr-md">
+        <div class="col">
+          <div v-if="merchantName" class="text-h6">{{ merchantName }}</div>
+          <div v-if="posName" class="text-caption text-grey">{{ posName }}</div>
+        </div>
         <q-btn
           flat
           padding="sm"
           icon="close"
-          class="text-brandblue absolute-top-right"
+          class="text-brandblue"
           v-close-popup
         />
       </div>
-      <q-card-section class="q-pt-none">
+      <q-card-section class="q-py-md">
         <div class="text-h6 text-center">
           {{ $t('RECEIVED') }}
         </div>
@@ -28,12 +32,6 @@
         </div>
       </q-card-section>
       <q-card-section class="q-mt-xs">
-        <q-item v-if="merchantName || posName">
-          <q-item-section>
-            <q-item-label v-if="merchantName" class="text-subtitle2">{{ merchantName }}</q-item-label>
-            <q-item-label v-if="posName" class="text-caption text-grey">{{ posName }}</q-item-label>
-          </q-item-section>
-        </q-item>
         <q-item clickable v-ripple @click="copyText(String(amount))">
           <q-item-section v-if="logo" side>
             <img
