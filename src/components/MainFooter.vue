@@ -109,6 +109,13 @@ export default defineComponent({
           setTokenCategory: amount?.tokenCategory || undefined,
           lockAmount: true,
         }
+        
+        // Include fiat reference if provided
+        if (amount?.fiatAmount && amount?.fiatCurrency) {
+          query.setFiatAmount = amount.fiatAmount
+          query.setFiatCurrency = amount.fiatCurrency
+        }
+        
         $router.push({ name, query })
       })
     }

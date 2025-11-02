@@ -7,7 +7,7 @@
     <q-banner v-if="!isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-lg rounded-borders">
       {{ $t('AppOfflineMessage') }}
     </q-banner>
-    <div class="row items-center justify-center q-mt-md">
+    <div v-if="!paid" class="row items-center justify-center q-mt-md">
       <div
         class="qr-code-container"
         :class="qrCodeContainerClass"
@@ -15,38 +15,21 @@
         v-ripple
         @click="copyText(qrData, $t('CopyPaymentUri'))"
       >
-        <ConfettiExplosion
-          v-if="paid"
-          :particleCount="200"
-          :force="0.4"
-          :duration="8000"
-          :shouldDestroyAfterDone="true"
-        />
-        <ConfettiExplosion
-          v-if="paid && triggerSecondConfetti"
-          :particleCount="200"
-          :force="0.6"
-          :duration="5000"
-          :shouldDestroyAfterDone="true"
-        />
-        <div v-if="paid" :class="$q.dark.isActive ? 'bg-dark' : 'bg-green-3'">
-          <img src="~assets/success-check.gif" height="200" />
-        </div>
-        <template v-else>
-          <div v-if="!websocketsReady || refreshingQr || fiatRateLoading" :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
+        <template v-if="!websocketsReady || refreshingQr || fiatRateLoading">
+          <div :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
             <q-skeleton :height="$q.platform.is.ios ? '250px' : '200px'" :width="$q.platform.is.ios ? '250px' : '200px'" />
           </div>
-          <template v-else>
-            <img v-if="qrCodeLogo" :src="qrCodeLogo" height="50" class="qr-code-icon"/>
-            <QRCode
-              :text="qrData"
-              color="#253933"
-              :size="$q.platform.is.ios ? 250 : 200"
-              error-level="H"
-              class="q-mb-sm"
-              :style="qrData ? '' : 'opacity:0;'"
-            />
-          </template>
+        </template>
+        <template v-else>
+          <img v-if="qrCodeLogo" :src="qrCodeLogo" height="50" class="qr-code-icon"/>
+          <QRCode
+            :text="qrData"
+            color="#253933"
+            :size="$q.platform.is.ios ? 250 : 200"
+            error-level="H"
+            class="q-mb-sm"
+            :style="qrData ? '' : 'opacity:0;'"
+          />
         </template>
       </div>
     </div>
@@ -106,7 +89,10 @@
         <div>
           {{ receiveAmount }} {{ currency }}
         </div>
-        <div v-if="currency !== 'BCH' && !isNaN(bchValue)" class="text-caption text-grey">
+        <div v-if="fiatReferenceAmount && fiatReferenceCurrency" class="text-subtitle2 text-grey">
+          {{ fiatReferenceAmount }} {{ fiatReferenceCurrency }}
+        </div>
+        <div v-else-if="currency !== 'BCH' && !isNaN(bchValue)" class="text-caption text-grey">
           {{ bchValue }} BCH
         </div>
         <div v-else-if="cashtokenMetadata?.symbol !== currency && !isNaN(tokenAmount)" class="text-caption text-grey">
@@ -115,7 +101,7 @@
       </div>
     </div>
 
-    <div v-if="canViewPayments" class="q-px-md q-mt-md">
+    <div v-if="canViewPayments && !paymentDialogOpen" class="q-px-md q-mt-md">
       <div class="row items-center">
         <div class="q-space text-subtitle1">
           {{ $t('Payments') }}
@@ -212,7 +198,6 @@ import QRCode from 'vue-qrcode-component'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
-import ConfettiExplosion from "vue-confetti-explosion"
 import bchLogo from 'src/assets/bch-logo.webp'
 
 
@@ -221,13 +206,14 @@ export default defineComponent({
   components: {
     QRCode,
     MainHeader,
-    ConfettiExplosion,
   },
   props: {
     setAmount: Number,
     setCurrency: String,
     setTokenCategory: String,
     lockAmount: Boolean, // should only work if setAmount is given
+    setFiatAmount: Number,
+    setFiatCurrency: String,
   },
   methods: {
     copyText(value, message='Copied address') {
@@ -268,6 +254,10 @@ export default defineComponent({
       if (props.setCurrency) currency.value = props.setCurrency
       if (props.setAmount && props.lockAmount) disableAmount.value = true
       if (props.setTokenCategory) tokenCategory.value = props.setTokenCategory
+      
+      // Initialize fiat reference from props
+      if (props.setFiatAmount) fiatReferenceAmount.value = props.setFiatAmount
+      if (props.setFiatCurrency) fiatReferenceCurrency.value = props.setFiatCurrency
 
       if (tokenCategory.value && !cashtokenMetadata.value) {
         cashTokenStore.fetchTokenMetadata(tokenCategory.value)
@@ -277,6 +267,9 @@ export default defineComponent({
     const currency = ref(props.setCurrency|| 'BCH')
     const tokenCategory = ref('')
     const disableAmount = ref(false)
+    const paymentDialogOpen = ref(false)
+    const fiatReferenceAmount = ref(props.setFiatAmount || null)
+    const fiatReferenceCurrency = ref(props.setFiatCurrency || null)
     const isCashtoken = computed(() => Boolean(tokenCategory.value))
     const isNotFiatMode = computed(() => {
       if (!isCashtoken.value) return currency.value === 'BCH'
@@ -428,8 +421,9 @@ export default defineComponent({
           initialValue: { amount: receiveAmount.value, currency: currency.value }
         }
       }).onOk(data => {
-        const newAmount = data?.value
-        const newCurrency = data?.currency || 'BCH'
+        const amount = data?.amount
+        const newAmount = amount?.value
+        const newCurrency = amount?.currency || 'BCH'
         const startingNewInvoice = paid.value
 
         if (startingNewInvoice) {
@@ -438,6 +432,15 @@ export default defineComponent({
 
         receiveAmount.value = newAmount
         currency.value = newCurrency
+        
+        // Store fiat reference if provided
+        if (amount?.fiatAmount && amount?.fiatCurrency) {
+          fiatReferenceAmount.value = amount.fiatAmount
+          fiatReferenceCurrency.value = amount.fiatCurrency
+        } else {
+          fiatReferenceAmount.value = null
+          fiatReferenceCurrency.value = null
+        }
 
         if (receiveAmount.value) {
           refreshQrCountdown()
@@ -850,6 +853,10 @@ export default defineComponent({
         }
       }
 
+      // Store the original fiat amount before it gets cleared
+      const originalFiatAmount = fiatReferenceAmount.value
+      const originalFiatCurrency = fiatReferenceCurrency.value
+
       if (paid.value) {
         addressesStore.removeAddressSet(data?.address)
         receiveAmount.value = 0
@@ -860,6 +867,7 @@ export default defineComponent({
         delete walletStore.qrDataTimestampCache[qrDataHash]
       }
 
+      paymentDialogOpen.value = true
       $q.dialog({
         component: ReceiveUpdateDialog,
         componentProps: {
@@ -870,10 +878,21 @@ export default defineComponent({
           marketValue: marketValue.amount,
           marketValueCurrency: marketValue.currency,
           logo: data?.logo,
+          fiatReferenceAmount: originalFiatAmount,
+          fiatReferenceCurrency: originalFiatCurrency,
+          senders: data?.senders || [],
+          tokenName: data?.tokenName,
+          tokenId: data?.tokenId,
+          tokenDecimals: data?.tokenDecimals,
+          merchantName: walletStore.merchantInfo?.name,
+          posName: walletStore.deviceInfo?.name || `POS ${walletStore.posId}`,
         }
       })
         .onCancel(() => {
           $router.push({ name: 'home' })
+        })
+        .onDismiss(() => {
+          paymentDialogOpen.value = false
         })
     }
 
@@ -955,6 +974,9 @@ export default defineComponent({
       isNotFiatMode,
       qrScanned,
       qrCodeContainerClass,
+      paymentDialogOpen,
+      fiatReferenceAmount,
+      fiatReferenceCurrency,
     }
   },
 })
