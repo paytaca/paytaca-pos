@@ -292,6 +292,7 @@ export default defineComponent({
     const paymentDialogOpen = ref(false)
     const fiatReferenceAmount = ref(props.setFiatAmount || null)
     const fiatReferenceCurrency = ref(props.setFiatCurrency || null)
+    const tokenPriceId = ref(null) // Price ID from Set Amount dialog for token payments
     const isCashtoken = computed(() => Boolean(tokenCategory.value))
     const isNotFiatMode = computed(() => {
       if (!isCashtoken.value) return currency.value === 'BCH'
@@ -458,9 +459,49 @@ export default defineComponent({
       return cachedFiatReferenceRate
     })
 
+    // Token-fiat rate (direct rate when in fiat mode)
+    let cachedTokenFiatRate = null
+    let cachedTokenFiatRateKey = null
+    const tokenFiatRate = computed(() => {
+      if (!isCashtoken.value || !fiatReferenceCurrency.value || isNotFiatMode.value) {
+        cachedTokenFiatRate = null
+        cachedTokenFiatRateKey = null
+        return null
+      }
+      
+      const rate = marketStore.getTokenFiatRate(tokenCategory.value, fiatReferenceCurrency.value)
+      if (!rate) {
+        cachedTokenFiatRate = null
+        cachedTokenFiatRateKey = null
+        return null
+      }
+      
+      // Create cache key based on rate data
+      const cacheKey = `${tokenCategory.value}-${fiatReferenceCurrency.value}-${rate.rate}-${rate.timestamp}-${rate.priceId || 'no-id'}`
+      
+      // Return cached object if data hasn't changed
+      if (cachedTokenFiatRateKey === cacheKey && cachedTokenFiatRate) {
+        return cachedTokenFiatRate
+      }
+      
+      // Cache the rate object
+      cachedTokenFiatRate = Object.freeze({ ...rate })
+      cachedTokenFiatRateKey = cacheKey
+      return cachedTokenFiatRate
+    })
+
     const currencyTokenPrice = computed(() => {
       if (!isCashtoken.value) return undefined
       if (isNotFiatMode.value) return undefined
+      
+      // Prefer direct token-fiat rate if available (optimized)
+      // Note: tokenFiatRate is "token per fiat" (e.g., MUSD per PHP)
+      // We need "fiat per token" for calculations, so invert it
+      if (tokenFiatRate.value?.rate && tokenFiatRate.value.rate !== 0) {
+        return 1 / tokenFiatRate.value.rate // fiat per token (e.g., PHP per MUSD)
+      }
+      
+      // Fallback: calculate through BCH rates
       const currencyPerBchRate = currencyBchRate.value?.rate
       const tokenPerBchRate = tokenBchRate.value?.rate
 
@@ -474,9 +515,23 @@ export default defineComponent({
 
       // Pass age threshold to respect cache, but missing priceId will force refresh
       const refreshOpts = { age: currencyRateUpdateRate, ...opts }
-      const refreshPromises = [marketStore.refreshBchPrice(currency.value, refreshOpts)]
-      if (isCashtoken.value && tokenCategory.value) {
-        refreshPromises.push(marketStore.refreshBchPrice(tokenCategory.value, refreshOpts))
+      const refreshPromises = []
+      
+      // For cashtoken in fiat mode, use optimized direct token-fiat rate
+      if (isCashtoken.value && tokenCategory.value && fiatReferenceCurrency.value) {
+        refreshPromises.push(
+          marketStore.refreshTokenFiatPrice(
+            tokenCategory.value,
+            fiatReferenceCurrency.value,
+            refreshOpts
+          )
+        )
+      } else {
+        // For BCH or non-fiat mode, use traditional rates
+        refreshPromises.push(marketStore.refreshBchPrice(currency.value, refreshOpts))
+        if (isCashtoken.value && tokenCategory.value) {
+          refreshPromises.push(marketStore.refreshBchPrice(tokenCategory.value, refreshOpts))
+        }
       }
 
       try {
@@ -489,7 +544,6 @@ export default defineComponent({
         }
       } catch (error) {
         // Silently handle errors to prevent recursive loops
-        console.error('Error updating currency rate:', error)
       } finally {
         if (!opts?.skipRefreshTimer) {
           setTimeout(() => { refreshingQr.value = false }, 3000)
@@ -503,8 +557,8 @@ export default defineComponent({
 
       fiatRateLoading.value = true
       latestFiatRatePromise = updateSelectedCurrencyRate({ skipRefreshTimer: true })
-        .catch(error => {
-          console.error(error)
+        .catch(() => {
+          // Error updating fiat rate
         })
         .finally(() => {
           fiatRateLoading.value = false
@@ -568,7 +622,7 @@ export default defineComponent({
           // Update QR data with new rates
           updateQrData()
         } catch (error) {
-          console.error('Error refreshing fiat rate:', error)
+          // Error refreshing fiat rate
         }
       }, 600000) // 10 minutes (600000ms)
     }
@@ -596,9 +650,25 @@ export default defineComponent({
       if (isNotFiatMode.value) return receiveAmount.value
 
       const cashtokenDecimals = cashtokenMetadata.value?.decimals;
+      
+      // If using direct token-fiat rate, multiply (token per fiat)
+      if (tokenFiatRate.value?.rate && tokenFiatRate.value.rate !== 0) {
+        // Direct rate: token per fiat (e.g., 0.01698626 MUSD per PHP)
+        // Convert: PHP * (MUSD per PHP) = MUSD
+        // Use Math.round with scaling to match Python's rounding behavior
+        const factor = Math.pow(10, cashtokenDecimals);
+        return Math.round((receiveAmount.value * tokenFiatRate.value.rate) * factor) / factor;
+      }
+      
+      // Fallback: use currencyTokenPrice which is "fiat per token"
       const rateValue = currencyTokenPrice.value
-      const tokenAmount = Number((receiveAmount.value / rateValue).toFixed(cashtokenDecimals));
-      return tokenAmount;
+      if (!rateValue || rateValue === 0) return NaN
+      
+      // Fallback rate: fiat per token (e.g., PHP per MUSD)
+      // Convert: PHP / (PHP per MUSD) = MUSD
+      // Use Math.round with scaling to match Python's rounding behavior
+      const factor = Math.pow(10, cashtokenDecimals);
+      return Math.round((receiveAmount.value / rateValue) * factor) / factor;
     })
 
     const totalCryptoAmount = computed(() => {
@@ -644,21 +714,34 @@ export default defineComponent({
         if (startingNewInvoice) {
           prepareForNewInvoice()
         }
+        
+        // Update tokenCategory if provided
+        if (amount?.tokenCategory) {
+          tokenCategory.value = amount.tokenCategory
+        }
 
         receiveAmount.value = newAmount
         
         // Amount currency is what the user entered the amount in (fiat or crypto)
         // Payment currency is always BCH or token (what gets paid)
         if (amount?.fiatAmount && amount?.fiatCurrency) {
-          // User entered amount in fiat - amount currency is fiat, payment currency is BCH
+          // User entered amount in fiat - amount currency is fiat, payment currency is BCH or token
           currency.value = amount.fiatCurrency  // amount currency (fiat, e.g., 'PHP')
           fiatReferenceAmount.value = amount.fiatAmount
           fiatReferenceCurrency.value = amount.fiatCurrency
+          
+          // Store price_id for token payments if provided
+          if (amount?.tokenCategory && amount?.priceId) {
+            tokenPriceId.value = amount.priceId
+          } else {
+            tokenPriceId.value = null
+          }
         } else {
           // User entered amount in crypto - amount currency = payment currency
           currency.value = amount?.currency || 'BCH'  // amount currency (same as payment currency)
           fiatReferenceAmount.value = null
           fiatReferenceCurrency.value = null
+          tokenPriceId.value = null
         }
 
         if (receiveAmount.value) {
@@ -841,8 +924,8 @@ export default defineComponent({
       // Ensure rate is fetched before showing QR - set loading state
       fiatRateLoading.value = true
       updateSelectedCurrencyRate({ skipRefreshTimer: true })
-        .catch(error => {
-          console.error('Error refreshing currency rate:', error)
+        .catch(() => {
+          // Error refreshing currency rate
         })
         .finally(() => {
           fiatRateLoading.value = false
@@ -918,8 +1001,10 @@ export default defineComponent({
         if (isCashtoken.value) {
           params.push(`c=${tokenCategory.value}`)
           params.push(`f=${remainingPaymentInTokenUnits.value}`)
-          if (tokenBchRate.value && tokenBchRate.value.priceId) {
-            params.push(`price_id=${tokenBchRate.value.priceId}`)
+          // Use price_id from Set Amount dialog if available, otherwise fallback to fetched rates
+          const priceId = tokenPriceId.value || tokenFiatRate.value?.priceId || tokenBchRate.value?.priceId
+          if (priceId) {
+            params.push(`price_id=${priceId}`)
           }
         } else {
           params.push(`amount=${remainingPaymentRounded.value}`)
@@ -1102,18 +1187,13 @@ export default defineComponent({
       for (let x = 0; x < websockets.value.length; x++) {
         const url = websockets.value[x].url
         const websocket = new WebSocket(url)
-        console.log(`Connecting receiving page ws: ${url}`)
 
         websocket.addEventListener('close', () => {
           if (paid.value) return
  
-          console.log('Listener closed: ', url)
-          if (!enableReconnect.value) return console.log('Skipping reconnection: ', url)
+          if (!enableReconnect.value) return
 
           const reconnectInterval = 5000
-          const reconnectIntervalSeconds = reconnectInterval / 1000
-          const reconnectingLog = `Attempting websocket for (${url}) reconnection after ${reconnectIntervalSeconds} seconds.`
-          console.log(reconnectingLog)
 
           clearTimeout(reconnectTimeout.value)
           reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
@@ -1181,8 +1261,6 @@ export default defineComponent({
     }
     
     function onWebsocketReceive(data) {
-      console.log(data)
-
       if (data?.update_type) processLiveUpdate(data)
       if (!data?.value) return
       if (data?.voucher) return

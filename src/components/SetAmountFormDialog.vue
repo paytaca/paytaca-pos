@@ -279,6 +279,21 @@ export default defineComponent({
       return marketStore.getTokenRate(tokenCategory);
     })
 
+    // Direct token-fiat rate (optimized)
+    const tokenFiatRate = computed(() => {
+      const isPaymentToken = paymentCurrency.value?.id?.startsWith?.('ct/');
+      if (!isPaymentToken || !isFiatSelected.value) return null;
+      const tokenCategory = paymentCurrency.value?.id?.replace('ct/', '');
+      return marketStore.getTokenFiatRate(tokenCategory, selectedCurrency.value.symbol);
+    })
+
+    // Check if we're using the direct token-fiat rate (which is "token per fiat")
+    const isUsingDirectTokenFiatRate = computed(() => {
+      return isFiatSelected.value && 
+             paymentCurrency.value?.id?.startsWith?.('ct/') && 
+             tokenFiatRate.value?.rate != null;
+    })
+
     const fiatToPaymentRate = computed(() => {
       if (!isFiatSelected.value || !paymentCurrency.value) return null;
       
@@ -287,7 +302,14 @@ export default defineComponent({
         return fiatBchRate.value?.rate || null;
       }
       
-      // For tokens, convert through BCH
+      // For tokens, use direct token-fiat rate if available (optimized)
+      // Note: This rate is "token per fiat" (e.g., MUSD per PHP)
+      if (tokenFiatRate.value?.rate) {
+        return tokenFiatRate.value.rate;
+      }
+      
+      // Fallback: convert through BCH (for backward compatibility)
+      // This gives us "fiat per token" (e.g., PHP per MUSD)
       const fiatPerBch = fiatBchRate.value?.rate;
       const tokenPerBch = tokenBchRate.value?.rate;
       
@@ -300,19 +322,24 @@ export default defineComponent({
       
       conversionLoading.value = true;
       try {
-        const promises = [];
-        if (isFiatSelected.value) {
-          promises.push(marketStore.refreshBchPrice(selectedCurrency.value.symbol));
-        }
-        if (paymentCurrency.value?.id?.startsWith?.('ct/')) {
+        const isPaymentToken = paymentCurrency.value?.id?.startsWith?.('ct/');
+        
+        if (isPaymentToken) {
+          // Optimized: single API call to fetch token price directly in fiat currency
           const tokenCategory = paymentCurrency.value?.id?.replace('ct/', '');
           if (tokenCategory) {
-            promises.push(marketStore.refreshBchPrice(tokenCategory));
+            await marketStore.refreshTokenFiatPrice(
+              tokenCategory, 
+              selectedCurrency.value.symbol,
+              { age: 60000 } // 1 minute cache
+            );
           }
+        } else {
+          // For BCH, fetch fiat to BCH rate
+          await marketStore.refreshBchPrice(selectedCurrency.value.symbol);
         }
-        await Promise.all(promises);
       } catch (error) {
-        console.error('Error fetching conversion rates:', error);
+        // Error fetching conversion rates
       } finally {
         conversionLoading.value = false;
       }
@@ -358,7 +385,18 @@ export default defineComponent({
         }
 
         const decimals = paymentCurrency.value?.decimals || 8;
-        const paymentAmount = Number((amount / fiatToPaymentRate.value).toFixed(decimals));
+        let paymentAmount;
+        
+        // Direct token-fiat rate is "token per fiat" (e.g., MUSD per PHP), so multiply
+        // BCH rates and fallback rates are "fiat per token" (e.g., PHP per MUSD), so divide
+        // Use Math.round with scaling to match Python's rounding behavior
+        const factor = Math.pow(10, decimals);
+        if (isUsingDirectTokenFiatRate.value) {
+          paymentAmount = Math.round((amount * fiatToPaymentRate.value) * factor) / factor;
+        } else {
+          paymentAmount = Math.round((amount / fiatToPaymentRate.value) * factor) / factor;
+        }
+        
         amountValue.value = paymentAmount;
         
         // Start the timer for rate refresh
@@ -460,6 +498,14 @@ export default defineComponent({
       if (isFiatSelected.value && fiatAmountValue.value) {
         data.fiatAmount = fiatAmountValue.value;
         data.fiatCurrency = selectedCurrency.value?.symbol;
+        
+        // Include price_id for token payments in fiat mode
+        if (paymentCurrency.value?.id?.startsWith?.('ct/')) {
+          // Use direct token-fiat rate priceId if available
+          if (tokenFiatRate.value?.priceId) {
+            data.priceId = tokenFiatRate.value.priceId;
+          }
+        }
       }
       
       onDialogOK({ amount: data })

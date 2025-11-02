@@ -29,6 +29,18 @@ export const useMarketStore = defineStore('market', {
     getTokenRate(category) {
       return this.bchRates.find(rate => rate.category === category)
     },
+    /**
+     * Get token rate in a specific fiat currency
+     * @param {String} category - Token category
+     * @param {String} fiatCurrency - Fiat currency code
+     * @returns {Object|undefined} Rate object with currency, rate, timestamp, priceId
+     */
+    getTokenFiatRate(category, fiatCurrency) {
+      if (!category || !fiatCurrency) return undefined
+      return this.bchRates.find(rate => 
+        rate.category === category && rate.currency === fiatCurrency.toUpperCase()
+      )
+    },
 
     getRateStatus (rate) {
       const status = {
@@ -137,6 +149,54 @@ export const useMarketStore = defineStore('market', {
           if (!priceData) return Promise.reject({ response })
           const newRate = {
             category: category,
+            rate: parseFloat(priceData?.price_value),
+            timestamp: new Date(priceData?.timestamp) * 1,
+            priceId: priceData?.id,
+          }
+
+          if (!newRate.rate) return Promise.reject({ response })
+          this.updateBchPrice(newRate);
+          return newRate;
+        })
+    },
+    /**
+     * Fetch token price directly in a fiat currency (optimized single API call)
+     * @param {String} category - Token category
+     * @param {String} fiatCurrency - Fiat currency code (e.g., 'PHP', 'USD')
+     * @param {Object} opts - Options including age for cache validation
+     * @returns {Promise<Object>} Rate object with currency, rate, timestamp, priceId
+     */
+    async refreshTokenFiatPrice(category, fiatCurrency, opts) {
+      if (!category || !fiatCurrency) return Promise.reject()
+      if (!Array.isArray(this.bchRates)) return Promise.reject()
+
+      fiatCurrency = fiatCurrency.toUpperCase()
+
+      // Check for cached rate matching both category and currency
+      const rate = this.bchRates.find(_rate => 
+        _rate?.category === category && _rate?.currency === fiatCurrency
+      )
+      // Force refresh if cached rate doesn't have priceId (from old API) or if rate is expired
+      const isRateValid = rate?.timestamp && opts?.age && Date.now() - opts?.age <= rate?.timestamp
+      const hasPriceId = rate?.priceId != null
+      if (isRateValid && hasPriceId) {
+        return Promise.resolve(rate)
+      }
+
+      return axios.get(`https://watchtower.cash/api/asset-prices/`, {
+        params: {
+          assets: `ct/${category}`,
+          vs_currencies: fiatCurrency
+        }
+      })
+        .then(response => {
+          const priceData = response?.data?.prices?.find?.(result => 
+            result?.asset === `ct/${category}` && result?.currency === fiatCurrency
+          )
+          if (!priceData) return Promise.reject({ response })
+          const newRate = {
+            category: category,
+            currency: priceData?.currency,
             rate: parseFloat(priceData?.price_value),
             timestamp: new Date(priceData?.timestamp) * 1,
             priceId: priceData?.id,
