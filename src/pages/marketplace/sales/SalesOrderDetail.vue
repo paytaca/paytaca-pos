@@ -241,6 +241,7 @@
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
+import axios from 'axios'
 import { SalesOrder } from 'src/marketplace/objects'
 import { errorParser, formatTimestampToText } from 'src/marketplace/utils'
 import { TransactionListener } from 'src/wallet/utils'
@@ -297,7 +298,14 @@ export default defineComponent({
       const recipient = salesOrder.value?.bchRecipientAddress
       const amount = salesOrder.value?.bchTotal
       if (!amount || !recipient) return ''
-      return `${recipient}?amount=${amount}`
+
+      const params = [`amount=${amount}`]
+      const priceId = salesOrder.value?.bchPrice?.priceId
+      if (priceId) {
+        params.push(`price_id=${priceId}`)
+      }
+
+      return `${recipient}?${params.join('&')}`
     })
 
     const txListener = ref(new TransactionListener())
@@ -323,10 +331,18 @@ export default defineComponent({
       if (currentPrice) return Promise.reject('Sales order has existing bch price')
 
       const currency = salesOrder.value.currency?.code || salesOrder.value.currency?.symbol
-      return backend.get(`prices/bch/${currency}/`)
+      return axios.get(`https://watchtower.cash/api/asset-prices/`, {
+        params: {
+          assets: 'bch',
+          vs_currencies: currency
+        }
+      })
         .then(response => {
-          salesOrder.value.bchPrice.price = parseFloat(response?.data?.price)
-          salesOrder.value.bchPrice.timestamp = new Date(response?.data?.timestamp || undefined)
+          const priceData = response?.data?.prices?.find?.(result => result?.asset === 'BCH' && result?.currency === currency?.toUpperCase())
+          if (!priceData) return Promise.reject({ response })
+          salesOrder.value.bchPrice.price = parseFloat(priceData?.price_value)
+          salesOrder.value.bchPrice.timestamp = new Date(priceData?.timestamp || undefined)
+          salesOrder.value.bchPrice.priceId = priceData?.id
           return response
         })
     }

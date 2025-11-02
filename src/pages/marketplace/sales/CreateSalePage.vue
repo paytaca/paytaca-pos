@@ -556,6 +556,7 @@
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
+import axios from 'axios'
 import { SalesOrder, Stock, Variant } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
@@ -791,7 +792,13 @@ export default defineComponent({
       const amount = formComputedData.value.bchSubtotal
       if (!amount || !recipient) return ''
 
-      return `${recipient}?amount=${amount}`
+      const params = [`amount=${amount}`]
+      const priceId = formData.value.bchPayment?.price?.priceId
+      if (priceId) {
+        params.push(`price_id=${priceId}`)
+      }
+
+      return `${recipient}?${params.join('&')}`
     })
 
     onMounted(() => updateBchPrice())
@@ -877,12 +884,19 @@ export default defineComponent({
       if (formData.value?.bchPayment?.txid) return Promise.reject(t('PaymentAlreadySent'))
 
       const currencyCode = marketplaceStore.currency
-      return backend.get(`prices/bch/${currencyCode}/`)
+      return axios.get(`https://watchtower.cash/api/asset-prices/`, {
+        params: {
+          assets: 'bch',
+          vs_currencies: currencyCode
+        }
+      })
         .then(response => {
-          const value = parseFloat(response?.data?.price)
-          const timestamp = (response?.data?.timestamp ? new Date(response?.data?.timestamp) : null) * 1
+          const priceData = response?.data?.prices?.find?.(result => result?.asset === 'BCH' && result?.currency === currencyCode?.toUpperCase())
+          if (!priceData) return Promise.reject({ response })
+          const value = parseFloat(priceData?.price_value)
+          const timestamp = (priceData?.timestamp ? new Date(priceData?.timestamp) : null) * 1
           if (!value || !timestamp) return Promise.reject({ response })
-          formData.value.bchPayment.price = { timestamp , value }
+          formData.value.bchPayment.price = { timestamp , value, priceId: priceData?.id }
           return response
         })
     }

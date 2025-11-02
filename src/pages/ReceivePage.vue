@@ -1,6 +1,6 @@
 <template>
   <q-page padding>
-    <MainHeader :title="$t('Payment')"/>
+    <MainHeader :title="$t('Payment')" back-to="home"/>
     <div v-if="loading" class="text-center text-h4" style="margin-bottom: 50px;">
       <q-skeleton type="text" width="5em" style="margin:auto;"/>
     </div>
@@ -17,7 +17,7 @@
       >
         <template v-if="!websocketsReady || refreshingQr || fiatRateLoading">
           <div :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
-            <q-skeleton :height="$q.platform.is.ios ? '250px' : '200px'" :width="$q.platform.is.ios ? '250px' : '200px'" />
+            <q-skeleton :height="$q.platform.is.ios ? '275px' : '240px'" :width="$q.platform.is.ios ? '275px' : '240px'" />
           </div>
         </template>
         <template v-else>
@@ -25,7 +25,7 @@
           <QRCode
             :text="qrData"
             color="#253933"
-            :size="$q.platform.is.ios ? 250 : 200"
+            :size="$q.platform.is.ios ? 275 : 240"
             error-level="H"
             class="q-mb-sm"
             :style="qrData ? '' : 'opacity:0;'"
@@ -86,18 +86,30 @@
 
     <div v-if="!loading" class="text-center text-h5 q-my-lg q-px-lg full-width" @click="showSetAmountDialog()">
       <div v-if="receiveAmount">
-        <div>
-          {{ receiveAmount }} {{ currency }}
-        </div>
-        <div v-if="fiatReferenceAmount && fiatReferenceCurrency" class="text-subtitle2 text-grey">
-          {{ fiatReferenceAmount }} {{ fiatReferenceCurrency }}
-        </div>
-        <div v-else-if="currency !== 'BCH' && !isNaN(bchValue)" class="text-caption text-grey">
-          {{ bchValue }} BCH
-        </div>
-        <div v-else-if="cashtokenMetadata?.symbol !== currency && !isNaN(tokenAmount)" class="text-caption text-grey">
-          {{ tokenAmount }} {{ cashtokenMetadata?.symbol }}
-        </div>
+        <!-- In fiat mode: show crypto amount in large text, fiat amount below -->
+        <template v-if="fiatReferenceAmount && fiatReferenceCurrency">
+          <div v-if="isCashtoken && !isNaN(tokenAmount)">
+            {{ tokenAmount }} {{ cashtokenMetadata?.symbol }}
+          </div>
+          <div v-else-if="!isNaN(bchValue)">
+            {{ bchValue }} BCH
+          </div>
+          <div class="text-subtitle2 text-grey">
+            {{ fiatReferenceAmount }} {{ fiatReferenceCurrency }}
+          </div>
+        </template>
+        <!-- In crypto mode: show crypto amount in large text -->
+        <template v-else>
+          <div>
+            {{ receiveAmount }} {{ currency }}
+          </div>
+          <div v-if="currency !== 'BCH' && !isNaN(bchValue)" class="text-caption text-grey">
+            {{ bchValue }} BCH
+          </div>
+          <div v-else-if="cashtokenMetadata?.symbol !== currency && !isNaN(tokenAmount)" class="text-caption text-grey">
+            {{ tokenAmount }} {{ cashtokenMetadata?.symbol }}
+          </div>
+        </template>
       </div>
     </div>
 
@@ -250,21 +262,31 @@ export default defineComponent({
     onMounted(() => {
       paymentsStore.resetPayment()
 
-      if (props.setAmount) receiveAmount.value = props.setAmount
-      if (props.setCurrency) currency.value = props.setCurrency
+      // Initialize fiat reference from props first
+      if (props.setFiatAmount && props.setFiatCurrency) {
+        // If fiat amount is provided, use it as receiveAmount (in fiat mode)
+        fiatReferenceAmount.value = props.setFiatAmount
+        fiatReferenceCurrency.value = props.setFiatCurrency
+        currency.value = props.setFiatCurrency
+        receiveAmount.value = props.setFiatAmount  // Set receiveAmount to fiat amount
+      } else if (props.setAmount) {
+        // If only crypto amount is provided, use it
+        receiveAmount.value = props.setAmount
+        if (props.setCurrency) {
+          currency.value = props.setCurrency
+        }
+      }
+      
       if (props.setAmount && props.lockAmount) disableAmount.value = true
       if (props.setTokenCategory) tokenCategory.value = props.setTokenCategory
-      
-      // Initialize fiat reference from props
-      if (props.setFiatAmount) fiatReferenceAmount.value = props.setFiatAmount
-      if (props.setFiatCurrency) fiatReferenceCurrency.value = props.setFiatCurrency
 
       if (tokenCategory.value && !cashtokenMetadata.value) {
         cashTokenStore.fetchTokenMetadata(tokenCategory.value)
       }
     })
     const receiveAmount = ref(0)
-    const currency = ref(props.setCurrency|| 'BCH')
+    // Initialize currency from props, but prefer fiat currency if provided
+    const currency = ref(props.setFiatCurrency || props.setCurrency || 'BCH')
     const tokenCategory = ref('')
     const disableAmount = ref(false)
     const paymentDialogOpen = ref(false)
@@ -324,39 +346,150 @@ export default defineComponent({
 
     /* <-- Conversion rates */
     const currencyRateUpdateRate = 5 * 60 * 1000
+    // Stable reference for BCH hardcoded rate to prevent recursive updates
+    const BCH_HARDCODED_RATE = Object.freeze({ currency: 'BCH', rate: 1, timestamp: 0, status: 2 })
+    
+    // Cache for rate objects to prevent creating new references on each computed evaluation
+    let cachedCurrencyBchRate = null
+    let cachedCurrencyBchRateKey = null
+    
     const currencyBchRate = computed(() => {
-      if (!currency.value) return
-      if (isNotFiatMode.value) return { currency: 'BCH', rate: 1, timestamp: Date.now(), status: 2 }
-      return marketStore.getRate(currency.value)
+      if (!currency.value) {
+        cachedCurrencyBchRate = null
+        cachedCurrencyBchRateKey = null
+        return undefined
+      }
+      
+      // Always try to get the rate from store first, even if in BCH mode
+      // This ensures we get priceId when available
+      const rate = marketStore.getRate(currency.value)
+      if (rate) {
+        // Create a cache key based on the actual rate data
+        const cacheKey = `${currency.value}-${rate.rate}-${rate.timestamp}-${rate.priceId || 'no-id'}`
+        
+        // Return cached object if data hasn't changed
+        if (cachedCurrencyBchRateKey === cacheKey && cachedCurrencyBchRate) {
+          return cachedCurrencyBchRate
+        }
+        
+        // Cache the new rate object
+        cachedCurrencyBchRate = Object.freeze({ ...rate })
+        cachedCurrencyBchRateKey = cacheKey
+        return cachedCurrencyBchRate
+      }
+      
+      // Fallback to hardcoded rate only if no rate is found and we're in BCH mode
+      if (isNotFiatMode.value) {
+        return BCH_HARDCODED_RATE
+      }
+      
+      cachedCurrencyBchRate = null
+      cachedCurrencyBchRateKey = null
+      return undefined
     })
     const status = {
       '0': { icon: 'mdi-equal', color: 'brandblue' },
       '1': { icon: 'mdi-arrow-up', color: 'green-6' },
       '-1': { icon: 'mdi-arrow-down', color: 'red-9' },
     }
-    const bchRateStatus = computed(() => status[currencyBchRate.value.status.toString()])
+    const bchRateStatus = computed(() => {
+      if (!currencyBchRate.value || !currencyBchRate.value.status) return status['0']
+      return status[currencyBchRate.value.status.toString()]
+    })
+    // Cache for token rate to prevent new references
+    let cachedTokenBchRate = null
+    let cachedTokenBchRateKey = null
     const tokenBchRate = computed(() => {
-      if (!tokenCategory.value) return
-      return marketStore.getTokenRate(tokenCategory.value)
+      if (!tokenCategory.value) {
+        cachedTokenBchRate = null
+        cachedTokenBchRateKey = null
+        return null
+      }
+      
+      const rate = marketStore.getTokenRate(tokenCategory.value)
+      if (!rate) {
+        cachedTokenBchRate = null
+        cachedTokenBchRateKey = null
+        return null
+      }
+      
+      // Create cache key based on rate data
+      const cacheKey = `${tokenCategory.value}-${rate.rate}-${rate.timestamp}-${rate.priceId || 'no-id'}`
+      
+      // Return cached object if data hasn't changed
+      if (cachedTokenBchRateKey === cacheKey && cachedTokenBchRate) {
+        return cachedTokenBchRate
+      }
+      
+      // Cache the rate object
+      cachedTokenBchRate = Object.freeze({ ...rate })
+      cachedTokenBchRateKey = cacheKey
+      return cachedTokenBchRate
+    })
+    
+    // Computed for fiat reference rate to avoid calling getRate() in qrData
+    let cachedFiatReferenceRate = null
+    let cachedFiatReferenceRateKey = null
+    const fiatReferenceRate = computed(() => {
+      if (!fiatReferenceCurrency.value || fiatReferenceCurrency.value === 'BCH') {
+        cachedFiatReferenceRate = null
+        cachedFiatReferenceRateKey = null
+        return null
+      }
+      
+      const rate = marketStore.getRate(fiatReferenceCurrency.value)
+      if (!rate) {
+        cachedFiatReferenceRate = null
+        cachedFiatReferenceRateKey = null
+        return null
+      }
+      
+      // Create a cache key based on the actual rate data
+      const cacheKey = `${fiatReferenceCurrency.value}-${rate.rate}-${rate.timestamp}-${rate.priceId || 'no-id'}`
+      
+      // Return cached object if data hasn't changed
+      if (cachedFiatReferenceRateKey === cacheKey && cachedFiatReferenceRate) {
+        return cachedFiatReferenceRate
+      }
+      
+      // Cache the new rate object
+      cachedFiatReferenceRate = Object.freeze({ ...rate })
+      cachedFiatReferenceRateKey = cacheKey
+      return cachedFiatReferenceRate
     })
 
     const currencyTokenPrice = computed(() => {
-      if (!isCashtoken.value) return
-      if (isNotFiatMode.value) return
+      if (!isCashtoken.value) return undefined
+      if (isNotFiatMode.value) return undefined
       const currencyPerBchRate = currencyBchRate.value?.rate
       const tokenPerBchRate = tokenBchRate.value?.rate
 
+      if (!currencyPerBchRate || !tokenPerBchRate || tokenPerBchRate === 0) return undefined
       return currencyPerBchRate / tokenPerBchRate // currency per token
     })
 
     async function updateSelectedCurrencyRate (opts = {}) {
       if (isNotFiatMode.value) return
+      if (!currency.value) return
 
-      const refreshPromises = [marketStore.refreshBchPrice(currency.value)]
-      if (isCashtoken.value) refreshPromises.push(marketStore.refreshBchPrice(tokenCategory.value))
+      // Pass age threshold to respect cache, but missing priceId will force refresh
+      const refreshOpts = { age: currencyRateUpdateRate, ...opts }
+      const refreshPromises = [marketStore.refreshBchPrice(currency.value, refreshOpts)]
+      if (isCashtoken.value && tokenCategory.value) {
+        refreshPromises.push(marketStore.refreshBchPrice(tokenCategory.value, refreshOpts))
+      }
 
       try {
         await Promise.all(refreshPromises)
+        
+        // After rates are updated, ensure paymentsStore.total is set if it's 0
+        // This handles the case where bchValue was NaN initially
+        if (paymentsStore.total === 0 && totalCryptoAmount.value && !isNaN(totalCryptoAmount.value) && totalCryptoAmount.value > 0) {
+          paymentsStore.setTotalPayment(totalCryptoAmount.value)
+        }
+      } catch (error) {
+        // Silently handle errors to prevent recursive loops
+        console.error('Error updating currency rate:', error)
       } finally {
         if (!opts?.skipRefreshTimer) {
           setTimeout(() => { refreshingQr.value = false }, 3000)
@@ -376,9 +509,75 @@ export default defineComponent({
         .finally(() => {
           fiatRateLoading.value = false
           latestFiatRatePromise = null
+          
+          // After rate is fetched, ensure total is set
+          if (paymentsStore.total === 0 && totalCryptoAmount.value && !isNaN(totalCryptoAmount.value) && totalCryptoAmount.value > 0) {
+            paymentsStore.setTotalPayment(totalCryptoAmount.value)
+          }
         })
 
       return latestFiatRatePromise
+    }
+    
+    function startFiatRateRefreshTimer() {
+      stopFiatRateRefreshTimer()
+      
+      // Only start if fiat amount is used
+      // When fiat is entered:
+      // - fiatReferenceCurrency is set (e.g., 'PHP')
+      // - currency.value should also be set to fiat (e.g., 'PHP')
+      // - isNotFiatMode should be false (because currency is not 'BCH')
+      const shouldStart = fiatReferenceCurrency.value && 
+                         fiatReferenceAmount.value && 
+                         currency.value &&
+                         currency.value !== 'BCH' &&
+                         !isNotFiatMode.value
+      
+      if (!shouldStart) return
+      
+      // Refresh rates and recalculate every 10 minutes (600000ms)
+      fiatRateRefreshInterval = setInterval(async () => {
+        const stillValid = fiatReferenceCurrency.value && 
+                          fiatReferenceAmount.value && 
+                          !isNotFiatMode.value &&
+                          currency.value &&
+                          currency.value !== 'BCH'
+        
+        if (!stillValid) {
+          stopFiatRateRefreshTimer()
+          return
+        }
+        
+        try {
+          // Force refresh by passing age: 0 to bypass cache
+          await updateSelectedCurrencyRate({ skipRefreshTimer: true, age: 0 })
+          
+          // Clear cached rate objects to force recomputation
+          cachedCurrencyBchRate = null
+          cachedCurrencyBchRateKey = null
+          cachedFiatReferenceRate = null
+          cachedFiatReferenceRateKey = null
+          
+          // Recalculate crypto amount based on updated rates
+          // The computed properties (bchValue/tokenAmount) will automatically update
+          // but we need to trigger the watcher that updates paymentsStore.total
+          if (totalCryptoAmount.value && !isNaN(totalCryptoAmount.value)) {
+            paymentsStore.setTotalPayment(totalCryptoAmount.value)
+          }
+          
+          // Update QR data with new rates
+          updateQrData()
+        } catch (error) {
+          console.error('Error refreshing fiat rate:', error)
+        }
+      }, 600000) // 10 minutes (600000ms)
+    }
+    
+    function stopFiatRateRefreshTimer() {
+      if (fiatRateRefreshInterval) {
+        clearInterval(fiatRateRefreshInterval)
+        fiatRateRefreshInterval = null
+      }
     }
     /* Conversion rates --> */
 
@@ -388,6 +587,7 @@ export default defineComponent({
       if (isNotFiatMode.value) return receiveAmount.value
 
       const rateValue = currencyBchRate.value?.rate
+      if (!rateValue || rateValue === 0 || isNaN(rateValue)) return NaN
       const finalBchValue = Number((receiveAmount.value / rateValue).toFixed(8))
       return finalBchValue
     })
@@ -405,10 +605,26 @@ export default defineComponent({
       if (isCashtoken.value) return tokenAmount.value
       return bchValue.value
     })
-    watch(totalCryptoAmount, newVal => {
+    let isUpdatingTotalPayment = false
+    let lastTotalCryptoAmount = null
+    watch(totalCryptoAmount, (newVal) => {
+      if (isUpdatingTotalPayment) return
       if (isNaN(newVal)) return
+      // Only update if value actually changed
+      if (newVal === lastTotalCryptoAmount) return
+      if (paymentsStore.total === newVal) {
+        lastTotalCryptoAmount = newVal
+        return
+      }
+      
+      isUpdatingTotalPayment = true
+      lastTotalCryptoAmount = newVal
       paymentsStore.setTotalPayment(newVal)
-    })
+      // Reset flag in next tick to allow future updates
+      setTimeout(() => {
+        isUpdatingTotalPayment = false
+      }, 0)
+    }, { flush: 'post' })
 
     function showSetAmountDialog(opts={force:false}) {
       if (disableAmount.value && !opts?.force) return
@@ -423,7 +639,6 @@ export default defineComponent({
       }).onOk(data => {
         const amount = data?.amount
         const newAmount = amount?.value
-        const newCurrency = amount?.currency || 'BCH'
         const startingNewInvoice = paid.value
 
         if (startingNewInvoice) {
@@ -431,19 +646,32 @@ export default defineComponent({
         }
 
         receiveAmount.value = newAmount
-        currency.value = newCurrency
         
-        // Store fiat reference if provided
+        // Amount currency is what the user entered the amount in (fiat or crypto)
+        // Payment currency is always BCH or token (what gets paid)
         if (amount?.fiatAmount && amount?.fiatCurrency) {
+          // User entered amount in fiat - amount currency is fiat, payment currency is BCH
+          currency.value = amount.fiatCurrency  // amount currency (fiat, e.g., 'PHP')
           fiatReferenceAmount.value = amount.fiatAmount
           fiatReferenceCurrency.value = amount.fiatCurrency
         } else {
+          // User entered amount in crypto - amount currency = payment currency
+          currency.value = amount?.currency || 'BCH'  // amount currency (same as payment currency)
           fiatReferenceAmount.value = null
           fiatReferenceCurrency.value = null
         }
 
         if (receiveAmount.value) {
           refreshQrCountdown()
+          // Start fiat rate refresh timer if fiat amount is used
+          // Wait a bit for reactive updates to propagate
+          setTimeout(() => {
+            if (fiatReferenceCurrency.value && fiatReferenceAmount.value && !isNotFiatMode.value) {
+              startFiatRateRefreshTimer()
+            } else {
+              stopFiatRateRefreshTimer()
+            }
+          }, 100)
         }
       })
     }
@@ -485,8 +713,9 @@ export default defineComponent({
     const currencyAmountRemaining = computed(() => {
       const priceValue = isCashtoken.value
         ? currencyTokenPrice.value
-        : currencyBchRate?.value?.rate
+        : currencyBchRate.value?.rate
 
+      if (!priceValue || isNaN(priceValue)) return 0
       const currencyRemaining = priceValue * remainingPaymentRounded.value
       return Number(currencyRemaining.toFixed(2))
     })
@@ -508,16 +737,94 @@ export default defineComponent({
     let qrScanned = ref(false)
     let qrExpirationPrompt = null
     let qrExpirationCountdown = null
+    
+    // Fiat rate refresh timer (1 minute)
+    let fiatRateRefreshInterval = null
 
-    onMounted(() => refreshQrCountdown())
-    watch(currency, () => updateSelectedCurrencyRate())
+    let isInitializing = ref(true)
+    let isUpdatingRate = ref(false)
+    
+    // Set up watchers with immediate: false to prevent initial triggers
+    watch(currency, () => {
+      if (isInitializing.value || isUpdatingRate.value) return
+      if (!currency.value) return
+      isUpdatingRate.value = true
+      updateSelectedCurrencyRate()
+        .catch(() => {}) // Suppress errors to prevent loops
+        .finally(() => {
+          isUpdatingRate.value = false
+        })
+    }, { immediate: false, flush: 'post' })
+    
     watch(
       () => [receiveAmount.value, currency.value],
       () => {
+        if (isInitializing.value || isUpdatingRate.value) return
         if (!receiveAmount.value || isNotFiatMode.value) return
         ensureLatestFiatRateBeforeQr()
-      }
+      },
+      { immediate: false, flush: 'post' }
     )
+    
+    // Watch fiat reference currency to start/stop timer
+    watch(() => [fiatReferenceCurrency.value, fiatReferenceAmount.value, currency.value], () => {
+      if (isInitializing.value) return
+      
+      // If we have fiat reference, ensure currency is set to fiat currency
+      if (fiatReferenceCurrency.value && fiatReferenceAmount.value && currency.value !== fiatReferenceCurrency.value) {
+        currency.value = fiatReferenceCurrency.value
+        return // Let the watcher fire again after currency is set
+      }
+      
+      // For timer to start: must have fiat ref values and currency must be the fiat currency (not BCH)
+      const shouldRun = fiatReferenceCurrency.value && 
+                       fiatReferenceAmount.value && 
+                       currency.value &&
+                       currency.value === fiatReferenceCurrency.value &&
+                       currency.value !== 'BCH'
+      
+      if (shouldRun) {
+        startFiatRateRefreshTimer()
+      } else {
+        stopFiatRateRefreshTimer()
+      }
+    }, { flush: 'post' })
+    
+    onMounted(() => {
+      // Defer to next tick to ensure all reactive state is initialized
+      // This includes the props being set in the earlier onMounted hook
+      setTimeout(() => {
+        refreshQrCountdown()
+        // Allow watchers to run after initialization completes
+        setTimeout(() => {
+          isInitializing.value = false
+          // Only update QR data after initialization is complete
+          setTimeout(() => {
+            updateQrData()
+            // Enable QR data watcher after first update
+            qrDataWatcherReady = true
+            // Start fiat rate refresh timer if fiat amount is used (after initialization)
+            setTimeout(() => {
+              // If fiat is set, ensure currency matches fiat currency
+              if (fiatReferenceCurrency.value && fiatReferenceAmount.value && currency.value !== fiatReferenceCurrency.value) {
+                currency.value = fiatReferenceCurrency.value
+              }
+              
+              // Check again after potential sync
+              const shouldRun = fiatReferenceCurrency.value && 
+                               fiatReferenceAmount.value && 
+                               currency.value &&
+                               currency.value === fiatReferenceCurrency.value &&
+                               currency.value !== 'BCH'
+              
+              if (shouldRun) {
+                startFiatRateRefreshTimer()
+              }
+            }, 200)
+          }, 100)
+        }, 300)
+      }, 50)
+    })
 
     function stopQrExpirationCountdown () {
       clearInterval(qrExpirationCountdown)
@@ -526,8 +833,29 @@ export default defineComponent({
 
     function refreshQrCountdown () {
       if (isNotFiatMode.value) return
+      if (!currency.value) return
 
-      updateSelectedCurrencyRate()
+      // Update timestamp when QR is refreshed
+      qrTimestamp.value = Math.floor(Date.now() / 1000)
+
+      // Ensure rate is fetched before showing QR - set loading state
+      fiatRateLoading.value = true
+      updateSelectedCurrencyRate({ skipRefreshTimer: true })
+        .catch(error => {
+          console.error('Error refreshing currency rate:', error)
+        })
+        .finally(() => {
+          fiatRateLoading.value = false
+          
+          // After rate is fetched, ensure total is set
+          if (paymentsStore.total === 0 && totalCryptoAmount.value && !isNaN(totalCryptoAmount.value) && totalCryptoAmount.value > 0) {
+            paymentsStore.setTotalPayment(totalCryptoAmount.value)
+          }
+          
+          // Update QR data after rates are loaded
+          updateQrData()
+        })
+      
       stopQrExpirationCountdown()
 
       qrExpirationTimer.value = 1
@@ -542,37 +870,122 @@ export default defineComponent({
         () => refreshQr.value = true,
         currencyRateUpdateRate + (3 * milliseconds)
       )
+      
+      // Initial QR data update - defer to avoid recursive loops during initialization
+      if (!isInitializing.value) {
+        setTimeout(() => {
+          updateQrData()
+        }, 100)
+      }
     }
 
-    const qrData = computed(() => {
-      if (!receiveAmount.value) return ''
+    // Stable timestamp ref - updated only when QR needs refresh, not on every evaluation
+    const qrTimestamp = ref(Math.floor(Date.now() / 1000))
+    
+    // Use a ref to store qrData and update it manually to prevent recursive computed evaluation
+    const qrDataRef = ref('')
+    let isUpdatingQrData = false
+    
+    // Function to update QR data without triggering recursive updates
+    function updateQrData() {
+      // Prevent recursive calls
+      if (isUpdatingQrData) return
+      if (isInitializing.value) return
+      
+      isUpdatingQrData = true
+      
+      try {
+        if (!receiveAmount.value) {
+          qrDataRef.value = ''
+          return
+        }
 
-      const currentTimestamp = Date.now() / 1000
+        // Ensure total is set if it's 0 but we have a valid amount
+        // This handles the case where rates were loaded but watcher didn't fire yet
+        if (paymentsStore.total === 0 && totalCryptoAmount.value && !isNaN(totalCryptoAmount.value) && totalCryptoAmount.value > 0) {
+          paymentsStore.setTotalPayment(totalCryptoAmount.value)
+        }
 
-      const params = [];
-      let address = receivingAddress
-      if (isCashtoken.value) {
-        address = toTokenAddress(receivingAddress);
-        params.push('t');
+        const currentTimestamp = qrTimestamp.value
+
+        const params = [];
+        let address = receivingAddress
+        if (isCashtoken.value) {
+          address = toTokenAddress(receivingAddress);
+          params.push('t');
+        }
+        params.push(`POS=${posId.value}`)
+        if (isCashtoken.value) {
+          params.push(`c=${tokenCategory.value}`)
+          params.push(`f=${remainingPaymentInTokenUnits.value}`)
+          if (tokenBchRate.value && tokenBchRate.value.priceId) {
+            params.push(`price_id=${tokenBchRate.value.priceId}`)
+          }
+        } else {
+          params.push(`amount=${remainingPaymentRounded.value}`)
+          if (fiatReferenceCurrency.value && fiatReferenceCurrency.value !== 'BCH' && !isCashtoken.value) {
+            const rate = fiatReferenceRate.value
+            if (rate && rate.priceId) {
+              params.push(`price_id=${rate.priceId}`)
+            }
+          }
+        }
+
+        if (!isNotFiatMode.value) {
+          const expiryDuration = currencyRateUpdateRate / 1000
+          const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
+          const diffSeconds = networkTimeDiff.value ? networkTimeDiff.value / 1000 : 0
+          const adjustedExpirationTimestamp = expirationTimestamp + diffSeconds
+          params.push(`expires=${adjustedExpirationTimestamp}`)
+        }
+
+        qrDataRef.value = address + '?' + params.join('&')
+      } finally {
+        // Reset flag in next tick to allow future updates
+        setTimeout(() => {
+          isUpdatingQrData = false
+        }, 0)
       }
-      params.push(`POS=${posId.value}`)
-      if (isCashtoken.value) {
-        params.push(`c=${tokenCategory.value}`)
-        params.push(`f=${remainingPaymentInTokenUnits.value}`)
-      } else {
-        params.push(`amount=${remainingPaymentRounded.value}`)
-      }
-
-      if (!isNotFiatMode.value) {
-        const expiryDuration = currencyRateUpdateRate / 1000
-        const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
-        const diffSeconds = networkTimeDiff.value ? networkTimeDiff.value / 1000 : 0
-        const adjustedExpirationTimestamp = expirationTimestamp + diffSeconds
-        params.push(`expires=${adjustedExpirationTimestamp}`)
-      }
-
-      return address + '?' + params.join('&')
-    })
+    }
+    
+    // Watch dependencies and update QR data manually
+    // Use a more defensive approach - only watch essential values
+    let lastQrDataKey = null
+    let qrDataWatcherReady = false
+    
+    watch(
+      () => {
+        // Only watch if initialization is complete
+        if (isInitializing.value || !qrDataWatcherReady) return null
+        
+        // Create a stable key to prevent unnecessary updates
+        return JSON.stringify({
+          receiveAmount: receiveAmount.value,
+          receivingAddress,
+          isCashtoken: isCashtoken.value,
+          tokenCategory: tokenCategory.value,
+          remainingPaymentInTokenUnits: isCashtoken.value ? remainingPaymentInTokenUnits.value : null,
+          remainingPaymentRounded: !isCashtoken.value ? remainingPaymentRounded.value : null,
+          tokenBchRatePriceId: tokenBchRate.value?.priceId || null,
+          fiatReferenceRatePriceId: fiatReferenceRate.value?.priceId || null,
+          posId: posId.value,
+          isNotFiatMode: isNotFiatMode.value,
+          networkTimeDiff: networkTimeDiff.value,
+          qrTimestamp: qrTimestamp.value
+        })
+      },
+      (newKey) => {
+        if (isInitializing.value || !qrDataWatcherReady) return
+        if (!newKey) return // Skip during initialization
+        if (lastQrDataKey === newKey) return // Skip if nothing changed
+        lastQrDataKey = newKey
+        updateQrData()
+      },
+      { immediate: false, flush: 'post' }
+    )
+    
+    // Expose as computed for template compatibility
+    const qrData = computed(() => qrDataRef.value)
     /* QR code related --> */
 
     /* <-- Received transactions */
@@ -679,6 +1092,7 @@ export default defineComponent({
       enableReconnect.value = false
       closeWebsocket()
       clearTimeout(reconnectTimeout.value)
+      stopFiatRateRefreshTimer()
     })
     function setupListener() {
       const merchantReceivingAddress = addressSet.value?.receiving
@@ -798,11 +1212,11 @@ export default defineComponent({
      */
     function parseWebsocketDataReceived(data) {
       const marketValue = { amount: 0, currency: '' }
-      if (data?.tokenSymbol === 'BCH' && currencyBchRate.value.rate) {
+      if (data?.tokenSymbol === 'BCH' && currencyBchRate.value?.rate) {
         marketValue.amount = Number(
           (Number(data?.value) * currencyBchRate.value.rate).toFixed(3)
         )
-        marketValue.currency = currencyBchRate.value.currency
+        marketValue.currency = currencyBchRate.value.currency || ''
       }
       const response = {
         amount: data?.amount,

@@ -14,7 +14,7 @@ export const useMarketStore = defineStore('market', {
 
   actions: {
     getRate(currency, resetLastRate = false) {
-      const bchRate = this.bchRates.find(rate => rate.currency === currency)
+      const bchRate = this.bchRates.find(rate => rate.currency === currency && rate.currency !== '')
       if (!bchRate) return
 
       const status = this.getRateStatus(bchRate.rate)
@@ -52,6 +52,7 @@ export const useMarketStore = defineStore('market', {
      * @param {Number} newRate.rate
      * @param {Number} newRate.timestamp
      * @param {String} newRate.category
+     * @param {Number} [newRate.priceId]
      */
     updateBchPrice(newRate) {
       const index = this.bchRates.findIndex(_rate => {
@@ -83,18 +84,27 @@ export const useMarketStore = defineStore('market', {
       currency = currency.toUpperCase()
 
       const rate = this.bchRates.find(_rate => _rate?.currency === currency)
-      if (rate?.timestamp && opts?.age && Date.now() - opts?.age <= rate?.timestamp) {
+      // Force refresh if cached rate doesn't have priceId (from old API) or if rate is expired
+      const isRateValid = rate?.timestamp && opts?.age && Date.now() - opts?.age <= rate?.timestamp
+      const hasPriceId = rate?.priceId != null
+      if (isRateValid && hasPriceId) {
         return Promise.resolve(rate)
       }
 
-      return axios.get(`https://watchtower.cash/api/bch-prices/`, { params: { currencies: currency }})
+      return axios.get(`https://watchtower.cash/api/asset-prices/`, { 
+        params: { 
+          assets: 'bch',
+          vs_currencies: currency
+        }
+      })
         .then(response => {
-          const priceData = response?.data?.find?.(result => result?.relative_currency === 'BCH' && result?.currency === currency)
+          const priceData = response?.data?.prices?.find?.(result => result?.asset === 'BCH' && result?.currency === currency)
           if (!priceData) return Promise.reject({ response })
           const newRate = {
             currency: priceData?.currency,
             rate: parseFloat(priceData?.price_value),
             timestamp: new Date(priceData?.timestamp) * 1,
+            priceId: priceData?.id,
           }
 
           if (!newRate?.rate) return Promise.reject({ response })
@@ -107,20 +117,32 @@ export const useMarketStore = defineStore('market', {
       if (!Array.isArray(this.bchRates)) return Promise.reject()
 
       const rate = this.bchRates.find(_rate => _rate?.category === category)
-      if (rate?.timestamp && opts?.age && Date.now() - opts?.age <= rate?.timestamp) {
+      // Force refresh if cached rate doesn't have priceId (from old API) or if rate is expired
+      const isRateValid = rate?.timestamp && opts?.age && Date.now() - opts?.age <= rate?.timestamp
+      const hasPriceId = rate?.priceId != null
+      if (isRateValid && hasPriceId) {
         return Promise.resolve(rate)
       }
 
-      return backend.get(`prices/bch/ct:${category}/`)
+      return axios.get(`https://watchtower.cash/api/asset-prices/`, {
+        params: {
+          assets: `ct/${category}`,
+          vs_currencies: 'BCH'
+        }
+      })
         .then(response => {
-          const data = response?.data;
+          const priceData = response?.data?.prices?.find?.(result => 
+            result?.asset === `ct/${category}` && result?.currency === 'BCH'
+          )
+          if (!priceData) return Promise.reject({ response })
           const newRate = {
             category: category,
-            rate: parseFloat(data?.price),
-            timestamp: new Date(data?.timestamp) * 1,
+            rate: parseFloat(priceData?.price_value),
+            timestamp: new Date(priceData?.timestamp) * 1,
+            priceId: priceData?.id,
           }
 
-          if (!newRate.rate) return
+          if (!newRate.rate) return Promise.reject({ response })
           this.updateBchPrice(newRate);
           return newRate;
         })
