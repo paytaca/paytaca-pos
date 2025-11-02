@@ -1,75 +1,95 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
-    <q-card class="q-dialog-plugin">
-      <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
-        <div class="text-h5 text-brandblue q-space q-mt-sm"> {{ $t('Received') }} </div>
+  <q-dialog ref="dialogRef" @hide="onDialogHide" transition-show="slide-up" transition-hide="slide-down">
+    <q-card class="q-dialog-plugin" style="position:relative;">
+      <div class="confetti-container">
+        <ConfettiExplosion
+          v-if="showConfetti"
+          :particleCount="200"
+          :force="0.4"
+          :duration="8000"
+          :shouldDestroyAfterDone="true"
+        />
+      </div>
+      <div class="row no-wrap items-center justify-center q-pl-md q-pt-md q-pb-xs">
         <q-btn
           flat
           padding="sm"
           icon="close"
-          class="text-brandblue"
+          class="text-brandblue absolute-top-right"
           v-close-popup
         />
       </div>
-      <q-card-section>
-        <div class="q-mb-md">
-          <div class="row items-center justify-center q-gutter-x-sm">
-            <div class="text-h5">
+      <q-card-section class="q-pt-none">
+        <div class="text-h6 text-center">
+          {{ $t('RECEIVED') }}
+        </div>
+        <div class="text-h6 text-center q-mt-sm">
+          <q-icon name="arrow_downward" class="record-type-icon"/>
+        </div>
+      </q-card-section>
+      <q-card-section class="q-mt-xs">
+        <q-item v-if="merchantName || posName">
+          <q-item-section>
+            <q-item-label v-if="merchantName" class="text-subtitle2">{{ merchantName }}</q-item-label>
+            <q-item-label v-if="posName" class="text-caption text-grey">{{ posName }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable v-ripple @click="copyText(String(amount))">
+          <q-item-section v-if="logo" side>
+            <img
+              v-if="logo && logo !== 'bch-logo.png'"
+              height="35"
+              :src="logo"
+              @error="onImgErrorIpfsSrc"
+            />
+            <img v-else-if="logo === 'bch-logo.png'" src="~assets/bch-logo.webp" height="30"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label class="text-h5">
               {{ amount }} {{ tokenCurrency }}
-            </div>
-            <img v-if="logo" :src="logo" height="30"/>
-          </div>
-          <div v-if="marketValue && marketValueCurrency" class="text-center text-body2">
-            {{ marketValue }} {{ marketValueCurrency }}
-          </div>
-        </div>
-        <div class="text-grey text-center" style="margin-bottom:-0.5em;">{{ $t('ReferenceID') }}</div>
-        <p class="text-center" style="font-size: 22px; margin-top: 7px;">
-          {{ txid.substring(0, 6).toUpperCase() }}
-        </p>
-
-        <div class="text-grey text-center" style="margin-bottom:-0.5em;">{{ $t('TransactionID') }}</div>
-        <div class="row items-center no-wrap text-subtitle1" style="margin-top: 7px;">
-          <div class="ellipsis">{{txid}}</div>
-          <div class="row no-wrap">
-            <q-btn
-              rounded
-              padding="xs"
-              icon="content_copy"
-              @click="copyText(txid, $t('TransactionIdCopied'))"
-            />
-            <q-btn
-              rounded
-              padding="xs"
-              icon="open_in_new"
-              :href="`https://blockchair.com/bitcoin-cash/transaction/${txid}/`"
-              target="_blank"
-            />
-          </div>
-        </div>
-        <!--
-        <q-separator class="q-my-md"/>
-        <div class="q-mt-sm">
-          <q-btn
-            no-caps
-            :label="$t('Okay')"
-            color="brandblue"
-            class="full-width"
-            @click="onOk()"
-          />
-        </div>
-        -->
+            </q-item-label>
+            <q-item-label v-if="fiatReferenceAmount && fiatReferenceCurrency" class="text-body1 text-grey">
+              {{ fiatReferenceAmount }} {{ fiatReferenceCurrency }}
+            </q-item-label>
+            <q-item-label v-else-if="marketValue && marketValueCurrency" caption>
+              {{ marketValue }} {{ marketValueCurrency }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable v-ripple @click="copyText(currentDate)">
+          <q-item-section>
+            <q-item-label class="text-grey" caption>{{ $t('Date') }}</q-item-label>
+            <q-item-label>{{ currentDate }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item v-if="txid" clickable v-ripple @click="copyText(txid.substring(0, 6).toUpperCase())" style="overflow-wrap: anywhere;">
+          <q-item-section>
+            <q-item-label caption class="text-grey">{{ $t('ReferenceID') }}</q-item-label>
+            <q-item-label>{{ txid.substring(0, 6).toUpperCase() }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item v-if="txid" clickable v-ripple @click="copyText(txid)" style="overflow-wrap: anywhere;">
+          <q-item-section>
+            <q-item-label caption class="text-grey">{{ $t('TransactionID') }}</q-item-label>
+            <q-item-label>{{ txid }}</q-item-label>
+          </q-item-section>
+        </q-item>
       </q-card-section>
     </q-card>
   </q-dialog>
 </template>
 <script>
+import { convertIpfsUrl, onImgErrorIpfsSrc } from 'src/utils/ipfs'
 import { useI18n } from 'vue-i18n'
-import { defineComponent } from 'vue'
+import { defineComponent, ref, onMounted, inject, computed } from 'vue'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
+import ConfettiExplosion from "vue-confetti-explosion"
 
 export default defineComponent({
   name: 'ReceiveUpdateDialog',
+  components: {
+    ConfettiExplosion,
+  },
   emits: [
     // REQUIRED; need to specify some events that your
     // component will emit through useDialogPluginComponent()
@@ -84,26 +104,56 @@ export default defineComponent({
     marketValueCurrency: String,
     logo: [String, null],
     expectedAmount: [String, Number],
-  },
-  methods: {
-    copyText(value, message='Copied address') {
-      this.$copyText(value)
-        .then(() => {
-          this.$q.notify({
-            message: message || this.$t('CopiedToClipboard'),
-            timeout: 800,
-            icon: 'mdi-clipboard-check',
-            color: 'blue-9'
-          })
-        })
-        .catch(() => {})
-    }
+    fiatReferenceAmount: [String, Number],
+    fiatReferenceCurrency: String,
+    senders: Array,
+    tokenName: String,
+    tokenId: String,
+    tokenDecimals: Number,
+    merchantName: String,
+    posName: String,
   },
   setup(props) {
     const $q = useQuasar()
     const { t } = useI18n()
 
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+    
+    const showConfetti = ref(false)
+    const $copyText = inject('$copyText')
+    
+    const currentDate = computed(() => {
+      return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date())
+    })
+    
+    function concatenate (array) {
+      if (!Array.isArray(array)) return ''
+      let addresses = array
+        .map(item => item?.[0])
+        .filter(Boolean)
+        .filter((e, i , s) => s.indexOf(e) === i)
+
+      return addresses.join(', ')
+    }
+    
+    function copyText(value, message='') {
+      $copyText(value).then(() => {
+        $q.notify({
+          message: message || t('Copied to clipboard'),
+          timeout: 800,
+          icon: 'mdi-clipboard-check',
+          color: 'blue-9'
+        })
+      })
+      .catch(() => {})
+    }
+    
+    onMounted(() => {
+      // Trigger confetti after the slide-up animation completes (400ms)
+      setTimeout(() => {
+        showConfetti.value = true
+      }, 400)
+    })
 
     function onOk() {
       if (!props.expectedAmount) return onDialogOK()
@@ -128,7 +178,34 @@ export default defineComponent({
     return {
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       onOk,
+      showConfetti,
+      currentDate,
+      concatenate,
+      copyText,
+      onImgErrorIpfsSrc,
+      $q,
     }
   },
 })
 </script>
+<style lang="scss" scoped>
+.confetti-container {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 1;
+}
+
+.record-type-icon {
+  /* color: #3b7bf6; */
+  color: white;
+  font-size: 30px;
+  background: $brandblue;
+  border-radius: 20px;
+  padding: 4px;
+}
+</style>
