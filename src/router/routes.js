@@ -11,6 +11,7 @@ const routes = [
         component: () => import('src/pages/ReceivePage.vue'),
         props: route => Object.assign(route.query, {
           setAmount: Number(route.query?.setAmount) || route.query?.setAmount,
+          setFiatAmount: Number(route.query?.setFiatAmount) || route.query?.setFiatAmount,
           lockAmount: String(route.query?.lockAmount).toLowerCase() === 'false' ? false : Boolean(route.query?.lockAmount),
         }),
       },
