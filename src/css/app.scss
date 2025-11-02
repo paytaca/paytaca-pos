@@ -83,3 +83,41 @@ body.body--light {
       margin-bottom: math.div(map-get($spacing, 'y'), -2);
   }
 }
+
+/* Dialog slide-up animation */
+.slide-up-enter-active {
+  transition: all 0.4s ease-out;
+}
+
+.slide-up-leave-active {
+  transition: all 0.3s ease-in;
+}
+
+.slide-up-enter-from {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* Dialog slide-down animation */
+.slide-down-enter-active {
+  transition: all 0.4s ease-out;
+}
+
+.slide-down-leave-active {
+  transition: all 0.3s ease-in;
+}
+
+.slide-down-enter-from {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+.slide-down-leave-to {
+  transform: translateY(-100%);
+  opacity: 0;
+}
