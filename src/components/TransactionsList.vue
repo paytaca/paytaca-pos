@@ -40,12 +40,12 @@
             {{ tx?.marketValue?.amount }} {{ tx?.marketValue?.currency }}
           </div>
           <div 
-            v-if="getTxMarketValue(tx)?.marketValue"
+            v-if="getTxDisplayFiat(tx)?.value !== null"
             class="text-caption text-grey"
             :class="[$q.dark.isActive ? 'text-weight-light' : '']"
             style="margin-top:-0.25em;"
           >
-            {{ parseFloat(getTxMarketValue(tx)?.marketValue).toFixed(2) }} {{ selectedMarketCurrency }}
+            {{ Number(getTxDisplayFiat(tx)?.value).toFixed(2) }} {{ getTxDisplayFiat(tx)?.currency }}
           </div>
         </div>
       </div>
@@ -86,6 +86,7 @@ export default defineComponent({
     const {
       selectedMarketCurrency,
       getTxMarketValue,
+      getTxDisplayFiat,
       getTxAmount,
     } = useTransactionHelpers();
 
@@ -160,6 +161,7 @@ export default defineComponent({
       recordTypeMap,
       selectedMarketCurrency,
       getTxMarketValue,
+      getTxDisplayFiat,
       getTxAmount,
       offlineTransactionsToShow,
       transactionsList,

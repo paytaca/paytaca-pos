@@ -35,6 +35,44 @@ export function useTransactionHelpers() {
     return data
   }
 
+  function getTxDisplayFiat(transaction) {
+    // Prefer exact fiat recorded in transaction.fiat_amounts if available
+    const currency = selectedMarketCurrency.value
+    const map = transaction?.fiat_amounts
+    if (map && currency && Object.prototype.hasOwnProperty.call(map, currency)) {
+      const raw = map[currency]
+      const num = Number(raw)
+      if (!Number.isNaN(num)) {
+        return { value: num, currency }
+      }
+    }
+
+    // Fallback 1: use market price in the selected currency if available
+    const priceInSelected = transaction?.market_prices?.[currency]
+    if (priceInSelected) {
+      const val = Number(transaction?.amount) * Number(priceInSelected)
+      const num = Number(val)
+      if (!Number.isNaN(num)) return { value: num, currency }
+    }
+
+    // Fallback 2: use USD price if available and selected currency is not priced
+    if (transaction?.usd_price) {
+      const val = Number(transaction?.amount) * Number(transaction.usd_price)
+      const num = Number(val)
+      if (!Number.isNaN(num)) return { value: num, currency: 'USD' }
+    }
+
+    // Fallback 3: computed (legacy) market value logic
+    const mv = getTxMarketValue(transaction)
+    if (mv?.marketValue) {
+      const num = Number(mv.marketValue)
+      if (!Number.isNaN(num)) {
+        return { value: num, currency }
+      }
+    }
+    return { value: null, currency }
+  }
+
   function getTxAmount(transaction) {
     if (!transaction?.ft_category && !transaction?.nft_category) {
       return { value: transaction?.amount, symbol: 'BCH' }
@@ -57,6 +95,7 @@ export function useTransactionHelpers() {
     selectedMarketCurrency,
     getTxMarketPrice,
     getTxMarketValue,
+    getTxDisplayFiat,
 
     getTxAmount,
   }

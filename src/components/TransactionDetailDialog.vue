@@ -48,8 +48,8 @@
               <template v-else> {{ transactionAmount?.value }}</template>
               {{ transactionAmount?.symbol }}
             </q-item-label>
-            <q-item-label v-if="transactionAmountMarketValue" caption>
-              {{ transactionAmountMarketValue }} {{ selectedMarketCurrency }}
+            <q-item-label v-if="displayFiatAmount !== null" caption>
+              {{ displayFiatAmount }} {{ displayFiatCurrency }}
             </q-item-label>
           </q-item-section>
           <q-item-section v-else-if="transaction?.marketValue?.amount && transaction?.marketValue?.currency">
@@ -179,6 +179,7 @@ export default defineComponent({
     const {
       selectedMarketCurrency,
       getTxMarketValue,
+      getTxDisplayFiat,
       getTxAmount,
     } = useTransactionHelpers();
 
@@ -189,6 +190,15 @@ export default defineComponent({
       if (marketValue < 10 ** -2) return marketValue;
       return marketValue.toFixed(2);
     });
+
+    const displayFiat = computed(() => getTxDisplayFiat(props.transaction))
+    const displayFiatAmount = computed(() => {
+      const v = Number(displayFiat.value?.value)
+      if (Number.isNaN(v)) return null
+      if (v < 10 ** -2) return v
+      return v.toFixed(2)
+    })
+    const displayFiatCurrency = computed(() => displayFiat.value?.currency || selectedMarketCurrency.value)
 
     const tokenCategory = computed(() => props.transaction?.ft_category || props.transaction?.nft_category);
     const tokenMetadata = computed(() => cashtokenStore.getTokenMetadata(tokenCategory.value))
@@ -249,6 +259,8 @@ export default defineComponent({
       selectedMarketCurrency,
       transactionAmount,
       transactionAmountMarketValue,
+      displayFiatAmount,
+      displayFiatCurrency,
     
       tokenCategory,
       tokenMetadata,
