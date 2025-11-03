@@ -211,6 +211,7 @@ import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
 import bchLogo from 'src/assets/bch-logo.webp'
+import { postOutputFiatAmounts } from 'src/utils/watchtower'
 
 
 export default defineComponent({
@@ -310,7 +311,7 @@ export default defineComponent({
 
     /* <-- Wallet/address */
     const addressSet = computed(() => addressesStore.currentAddressSet)  
-    const receivingAddress = addressSet.value?.receiving
+    const receivingAddress = computed(() => addressSet.value?.receiving)
     const generatingAddress = ref(false)
     onMounted(() => {
       generatingAddress.value = true
@@ -992,9 +993,9 @@ export default defineComponent({
         const currentTimestamp = qrTimestamp.value
 
         const params = [];
-        let address = receivingAddress
+        let address = receivingAddress.value
         if (isCashtoken.value) {
-          address = toTokenAddress(receivingAddress);
+          address = toTokenAddress(receivingAddress.value);
           params.push('t');
         }
         params.push(`POS=${posId.value}`)
@@ -1046,7 +1047,7 @@ export default defineComponent({
         // Create a stable key to prevent unnecessary updates
         return JSON.stringify({
           receiveAmount: receiveAmount.value,
-          receivingAddress,
+          receivingAddress: receivingAddress.value,
           isCashtoken: isCashtoken.value,
           tokenCategory: tokenCategory.value,
           remainingPaymentInTokenUnits: isCashtoken.value ? remainingPaymentInTokenUnits.value : null,
@@ -1075,6 +1076,9 @@ export default defineComponent({
 
     /* <-- Received transactions */
     const transactionsReceived = ref([].map(parseWebsocketDataReceived))
+    const postedFiatMapTxIds = new Set()
+    const fiatMapPostTimers = new Map()
+    const txOutputsByTxid = new Map()
 
     function prepareForNewInvoice () {
       clearTimeout(triggerSecondConfettiTimeout)
@@ -1227,6 +1231,19 @@ export default defineComponent({
       }
       promptOnLeave.value = false
       displayReceivedTransaction(transaction)
+
+      // Accumulate outputs per-txid
+      try {
+        const txid = transaction?.txid
+        if (txid) {
+          const list = txOutputsByTxid.get(txid) || []
+          list.push(transaction)
+          txOutputsByTxid.set(txid, list)
+        }
+      } catch (_) {}
+
+      // Debounce posting per-tx to allow all outputs to arrive
+      schedulePostOutputFiatAmounts(transaction?.txid)
     }
 
     function processLiveUpdate (data) {
@@ -1386,6 +1403,66 @@ export default defineComponent({
         .onDismiss(() => {
           paymentDialogOpen.value = false
         })
+    }
+
+    function maybePostOutputFiatAmounts(txid) {
+      try {
+        // Require fiat reference available
+        if (!fiatReferenceAmount.value || !fiatReferenceCurrency.value) { return }
+        if (!txid) { return }
+        if (postedFiatMapTxIds.has(txid)) { return }
+
+        // Collect merchant outputs for this txid
+        const outputs = txOutputsByTxid.get(txid) || []
+        if (!outputs.length) { return }
+
+        // Compute proportional split by crypto amount
+        const isTokenPayment = isCashtoken.value
+        const tokenDecimals = cashtokenMetadata.value?.decimals || 0
+        const totalCrypto = outputs.reduce((s, o) => {
+          if (isTokenPayment) return s + (Number(o?.tokenAmount) || 0)
+          const bch = (typeof o?.value === 'number') ? (o.value / 1e8) : (Number(o?.amount) || 0)
+          return s + (bch || 0)
+        }, 0)
+        if (totalCrypto <= 0) { return }
+
+        const map = {}
+        outputs.forEach(o => {
+          const unit = isTokenPayment ? (Number(o?.tokenAmount) || 0) : ((typeof o?.value === 'number') ? (o.value / 1e8) : (Number(o?.amount) || 0))
+          const share = unit / totalCrypto
+          const fiatPart = share >= 1 || outputs.length === 1
+            ? Number(fiatReferenceAmount.value)
+            : Number((Number(fiatReferenceAmount.value) * share).toFixed(2))
+          const entry = {
+            fiat_amount: `${fiatPart}`,
+            fiat_currency: `${fiatReferenceCurrency.value}`,
+            recipient: o?.address,
+          }
+          if (isTokenPayment) {
+            entry.token_amount = (Number(o?.tokenAmount) || 0).toFixed(tokenDecimals)
+            entry.token_category = tokenCategory.value
+          }
+          map[String(o?.index)] = entry
+        })
+        // Fire and forget with basic retry handled in helper
+        postOutputFiatAmounts({ txid, outputFiatAmounts: map })
+          .then(() => { postedFiatMapTxIds.add(txid) })
+          .catch(() => {
+            // Non-blocking notify
+            $q.notify({ type: 'warning', message: t('UnableToSaveFiatBreakdown'), timeout: 3000 })
+          })
+      } catch (e) { console.error(e) }
+    }
+
+    function schedulePostOutputFiatAmounts(txid) {
+      if (!txid) return
+      const existing = fiatMapPostTimers.get(txid)
+      if (existing) clearTimeout(existing)
+      const timer = setTimeout(() => {
+        fiatMapPostTimers.delete(txid)
+        maybePostOutputFiatAmounts(txid)
+      }, 800)
+      fiatMapPostTimers.set(txid, timer)
     }
 
     onBeforeRouteLeave(async (to, from, next) => {
