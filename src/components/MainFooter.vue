@@ -62,7 +62,7 @@ export default defineComponent({
     const $q = useQuasar()
     const $router = useRouter()
 
-    const selectedCurrency = computed(() => walletStore.preferences.selectedCurrency)
+    const selectedCurrency = computed(() => walletStore.preferences.selectedCurrency || marketplaceStore.merchant?.currency?.symbol)
 
     async function generateFirstReceivingAddress () {
       const wallet = new Wallet({

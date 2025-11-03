@@ -148,6 +148,7 @@ import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'v
 import { useDialogPluginComponent, useQuasar, debounce } from 'quasar'
 import { useCashtokenStore } from 'src/stores/cashtoken.js'
 import { useMarketStore } from 'src/stores/market.js'
+import { useMarketplaceStore } from 'src/stores/marketplace.js'
 import { useWalletStore } from 'src/stores/wallet.js'
 import fiatCurrencies from '../assets/currencies.json'
 
@@ -170,6 +171,7 @@ export default defineComponent({
     const $q = useQuasar()
     const cashtokenStore = useCashtokenStore();
     const marketStore = useMarketStore();
+    const marketplaceStore = useMarketplaceStore();
     const walletStore = useWalletStore();
 
     const initialParsedCurrency = parseAsset(props.initialValue?.currency)
@@ -197,7 +199,7 @@ export default defineComponent({
         'PLN': 'PL', 'PYG': 'PY', 'QAR': 'QA', 'RON': 'RO', 'RSD': 'RS', 'RUB': 'RU', 'RWF': 'RW', 'SAR': 'SA',
         'SBD': 'SB', 'SCR': 'SC', 'SDG': 'SD', 'SEK': 'SE', 'SGD': 'SG', 'SHP': 'SH', 'SLE': 'SL', 'SOS': 'SO',
         'SRD': 'SR', 'SSP': 'SS', 'STN': 'ST', 'SYP': 'SY', 'SZL': 'SZ', 'THB': 'TH', 'TJS': 'TJ', 'TMT': 'TM',
-        'TND': 'TN', 'TOP': 'TO', 'TRY': 'TR', 'TTD': 'TT', 'TVD': 'TV', 'TZS': 'TZ', 'UAH': 'UA', 'UGX': 'UG',
+        'TND': 'TN', 'TOP': 'TO', 'TRY': 'TR', 'TTD': 'TT', 'TVD': 'TV', 'TWD': 'TW', 'TZS': 'TZ', 'UAH': 'UA', 'UGX': 'UG',
         'USD': 'US', 'UYU': 'UY', 'UZS': 'UZ', 'VES': 'VE', 'VND': 'VN', 'VUV': 'VU', 'WST': 'WS', 'XAF': 'CM',
         'XCD': 'AG', 'XOF': 'SN', 'XPF': 'PF', 'YER': 'YE', 'ZAR': 'ZA', 'ZMW': 'ZM', 'ZWL': 'ZW'
       };
@@ -242,13 +244,13 @@ export default defineComponent({
 
     // Combined options: wallet's preferred fiat + BCH + tokens
     const allCurrencyOpts = computed(() => {
-      const preferredFiat = walletStore.preferences.selectedCurrency;
+      const preferredFiat = walletStore.preferences.selectedCurrency || marketplaceStore.merchant?.currency?.symbol;
       const fiat = fiatCurrencyOpts.value.find(f => f.symbol === preferredFiat) || fiatCurrencyOpts.value.find(f => f.symbol === 'PHP') || fiatCurrencyOpts.value[0];
       return [fiat, ...filteredCurrencyOpts.value];
     })
 
     // Start with wallet preferred fiat currency by default
-    const selectedCurrency = ref(parseAsset());
+    const selectedCurrency = ref(initialParsedCurrency || null);
     const paymentCurrency = ref(bchAsset);
     const conversionLoading = ref(false);
     let rateRefreshInterval = null;

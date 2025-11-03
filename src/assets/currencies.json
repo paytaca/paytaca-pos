@@ -140,6 +140,7 @@
     { "code": "TRY", "name": "Turkish Lira" },
     { "code": "TTD", "name": "Trinidad and Tobago Dollar" },
     { "code": "TVD", "name": "Tuvaluan Dollar" },
+    { "code": "TWD", "name": "New Taiwan Dollar" },
     { "code": "TZS", "name": "Tanzanian Shilling" },
     { "code": "UAH", "name": "Ukrainian Hryvnia" },
     { "code": "UGX", "name": "Ugandan Shilling" },
