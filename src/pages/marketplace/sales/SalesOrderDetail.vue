@@ -245,6 +245,8 @@ import axios from 'axios'
 import { SalesOrder } from 'src/marketplace/objects'
 import { errorParser, formatTimestampToText } from 'src/marketplace/utils'
 import { TransactionListener } from 'src/wallet/utils'
+import { toTokenAddress } from 'src/utils/crypto'
+import { postOutputFiatAmounts } from 'src/utils/watchtower'
 import { useAddressesStore } from 'src/stores/addresses'
 import { copyToClipboard, useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
@@ -418,6 +420,45 @@ export default defineComponent({
         .then(response => {
           if (!response?.data?.id) return Promise.reject({ response })
           salesOrder.value.raw = response?.data
+          // After saving payment, try posting fiat-output amounts for token payments
+          try {
+            const txid = txReceived?.txid
+            const fiatAmount = salesOrder.value?.total
+            const fiatCurrency = salesOrder.value?.currency?.symbol
+            const recvAddr = salesOrder.value?.bchRecipientAddress
+            const isToken = txReceived?.tokenSymbol && txReceived?.tokenSymbol !== 'BCH'
+            if (txid && fiatAmount && fiatCurrency && recvAddr) {
+              const outputs = bchPayment.value.transactionsReceived.filter(t => t?.txid === txid)
+              if (outputs.length) {
+                const totalCrypto = outputs.reduce((s, o) => {
+                  if (isToken) return s + (Number(o?.amount) || 0)
+                  const bch = (typeof o?.value === 'number') ? (o.value / 1e8) : (Number(o?.amount) || 0)
+                  return s + (bch || 0)
+                }, 0)
+                if (totalCrypto > 0) {
+                  const map = {}
+                  outputs.forEach(o => {
+                    const unit = isToken ? (Number(o?.amount) || 0) : ((typeof o?.value === 'number') ? (o.value / 1e8) : (Number(o?.amount) || 0))
+                    const share = unit / totalCrypto
+                    const fiatPart = share >= 1 || outputs.length === 1
+                      ? Number(fiatAmount)
+                      : Number((Number(fiatAmount) * share).toFixed(2))
+                    const entry = {
+                      fiat_amount: `${fiatPart}`,
+                      fiat_currency: `${fiatCurrency}`,
+                      recipient: o?.address,
+                    }
+                    if (isToken) {
+                      entry.token_amount = `${Number(o?.amount) || 0}`
+                      entry.token_category = txReceived?.tokenId?.replace?.(/^ct\//, '') || ''
+                    }
+                    map[String(o?.index)] = entry
+                  })
+                  postOutputFiatAmounts({ txid, outputFiatAmounts: map }).catch(() => {})
+                }
+              }
+            }
+          } catch (e) { console.error(e) }
           return response
         })
         .catch(error => {
