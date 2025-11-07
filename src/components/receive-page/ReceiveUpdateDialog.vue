@@ -60,10 +60,10 @@
             <q-item-label>{{ currentDate }}</q-item-label>
           </q-item-section>
         </q-item>
-        <q-item v-if="txid" clickable v-ripple @click="copyText(txid.substring(0, 6).toUpperCase())" style="overflow-wrap: anywhere;">
+        <q-item v-if="txid" clickable v-ripple @click="copyText(hexToRef(txid.substring(0, 6)))" style="overflow-wrap: anywhere;">
           <q-item-section>
             <q-item-label caption class="text-grey">{{ $t('ReferenceID') }}</q-item-label>
-            <q-item-label>{{ txid.substring(0, 6).toUpperCase() }}</q-item-label>
+            <q-item-label>{{ hexToRef(txid.substring(0, 6)) }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item v-if="txid" clickable v-ripple @click="copyText(txid)" style="overflow-wrap: anywhere;">
@@ -78,6 +78,7 @@
 </template>
 <script>
 import { convertIpfsUrl, onImgErrorIpfsSrc } from 'src/utils/ipfs'
+import { hexToRef } from 'src/utils/reference-id-utils'
 import { useI18n } from 'vue-i18n'
 import { defineComponent, ref, onMounted, inject, computed } from 'vue'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
@@ -180,6 +181,7 @@ export default defineComponent({
       currentDate,
       concatenate,
       copyText,
+      hexToRef,
       onImgErrorIpfsSrc,
       $q,
     }

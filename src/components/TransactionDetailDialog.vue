@@ -67,10 +67,10 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item v-if="transaction?.txid" clickable v-ripple @click="copyToClipboard(transaction?.txid)" style="overflow-wrap: anywhere;">
+        <q-item v-if="transaction?.txid" clickable v-ripple @click="copyToClipboard(hexToRef(transaction?.txid.substring(0, 6)))" style="overflow-wrap: anywhere;">
           <q-item-section>
             <q-item-label caption class="text-grey">{{ $t('ReferenceID') }}</q-item-label>
-            <q-item-label>{{ transaction?.txid.substring(0, 6).toUpperCase() }}</q-item-label>
+            <q-item-label>{{ hexToRef(transaction?.txid.substring(0, 6)) }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item v-if="transaction?.txid" clickable v-ripple @click="copyToClipboard(transaction?.txid)" style="overflow-wrap: anywhere;">
@@ -139,6 +139,7 @@
 </template>
 <script>
 import { convertIpfsUrl, onImgErrorIpfsSrc } from 'src/utils/ipfs'
+import { hexToRef } from 'src/utils/reference-id-utils'
 import { SalesOrder } from 'src/marketplace/objects'
 import { resolveTransactionSalesOrderId } from 'src/marketplace/utils'
 import { useTransactionHelpers } from 'src/composables/transaction'
@@ -271,6 +272,7 @@ export default defineComponent({
       concatenate,
       formatDate,
       copyToClipboard,
+      hexToRef,
 
       convertIpfsUrl,
       onImgErrorIpfsSrc,
