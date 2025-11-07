@@ -212,6 +212,7 @@ import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
 import bchLogo from 'src/assets/bch-logo.webp'
 import { postOutputFiatAmounts } from 'src/utils/watchtower'
+import { convertIpfsUrl } from 'src/utils/ipfs'
 
 
 export default defineComponent({
@@ -303,7 +304,11 @@ export default defineComponent({
     const cashtokenMetadata = computed(() => cashTokenStore.getTokenMetadata(tokenCategory.value))
     const qrCodeLogo = computed(() => {
       if (isCashtoken.value) {
-        return cashtokenMetadata.value?.imageUrl || bchLogo
+        const imageUrl = cashtokenMetadata.value?.imageUrl
+        if (imageUrl) {
+          return convertIpfsUrl(imageUrl)
+        }
+        return bchLogo
       }
       return bchLogo
     })
@@ -773,6 +778,10 @@ export default defineComponent({
       return !isNotFiatMode.value && !paid.value
     })
     const remainingPayment = computed(() => {
+      // Guard against NaN/undefined values
+      if (isNaN(paymentsStore.total) || isNaN(paymentsStore.paid)) {
+        return 0;
+      }
       const remaining = paymentsStore.total - paymentsStore.paid
       if (remaining < 0 || (remaining <= dustBch && paymentsStore.paid !== 0)) return 0
       return remaining
@@ -782,6 +791,10 @@ export default defineComponent({
       const cashtokenDecimals = cashtokenMetadata.value?.decimals;
       if (isCashtoken.value && Number.isSafeInteger(cashtokenDecimals)) {
         decimals = cashtokenDecimals;
+      }
+      // Add defensive check for remainingPayment.value
+      if (remainingPayment.value == null || isNaN(remainingPayment.value)) {
+        return 0;
       }
       return Number(remainingPayment.value.toFixed(decimals))
     })
@@ -804,9 +817,13 @@ export default defineComponent({
       return Number(currencyRemaining.toFixed(2))
     })
     const paymentProgress = computed(() => {
-      if (paymentsStore.total <= 0) return paymentsStore.paid > 0 ? 1 : 0
+      if (paymentsStore.total <= 0 || isNaN(paymentsStore.total)) {
+        return paymentsStore.paid > 0 ? 1 : 0;
+      }
       if (remainingPayment.value === 0) return 1
-      return paymentsStore.paid / paymentsStore.total
+      // Guard against NaN in division
+      const progress = paymentsStore.paid / paymentsStore.total;
+      return isNaN(progress) ? 0 : progress;
     })
     /* Remaining amount --> */
 
@@ -1354,7 +1371,7 @@ export default defineComponent({
        ? data?.tokenAmount
        : data?.value / 1e8;
       if (!marketValue?.amount || !marketValue?.currency) {
-        if (data?.tokenSymbol === 'BCH' && currencyBchRate.value.rate) {
+        if (data?.tokenSymbol === 'BCH' && currencyBchRate.value?.rate) {
           marketValue.amount = Number(
             (Number(receivedAmount) * currencyBchRate.value.rate).toFixed(3)
           )

@@ -85,7 +85,7 @@
           <!-- Payment Currency Selection (only if fiat is selected) -->
           <div v-if="isFiatSelected" class="q-mb-md">
             <div class="text-subtitle2 q-mb-xs">{{ $t('PaymentCurrency') }}</div>
-            <div class="row q-gutter-xs">
+            <div class="payment-currency-grid">
               <div
                 v-for="currency in filteredCurrencyOpts"
                 :key="currency.id"
@@ -588,10 +588,17 @@ export default defineComponent({
   }
 }
 
+/* Payment currency grid - 2 columns with fixed widths */
+.payment-currency-grid {
+  display: grid;
+  grid-template-columns: repeat(2, calc(50% - 4px));
+  gap: 8px;
+}
+
 /* Payment currency cards */
 .payment-currency-card {
-  flex: 1 1 auto;
-  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   cursor: pointer;
   border: 2px solid transparent;
   border-radius: 8px;

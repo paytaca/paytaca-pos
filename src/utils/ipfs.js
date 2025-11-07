@@ -10,7 +10,17 @@ export function convertIpfsUrl(url='', ipfsDomainIndex=0) {
   if (!url.startsWith('ipfs://')) return url
 
   const index = parseInt(ipfsDomainIndex) || 0;
-  return url.replace('ipfs://', IPFS_DOMAINS[index]);
+  const convertedUrl = url.replace('ipfs://', IPFS_DOMAINS[index]);
+  
+  // Append Pinata gateway token for ipfs.paytaca.com URLs
+  if (convertedUrl && convertedUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
+    const token = process.env.PINATA_GATEWAY_TOKEN;
+    if (token) {
+      return convertedUrl + '?pinataGatewayToken=' + token;
+    }
+  }
+  
+  return convertedUrl;
 }
 
 /**
