@@ -1,5 +1,5 @@
-import axios from "axios"
 import { defineStore } from "pinia"
+import { getBcmrBackend, convertIpfsUrl } from "src/wallet/cashtokens"
 
 export const useCashtokenStore = defineStore('cashtoken', {
   state: () => ({
@@ -15,25 +15,49 @@ export const useCashtokenStore = defineStore('cashtoken', {
       return null;
     },
     async fetchTokenMetadata(category) {
-      return axios.get(`https://watchtower.cash/api/cashtokens/fungible/${category}/`)
+      const url = `tokens/${category}/`
+      return getBcmrBackend().get(url)
         .then(response => {
           const data = response?.data
-          const assetId = data?.id
-          if (typeof assetId !== 'string') return Promise.reject({ response, message: 'No asset ID' })
-          const _category = assetId?.replace('ct/', '')
-          if (_category !== category) return Promise.reject({ response, message: 'Category mismatch' })
+          
+          // Check for error in response
+          if (data?.error) {
+            return Promise.reject({ response, message: 'BCMR returned error' })
+          }
+          
+          // BCMR response structure:
+          // - data.name is at top level
+          // - data.token contains token-specific info (symbol, decimals, uris)
+          // - data.uris.icon or data.token.uris.icon for image
+          const token = data?.token || {}
+          
+          // Extract image URL from uris.icon (check both locations)
+          let imageUrl = null
+          if (data?.token?.uris?.icon) {
+            imageUrl = convertIpfsUrl(data.token.uris.icon)
+          } else if (data?.uris?.icon) {
+            imageUrl = convertIpfsUrl(data.uris.icon)
+          } else if (data?.token?.uris?.image) {
+            imageUrl = convertIpfsUrl(data.token.uris.image)
+          } else if (data?.uris?.image) {
+            imageUrl = convertIpfsUrl(data.uris.image)
+          }
+          
           const metadata = {
             category,
-            name: data?.name,
-            symbol: data?.symbol,
-            decimals: data?.decimals,
-            imageUrl: data?.image_url || data?.imageUrl,
+            name: data?.name || '',
+            symbol: token?.symbol || '',
+            decimals: parseInt(token?.decimals) || 0,
+            imageUrl: imageUrl,
           }
+          
           this.saveTokenMetadata(metadata);
           return metadata;
         })
         .catch(error => {
-          console.error(error)
+          console.error('Failed to fetch token metadata from BCMR:', error)
+          // Return null to indicate failure, but don't throw to prevent breaking the UI
+          return null
         })
     },
     saveTokenMetadata(metadata) {

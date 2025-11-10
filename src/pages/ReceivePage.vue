@@ -1433,9 +1433,11 @@ export default defineComponent({
       const txObject = {
         txid: data?.txid,
         record_type: 'incoming',
+        // For cashtokens, use raw amount from websocket (already in token units)
+        // For BCH, convert satoshis to BCH (divide by 1e8) since getTxAmount() expects BCH units
         amount: isCashtoken.value && data?.tokenId
-          ? data?.tokenAmount * (10 ** (data?.tokenDecimals || 0))
-          : data?.value,
+          ? data?.amount  // data.amount is already in raw token units from websocket
+          : data?.value / 1e8,  // data.value is in satoshis, convert to BCH (8 decimals)
         ft_category: isCashtoken.value ? data?.tokenId : undefined,
         nft_category: undefined,
         tokenSymbol: data?.tokenSymbol, // Include token symbol from websocket

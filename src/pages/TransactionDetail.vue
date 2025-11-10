@@ -1,7 +1,7 @@
 <template>
   <q-page class="transaction-detail-page" :class="isDarkMode ? 'bg-dark-page' : 'bg-brandwhite'">
     <!-- Header -->
-    <div class="transaction-header">
+    <div class="transaction-header" :style="headerPaddingStyle">
       <q-btn flat icon="arrow_back" class="back-btn" @click="goBack" />
       <div class="text-h6 text-brandblue text-center header-title">{{ $t('Transaction') }}</div>
     </div>
@@ -64,7 +64,7 @@
 
       <!-- Date & Time Section -->
       <div class="date-section">
-        <div class="text-caption text-grey text-center q-mb-xs">{{ $t('Date') }} & {{ $t('Time') }}</div>
+        <div class="text-caption text-grey text-center q-mb-xs">{{ $t('DateAndTime', {}, 'Date & Time') }}</div>
         <div class="text-body1 text-center">{{ displayDate }}</div>
       </div>
     </div>
@@ -74,13 +74,14 @@
 import { convertIpfsUrl, onImgErrorIpfsSrc } from 'src/utils/ipfs'
 import { hexToRef } from 'src/utils/reference-id-utils'
 import { useI18n } from 'vue-i18n'
-import { defineComponent, ref, onMounted, computed, watch, inject } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted, computed, watch, inject } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
 import { useTransactionHelpers } from 'src/composables/transaction'
 import { useCashtokenStore } from 'src/stores/cashtoken'
 import { useWalletStore } from 'src/stores/wallet'
 import confetti from 'canvas-confetti'
+import { NativeAudio } from '@capacitor-community/native-audio'
 
 export default defineComponent({
   name: 'TransactionDetail',
@@ -98,6 +99,9 @@ export default defineComponent({
     const transaction = ref(null)
     const loadError = ref(null)
     const isLoading = ref(false)
+    
+    // Audio element for Safari compatibility (preload and reuse)
+    const audioElement = ref(null)
     
     // Check if this is a new transaction from query params
     const isNewTransaction = computed(() => {
@@ -195,7 +199,28 @@ export default defineComponent({
     watch(() => transaction.value, (tx) => {
       if (!tx) return
       const tokenCategory = tx?.ft_category || tx?.nft_category
-      if (tokenCategory && !cashtokenStore.getTokenMetadata(tokenCategory)) {
+      if (!tokenCategory) return
+      
+      // Check if we already have metadata cached
+      if (cashtokenStore.getTokenMetadata(tokenCategory)) return
+      
+      // If transaction has websocket metadata (from payment received), use it
+      if (tx?.tokenSymbol || tx?.tokenName || tx?.tokenDecimals !== undefined) {
+        const metadata = {
+          category: tokenCategory,
+          name: tx?.tokenName || '',
+          symbol: tx?.tokenSymbol || '',
+          decimals: tx?.tokenDecimals ?? 0,
+          imageUrl: null // Image not available from websocket
+        }
+        cashtokenStore.saveTokenMetadata(metadata)
+        
+        // Still try to fetch from API for image URL, but don't fail if it doesn't exist
+        cashtokenStore.fetchTokenMetadata(tokenCategory).catch(() => {
+          // Silently fail - we already have the essential metadata from websocket
+        })
+      } else {
+        // No websocket metadata, try to fetch from API
         cashtokenStore.fetchTokenMetadata(tokenCategory)
       }
     }, { immediate: true })
@@ -232,6 +257,70 @@ export default defineComponent({
         })
       })
       .catch(() => {})
+    }
+    
+    function playHtml5Audio() {
+      try {
+        // For Safari, reuse preloaded audio element
+        if (audioElement.value) {
+          // Reset to beginning
+          audioElement.value.currentTime = 0
+          
+          // Check if audio is ready (Safari requirement)
+          if (audioElement.value.readyState >= 2) { // HAVE_CURRENT_DATA or higher
+            const playPromise = audioElement.value.play()
+            if (playPromise !== undefined) {
+              playPromise.catch(() => {
+                // Silently fail if audio can't play (e.g., autoplay blocked)
+              })
+            }
+          } else {
+            // Wait for audio to be ready, then play
+            const playWhenReady = () => {
+              const playPromise = audioElement.value.play()
+              if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                  // Silently fail if audio can't play
+                })
+              }
+            }
+            audioElement.value.addEventListener('canplay', playWhenReady, { once: true })
+            // Trigger load if not already loading
+            if (audioElement.value.readyState === 0) {
+              audioElement.value.load()
+            }
+          }
+        } else {
+          // Fallback: create new audio if preload didn't work
+          const audio = new Audio('/send-success.mp3')
+          audio.preload = 'auto'
+          audio.play().catch(() => {
+            // Silently fail if audio can't play
+          })
+        }
+      } catch (error) {
+        // Silently fail
+      }
+    }
+    
+    function playSound() {
+      // Try NativeAudio first (works on Android, should work on iOS with correct setup)
+      if ($q.platform.is.capacitor) {
+        try {
+          NativeAudio.play({
+            assetId: 'send-success'
+          }).catch(() => {
+            // Fallback to HTML5 Audio if NativeAudio fails
+            playHtml5Audio()
+          })
+        } catch (error) {
+          // Fallback to HTML5 Audio
+          playHtml5Audio()
+        }
+      } else {
+        // Web fallback (includes Safari)
+        playHtml5Audio()
+      }
     }
     
     function launchConfetti() {
@@ -316,11 +405,46 @@ export default defineComponent({
     }
     
     onMounted(async () => {
+      // Preload HTML5 audio for Safari compatibility (web platforms)
+      if (!$q.platform.is.capacitor) {
+        try {
+          audioElement.value = new Audio('/send-success.mp3')
+          audioElement.value.preload = 'auto'
+          // Load the audio (required for Safari)
+          audioElement.value.load()
+        } catch (error) {
+          console.warn('Failed to preload HTML5 audio:', error)
+        }
+      }
+      
+      // Preload sound for native platforms
+      if ($q.platform.is.capacitor) {
+        try {
+          let path = 'send-success.mp3'
+          if ($q.platform.is.ios) {
+            // For iOS, use the correct path - file should be in public/assets/sounds/
+            path = 'public/assets/sounds/send-success.mp3'
+          }
+          
+          await NativeAudio.preload({
+            assetId: 'send-success',
+            assetPath: path,
+            audioChannelNum: 1,
+            volume: 1.0,
+            isUrl: false
+          })
+        } catch (error) {
+          console.warn('Failed to preload audio:', error)
+          // Continue without preload - will use HTML5 fallback
+        }
+      }
+      
       // Check for preloaded transaction first
       if (preloadedTransaction.value) {
         transaction.value = preloadedTransaction.value
-        // Launch confetti if this is a new transaction
+        // Play sound and launch confetti if this is a new transaction
         if (isNewTransaction.value) {
+          playSound() // Play sound first
           setTimeout(() => {
             launchConfetti()
           }, 500)
@@ -331,18 +455,43 @@ export default defineComponent({
       // Otherwise fetch the transaction
       await fetchTransaction()
       
-      // Launch confetti if this is a new transaction (after fetch completes)
+      // Play sound and launch confetti if this is a new transaction (after fetch completes)
       if (isNewTransaction.value && transaction.value) {
+        playSound() // Play sound first
         setTimeout(() => {
           launchConfetti()
         }, 500)
       }
     })
-
+    
+    onUnmounted(async () => {
+      // Cleanup: unload audio asset for native platforms
+      if ($q.platform.is.capacitor) {
+        try {
+          await NativeAudio.unload({
+            assetId: 'send-success'
+          })
+        } catch (error) {
+          // Silently fail if unload doesn't work
+        }
+      }
+    })
+    
     const isDarkMode = computed(() => $q.dark.isActive)
+    
+    // Safe area padding for iOS and Android status bar
+    const headerPaddingStyle = computed(() => {
+      if ($q.platform.is.ios) {
+        return 'padding-top: 3.8em;'
+      } else if ($q.platform.is.android) {
+        return 'padding-top: 1.5em;'
+      }
+      return ''
+    })
     
     return {
       isDarkMode,
+      headerPaddingStyle,
       transaction,
       loadError,
       isLoading,
