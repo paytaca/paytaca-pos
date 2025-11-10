@@ -183,7 +183,6 @@ export default defineComponent({
       copyText,
       hexToRef,
       onImgErrorIpfsSrc,
-      $q,
     }
   },
 })

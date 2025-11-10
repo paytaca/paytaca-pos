@@ -832,6 +832,7 @@ export default defineComponent({
     const refreshQr = ref(false) // dialog state
     const refreshingQr = ref(false) // 
     const fiatRateLoading = ref(false)
+    const rateFetchError = ref(false)
     let latestFiatRatePromise = null
     const qrExpirationTimer = ref(1)
 
@@ -941,9 +942,17 @@ export default defineComponent({
 
       // Ensure rate is fetched before showing QR - set loading state
       fiatRateLoading.value = true
+      rateFetchError.value = false
       updateSelectedCurrencyRate({ skipRefreshTimer: true })
-        .catch(() => {
+        .catch((error) => {
           // Error refreshing currency rate
+          rateFetchError.value = true
+          $q.notify({
+            type: 'negative',
+            message: t('FailedToFetchExchangeRate', { currency: currency.value }, `Failed to fetch exchange rate for ${currency.value}`),
+            timeout: 5000,
+            icon: 'mdi-alert-circle'
+          })
         })
         .finally(() => {
           fiatRateLoading.value = false
@@ -953,8 +962,26 @@ export default defineComponent({
             paymentsStore.setTotalPayment(totalCryptoAmount.value)
           }
           
-          // Update QR data after rates are loaded
-          updateQrData()
+          // Update QR data after rates are loaded, but only if initialization is complete
+          // This fixes the race condition where rate fetch completes before isInitializing is set to false
+          if (!isInitializing.value) {
+            updateQrData()
+          } else {
+            // Wait for initialization to complete before updating QR data
+            const checkInit = setInterval(() => {
+              if (!isInitializing.value) {
+                clearInterval(checkInit)
+                updateQrData()
+              }
+            }, 50)
+            // Safety timeout to prevent infinite waiting
+            setTimeout(() => {
+              clearInterval(checkInit)
+              if (!isInitializing.value) {
+                updateQrData()
+              }
+            }, 500)
+          }
         })
       
       stopQrExpirationCountdown()
@@ -999,6 +1026,16 @@ export default defineComponent({
         if (!receiveAmount.value) {
           qrDataRef.value = ''
           return
+        }
+
+        // Validate that we have a valid crypto amount in fiat mode
+        // This prevents generating QR code with invalid data when rate fetch fails
+        if (!isNotFiatMode.value) {
+          if (isNaN(totalCryptoAmount.value) || totalCryptoAmount.value <= 0) {
+            // Don't generate QR if we don't have valid crypto amount
+            // Keep existing qrData if it exists, don't clear it
+            return
+          }
         }
 
         // Ensure total is set if it's 0 but we have a valid amount
@@ -1483,7 +1520,13 @@ export default defineComponent({
     }
 
     onBeforeRouteLeave(async (to, from, next) => {
-      if (!qrData.value || !promptOnLeave.value) return next()
+      // Don't prompt if still initializing or if there's no QR data yet
+      // This prevents navigation guard from triggering incorrectly during initialization
+      if (isInitializing.value || !qrData.value || !promptOnLeave.value) return next()
+      
+      // Don't prompt if there's a rate fetch error - user should be able to leave
+      if (rateFetchError.value) return next()
+      
       const isPaid = remainingPaymentRounded.value < 1000 / 1e8 // provide margin
       if (promptOnLeave.value && !isPaid) {
         const proceed = await new Promise((resolve) => {
@@ -1563,6 +1606,7 @@ export default defineComponent({
       paymentDialogOpen,
       fiatReferenceAmount,
       fiatReferenceCurrency,
+      rateFetchError,
     }
   },
 })
