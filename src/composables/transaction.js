@@ -79,9 +79,22 @@ export function useTransactionHelpers() {
     }
 
     if (transaction?.ft_category) {
-      const metadata = cashtokenStore.getTokenMetadata(transaction.ft_category);
-      const decimals = metadata?.decimals || 0;
-      const symbol = metadata?.symbol || `TOKEN(${transaction.ft_category?.substring?.(0, 6)})`;
+      // Prefer symbol from transaction object (from websocket) if available
+      let symbol = transaction?.tokenSymbol
+      
+      // If not in transaction, try to get from metadata
+      if (!symbol) {
+        const metadata = cashtokenStore.getTokenMetadata(transaction.ft_category);
+        symbol = metadata?.symbol
+      }
+      
+      // Fallback to generic format if still no symbol
+      if (!symbol) {
+        symbol = `TOKEN(${transaction.ft_category?.substring?.(0, 6)})`
+      }
+      
+      // Use decimals from transaction object or metadata
+      const decimals = transaction?.tokenDecimals ?? cashtokenStore.getTokenMetadata(transaction.ft_category)?.decimals ?? 0
       const amount = transaction?.amount / (10 ** decimals);
       return { value: amount, symbol: symbol };
     }

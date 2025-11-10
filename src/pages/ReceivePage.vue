@@ -200,7 +200,6 @@ import { usePaymentsStore } from 'stores/payments'
 import { useAddressesStore } from 'stores/addresses'
 import { useCashtokenStore } from 'src/stores/cashtoken'
 import { useMarketStore } from 'src/stores/market'
-import ReceiveUpdateDialog from 'src/components/receive-page/ReceiveUpdateDialog.vue'
 import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, markRaw, inject, provide } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useWakeLock } from '@vueuse/core'
@@ -1430,33 +1429,41 @@ export default defineComponent({
         delete walletStore.qrDataTimestampCache[qrDataHash]
       }
 
+      // Construct transaction object from websocket data
+      const txObject = {
+        txid: data?.txid,
+        record_type: 'incoming',
+        amount: isCashtoken.value && data?.tokenId
+          ? data?.tokenAmount * (10 ** (data?.tokenDecimals || 0))
+          : data?.value,
+        ft_category: isCashtoken.value ? data?.tokenId : undefined,
+        nft_category: undefined,
+        tokenSymbol: data?.tokenSymbol, // Include token symbol from websocket
+        tokenName: data?.tokenName, // Include token name from websocket
+        tokenDecimals: data?.tokenDecimals, // Include decimals from websocket
+        tx_timestamp: new Date().toISOString(),
+        date_created: new Date().toISOString(),
+        senders: data?.senders || [],
+        fiat_amounts: originalFiatAmount && originalFiatCurrency
+          ? { [originalFiatCurrency]: originalFiatAmount }
+          : undefined,
+        market_prices: marketValue.amount && marketValue.currency
+          ? { [marketValue.currency]: marketValue.amount / receivedAmount }
+          : undefined,
+      }
+      
+      // Navigate to transaction detail page with new transaction flag
       paymentDialogOpen.value = true
-      $q.dialog({
-        component: ReceiveUpdateDialog,
-        componentProps: {
-          txid: data?.txid,
-          address: data?.address,
-          amount: receivedAmount,
-          tokenCurrency: data?.tokenSymbol,
-          marketValue: marketValue.amount,
-          marketValueCurrency: marketValue.currency,
-          logo: data?.logo,
-          fiatReferenceAmount: originalFiatAmount,
-          fiatReferenceCurrency: originalFiatCurrency,
-          senders: data?.senders || [],
-          tokenName: data?.tokenName,
-          tokenId: data?.tokenId,
-          tokenDecimals: data?.tokenDecimals,
-          merchantName: walletStore.merchantInfo?.name,
-          posName: walletStore.deviceInfo?.name || `POS ${walletStore.posId}`,
-        }
+      $router.push({
+        name: 'transaction-detail',
+        params: { txid: data?.txid },
+        query: { new: 'true' },
+        state: { tx: txObject }
+      }).then(() => {
+        paymentDialogOpen.value = false
+      }).catch(() => {
+        paymentDialogOpen.value = false
       })
-        .onCancel(() => {
-          $router.push({ name: 'home' })
-        })
-        .onDismiss(() => {
-          paymentDialogOpen.value = false
-        })
     }
 
     function maybePostOutputFiatAmounts(txid) {

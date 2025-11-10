@@ -147,9 +147,8 @@ export default defineComponent({
 })
 </script>
 <style scoped lang="scss">
-@use 'sass:math';
 table.items-table {
-  border-spacing: math.div(map-get($space-md, 'x'), 2) 0;
+  border-spacing: (map-get($space-md, 'x') / 2) 0;
 }
 table.items-table tr td:last-child {
   text-align: end;

@@ -629,10 +629,9 @@ export default defineComponent({
 })
 </script>
 <style lang="scss" scoped>
-@use 'sass:math';
 .items-table {
   width: 100%;
-  border-spacing: math.div(map-get($space-sm, 'x'), 2);
+  border-spacing: (map-get($space-sm, 'x') / 2);
 }
 .qr-code-container {
   position:relative;

@@ -64,6 +64,7 @@ import { useTransactionHelpers } from 'src/composables/transaction'
 import ago from 's-ago'
 import { useQuasar } from 'quasar'
 import { defineComponent, computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import TransactionDetailDialog from 'src/components/TransactionDetailDialog.vue'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
@@ -79,6 +80,7 @@ export default defineComponent({
   setup(props) {
     const { t : $t } = useI18n();
     const $q = useQuasar()
+    const router = useRouter()
     const txCacheStore = useTxCacheStore()
 
     const recordTypeMap = { incoming: $t('RECEIVED'), outgoing: $t('SENT')}
@@ -135,8 +137,18 @@ export default defineComponent({
     })
 
     function displayTransaction(tx) {
-      transactionDetailDialog.value.transaction = tx
-      transactionDetailDialog.value.show = true
+      // For incoming transactions, navigate to transaction detail page
+      if (tx?.record_type === 'incoming' && tx?.txid) {
+        router.push({
+          name: 'transaction-detail',
+          params: { txid: tx.txid },
+          state: { tx } // Preload transaction data
+        })
+      } else {
+        // For outgoing transactions, show TransactionDetailDialog
+        transactionDetailDialog.value.transaction = tx
+        transactionDetailDialog.value.show = true
+      }
     }
 
     const salesOrder = ref(SalesOrder.parse())
