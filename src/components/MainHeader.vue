@@ -18,6 +18,7 @@
           {{ route.meta?.title ||  title || '' }}
         </q-toolbar-title>
       </slot>
+      <slot name="right-actions"></slot>
     </q-toolbar>
   </q-header>
 </template>

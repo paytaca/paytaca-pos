@@ -16,6 +16,7 @@ const routes = [
         }),
       },
       { path: 'settings', component: () => import('pages/Settings.vue'), name: 'settings'},
+      { path: 'debug', component: () => import('src/pages/Debug.vue'), name: 'debug'},
       { path: 'transactions/:txid', component: () => import('src/pages/TransactionDetail.vue'), name: 'transaction-detail', props: route => Object.assign({}, route?.query, route?.params)}
     ]
   },

@@ -1,6 +1,34 @@
 <template>
   <div class="q-pb-md">
-    <MainHeader :title="$t('Settings')"/>
+    <MainHeader :title="$t('Settings')">
+      <template #title>
+        <q-toolbar-title 
+          class="text-center text-h4"
+          @touchstart="handleTitleTouchStart"
+          @touchend="handleTitleTouchEnd"
+          @touchcancel="handleTitleTouchCancel"
+          @mousedown="handleTitleMouseDown"
+          @mouseup="handleTitleMouseUp"
+          @mouseleave="handleTitleMouseUp"
+          style="user-select: none; cursor: pointer;"
+        >
+          {{ $t('Settings') }}
+        </q-toolbar-title>
+      </template>
+      <template #right-actions>
+        <q-btn
+          v-if="debugIconVisible"
+          flat
+          round
+          icon="bug_report"
+          size="md"
+          @click="goToDebug"
+          class="q-mr-sm"
+        >
+          <q-tooltip>Debug</q-tooltip>
+        </q-btn>
+      </template>
+    </MainHeader>
     <q-card class="q-mx-md q-mt-lg text-weight-medium" style="border-radius:16px;">
       <q-list separator>
         <q-item v-if="walletStore?.branchInfo?.id" clickable v-ripple :to="{ name: 'marketplace' }">
@@ -165,12 +193,16 @@
 </template>
 
 <script>
-import { computed, defineComponent } from 'vue'
+import { computed, defineComponent, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import MainHeader from 'src/components/MainHeader.vue'
 import { useWalletStore } from 'src/stores/wallet'
 import { padPosId } from 'src/wallet/utils'
 import packageInfo from '../../package.json'
 import LanguageSelector from 'src/components/LanguageSelector.vue'
+import { useDebugLogger } from 'src/composables/useDebugLogger'
 
 export default defineComponent({
     name: "SettingsPage",
@@ -179,9 +211,101 @@ export default defineComponent({
       LanguageSelector,
     },
     setup() {
+      const router = useRouter()
+      const $q = useQuasar()
+      const { t } = useI18n()
       const walletStore = useWalletStore()
       const appVersion = packageInfo.version
       const repoUrl = 'https://github.com/paytaca/paytaca-pos'
+      const { startInterception, stopInterception } = useDebugLogger()
+      
+      // Debug icon visibility state
+      const debugIconVisible = ref(false)
+      const longPressTimer = ref(null)
+      const LONG_PRESS_DURATION = 500 // 500ms
+
+      // Initialize debug visibility from localStorage
+      onMounted(() => {
+        const stored = localStorage.getItem('debugIconVisible')
+        debugIconVisible.value = stored === 'true'
+        // Start/stop interception based on initial state
+        if (debugIconVisible.value) {
+          startInterception()
+        } else {
+          stopInterception()
+        }
+      })
+
+      function toggleDebugIcon() {
+        debugIconVisible.value = !debugIconVisible.value
+        localStorage.setItem('debugIconVisible', String(debugIconVisible.value))
+        
+        // Start or stop console interception based on visibility
+        if (debugIconVisible.value) {
+          startInterception()
+        } else {
+          stopInterception()
+        }
+      }
+
+      function showDebugConfirmation() {
+        // Only show confirmation if debug icon is currently hidden
+        if (debugIconVisible.value) {
+          // If already visible, just toggle it off without confirmation
+          toggleDebugIcon()
+          return
+        }
+
+        // Show confirmation dialog before showing debug icon
+        $q.dialog({
+          title: t('Show Debug Tools'),
+          message: t('Do you want to show the debug icon? This will enable console log capture.'),
+          cancel: true,
+          persistent: false
+        }).onOk(() => {
+          toggleDebugIcon()
+        })
+      }
+
+      function goToDebug() {
+        router.push({ name: 'debug' })
+      }
+
+      function handleTitleTouchStart() {
+        longPressTimer.value = setTimeout(() => {
+          showDebugConfirmation()
+          longPressTimer.value = null
+        }, LONG_PRESS_DURATION)
+      }
+
+      function handleTitleTouchEnd() {
+        if (longPressTimer.value) {
+          clearTimeout(longPressTimer.value)
+          longPressTimer.value = null
+        }
+      }
+
+      function handleTitleTouchCancel() {
+        if (longPressTimer.value) {
+          clearTimeout(longPressTimer.value)
+          longPressTimer.value = null
+        }
+      }
+
+      function handleTitleMouseDown() {
+        longPressTimer.value = setTimeout(() => {
+          showDebugConfirmation()
+          longPressTimer.value = null
+        }, LONG_PRESS_DURATION)
+      }
+
+      function handleTitleMouseUp() {
+        if (longPressTimer.value) {
+          clearTimeout(longPressTimer.value)
+          longPressTimer.value = null
+        }
+      }
+
       const truncatedWalletHash = computed(() => {
         const walletHash = walletStore.walletHash
         if (typeof walletHash !== 'string') return walletHash
@@ -196,6 +320,13 @@ export default defineComponent({
         appVersion,
         repoUrl,
         truncatedWalletHash,
+        debugIconVisible,
+        goToDebug,
+        handleTitleTouchStart,
+        handleTitleTouchEnd,
+        handleTitleTouchCancel,
+        handleTitleMouseDown,
+        handleTitleMouseUp,
       }
     }
 })

@@ -15,7 +15,7 @@
         v-ripple
         @click="copyText(qrData, $t('CopyPaymentUri'))"
       >
-        <template v-if="!websocketsReady || refreshingQr || fiatRateLoading">
+        <template v-if="!websocketsReady || refreshingQr || fiatRateLoading || !qrData">
           <div :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
             <q-skeleton :height="$q.platform.is.ios ? '275px' : '240px'" :width="$q.platform.is.ios ? '275px' : '240px'" />
           </div>
@@ -28,7 +28,7 @@
             :size="$q.platform.is.ios ? 275 : 240"
             error-level="H"
             class="q-mb-sm"
-            :style="qrData ? '' : 'opacity:0;'"
+            @error="(error) => console.error('[ReceivePage] QRCode component error:', error)"
           />
         </template>
       </div>
@@ -189,6 +189,59 @@
       <div v-else>
         {{ $t('NoTransactionsReceived') }}
       </div>
+    </div>
+
+    <!-- Error Alert Section -->
+    <div v-if="errorLogs.length > 0" class="q-px-md q-mt-md q-mb-lg">
+      <q-banner 
+        class="bg-red text-white rounded-borders"
+        :class="$q.dark.isActive ? 'bg-red-9' : 'bg-red'"
+      >
+        <template v-slot:avatar>
+          <q-icon name="error" color="white" />
+        </template>
+        <template v-slot:action>
+          <q-btn 
+            flat 
+            dense 
+            :icon="showErrorDetails ? 'expand_less' : 'expand_more'" 
+            @click="showErrorDetails = !showErrorDetails"
+            color="white"
+          />
+          <q-btn 
+            flat 
+            dense 
+            icon="close" 
+            @click="clearErrorLogs()"
+            color="white"
+            class="q-ml-xs"
+          />
+        </template>
+        <div class="text-weight-medium">
+          {{ $t('ErrorsDetected', { count: errorLogs.length }, `${errorLogs.length} error(s) detected`) }}
+        </div>
+        <div v-if="showErrorDetails" class="q-mt-sm">
+          <q-list dense class="bg-transparent">
+            <q-item 
+              v-for="(error, index) in errorLogs" 
+              :key="index"
+              class="q-pa-xs"
+            >
+              <q-item-section>
+                <q-item-label class="text-caption text-white">
+                  <div class="text-weight-medium">{{ error.message || 'Unknown error' }}</div>
+                  <div v-if="error.timestamp" class="text-grey-3 q-mt-xs">
+                    {{ formatErrorTime(error.timestamp) }}
+                  </div>
+                  <div v-if="error.details" class="text-grey-3 q-mt-xs text-caption">
+                    {{ error.details }}
+                  </div>
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
+      </q-banner>
     </div>
   </q-page>
 </template>
@@ -548,7 +601,8 @@ export default defineComponent({
           paymentsStore.setTotalPayment(totalCryptoAmount.value)
         }
       } catch (error) {
-        // Silently handle errors to prevent recursive loops
+        // Log error for debugging
+        logError('Error updating currency rates', null, error)
       } finally {
         if (!opts?.skipRefreshTimer) {
           setTimeout(() => { refreshingQr.value = false }, 3000)
@@ -560,12 +614,36 @@ export default defineComponent({
       if (!receiveAmount.value || isNotFiatMode.value) return
       if (latestFiatRatePromise) return latestFiatRatePromise
 
+      console.log('[ReceivePage] ensureLatestFiatRateBeforeQr: Starting rate fetch', {
+        currency: currency.value,
+        isCashtoken: isCashtoken.value,
+        tokenCategory: tokenCategory.value,
+        fiatReferenceCurrency: fiatReferenceCurrency.value
+      })
       fiatRateLoading.value = true
       latestFiatRatePromise = updateSelectedCurrencyRate({ skipRefreshTimer: true })
-        .catch(() => {
+        .catch((error) => {
           // Error updating fiat rate
+          console.error('[ReceivePage] ensureLatestFiatRateBeforeQr: Rate fetch failed', error)
+          logError('Failed to update fiat rate', null, error)
         })
         .finally(() => {
+          console.log('[ReceivePage] ensureLatestFiatRateBeforeQr: Rate fetch completed', {
+            currencyBchRate: currencyBchRate.value ? {
+              rate: currencyBchRate.value.rate,
+              currency: currencyBchRate.value.currency,
+              priceId: currencyBchRate.value.priceId
+            } : null,
+            tokenBchRate: tokenBchRate.value ? {
+              rate: tokenBchRate.value.rate,
+              priceId: tokenBchRate.value.priceId
+            } : null,
+            tokenFiatRate: tokenFiatRate.value ? {
+              rate: tokenFiatRate.value.rate,
+              priceId: tokenFiatRate.value.priceId
+            } : null,
+            totalCryptoAmount: totalCryptoAmount.value
+          })
           fiatRateLoading.value = false
           latestFiatRatePromise = null
           
@@ -628,6 +706,7 @@ export default defineComponent({
           updateQrData()
         } catch (error) {
           // Error refreshing fiat rate
+          logError('Error refreshing fiat rate', null, error)
         }
       }, 600000) // 10 minutes (600000ms)
     }
@@ -834,6 +913,41 @@ export default defineComponent({
     const rateFetchError = ref(false)
     let latestFiatRatePromise = null
     const qrExpirationTimer = ref(1)
+    
+    // Error logging system
+    const errorLogs = ref([])
+    const showErrorDetails = ref(false)
+    const maxErrorLogs = 10 // Keep only the last 10 errors
+    
+    function logError(message, details = null, error = null) {
+      const errorLog = {
+        message: message || (error?.message || 'Unknown error'),
+        details: details || (error?.toString() || null),
+        timestamp: Date.now(),
+        stack: error?.stack || null
+      }
+      
+      errorLogs.value.unshift(errorLog)
+      
+      // Keep only the last maxErrorLogs errors
+      if (errorLogs.value.length > maxErrorLogs) {
+        errorLogs.value = errorLogs.value.slice(0, maxErrorLogs)
+      }
+      
+      // Also log to console for debugging
+      console.error('ReceivePage Error:', errorLog)
+    }
+    
+    function clearErrorLogs() {
+      errorLogs.value = []
+      showErrorDetails.value = false
+    }
+    
+    function formatErrorTime(timestamp) {
+      if (!timestamp) return ''
+      const date = new Date(timestamp)
+      return date.toLocaleTimeString()
+    }
 
     let qrScanned = ref(false)
     let qrExpirationPrompt = null
@@ -851,7 +965,10 @@ export default defineComponent({
       if (!currency.value) return
       isUpdatingRate.value = true
       updateSelectedCurrencyRate()
-        .catch(() => {}) // Suppress errors to prevent loops
+        .catch((error) => {
+          // Suppress errors to prevent loops, but log them
+          logError('Error in currency watcher', null, error)
+        })
         .finally(() => {
           isUpdatingRate.value = false
         })
@@ -892,18 +1009,41 @@ export default defineComponent({
     }, { flush: 'post' })
     
     onMounted(() => {
+      console.log('[ReceivePage] Component mounted', {
+        receiveAmount: receiveAmount.value,
+        currency: currency.value,
+        isCashtoken: isCashtoken.value,
+        tokenCategory: tokenCategory.value,
+        receivingAddress: addressSet.value?.receiving,
+        isOnline: isOnline.value,
+        isInitializing: isInitializing.value
+      })
+      
       // Defer to next tick to ensure all reactive state is initialized
       // This includes the props being set in the earlier onMounted hook
       setTimeout(() => {
+        console.log('[ReceivePage] Starting QR countdown initialization')
         refreshQrCountdown()
         // Allow watchers to run after initialization completes
         setTimeout(() => {
+          console.log('[ReceivePage] Completing initialization', {
+            receiveAmount: receiveAmount.value,
+            currency: currency.value,
+            isNotFiatMode: isNotFiatMode.value,
+            fiatReferenceCurrency: fiatReferenceCurrency.value,
+            fiatReferenceAmount: fiatReferenceAmount.value
+          })
           isInitializing.value = false
           // Only update QR data after initialization is complete
           setTimeout(() => {
+            console.log('[ReceivePage] Calling updateQrData after initialization')
             updateQrData()
             // Enable QR data watcher after first update
             qrDataWatcherReady = true
+            console.log('[ReceivePage] QR data watcher enabled', {
+              qrData: qrData.value,
+              qrDataLength: qrData.value?.length || 0
+            })
             // Start fiat rate refresh timer if fiat amount is used (after initialization)
             setTimeout(() => {
               // If fiat is set, ensure currency matches fiat currency
@@ -946,6 +1086,11 @@ export default defineComponent({
         .catch((error) => {
           // Error refreshing currency rate
           rateFetchError.value = true
+          logError(
+            t('FailedToFetchExchangeRate', { currency: currency.value }, `Failed to fetch exchange rate for ${currency.value}`),
+            `Currency: ${currency.value}`,
+            error
+          )
           $q.notify({
             type: 'negative',
             message: t('FailedToFetchExchangeRate', { currency: currency.value }, `Failed to fetch exchange rate for ${currency.value}`),
@@ -1015,14 +1160,29 @@ export default defineComponent({
     
     // Function to update QR data without triggering recursive updates
     function updateQrData() {
+      console.log('[ReceivePage] updateQrData called', {
+        isUpdatingQrData,
+        isInitializing: isInitializing.value,
+        receiveAmount: receiveAmount.value,
+        currency: currency.value,
+        isCashtoken: isCashtoken.value
+      })
+      
       // Prevent recursive calls
-      if (isUpdatingQrData) return
-      if (isInitializing.value) return
+      if (isUpdatingQrData) {
+        console.log('[ReceivePage] updateQrData: Already updating, skipping')
+        return
+      }
+      if (isInitializing.value) {
+        console.log('[ReceivePage] updateQrData: Still initializing, skipping')
+        return
+      }
       
       isUpdatingQrData = true
       
       try {
         if (!receiveAmount.value) {
+          console.log('[ReceivePage] updateQrData: No receiveAmount, clearing QR data')
           qrDataRef.value = ''
           return
         }
@@ -1031,6 +1191,22 @@ export default defineComponent({
         // This prevents generating QR code with invalid data when rate fetch fails
         if (!isNotFiatMode.value) {
           if (isNaN(totalCryptoAmount.value) || totalCryptoAmount.value <= 0) {
+            console.warn('[ReceivePage] updateQrData: Invalid crypto amount in fiat mode', {
+              totalCryptoAmount: totalCryptoAmount.value,
+              isCashtoken: isCashtoken.value,
+              bchValue: bchValue.value,
+              tokenAmount: tokenAmount.value,
+              currencyBchRate: currencyBchRate.value ? {
+                rate: currencyBchRate.value.rate,
+                currency: currencyBchRate.value.currency
+              } : null,
+              tokenBchRate: tokenBchRate.value ? {
+                rate: tokenBchRate.value.rate
+              } : null,
+              tokenFiatRate: tokenFiatRate.value ? {
+                rate: tokenFiatRate.value.rate
+              } : null
+            })
             // Don't generate QR if we don't have valid crypto amount
             // Keep existing qrData if it exists, don't clear it
             return
@@ -1078,7 +1254,18 @@ export default defineComponent({
           params.push(`expires=${adjustedExpirationTimestamp}`)
         }
 
-        qrDataRef.value = address + '?' + params.join('&')
+        const finalQrData = address + '?' + params.join('&')
+        qrDataRef.value = finalQrData
+        console.log('[ReceivePage] updateQrData: QR data updated successfully', {
+          qrDataLength: finalQrData.length,
+          address,
+          params: params.join('&'),
+          isCashtoken: isCashtoken.value,
+          remainingPayment: isCashtoken.value ? remainingPaymentInTokenUnits.value : remainingPaymentRounded.value
+        })
+      } catch (error) {
+        console.error('[ReceivePage] updateQrData: Error updating QR data', error)
+        logError('Error updating QR data', null, error)
       } finally {
         // Reset flag in next tick to allow future updates
         setTimeout(() => {
@@ -1124,7 +1311,70 @@ export default defineComponent({
     )
     
     // Expose as computed for template compatibility
-    const qrData = computed(() => qrDataRef.value)
+    const qrData = computed(() => {
+      try {
+        const value = qrDataRef.value
+        // Log when QR data becomes empty or changes significantly
+        if (!value && qrDataRef.value !== value) {
+          console.warn('[ReceivePage] QR data is empty', {
+            receiveAmount: receiveAmount.value,
+            currency: currency.value,
+            isCashtoken: isCashtoken.value,
+            totalCryptoAmount: totalCryptoAmount.value,
+            websocketsReady: websocketsReady.value,
+            refreshingQr: refreshingQr.value,
+            fiatRateLoading: fiatRateLoading.value
+          })
+        }
+        return value
+      } catch (error) {
+        console.error('[ReceivePage] Error in qrData computed', error)
+        return ''
+      }
+    })
+    
+    // Watch QR rendering conditions with error handling
+    // Watch qrDataRef directly instead of qrData computed to avoid circular dependencies
+    watch(() => {
+      try {
+        const qrDataValue = qrDataRef.value
+        return {
+          websocketsReady: websocketsReady.value,
+          refreshingQr: refreshingQr.value,
+          fiatRateLoading: fiatRateLoading.value,
+          qrDataLength: qrDataValue?.length || 0,
+          hasQrData: !!qrDataValue
+        }
+      } catch (error) {
+        console.error('[ReceivePage] Error in QR rendering conditions watcher getter', error)
+        return {
+          websocketsReady: false,
+          refreshingQr: false,
+          fiatRateLoading: false,
+          qrDataLength: 0,
+          hasQrData: false
+        }
+      }
+    }, (newVal, oldVal) => {
+      try {
+        if (!newVal) return
+        // Skip first run (oldVal will be undefined)
+        if (!oldVal) return
+        
+        if (newVal.qrDataLength !== oldVal?.qrDataLength || 
+            newVal.websocketsReady !== oldVal?.websocketsReady ||
+            newVal.refreshingQr !== oldVal?.refreshingQr ||
+            newVal.fiatRateLoading !== oldVal?.fiatRateLoading) {
+          console.log('[ReceivePage] QR rendering conditions changed', {
+            old: oldVal,
+            new: newVal,
+            willShowQR: newVal.websocketsReady && !newVal.refreshingQr && !newVal.fiatRateLoading && newVal.hasQrData
+          })
+        }
+      } catch (error) {
+        console.error('[ReceivePage] Error in QR rendering conditions watcher callback', error)
+      }
+    }, { immediate: false, flush: 'post' })
     /* QR code related --> */
 
     /* <-- Received transactions */
@@ -1184,6 +1434,44 @@ export default defineComponent({
       const readySockets = websockets.value.filter((websocket) => websocket.instance?.readyState === 1)
       return readySockets.length === websockets.value.length
     })
+    
+    // Watch websocket ready state changes for debugging
+    const lastWebsocketsReadyState = ref(null)
+    watch(websocketsReady, (isReady) => {
+      if (lastWebsocketsReadyState.value === isReady) return
+      lastWebsocketsReadyState.value = isReady
+      
+      if (isReady && websockets.value.length > 0) {
+        const urls = []
+        for (let i = 0; i < websockets.value.length; i++) {
+          urls.push(websockets.value[i]?.url || 'unknown')
+        }
+        console.log('[ReceivePage] Websockets ready', {
+          readyCount: websockets.value.filter((ws) => ws.instance?.readyState === 1).length,
+          totalCount: websockets.value.length,
+          urls
+        })
+      } else if (websockets.value.length > 0) {
+        const states = []
+        for (let i = 0; i < websockets.value.length; i++) {
+          const ws = websockets.value[i]
+          const readyState = ws?.instance?.readyState
+          states.push({
+            url: ws?.url || 'unknown',
+            readyState,
+            readyStateText: readyState === 0 ? 'CONNECTING' : 
+                           readyState === 1 ? 'OPEN' :
+                           readyState === 2 ? 'CLOSING' :
+                           readyState === 3 ? 'CLOSED' : 'UNKNOWN'
+          })
+        }
+        console.log('[ReceivePage] Websockets not ready', {
+          readyCount: websockets.value.filter((ws) => ws.instance?.readyState === 1).length,
+          totalCount: websockets.value.length,
+          states
+        })
+      }
+    })
     const enableReconnect = ref(true)
     const reconnectTimeout = ref(null)
     const canViewPayments = computed(() => {
@@ -1239,16 +1527,44 @@ export default defineComponent({
     function setupListener() {
       const merchantReceivingAddress = addressSet.value?.receiving
       
-      if (!merchantReceivingAddress) return
+      console.log('[ReceivePage] setupListener called', {
+        merchantReceivingAddress,
+        websocketsCount: websockets.value.length,
+        urls: websockets.value.map(ws => ws.url)
+      })
+      
+      if (!merchantReceivingAddress) {
+        console.warn('[ReceivePage] setupListener: No receiving address available', {
+          receivingAddress: addressSet.value?.receiving,
+          hasAddressSet: !!addressSet.value
+        })
+        return
+      }
 
       for (let x = 0; x < websockets.value.length; x++) {
         const url = websockets.value[x].url
+        console.log('[ReceivePage] Creating websocket', { index: x, url })
         const websocket = new WebSocket(url)
 
-        websocket.addEventListener('close', () => {
+        websocket.addEventListener('close', (event) => {
+          console.log('[ReceivePage] Websocket closed', {
+            url,
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean
+          })
           if (paid.value) return
  
           if (!enableReconnect.value) return
+
+          // Log unexpected closes (not normal closure)
+          if (event.code !== 1000) {
+            logError(
+              'WebSocket connection closed unexpectedly',
+              `Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}, URL: ${url}`,
+              null
+            )
+          }
 
           const reconnectInterval = 5000
 
@@ -1256,12 +1572,21 @@ export default defineComponent({
           reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
         })
 
+        websocket.addEventListener('error', (error) => {
+          logError('WebSocket error', `URL: ${url}`, error)
+        })
+
         websocket.addEventListener('message', message => {
-          const data = JSON.parse(message.data)
-          onWebsocketReceive(data)
+          try {
+            const data = JSON.parse(message.data)
+            onWebsocketReceive(data)
+          } catch (error) {
+            logError('Error parsing websocket message', `URL: ${url}`, error)
+          }
         })
 
         websocket.addEventListener('open', () => {
+          console.log('[ReceivePage] Websocket opened', { url, index: x })
           websockets.value[x].instance = markRaw(websocket)
         })
       }
@@ -1510,11 +1835,15 @@ export default defineComponent({
         // Fire and forget with basic retry handled in helper
         postOutputFiatAmounts({ txid, outputFiatAmounts: map })
           .then(() => { postedFiatMapTxIds.add(txid) })
-          .catch(() => {
+          .catch((error) => {
             // Non-blocking notify
+            logError(t('UnableToSaveFiatBreakdown'), `Transaction ID: ${txid}`, error)
             $q.notify({ type: 'warning', message: t('UnableToSaveFiatBreakdown'), timeout: 3000 })
           })
-      } catch (e) { console.error(e) }
+      } catch (e) { 
+        logError('Error posting fiat amounts', `Transaction ID: ${txid}`, e)
+        console.error(e) 
+      }
     }
 
     function schedulePostOutputFiatAmounts(txid) {
@@ -1616,6 +1945,10 @@ export default defineComponent({
       fiatReferenceAmount,
       fiatReferenceCurrency,
       rateFetchError,
+      errorLogs,
+      showErrorDetails,
+      clearErrorLogs,
+      formatErrorTime,
     }
   },
 })

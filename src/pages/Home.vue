@@ -1,67 +1,127 @@
 <template>
   <q-page class="flex flex-center q-pb-lg">
-    <WalletLink
-      ref="walletLinkComponent"
-      v-if="forceDisplayWalletLink || !walletStore.walletHash"
-      :display-link-button="forceDisplayWalletLink"
-      @device-linked="() => forceDisplayWalletLink = false"
-    />
-    <div v-else class="home-main-content q-py-md full-width" :style="$q.platform.is.ios ? 'padding-top:3.8em;' : ''">
+    <q-pull-to-refresh @refresh="refreshPage" :disable="forceDisplayWalletLink || !walletStore.walletHash">
+      <WalletLink
+        ref="walletLinkComponent"
+        v-if="forceDisplayWalletLink || !walletStore.walletHash"
+        :display-link-button="forceDisplayWalletLink"
+        @device-linked="() => forceDisplayWalletLink = false"
+      />
+      <div v-else class="home-main-content q-py-md full-width" :style="$q.platform.is.ios ? 'padding-top:3.8em;' : ''">
       <div class="text-h5 text-brandblue q-mx-md q-px-sm q-mb-md">
-        <div class="ellipsis">{{ walletStore.merchantInfo?.name || 'Paytaca POS' }}</div>
-        <div
-          v-if="walletStore.deviceInfo?.name"
-          class="text-subtitle1 ellipsis"
-          :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7' "
-          style="margin-top:-0.4em;"
-        >
-          {{ walletStore.deviceInfo?.name }}
-        </div>
+        <template v-if="isRefreshing || isInitialLoading">
+          <q-skeleton type="text" width="200px" />
+          <q-skeleton type="text" width="150px" class="q-mt-xs" />
+        </template>
+        <template v-else>
+          <div class="ellipsis">{{ walletStore.merchantInfo?.name || 'Paytaca POS' }}</div>
+          <div
+            v-if="walletStore.deviceInfo?.name"
+            class="text-subtitle1 ellipsis"
+            :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7' "
+            style="margin-top:-0.4em;"
+          >
+            {{ walletStore.deviceInfo?.name }}
+          </div>
+        </template>
       </div>
       <div class="q-px-md row q-gutter-sm">
-        <SalesReportCard :title="$t('Today')" :sales-report="walletStore.salesReportSummary.today" class="col-5"/>
-        <SalesReportCard :title="$t('Yesterday')" :sales-report="walletStore.salesReportSummary.yesterday" class="col-5"/>
-        <SalesReportCard :title="$t('LastSevenDays')" :sales-report="walletStore.salesReportSummary.last7Days" class="col-5"/>
-        <SalesReportCard :title="$t('ThisMonth')" :sales-report="walletStore.salesReportSummary.lastMonth" class="col-5"/>
+        <template v-if="isRefreshing || isInitialLoading">
+          <q-card v-for="n in 4" :key="n" class="q-space q-pa-md column col-5">
+            <q-skeleton type="text" width="60px" />
+            <div class="column justify-center q-space q-mt-sm">
+              <q-skeleton type="text" width="80px" />
+              <q-skeleton type="text" width="100px" class="q-mt-xs" />
+            </div>
+          </q-card>
+        </template>
+        <template v-else>
+          <SalesReportCard :title="$t('Today')" :sales-report="walletStore.salesReportSummary.today" class="col-5"/>
+          <SalesReportCard :title="$t('Yesterday')" :sales-report="walletStore.salesReportSummary.yesterday" class="col-5"/>
+          <SalesReportCard :title="$t('LastSevenDays')" :sales-report="walletStore.salesReportSummary.last7Days" class="col-5"/>
+          <SalesReportCard :title="$t('ThisMonth')" :sales-report="walletStore.salesReportSummary.lastMonth" class="col-5"/>
+        </template>
       </div>
 
-      <MarketplaceWidget class="q-mx-md q-mt-md"/>
+      <div v-if="isRefreshing || isInitialLoading" class="q-mx-md q-mt-md">
+        <q-card style="border-radius: 10px;">
+          <q-card-section class="q-py-sm">
+            <div class="row items-center">
+              <div class="text-h6 q-space">
+                <q-skeleton type="text" width="100px" />
+              </div>
+              <q-skeleton type="rect" width="100px" height="30px" />
+            </div>
+            <div class="row items-start q-r-mx-md q-mt-sm">
+              <div v-for="n in 2" :key="n" class="col-6 col-sm-3 q-pa-sm">
+                <q-skeleton type="rect" width="100%" height="80px" />
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+      <MarketplaceWidget v-else class="q-mx-md q-mt-md"/>
 
       <q-card class="q-mx-md q-mt-md home-transactions-list-container" style="border-radius:25px;">
         <q-card-section class="text-h6">
           {{ $t('Transactions') }}
         </q-card-section>
         <q-card-section class="q-pt-none">
-          <div class="row items-center justify-end">
-            <q-pagination
-              v-if="transactions?.num_pages > 1"
-              :modelValue="transactions?.page"
-              :max="transactions?.num_pages || 0"
-              :max-pages="7"
-              input
-              unelevated
-              padding="xs sm"
-              boundary-numbers
-              @update:modelValue="val => fetchTransactions(val)"
+          <template v-if="isRefreshing || isInitialLoading">
+            <div class="row items-center justify-end q-mb-sm">
+              <q-skeleton type="rect" width="200px" height="32px" />
+            </div>
+            <div class="home-transactions-list">
+              <q-list>
+                <q-item v-for="n in 5" :key="n" class="q-pa-sm">
+                  <q-item-section side>
+                    <q-skeleton type="circle" size="40px" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-skeleton type="text" width="60%" />
+                    <q-skeleton type="text" width="40%" class="q-mt-xs" />
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-skeleton type="text" width="80px" />
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+          </template>
+          <template v-else>
+            <div class="row items-center justify-end">
+              <q-pagination
+                v-if="transactions?.num_pages > 1"
+                :modelValue="transactions?.page"
+                :max="transactions?.num_pages || 0"
+                :max-pages="7"
+                input
+                unelevated
+                padding="xs sm"
+                boundary-numbers
+                @update:modelValue="val => fetchTransactions(val)"
+              />
+            </div>
+            <div v-if="fetchingTransactions" class="row items-center justify-center q-px-xs">
+              <q-linear-progress query color="brandblue"/>
+            </div>
+            <TransactionsList
+              :transactions="transactions"
+              class="home-transactions-list"
+              :class="(transactions?.num_pages > 1 ? 'pagination': '')"
             />
-          </div>
-          <div v-if="fetchingTransactions" class="row items-center justify-center q-px-xs">
-            <q-linear-progress query color="brandblue"/>
-          </div>
-          <TransactionsList
-            :transactions="transactions"
-            class="home-transactions-list"
-            :class="(transactions?.num_pages > 1 ? 'pagination': '')"
-          />
+          </template>
         </q-card-section>
       </q-card>
-    </div>
-    <MainFooter/>
+      </div>
+      <MainFooter/>
+    </q-pull-to-refresh>
   </q-page>
 </template>
 
 <script>
 import { useWalletStore } from 'stores/wallet'
+import { useMarketplaceStore } from 'src/stores/marketplace'
 import { defineAsyncComponent } from 'vue'
 import { defineComponent, markRaw, nextTick, onMounted, ref, watch } from 'vue'
 import MainFooter from 'src/components/MainFooter.vue'
@@ -92,34 +152,54 @@ export default defineComponent({
     const $q = useQuasar()
     const $router = useRouter()
     const walletStore = useWalletStore()
+    const marketplaceStore = useMarketplaceStore()
     const txCacheStore = useTxCacheStore()
     const cashtokenStore = useCashtokenStore()
     const { t } = useI18n()
 
-    onMounted(() => fetchTransactions())
-    onMounted(() => {
-      walletStore.refetchSalesReport()
-        .then(() => walletStore.refetchSalesReportTokenMetadata())
+    // Initial data loading
+    onMounted(async () => {
+      if (!walletStore.walletHash) {
+        isInitialLoading.value = false
+        return
+      }
+
+      // Track all initial data loading promises
+      const initialLoadPromises = [
+        // Transactions
+        fetchTransactions(),
+        // Sales report
+        walletStore.refetchSalesReport()
+          .then(() => walletStore.refetchSalesReportTokenMetadata()),
+        // Device info
+        walletStore.refetchDeviceInfo(),
+        // Preferences
+        walletStore.refetchPreferences(),
+        // Accepted tokens
+        walletStore.fetchAcceptedTokens(),
+      ]
+
+      // Wait for all initial data to load
+      await Promise.allSettled(initialLoadPromises)
+      isInitialLoading.value = false
     })
-    // onMounted(() => walletStore.refetchMerchantInfo())
-    onMounted(() => walletStore.fetchAcceptedTokens())
-    onMounted(() => walletStore.refetchDeviceInfo())
-    onMounted(() => walletStore.refetchPreferences())
     // watch(() => [walletStore.walletHash], () => walletStore.refetchMerchantInfo())
     watch(() => [walletStore.walletHash, walletStore.posId], () => walletStore.refetchDeviceInfo())
     watch(() => [walletStore.walletHash], () => walletStore.refetchPreferences())
 
     const transactions = ref({ history: [] })
     const fetchingTransactions = ref(false)
+    const isRefreshing = ref(false)
+    const isInitialLoading = ref(true)
     function fetchTransactions(page=1) {
-      if (!walletStore.walletHash) return
+      if (!walletStore.walletHash) return Promise.resolve()
       const opts = {
         page: Number.isInteger(page) ? page : 1,
         type: 'incoming',
       }
 
       fetchingTransactions.value = true
-      walletStore.walletObj.getTransactions(opts)
+      return walletStore.walletObj.getTransactions(opts)
         .then(async response => {
           if (response.success) {
             await fetchCashtokenMetadata(response.transactions?.history).catch(console.error)
@@ -235,6 +315,36 @@ export default defineComponent({
       $router.replace({ query: {} }) 
     }
 
+    // Pull-to-refresh function that refetches all data from server
+    async function refreshPage(done) {
+      isRefreshing.value = true
+      try {
+        // Refetch all data in parallel for better performance
+        await Promise.allSettled([
+          // Transactions
+          fetchTransactions(transactions.value?.page || 1),
+          // Sales report
+          walletStore.refetchSalesReport()
+            .then(() => walletStore.refetchSalesReportTokenMetadata()),
+          // Device info
+          walletStore.refetchDeviceInfo(),
+          // Preferences
+          walletStore.refetchPreferences(),
+          // Accepted tokens
+          walletStore.fetchAcceptedTokens(),
+          // Marketplace data (if marketplace is active)
+          marketplaceStore.refreshUser({ silent: true }).catch(() => {}),
+          marketplaceStore.updateActiveShopId({ silent: true, getOnly: true }).catch(() => {}),
+        ])
+      } catch (error) {
+        console.error('Error refreshing page:', error)
+      } finally {
+        isRefreshing.value = false
+        // Call done() to complete the pull-to-refresh animation
+        done()
+      }
+    }
+
     window.t = walletLinkComponent
     return {
       walletStore,
@@ -243,6 +353,9 @@ export default defineComponent({
       fetchTransactions,
       forceDisplayWalletLink,
       walletLinkComponent,
+      refreshPage,
+      isRefreshing,
+      isInitialLoading,
     }
   }
 })

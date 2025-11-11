@@ -9,6 +9,7 @@ import { defineComponent, inject, onMounted, onUnmounted, ref, watch } from 'vue
 import { useWalletStore } from './stores/wallet'
 import { useNotificationsStore } from './stores/notifications'
 import { pushNotificationsManager } from './boot/push-notifications'
+import { useDebugLogger } from './composables/useDebugLogger'
 
 export default defineComponent({
   name: 'App',
@@ -41,8 +42,18 @@ export default defineComponent({
     const $rpc = inject('$rpc')
     window.dark = $q.dark
 
+    // Initialize debug logger based on localStorage flag
+    const { startInterception, stopInterception } = useDebugLogger()
+
     const pingIntervalId = ref(null)
     onMounted(() => {
+      // Initialize debug logger
+      const debugIconVisible = localStorage.getItem('debugIconVisible') === 'true'
+      if (debugIconVisible) {
+        startInterception()
+      }
+
+      // Setup ping interval
       clearInterval(pingIntervalId.value)
       pingIntervalId.value = setInterval(() => {
         if ($rpc?.client?.ws?.readyState !== WebSocket.OPEN) return

@@ -6,9 +6,45 @@
       <div class="text-h6 text-brandblue text-center header-title">{{ $t('Transaction') }}</div>
     </div>
 
-    <div v-if="loadError" class="error-container">
+    <div v-if="loadError && !isLoading" class="error-container">
       <div class="error-text">{{ loadError }}</div>
       <q-btn outline color="white" no-caps @click="goBack">{{ $t('Back') }}</q-btn>
+    </div>
+
+    <div v-else-if="isLoading" class="transaction-content">
+      <!-- Skeleton Loaders -->
+      <div class="text-h5 text-center q-mb-lg">
+        <q-skeleton type="text" width="120px" class="q-mx-auto" />
+      </div>
+      
+      <div class="direction-icon-wrapper">
+        <q-skeleton type="circle" size="56px" class="q-mx-auto" />
+      </div>
+
+      <div class="amount-section">
+        <div class="amount-row">
+          <q-skeleton type="circle" size="40px" class="q-mr-sm" />
+          <q-skeleton type="text" width="150px" />
+        </div>
+        <q-skeleton type="text" width="100px" class="q-mt-xs q-mx-auto" />
+      </div>
+
+      <div class="reference-id-section">
+        <q-skeleton type="text" width="80px" class="q-mb-xs q-mx-auto" />
+        <q-skeleton type="text" width="120px" class="q-mx-auto" />
+      </div>
+
+      <div class="transaction-id-section">
+        <q-separator class="q-mb-md"/>
+        <q-skeleton type="text" width="100px" class="q-mb-xs q-mx-auto" />
+        <q-skeleton type="rect" width="200px" height="40px" class="q-mx-auto q-mt-sm" />
+        <q-skeleton type="text" width="140px" class="q-mt-md q-mx-auto" />
+      </div>
+
+      <div class="date-section">
+        <q-skeleton type="text" width="90px" class="q-mb-xs q-mx-auto" />
+        <q-skeleton type="text" width="180px" class="q-mx-auto" />
+      </div>
     </div>
 
     <div v-else-if="transaction" class="transaction-content">
@@ -74,7 +110,7 @@
 import { convertIpfsUrl, onImgErrorIpfsSrc } from 'src/utils/ipfs'
 import { hexToRef } from 'src/utils/reference-id-utils'
 import { useI18n } from 'vue-i18n'
-import { defineComponent, ref, onMounted, onUnmounted, computed, watch, inject } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted, computed, watch, inject, nextTick } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
 import { useTransactionHelpers } from 'src/composables/transaction'
@@ -259,7 +295,7 @@ export default defineComponent({
       .catch(() => {})
     }
     
-    function playHtml5Audio() {
+    async function playHtml5Audio() {
       try {
         // For Safari, reuse preloaded audio element
         if (audioElement.value) {
@@ -268,76 +304,189 @@ export default defineComponent({
           
           // Check if audio is ready (Safari requirement)
           if (audioElement.value.readyState >= 2) { // HAVE_CURRENT_DATA or higher
-            const playPromise = audioElement.value.play()
-            if (playPromise !== undefined) {
-              playPromise.catch(() => {
-                // Silently fail if audio can't play (e.g., autoplay blocked)
+            try {
+              await audioElement.value.play()
+            } catch (error) {
+              console.error('Error playing preloaded audio:', error)
+              // If play fails, try loading and playing again
+              audioElement.value.load()
+              await new Promise((resolve) => {
+                audioElement.value.addEventListener('canplay', resolve, { once: true })
+                // Timeout after 2 seconds
+                setTimeout(resolve, 2000)
               })
+              try {
+                await audioElement.value.play()
+              } catch (retryError) {
+                console.error('Error retrying audio play:', retryError)
+              }
             }
           } else {
             // Wait for audio to be ready, then play
-            const playWhenReady = () => {
-              const playPromise = audioElement.value.play()
-              if (playPromise !== undefined) {
-                playPromise.catch(() => {
-                  // Silently fail if audio can't play
-                })
+            await new Promise((resolve) => {
+              const playWhenReady = async () => {
+                try {
+                  await audioElement.value.play()
+                } catch (error) {
+                  console.error('Error playing audio when ready:', error)
+                }
+                resolve()
               }
-            }
-            audioElement.value.addEventListener('canplay', playWhenReady, { once: true })
-            // Trigger load if not already loading
-            if (audioElement.value.readyState === 0) {
-              audioElement.value.load()
-            }
+              audioElement.value.addEventListener('canplay', playWhenReady, { once: true })
+              // Trigger load if not already loading
+              if (audioElement.value.readyState === 0) {
+                audioElement.value.load()
+              }
+              // Timeout after 2 seconds
+              setTimeout(resolve, 2000)
+            })
           }
         } else {
           // Fallback: create new audio if preload didn't work
           const audio = new Audio('/send-success.mp3')
           audio.preload = 'auto'
-          audio.play().catch(() => {
-            // Silently fail if audio can't play
-          })
+          try {
+            await audio.play()
+          } catch (error) {
+            console.error('Error playing fallback audio:', error)
+            // Try loading and playing again
+            audio.load()
+            await new Promise((resolve) => {
+              audio.addEventListener('canplay', async () => {
+                try {
+                  await audio.play()
+                } catch (e) {
+                  console.error('Error playing fallback audio after load:', e)
+                }
+                resolve()
+              }, { once: true })
+              setTimeout(resolve, 2000)
+            })
+          }
         }
       } catch (error) {
-        // Silently fail
+        console.error('Error in playHtml5Audio:', error)
       }
     }
     
-    function playSound() {
+    async function playSound(success) {
+      if (!success) return
+      
       // Try NativeAudio first (works on Android, should work on iOS with correct setup)
       if ($q.platform.is.capacitor) {
         try {
-          NativeAudio.play({
+          await NativeAudio.play({
             assetId: 'send-success'
-          }).catch(() => {
-            // Fallback to HTML5 Audio if NativeAudio fails
-            playHtml5Audio()
           })
         } catch (error) {
-          // Fallback to HTML5 Audio
-          playHtml5Audio()
+          console.error('Error playing sound:', error)
+          // Fallback: try to preload and play again
+          try {
+            let path = 'send-success.mp3'
+            if ($q.platform.is.ios) {
+              path = 'public/assets/send-success.mp3'
+            }
+            await NativeAudio.preload({
+              assetId: 'send-success',
+              assetPath: path,
+              audioChannelNum: 1,
+              volume: 1.0,
+              isUrl: false
+            })
+            await NativeAudio.play({
+              assetId: 'send-success'
+            })
+          } catch (retryError) {
+            console.error('Error retrying sound playback:', retryError)
+            // Final fallback to HTML5 Audio
+            await playHtml5Audio()
+          }
         }
       } else {
         // Web fallback (includes Safari)
-        playHtml5Audio()
+        await playHtml5Audio()
       }
     }
     
-    function launchConfetti() {
+    async function launchConfetti() {
+      console.log('[TransactionDetail] launchConfetti called, platform is iOS:', $q.platform.is.ios)
+      
+      // Play sound for new transaction
+      // Ensure audio is ready by waiting for next frame (allows preload to complete)
+      await new Promise(resolve => requestAnimationFrame(resolve))
+      
+      try {
+        await playSound(true)
+        console.log('[TransactionDetail] Sound played successfully')
+      } catch (error) {
+        console.error('[TransactionDetail] Error playing sound in launchConfetti:', error)
+      }
+      
       // Launch confetti from center of page
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { x: 0.5, y: 0.4 },
-        startVelocity: 55,
-        gravity: 0.8,
-        decay: 0.9,
-        scalar: 0.8,
-        colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e']
-      })
+      try {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { x: 0.5, y: 0.4 },
+          startVelocity: 55,
+          gravity: 0.8,
+          decay: 0.9,
+          scalar: 0.8,
+          colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e']
+        })
+        console.log('[TransactionDetail] Confetti launched successfully')
+      } catch (error) {
+        console.error('[TransactionDetail] Error launching confetti:', error)
+      }
     }
     
-    async function fetchTransaction() {
+    // Helper function to delay execution (for exponential backoff)
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms))
+    }
+
+    // Core function to search for transaction
+    async function searchTransaction(txid) {
+      // Search for transaction in wallet history
+      const response = await walletStore.walletObj.getTransactions({
+        page: 1,
+        type: 'incoming',
+      })
+      
+      if (response.success && Array.isArray(response.transactions?.history)) {
+        const foundTx = response.transactions.history.find(tx => tx.txid === txid)
+        if (foundTx) {
+          return foundTx
+        }
+      }
+      
+      // If not found in first page, search through all pages
+      let page = 1
+      let hasMore = true
+      
+      while (hasMore) {
+        const pageResponse = await walletStore.walletObj.getTransactions({
+          page: page,
+          type: 'incoming',
+        })
+        
+        if (pageResponse.success && Array.isArray(pageResponse.transactions?.history)) {
+          const foundTx = pageResponse.transactions.history.find(tx => tx.txid === txid)
+          if (foundTx) {
+            return foundTx
+          }
+          
+          hasMore = page < pageResponse.transactions.num_pages
+          page++
+        } else {
+          hasMore = false
+        }
+      }
+      
+      return null
+    }
+
+    async function fetchTransaction(forceServerFetch = false) {
       const txid = route.params.txid
       if (!txid) {
         loadError.value = t('Transaction ID is required')
@@ -349,55 +498,104 @@ export default defineComponent({
         return
       }
       
-      isLoading.value = true
+      // Check for preloaded transaction from websocket first
+      const websocketTx = preloadedTransaction.value
+      if (websocketTx && websocketTx.txid === txid && !forceServerFetch) {
+        // Use websocket data immediately if available (unless forcing server fetch)
+        transaction.value = websocketTx
+        isLoading.value = false
+        return
+      }
+      
+      // Only set loading state if we don't already have transaction data (not a background refresh)
+      if (!forceServerFetch) {
+        isLoading.value = true
+      }
       loadError.value = null
       
-      try {
-        // Search for transaction in wallet history
-        const response = await walletStore.walletObj.getTransactions({
-          page: 1,
-          type: 'incoming',
-        })
-        
-        if (response.success && Array.isArray(response.transactions?.history)) {
-          const foundTx = response.transactions.history.find(tx => tx.txid === txid)
+      const maxRetries = 7
+      const websocketFallbackAfterRetries = 2 // Use websocket data after 2 retries
+      let retryCount = 0
+      let lastError = null
+      
+      while (retryCount <= maxRetries) {
+        try {
+          const foundTx = await searchTransaction(txid)
+          
           if (foundTx) {
             transaction.value = foundTx
+            isLoading.value = false
             return
           }
-        }
-        
-        // If not found in first page, search through all pages
-        let page = 1
-        let hasMore = true
-        
-        while (hasMore) {
-          const pageResponse = await walletStore.walletObj.getTransactions({
-            page: page,
-            type: 'incoming',
-          })
           
-          if (pageResponse.success && Array.isArray(pageResponse.transactions?.history)) {
-            const foundTx = pageResponse.transactions.history.find(tx => tx.txid === txid)
-            if (foundTx) {
-              transaction.value = foundTx
+          // Transaction not found - check if we should use websocket data as fallback
+          if (retryCount >= websocketFallbackAfterRetries && websocketTx && websocketTx.txid === txid) {
+            // Use websocket data after 2 retries if transaction not found in server
+            console.log('Transaction not found in server after retries, using websocket data')
+            transaction.value = websocketTx
+            isLoading.value = false
+            return
+          }
+          
+          // Continue retrying if we haven't reached max retries
+          if (retryCount < maxRetries) {
+            const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 30000) // Cap at 30 seconds
+            await delay(backoffDelay)
+            retryCount++
+            continue
+          } else {
+            // All retries exhausted, check websocket data one more time
+            if (websocketTx && websocketTx.txid === txid) {
+              console.log('Transaction not found in server, using websocket data as fallback')
+              transaction.value = websocketTx
+              isLoading.value = false
               return
             }
-            
-            hasMore = page < pageResponse.transactions.num_pages
-            page++
-          } else {
-            hasMore = false
+            // No websocket data available either
+            // Only set error if this is not a background refresh
+            if (!forceServerFetch) {
+              loadError.value = t('Transaction not found')
+            }
+            isLoading.value = false
+            return
           }
+        } catch (error) {
+          console.error(`Error fetching transaction (attempt ${retryCount + 1}/${maxRetries + 1}):`, error)
+          lastError = error
+          
+          // If we've exhausted all retries, try websocket data as fallback
+          if (retryCount >= maxRetries) {
+            if (websocketTx && websocketTx.txid === txid) {
+              console.log('Error fetching transaction, using websocket data as fallback')
+              transaction.value = websocketTx
+              isLoading.value = false
+              return
+            }
+            // Only set error if this is not a background refresh
+            if (!forceServerFetch) {
+              loadError.value = t('Failed to load transaction')
+            }
+            isLoading.value = false
+            return
+          }
+          
+          // Retry with exponential backoff
+          const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 30000) // Cap at 30 seconds
+          await delay(backoffDelay)
+          retryCount++
         }
-        
-        loadError.value = t('Transaction not found')
-      } catch (error) {
-        console.error('Error fetching transaction:', error)
-        loadError.value = t('Failed to load transaction')
-      } finally {
-        isLoading.value = false
       }
+      
+      // Fallback (shouldn't reach here, but just in case)
+      if (!transaction.value) {
+        if (websocketTx && websocketTx.txid === txid) {
+          transaction.value = websocketTx
+        } else if (!forceServerFetch) {
+          // Only set error if this is not a background refresh
+          loadError.value = lastError ? t('Failed to load transaction') : t('Transaction not found')
+        }
+      }
+      isLoading.value = false
     }
     
     function goBack() {
@@ -412,6 +610,26 @@ export default defineComponent({
           audioElement.value.preload = 'auto'
           // Load the audio (required for Safari)
           audioElement.value.load()
+          
+          // For Safari, ensure audio is ready by waiting for canplay event
+          await new Promise((resolve, reject) => {
+            if (audioElement.value.readyState >= 2) {
+              resolve()
+              return
+            }
+            audioElement.value.addEventListener('canplay', resolve, { once: true })
+            audioElement.value.addEventListener('error', reject, { once: true })
+            // Timeout after 3 seconds
+            setTimeout(() => {
+              if (audioElement.value.readyState >= 2) {
+                resolve()
+              } else {
+                console.warn('Audio preload timeout, but continuing anyway')
+                resolve() // Resolve anyway to not block
+              }
+            }, 3000)
+          })
+          console.log('[TransactionDetail] HTML5 audio preloaded, readyState:', audioElement.value.readyState)
         } catch (error) {
           console.warn('Failed to preload HTML5 audio:', error)
         }
@@ -422,8 +640,8 @@ export default defineComponent({
         try {
           let path = 'send-success.mp3'
           if ($q.platform.is.ios) {
-            // For iOS, use the correct path - file should be in public/assets/sounds/
-            path = 'public/assets/sounds/send-success.mp3'
+            // For iOS, use the correct path - file should be in public/assets/
+            path = 'public/assets/send-success.mp3'
           }
           
           await NativeAudio.preload({
@@ -439,28 +657,35 @@ export default defineComponent({
         }
       }
       
-      // Check for preloaded transaction first
+      // Check for preloaded transaction first (from websocket)
       if (preloadedTransaction.value) {
         transaction.value = preloadedTransaction.value
         // Play sound and launch confetti if this is a new transaction
+        // Wait for DOM to be fully rendered before triggering
         if (isNewTransaction.value) {
-          playSound() // Play sound first
-          setTimeout(() => {
-            launchConfetti()
-          }, 500)
+          await nextTick()
+          // Wait for next animation frame to ensure content is painted
+          await new Promise(resolve => requestAnimationFrame(resolve))
+          await launchConfetti()
         }
+        // Still try to fetch from server in background to get latest data
+        // but don't wait for it - we already have websocket data
+        fetchTransaction(true).catch(() => {
+          // Silently fail - we already have websocket data
+        })
         return
       }
       
-      // Otherwise fetch the transaction
+      // Otherwise fetch the transaction with retries
       await fetchTransaction()
       
       // Play sound and launch confetti if this is a new transaction (after fetch completes)
+      // Wait for DOM to be fully rendered before triggering
       if (isNewTransaction.value && transaction.value) {
-        playSound() // Play sound first
-        setTimeout(() => {
-          launchConfetti()
-        }, 500)
+        await nextTick()
+        // Wait for next animation frame to ensure content is painted
+        await new Promise(resolve => requestAnimationFrame(resolve))
+        await launchConfetti()
       }
     })
     
