@@ -1,4 +1,17 @@
 <template>
+  <!-- Debug Console Button - Rendered outside q-page to ensure visibility even if page fails to render -->
+  <Teleport to="body">
+    <q-btn
+      v-if="isDebugModeEnabled"
+      class="debug-console-button"
+      color="primary"
+      icon="bug_report"
+      label="View Debug Console"
+      @click="goToDebugConsole"
+      rounded
+      unelevated
+    />
+  </Teleport>
   <q-page padding>
     <MainHeader :title="$t('Payment')" back-to="home"/>
     <div v-if="loading" class="text-center text-h4" style="margin-bottom: 50px;">
@@ -15,7 +28,7 @@
         v-ripple
         @click="copyText(qrData, $t('CopyPaymentUri'))"
       >
-        <template v-if="!websocketsReady || refreshingQr || fiatRateLoading || !qrData">
+        <template v-if="!canShowQr">
           <div :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
             <q-skeleton :height="$q.platform.is.ios ? '275px' : '240px'" :width="$q.platform.is.ios ? '275px' : '240px'" />
           </div>
@@ -190,70 +203,15 @@
         {{ $t('NoTransactionsReceived') }}
       </div>
     </div>
-
-    <!-- Error Alert Section -->
-    <div v-if="errorLogs.length > 0" class="q-px-md q-mt-md q-mb-lg">
-      <q-banner 
-        class="bg-red text-white rounded-borders"
-        :class="$q.dark.isActive ? 'bg-red-9' : 'bg-red'"
-      >
-        <template v-slot:avatar>
-          <q-icon name="error" color="white" />
-        </template>
-        <template v-slot:action>
-          <q-btn 
-            flat 
-            dense 
-            :icon="showErrorDetails ? 'expand_less' : 'expand_more'" 
-            @click="showErrorDetails = !showErrorDetails"
-            color="white"
-          />
-          <q-btn 
-            flat 
-            dense 
-            icon="close" 
-            @click="clearErrorLogs()"
-            color="white"
-            class="q-ml-xs"
-          />
-        </template>
-        <div class="text-weight-medium">
-          {{ $t('ErrorsDetected', { count: errorLogs.length }, `${errorLogs.length} error(s) detected`) }}
-        </div>
-        <div v-if="showErrorDetails" class="q-mt-sm">
-          <q-list dense class="bg-transparent">
-            <q-item 
-              v-for="(error, index) in errorLogs" 
-              :key="index"
-              class="q-pa-xs"
-            >
-              <q-item-section>
-                <q-item-label class="text-caption text-white">
-                  <div class="text-weight-medium">{{ error.message || 'Unknown error' }}</div>
-                  <div v-if="error.timestamp" class="text-grey-3 q-mt-xs">
-                    {{ formatErrorTime(error.timestamp) }}
-                  </div>
-                  <div v-if="error.details" class="text-grey-3 q-mt-xs text-caption">
-                    {{ error.details }}
-                  </div>
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </div>
-      </q-banner>
-    </div>
   </q-page>
 </template>
 <script>
 import { getNetworkTimeDiff } from 'src/utils/time.js'
-import { toTokenAddress } from 'src/utils/crypto'
 import { useWalletStore } from 'stores/wallet'
 import { usePaymentsStore } from 'stores/payments'
 import { useAddressesStore } from 'stores/addresses'
 import { useCashtokenStore } from 'src/stores/cashtoken'
-import { useMarketStore } from 'src/stores/market'
-import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, markRaw, inject, provide } from 'vue'
+import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, inject, markRaw } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useWakeLock } from '@vueuse/core'
 import { useQuasar } from 'quasar'
@@ -263,9 +221,12 @@ import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
 import bchLogo from 'src/assets/bch-logo.webp'
-import { postOutputFiatAmounts } from 'src/utils/watchtower'
 import { convertIpfsUrl } from 'src/utils/ipfs'
 import { formatNumberAutoDecimals, formatNumberWithDecimals } from 'src/utils/number-format'
+import { postOutputFiatAmounts } from 'src/utils/watchtower'
+import { useQrCodeGenerator } from 'src/composables/useQrCodeGenerator'
+import { useFiatRateManager } from 'src/composables/useFiatRateManager'
+import { usePaymentTracking } from 'src/composables/usePaymentTracking'
 
 
 export default defineComponent({
@@ -297,13 +258,29 @@ export default defineComponent({
     }
   },
   setup(props) {
+    /* <-- Debug Console - Initialize FIRST to ensure button is always available */
+    // Use a ref with direct localStorage check to avoid dependency on reactive state
+    const isDebugModeEnabled = ref(false)
+    
+    // Check localStorage directly - initialize immediately before any other setup
+    function checkDebugMode() {
+      try {
+        return localStorage.getItem('debugIconVisible') === 'true'
+      } catch (e) {
+        return false
+      }
+    }
+    
+    // Initialize immediately - this happens before any other reactive dependencies
+    isDebugModeEnabled.value = checkDebugMode()
+    /* Debug Console --> */
+    
     const $networkDetect = inject('$networkDetect')
     const isOnline = inject('$isOnline')
     const $q = useQuasar()
     const { t } = useI18n()
     const $router = useRouter()
     const walletStore = useWalletStore()
-    const marketStore = useMarketStore()
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
     const cashTokenStore = useCashtokenStore();
@@ -347,7 +324,7 @@ export default defineComponent({
     const paymentDialogOpen = ref(false)
     const fiatReferenceAmount = ref(props.setFiatAmount || null)
     const fiatReferenceCurrency = ref(props.setFiatCurrency || null)
-    const tokenPriceId = ref(null) // Price ID from Set Amount dialog for token payments
+    // tokenPriceId is defined in QR code generation section
     const isCashtoken = computed(() => Boolean(tokenCategory.value))
     const isNotFiatMode = computed(() => {
       if (!isCashtoken.value) return currency.value === 'BCH'
@@ -405,319 +382,30 @@ export default defineComponent({
     /* Network diff --> */
 
     /* <-- Conversion rates */
-    const currencyRateUpdateRate = 5 * 60 * 1000
-    // Stable reference for BCH hardcoded rate to prevent recursive updates
-    const BCH_HARDCODED_RATE = Object.freeze({ currency: 'BCH', rate: 1, timestamp: 0, status: 2 })
+    const currencyRateUpdateRate = ref(5 * 60 * 1000)
     
-    // Cache for rate objects to prevent creating new references on each computed evaluation
-    let cachedCurrencyBchRate = null
-    let cachedCurrencyBchRateKey = null
-    
-    const currencyBchRate = computed(() => {
-      if (!currency.value) {
-        cachedCurrencyBchRate = null
-        cachedCurrencyBchRateKey = null
-        return undefined
-      }
-      
-      // Always try to get the rate from store first, even if in BCH mode
-      // This ensures we get priceId when available
-      const rate = marketStore.getRate(currency.value)
-      if (rate) {
-        // Create a cache key based on the actual rate data
-        const cacheKey = `${currency.value}-${rate.rate}-${rate.timestamp}-${rate.priceId || 'no-id'}`
-        
-        // Return cached object if data hasn't changed
-        if (cachedCurrencyBchRateKey === cacheKey && cachedCurrencyBchRate) {
-          return cachedCurrencyBchRate
-        }
-        
-        // Cache the new rate object
-        cachedCurrencyBchRate = Object.freeze({ ...rate })
-        cachedCurrencyBchRateKey = cacheKey
-        return cachedCurrencyBchRate
-      }
-      
-      // Fallback to hardcoded rate only if no rate is found and we're in BCH mode
-      if (isNotFiatMode.value) {
-        return BCH_HARDCODED_RATE
-      }
-      
-      cachedCurrencyBchRate = null
-      cachedCurrencyBchRateKey = null
-      return undefined
+    // Use fiat rate manager composable
+    const {
+      currencyBchRate,
+      tokenBchRate,
+      fiatReferenceRate,
+      tokenFiatRate,
+      currencyTokenPrice,
+      bchRateStatus,
+      fiatRateLoading,
+      rateFetchError,
+      refreshingQr,
+      updateSelectedCurrencyRate,
+      startFiatRateRefreshTimer,
+      stopFiatRateRefreshTimer,
+    } = useFiatRateManager({
+      currency,
+      isCashtoken,
+      tokenCategory,
+      fiatReferenceCurrency,
+      isNotFiatMode,
+      currencyRateUpdateRate,
     })
-    const status = {
-      '0': { icon: 'mdi-equal', color: 'brandblue' },
-      '1': { icon: 'mdi-arrow-up', color: 'green-6' },
-      '-1': { icon: 'mdi-arrow-down', color: 'red-9' },
-    }
-    const bchRateStatus = computed(() => {
-      if (!currencyBchRate.value || !currencyBchRate.value.status) return status['0']
-      return status[currencyBchRate.value.status.toString()]
-    })
-    // Cache for token rate to prevent new references
-    let cachedTokenBchRate = null
-    let cachedTokenBchRateKey = null
-    const tokenBchRate = computed(() => {
-      if (!tokenCategory.value) {
-        cachedTokenBchRate = null
-        cachedTokenBchRateKey = null
-        return null
-      }
-      
-      const rate = marketStore.getTokenRate(tokenCategory.value)
-      if (!rate) {
-        cachedTokenBchRate = null
-        cachedTokenBchRateKey = null
-        return null
-      }
-      
-      // Create cache key based on rate data
-      const cacheKey = `${tokenCategory.value}-${rate.rate}-${rate.timestamp}-${rate.priceId || 'no-id'}`
-      
-      // Return cached object if data hasn't changed
-      if (cachedTokenBchRateKey === cacheKey && cachedTokenBchRate) {
-        return cachedTokenBchRate
-      }
-      
-      // Cache the rate object
-      cachedTokenBchRate = Object.freeze({ ...rate })
-      cachedTokenBchRateKey = cacheKey
-      return cachedTokenBchRate
-    })
-    
-    // Computed for fiat reference rate to avoid calling getRate() in qrData
-    let cachedFiatReferenceRate = null
-    let cachedFiatReferenceRateKey = null
-    const fiatReferenceRate = computed(() => {
-      if (!fiatReferenceCurrency.value || fiatReferenceCurrency.value === 'BCH') {
-        cachedFiatReferenceRate = null
-        cachedFiatReferenceRateKey = null
-        return null
-      }
-      
-      const rate = marketStore.getRate(fiatReferenceCurrency.value)
-      if (!rate) {
-        cachedFiatReferenceRate = null
-        cachedFiatReferenceRateKey = null
-        return null
-      }
-      
-      // Create a cache key based on the actual rate data
-      const cacheKey = `${fiatReferenceCurrency.value}-${rate.rate}-${rate.timestamp}-${rate.priceId || 'no-id'}`
-      
-      // Return cached object if data hasn't changed
-      if (cachedFiatReferenceRateKey === cacheKey && cachedFiatReferenceRate) {
-        return cachedFiatReferenceRate
-      }
-      
-      // Cache the new rate object
-      cachedFiatReferenceRate = Object.freeze({ ...rate })
-      cachedFiatReferenceRateKey = cacheKey
-      return cachedFiatReferenceRate
-    })
-
-    // Token-fiat rate (direct rate when in fiat mode)
-    let cachedTokenFiatRate = null
-    let cachedTokenFiatRateKey = null
-    const tokenFiatRate = computed(() => {
-      if (!isCashtoken.value || !fiatReferenceCurrency.value || isNotFiatMode.value) {
-        cachedTokenFiatRate = null
-        cachedTokenFiatRateKey = null
-        return null
-      }
-      
-      const rate = marketStore.getTokenFiatRate(tokenCategory.value, fiatReferenceCurrency.value)
-      if (!rate) {
-        cachedTokenFiatRate = null
-        cachedTokenFiatRateKey = null
-        return null
-      }
-      
-      // Create cache key based on rate data
-      const cacheKey = `${tokenCategory.value}-${fiatReferenceCurrency.value}-${rate.rate}-${rate.timestamp}-${rate.priceId || 'no-id'}`
-      
-      // Return cached object if data hasn't changed
-      if (cachedTokenFiatRateKey === cacheKey && cachedTokenFiatRate) {
-        return cachedTokenFiatRate
-      }
-      
-      // Cache the rate object
-      cachedTokenFiatRate = Object.freeze({ ...rate })
-      cachedTokenFiatRateKey = cacheKey
-      return cachedTokenFiatRate
-    })
-
-    const currencyTokenPrice = computed(() => {
-      if (!isCashtoken.value) return undefined
-      if (isNotFiatMode.value) return undefined
-      
-      // Prefer direct token-fiat rate if available (optimized)
-      // Note: tokenFiatRate is "token per fiat" (e.g., MUSD per PHP)
-      // We need "fiat per token" for calculations, so invert it
-      if (tokenFiatRate.value?.rate && tokenFiatRate.value.rate !== 0) {
-        return 1 / tokenFiatRate.value.rate // fiat per token (e.g., PHP per MUSD)
-      }
-      
-      // Fallback: calculate through BCH rates
-      const currencyPerBchRate = currencyBchRate.value?.rate
-      const tokenPerBchRate = tokenBchRate.value?.rate
-
-      if (!currencyPerBchRate || !tokenPerBchRate || tokenPerBchRate === 0) return undefined
-      return currencyPerBchRate / tokenPerBchRate // currency per token
-    })
-
-    async function updateSelectedCurrencyRate (opts = {}) {
-      if (isNotFiatMode.value) return
-      if (!currency.value) return
-
-      // Pass age threshold to respect cache, but missing priceId will force refresh
-      const refreshOpts = { age: currencyRateUpdateRate, ...opts }
-      const refreshPromises = []
-      
-      // For cashtoken in fiat mode, use optimized direct token-fiat rate
-      if (isCashtoken.value && tokenCategory.value && fiatReferenceCurrency.value) {
-        refreshPromises.push(
-          marketStore.refreshTokenFiatPrice(
-            tokenCategory.value,
-            fiatReferenceCurrency.value,
-            refreshOpts
-          )
-        )
-      } else {
-        // For BCH or non-fiat mode, use traditional rates
-        refreshPromises.push(marketStore.refreshBchPrice(currency.value, refreshOpts))
-        if (isCashtoken.value && tokenCategory.value) {
-          refreshPromises.push(marketStore.refreshBchPrice(tokenCategory.value, refreshOpts))
-        }
-      }
-
-      try {
-        await Promise.all(refreshPromises)
-        
-        // After rates are updated, ensure paymentsStore.total is set if it's 0
-        // This handles the case where bchValue was NaN initially
-        if (paymentsStore.total === 0 && totalCryptoAmount.value && !isNaN(totalCryptoAmount.value) && totalCryptoAmount.value > 0) {
-          paymentsStore.setTotalPayment(totalCryptoAmount.value)
-        }
-      } catch (error) {
-        // Log error for debugging
-        logError('Error updating currency rates', null, error)
-      } finally {
-        if (!opts?.skipRefreshTimer) {
-          setTimeout(() => { refreshingQr.value = false }, 3000)
-        }
-      }
-    }
-
-    function ensureLatestFiatRateBeforeQr () {
-      if (!receiveAmount.value || isNotFiatMode.value) return
-      if (latestFiatRatePromise) return latestFiatRatePromise
-
-      console.log('[ReceivePage] ensureLatestFiatRateBeforeQr: Starting rate fetch', {
-        currency: currency.value,
-        isCashtoken: isCashtoken.value,
-        tokenCategory: tokenCategory.value,
-        fiatReferenceCurrency: fiatReferenceCurrency.value
-      })
-      fiatRateLoading.value = true
-      latestFiatRatePromise = updateSelectedCurrencyRate({ skipRefreshTimer: true })
-        .catch((error) => {
-          // Error updating fiat rate
-          console.error('[ReceivePage] ensureLatestFiatRateBeforeQr: Rate fetch failed', error)
-          logError('Failed to update fiat rate', null, error)
-        })
-        .finally(() => {
-          console.log('[ReceivePage] ensureLatestFiatRateBeforeQr: Rate fetch completed', {
-            currencyBchRate: currencyBchRate.value ? {
-              rate: currencyBchRate.value.rate,
-              currency: currencyBchRate.value.currency,
-              priceId: currencyBchRate.value.priceId
-            } : null,
-            tokenBchRate: tokenBchRate.value ? {
-              rate: tokenBchRate.value.rate,
-              priceId: tokenBchRate.value.priceId
-            } : null,
-            tokenFiatRate: tokenFiatRate.value ? {
-              rate: tokenFiatRate.value.rate,
-              priceId: tokenFiatRate.value.priceId
-            } : null,
-            totalCryptoAmount: totalCryptoAmount.value
-          })
-          fiatRateLoading.value = false
-          latestFiatRatePromise = null
-          
-          // After rate is fetched, ensure total is set
-          if (paymentsStore.total === 0 && totalCryptoAmount.value && !isNaN(totalCryptoAmount.value) && totalCryptoAmount.value > 0) {
-            paymentsStore.setTotalPayment(totalCryptoAmount.value)
-          }
-        })
-
-      return latestFiatRatePromise
-    }
-    
-    function startFiatRateRefreshTimer() {
-      stopFiatRateRefreshTimer()
-      
-      // Only start if fiat amount is used
-      // When fiat is entered:
-      // - fiatReferenceCurrency is set (e.g., 'PHP')
-      // - currency.value should also be set to fiat (e.g., 'PHP')
-      // - isNotFiatMode should be false (because currency is not 'BCH')
-      const shouldStart = fiatReferenceCurrency.value && 
-                         fiatReferenceAmount.value && 
-                         currency.value &&
-                         currency.value !== 'BCH' &&
-                         !isNotFiatMode.value
-      
-      if (!shouldStart) return
-      
-      // Refresh rates and recalculate every 10 minutes (600000ms)
-      fiatRateRefreshInterval = setInterval(async () => {
-        const stillValid = fiatReferenceCurrency.value && 
-                          fiatReferenceAmount.value && 
-                          !isNotFiatMode.value &&
-                          currency.value &&
-                          currency.value !== 'BCH'
-        
-        if (!stillValid) {
-          stopFiatRateRefreshTimer()
-          return
-        }
-        
-        try {
-          // Force refresh by passing age: 0 to bypass cache
-          await updateSelectedCurrencyRate({ skipRefreshTimer: true, age: 0 })
-          
-          // Clear cached rate objects to force recomputation
-          cachedCurrencyBchRate = null
-          cachedCurrencyBchRateKey = null
-          cachedFiatReferenceRate = null
-          cachedFiatReferenceRateKey = null
-          
-          // Recalculate crypto amount based on updated rates
-          // The computed properties (bchValue/tokenAmount) will automatically update
-          // but we need to trigger the watcher that updates paymentsStore.total
-          if (totalCryptoAmount.value && !isNaN(totalCryptoAmount.value)) {
-            paymentsStore.setTotalPayment(totalCryptoAmount.value)
-          }
-          
-          // Update QR data with new rates
-          updateQrData()
-        } catch (error) {
-          // Error refreshing fiat rate
-          logError('Error refreshing fiat rate', null, error)
-        }
-      }, 600000) // 10 minutes (600000ms)
-    }
-    
-    function stopFiatRateRefreshTimer() {
-      if (fiatRateRefreshInterval) {
-        clearInterval(fiatRateRefreshInterval)
-        fiatRateRefreshInterval = null
-      }
-    }
     /* Conversion rates --> */
 
     /* <-- Value/amounts */
@@ -906,12 +594,39 @@ export default defineComponent({
     })
     /* Remaining amount --> */
 
+    /* <-- QR code generation */
+    const qrTimestamp = ref(Math.floor(Date.now() / 1000))
+    const tokenPriceId = ref(null) // Price ID from Set Amount dialog for token payments
+    
+    // Use QR code generator composable
+    const { qrData: qrDataFromGenerator } = useQrCodeGenerator({
+      receivingAddress,
+      posId,
+      isCashtoken,
+      tokenCategory,
+      remainingPaymentInTokenUnits,
+      remainingPaymentRounded,
+      tokenPriceId,
+      fiatReferenceRate,
+      fiatReferenceCurrency,
+      tokenFiatRate,
+      tokenBchRate,
+      isNotFiatMode,
+      qrTimestamp,
+      networkTimeDiff,
+      currencyRateUpdateRate,
+      receiveAmount,
+      totalCryptoAmount,
+    })
+    
+    // Simple computed for QR data - use the composable's computed
+    const qrData = computed(() => qrDataFromGenerator.value)
+    /* QR code generation --> */
 
     /* <-- QR code related */
     const refreshQr = ref(false) // dialog state
-    const refreshingQr = ref(false) // 
-    const fiatRateLoading = ref(false)
-    const rateFetchError = ref(false)
+    // refreshingQr and fiatRateLoading come from useFiatRateManager composable
+    // rateFetchError comes from useFiatRateManager composable
     let latestFiatRatePromise = null
     const qrExpirationTimer = ref(1)
     
@@ -950,45 +665,46 @@ export default defineComponent({
       return date.toLocaleTimeString()
     }
 
-    let qrScanned = ref(false)
+    const qrScanned = ref(false)
     let qrExpirationPrompt = null
     let qrExpirationCountdown = null
-    
-    // Fiat rate refresh timer (1 minute)
-    let fiatRateRefreshInterval = null
-
-    let isInitializing = ref(true)
     let isUpdatingRate = ref(false)
     
-    // Set up watchers with immediate: false to prevent initial triggers
+    // Watch currency changes to refresh rates
     watch(currency, () => {
-      if (isInitializing.value || isUpdatingRate.value) return
+      if (isUpdatingRate.value) return
       if (!currency.value) return
       isUpdatingRate.value = true
       updateSelectedCurrencyRate()
         .catch((error) => {
-          // Suppress errors to prevent loops, but log them
-          logError('Error in currency watcher', null, error)
+          console.error('[ReceivePage] Error in currency watcher', error)
         })
         .finally(() => {
           isUpdatingRate.value = false
         })
     }, { immediate: false, flush: 'post' })
     
+    // Watch receiveAmount and currency to ensure rates are fetched
     watch(
       () => [receiveAmount.value, currency.value],
       () => {
-        if (isInitializing.value || isUpdatingRate.value) return
+        if (isUpdatingRate.value) return
         if (!receiveAmount.value || isNotFiatMode.value) return
-        ensureLatestFiatRateBeforeQr()
+        // Ensure rate is fetched - QR data will update automatically via computed
+        isUpdatingRate.value = true
+        updateSelectedCurrencyRate({ skipRefreshTimer: true })
+          .catch((error) => {
+            console.error('[ReceivePage] Error fetching rate for QR', error)
+          })
+          .finally(() => {
+            isUpdatingRate.value = false
+          })
       },
       { immediate: false, flush: 'post' }
     )
     
     // Watch fiat reference currency to start/stop timer
     watch(() => [fiatReferenceCurrency.value, fiatReferenceAmount.value, currency.value], () => {
-      if (isInitializing.value) return
-      
       // If we have fiat reference, ensure currency is set to fiat currency
       if (fiatReferenceCurrency.value && fiatReferenceAmount.value && currency.value !== fiatReferenceCurrency.value) {
         currency.value = fiatReferenceCurrency.value
@@ -1009,65 +725,26 @@ export default defineComponent({
       }
     }, { flush: 'post' })
     
+    // Simplified initialization - QR data is now computed automatically
     onMounted(() => {
-      console.log('[ReceivePage] Component mounted', {
-        receiveAmount: receiveAmount.value,
-        currency: currency.value,
-        isCashtoken: isCashtoken.value,
-        tokenCategory: tokenCategory.value,
-        receivingAddress: addressSet.value?.receiving,
-        isOnline: isOnline.value,
-        isInitializing: isInitializing.value
-      })
+      refreshQrCountdown()
       
-      // Defer to next tick to ensure all reactive state is initialized
-      // This includes the props being set in the earlier onMounted hook
-      setTimeout(() => {
-        console.log('[ReceivePage] Starting QR countdown initialization')
-        refreshQrCountdown()
-        // Allow watchers to run after initialization completes
-        setTimeout(() => {
-          console.log('[ReceivePage] Completing initialization', {
-            receiveAmount: receiveAmount.value,
-            currency: currency.value,
-            isNotFiatMode: isNotFiatMode.value,
-            fiatReferenceCurrency: fiatReferenceCurrency.value,
-            fiatReferenceAmount: fiatReferenceAmount.value
-          })
-          isInitializing.value = false
-          // Only update QR data after initialization is complete
-          setTimeout(() => {
-            console.log('[ReceivePage] Calling updateQrData after initialization')
-            updateQrData()
-            // Enable QR data watcher after first update
-            qrDataWatcherReady = true
-            console.log('[ReceivePage] QR data watcher enabled', {
-              qrData: qrData.value,
-              qrDataLength: qrData.value?.length || 0
-            })
-            // Start fiat rate refresh timer if fiat amount is used (after initialization)
-            setTimeout(() => {
-              // If fiat is set, ensure currency matches fiat currency
-              if (fiatReferenceCurrency.value && fiatReferenceAmount.value && currency.value !== fiatReferenceCurrency.value) {
-                currency.value = fiatReferenceCurrency.value
-              }
-              
-              // Check again after potential sync
-              const shouldRun = fiatReferenceCurrency.value && 
-                               fiatReferenceAmount.value && 
-                               currency.value &&
-                               currency.value === fiatReferenceCurrency.value &&
-                               currency.value !== 'BCH'
-              
-              if (shouldRun) {
-                startFiatRateRefreshTimer()
-              }
-            }, 200)
-          }, 100)
-        }, 300)
-      }, 50)
+      // Start fiat rate refresh timer if fiat amount is used
+      if (fiatReferenceCurrency.value && fiatReferenceAmount.value && !isNotFiatMode.value) {
+        startFiatRateRefreshTimer()
+      }
     })
 
+    // Old QR generation code removed - now using useQrCodeGenerator composable
+    // QR data is now automatically computed from reactive dependencies
+    // No need for manual updateQrData function or watchers
+    
+    // Add canShowQr computed after websockets are set up (will be defined later)
+    
+    /* QR code related --> */
+
+    // Define functions that will be passed to usePaymentTracking composable
+    // These need to be defined before the composable call
     function stopQrExpirationCountdown () {
       clearInterval(qrExpirationCountdown)
       clearTimeout(qrExpirationPrompt)
@@ -1084,14 +761,14 @@ export default defineComponent({
       fiatRateLoading.value = true
       rateFetchError.value = false
       updateSelectedCurrencyRate({ skipRefreshTimer: true })
+        .then(() => {
+          // After rate is fetched, ensure total is set
+          if (paymentsStore.total === 0 && totalCryptoAmount.value && !isNaN(totalCryptoAmount.value) && totalCryptoAmount.value > 0) {
+            paymentsStore.setTotalPayment(totalCryptoAmount.value)
+          }
+        })
         .catch((error) => {
-          // Error refreshing currency rate
           rateFetchError.value = true
-          logError(
-            t('FailedToFetchExchangeRate', { currency: currency.value }, `Failed to fetch exchange rate for ${currency.value}`),
-            `Currency: ${currency.value}`,
-            error
-          )
           $q.notify({
             type: 'negative',
             message: t('FailedToFetchExchangeRate', { currency: currency.value }, `Failed to fetch exchange rate for ${currency.value}`),
@@ -1101,32 +778,6 @@ export default defineComponent({
         })
         .finally(() => {
           fiatRateLoading.value = false
-          
-          // After rate is fetched, ensure total is set
-          if (paymentsStore.total === 0 && totalCryptoAmount.value && !isNaN(totalCryptoAmount.value) && totalCryptoAmount.value > 0) {
-            paymentsStore.setTotalPayment(totalCryptoAmount.value)
-          }
-          
-          // Update QR data after rates are loaded, but only if initialization is complete
-          // This fixes the race condition where rate fetch completes before isInitializing is set to false
-          if (!isInitializing.value) {
-            updateQrData()
-          } else {
-            // Wait for initialization to complete before updating QR data
-            const checkInit = setInterval(() => {
-              if (!isInitializing.value) {
-                clearInterval(checkInit)
-                updateQrData()
-              }
-            }, 50)
-            // Safety timeout to prevent infinite waiting
-            setTimeout(() => {
-              clearInterval(checkInit)
-              if (!isInitializing.value) {
-                updateQrData()
-              }
-            }, 500)
-          }
         })
       
       stopQrExpirationCountdown()
@@ -1135,598 +786,19 @@ export default defineComponent({
       
       const milliseconds = 1000
       qrExpirationCountdown = setInterval(
-        () => qrExpirationTimer.value -= 1 / (currencyRateUpdateRate / milliseconds),
+        () => qrExpirationTimer.value -= 1 / (currencyRateUpdateRate.value / milliseconds),
         milliseconds
       )
 
       qrExpirationPrompt = setTimeout(
         () => refreshQr.value = true,
-        currencyRateUpdateRate + (3 * milliseconds)
-      )
-      
-      // Initial QR data update - defer to avoid recursive loops during initialization
-      if (!isInitializing.value) {
-        setTimeout(() => {
-          updateQrData()
-        }, 100)
-      }
-    }
-
-    // Stable timestamp ref - updated only when QR needs refresh, not on every evaluation
-    const qrTimestamp = ref(Math.floor(Date.now() / 1000))
-    
-    // Use a ref to store qrData and update it manually to prevent recursive computed evaluation
-    const qrDataRef = ref('')
-    let isUpdatingQrData = false
-    
-    // Function to update QR data without triggering recursive updates
-    function updateQrData() {
-      console.log('[ReceivePage] updateQrData called', {
-        isUpdatingQrData,
-        isInitializing: isInitializing.value,
-        receiveAmount: receiveAmount.value,
-        currency: currency.value,
-        isCashtoken: isCashtoken.value
-      })
-      
-      // Prevent recursive calls
-      if (isUpdatingQrData) {
-        console.log('[ReceivePage] updateQrData: Already updating, skipping')
-        return
-      }
-      if (isInitializing.value) {
-        console.log('[ReceivePage] updateQrData: Still initializing, skipping')
-        return
-      }
-      
-      isUpdatingQrData = true
-      
-      try {
-        if (!receiveAmount.value) {
-          console.log('[ReceivePage] updateQrData: No receiveAmount, clearing QR data')
-          qrDataRef.value = ''
-          return
-        }
-
-        // Validate that we have a valid crypto amount in fiat mode
-        // This prevents generating QR code with invalid data when rate fetch fails
-        if (!isNotFiatMode.value) {
-          if (isNaN(totalCryptoAmount.value) || totalCryptoAmount.value <= 0) {
-            console.warn('[ReceivePage] updateQrData: Invalid crypto amount in fiat mode', {
-              totalCryptoAmount: totalCryptoAmount.value,
-              isCashtoken: isCashtoken.value,
-              bchValue: bchValue.value,
-              tokenAmount: tokenAmount.value,
-              currencyBchRate: currencyBchRate.value ? {
-                rate: currencyBchRate.value.rate,
-                currency: currencyBchRate.value.currency
-              } : null,
-              tokenBchRate: tokenBchRate.value ? {
-                rate: tokenBchRate.value.rate
-              } : null,
-              tokenFiatRate: tokenFiatRate.value ? {
-                rate: tokenFiatRate.value.rate
-              } : null
-            })
-            // Don't generate QR if we don't have valid crypto amount
-            // Keep existing qrData if it exists, don't clear it
-            return
-          }
-        }
-
-        // Ensure total is set if it's 0 but we have a valid amount
-        // This handles the case where rates were loaded but watcher didn't fire yet
-        if (paymentsStore.total === 0 && totalCryptoAmount.value && !isNaN(totalCryptoAmount.value) && totalCryptoAmount.value > 0) {
-          paymentsStore.setTotalPayment(totalCryptoAmount.value)
-        }
-
-        const currentTimestamp = qrTimestamp.value
-
-        const params = [];
-        let address = receivingAddress.value
-        if (isCashtoken.value) {
-          address = toTokenAddress(receivingAddress.value);
-          params.push('t');
-        }
-        params.push(`POS=${posId.value}`)
-        if (isCashtoken.value) {
-          params.push(`c=${tokenCategory.value}`)
-          params.push(`f=${remainingPaymentInTokenUnits.value}`)
-          // Use price_id from Set Amount dialog if available, otherwise fallback to fetched rates
-          const priceId = tokenPriceId.value || tokenFiatRate.value?.priceId || tokenBchRate.value?.priceId
-          if (priceId) {
-            params.push(`price_id=${priceId}`)
-          }
-        } else {
-          params.push(`amount=${remainingPaymentRounded.value}`)
-          if (fiatReferenceCurrency.value && fiatReferenceCurrency.value !== 'BCH' && !isCashtoken.value) {
-            const rate = fiatReferenceRate.value
-            if (rate && rate.priceId) {
-              params.push(`price_id=${rate.priceId}`)
-            }
-          }
-        }
-
-        if (!isNotFiatMode.value) {
-          const expiryDuration = currencyRateUpdateRate / 1000
-          const expirationTimestamp = Math.floor(currentTimestamp + expiryDuration)
-          const diffSeconds = networkTimeDiff.value ? networkTimeDiff.value / 1000 : 0
-          const adjustedExpirationTimestamp = expirationTimestamp + diffSeconds
-          params.push(`expires=${adjustedExpirationTimestamp}`)
-        }
-
-        const finalQrData = address + '?' + params.join('&')
-        qrDataRef.value = finalQrData
-        console.log('[ReceivePage] updateQrData: QR data updated successfully', {
-          qrDataLength: finalQrData.length,
-          address,
-          params: params.join('&'),
-          isCashtoken: isCashtoken.value,
-          remainingPayment: isCashtoken.value ? remainingPaymentInTokenUnits.value : remainingPaymentRounded.value
-        })
-      } catch (error) {
-        console.error('[ReceivePage] updateQrData: Error updating QR data', error)
-        logError('Error updating QR data', null, error)
-      } finally {
-        // Reset flag in next tick to allow future updates
-        setTimeout(() => {
-          isUpdatingQrData = false
-        }, 0)
-      }
-    }
-    
-    // Watch dependencies and update QR data manually
-    // Use a more defensive approach - only watch essential values
-    let lastQrDataKey = null
-    let qrDataWatcherReady = false
-    
-    watch(
-      () => {
-        // Only watch if initialization is complete
-        if (isInitializing.value || !qrDataWatcherReady) return null
-        
-        // Create a stable key to prevent unnecessary updates
-        return JSON.stringify({
-          receiveAmount: receiveAmount.value,
-          receivingAddress: receivingAddress.value,
-          isCashtoken: isCashtoken.value,
-          tokenCategory: tokenCategory.value,
-          remainingPaymentInTokenUnits: isCashtoken.value ? remainingPaymentInTokenUnits.value : null,
-          remainingPaymentRounded: !isCashtoken.value ? remainingPaymentRounded.value : null,
-          tokenBchRatePriceId: tokenBchRate.value?.priceId || null,
-          fiatReferenceRatePriceId: fiatReferenceRate.value?.priceId || null,
-          posId: posId.value,
-          isNotFiatMode: isNotFiatMode.value,
-          networkTimeDiff: networkTimeDiff.value,
-          qrTimestamp: qrTimestamp.value
-        })
-      },
-      (newKey) => {
-        if (isInitializing.value || !qrDataWatcherReady) return
-        if (!newKey) return // Skip during initialization
-        if (lastQrDataKey === newKey) return // Skip if nothing changed
-        lastQrDataKey = newKey
-        updateQrData()
-      },
-      { immediate: false, flush: 'post' }
-    )
-    
-    // Expose as computed for template compatibility
-    const qrData = computed(() => {
-      try {
-        const value = qrDataRef.value
-        // Log when QR data becomes empty or changes significantly
-        if (!value && qrDataRef.value !== value) {
-          console.warn('[ReceivePage] QR data is empty', {
-            receiveAmount: receiveAmount.value,
-            currency: currency.value,
-            isCashtoken: isCashtoken.value,
-            totalCryptoAmount: totalCryptoAmount.value,
-            websocketsReady: websocketsReady.value,
-            refreshingQr: refreshingQr.value,
-            fiatRateLoading: fiatRateLoading.value
-          })
-        }
-        return value
-      } catch (error) {
-        console.error('[ReceivePage] Error in qrData computed', error)
-        return ''
-      }
-    })
-    
-    // Watch QR rendering conditions with error handling
-    // Watch qrDataRef directly instead of qrData computed to avoid circular dependencies
-    watch(() => {
-      try {
-        const qrDataValue = qrDataRef.value
-        return {
-          websocketsReady: websocketsReady.value,
-          refreshingQr: refreshingQr.value,
-          fiatRateLoading: fiatRateLoading.value,
-          qrDataLength: qrDataValue?.length || 0,
-          hasQrData: !!qrDataValue
-        }
-      } catch (error) {
-        console.error('[ReceivePage] Error in QR rendering conditions watcher getter', error)
-        return {
-          websocketsReady: false,
-          refreshingQr: false,
-          fiatRateLoading: false,
-          qrDataLength: 0,
-          hasQrData: false
-        }
-      }
-    }, (newVal, oldVal) => {
-      try {
-        if (!newVal) return
-        // Skip first run (oldVal will be undefined)
-        if (!oldVal) return
-        
-        if (newVal.qrDataLength !== oldVal?.qrDataLength || 
-            newVal.websocketsReady !== oldVal?.websocketsReady ||
-            newVal.refreshingQr !== oldVal?.refreshingQr ||
-            newVal.fiatRateLoading !== oldVal?.fiatRateLoading) {
-          console.log('[ReceivePage] QR rendering conditions changed', {
-            old: oldVal,
-            new: newVal,
-            willShowQR: newVal.websocketsReady && !newVal.refreshingQr && !newVal.fiatRateLoading && newVal.hasQrData
-          })
-        }
-      } catch (error) {
-        console.error('[ReceivePage] Error in QR rendering conditions watcher callback', error)
-      }
-    }, { immediate: false, flush: 'post' })
-    /* QR code related --> */
-
-    /* <-- Received transactions */
-    const transactionsReceived = ref([].map(parseWebsocketDataReceived))
-    const postedFiatMapTxIds = new Set()
-    const fiatMapPostTimers = new Map()
-    const txOutputsByTxid = new Map()
-
-    function prepareForNewInvoice () {
-      clearTimeout(triggerSecondConfettiTimeout)
-      triggerSecondConfettiTimeout = null
-      triggerSecondConfetti.value = false
-      paymentsStore.resetPayment()
-      transactionsReceived.value = []
-      qrScanned.value = false
-      promptOnLeave.value = true
-      refreshingQr.value = false
-      refreshQr.value = false
-      closeWebsocket()
-      setupListener()
-    }
-    function transactionExists(transaction) {
-      return transactionsReceived.value?.some?.(
-        obj => (
-          obj.txid === transaction.txid &&
-          obj.index === transaction.index
-        )
+        currencyRateUpdateRate.value + (3 * milliseconds)
       )
     }
 
-    function updateTransactionList (transaction) {
-      if (transactionExists(transaction)) return false
-      transactionsReceived.value?.push?.(transaction)
-      return true
-    }
-    /* Received transactions --> */
-
-    /* <-- Websocket tx-listener */
-    const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
-    const merchantReceivingAddress = addressSet.value?.receiving
-    const websocketInits = [
-      merchantReceivingAddress,
-      walletStore.firstReceivingAddress,
-    ]
-      .filter(Boolean)
-      .map(address => {
-        return {
-          instance: { readyState: 0 },
-          url: `${websocketUrl}/${address}/`,
-        }
-      })
-
-      
-    const isZerothAddress = walletStore.firstReceivingAddress === merchantReceivingAddress
-    const websockets = ref(isZerothAddress ? websocketInits.slice(0,1) : websocketInits)
-    const websocketsReady = computed(() => {
-      const readySockets = websockets.value.filter((websocket) => websocket.instance?.readyState === 1)
-      return readySockets.length === websockets.value.length
-    })
-    
-    // Watch websocket ready state changes for debugging
-    const lastWebsocketsReadyState = ref(null)
-    watch(websocketsReady, (isReady) => {
-      if (lastWebsocketsReadyState.value === isReady) return
-      lastWebsocketsReadyState.value = isReady
-      
-      if (isReady && websockets.value.length > 0) {
-        const urls = []
-        for (let i = 0; i < websockets.value.length; i++) {
-          urls.push(websockets.value[i]?.url || 'unknown')
-        }
-        console.log('[ReceivePage] Websockets ready', {
-          readyCount: websockets.value.filter((ws) => ws.instance?.readyState === 1).length,
-          totalCount: websockets.value.length,
-          urls
-        })
-      } else if (websockets.value.length > 0) {
-        const states = []
-        for (let i = 0; i < websockets.value.length; i++) {
-          const ws = websockets.value[i]
-          const readyState = ws?.instance?.readyState
-          states.push({
-            url: ws?.url || 'unknown',
-            readyState,
-            readyStateText: readyState === 0 ? 'CONNECTING' : 
-                           readyState === 1 ? 'OPEN' :
-                           readyState === 2 ? 'CLOSING' :
-                           readyState === 3 ? 'CLOSED' : 'UNKNOWN'
-          })
-        }
-        console.log('[ReceivePage] Websockets not ready', {
-          readyCount: websockets.value.filter((ws) => ws.instance?.readyState === 1).length,
-          totalCount: websockets.value.length,
-          states
-        })
-      }
-    })
-    const enableReconnect = ref(true)
-    const reconnectTimeout = ref(null)
-    const canViewPayments = computed(() => {
-      return transactionsReceived.value?.length || websocketsReady.value
-    })
-    const qrCodeContainerClass = computed(() => {
-      if (paid.value) {
-        let classes = 'border-green '
-        classes += $q.dark.isActive ? 'bg-dark': 'bg-green-3'
-        return classes
-      }
-      return 'border-red'
-    })
-
-    // close existing websocket in case it exists
-    function closeWebsocket () {
-      for (let x = 0; x < websockets.value.length; x++) {
-        websockets.value[x].instance?.close()
-        websockets.value[x].instance = null
-      }
-    }
-
-    watch(addressSet, () => setupListener())
-    watch(paid, (newVal, oldVal) => {
-      if (newVal) {
-        closeWebsocket()
-        stopQrExpirationCountdown()
-        addressesStore.dequeueAddress()
-        clearTimeout(triggerSecondConfettiTimeout)
-        triggerSecondConfettiTimeout = setTimeout(() => triggerSecondConfetti.value = true, 1500)
-      } else if (oldVal) {
-        clearTimeout(triggerSecondConfettiTimeout)
-        triggerSecondConfettiTimeout = null
-        triggerSecondConfetti.value = false
-      }
-    })
-
-    // 0.4ms - 0.5ms
-    onMounted(() => addressSet.value?.receiving ? setupListener() : null)
-    watch(isOnline, () => {
-      if (isOnline.value) {
-        setupListener()
-      } else {
-        closeWebsocket()
-      }
-    })
-    onUnmounted(() => {
-      enableReconnect.value = false
-      closeWebsocket()
-      clearTimeout(reconnectTimeout.value)
-      stopFiatRateRefreshTimer()
-    })
-    function setupListener() {
-      const merchantReceivingAddress = addressSet.value?.receiving
-      
-      console.log('[ReceivePage] setupListener called', {
-        merchantReceivingAddress,
-        websocketsCount: websockets.value.length,
-        urls: websockets.value.map(ws => ws.url)
-      })
-      
-      if (!merchantReceivingAddress) {
-        console.warn('[ReceivePage] setupListener: No receiving address available', {
-          receivingAddress: addressSet.value?.receiving,
-          hasAddressSet: !!addressSet.value
-        })
-        return
-      }
-
-      for (let x = 0; x < websockets.value.length; x++) {
-        const url = websockets.value[x].url
-        console.log('[ReceivePage] Creating websocket', { index: x, url })
-        const websocket = new WebSocket(url)
-
-        websocket.addEventListener('close', (event) => {
-          console.log('[ReceivePage] Websocket closed', {
-            url,
-            code: event.code,
-            reason: event.reason,
-            wasClean: event.wasClean
-          })
-          if (paid.value) return
- 
-          if (!enableReconnect.value) return
-
-          // Log unexpected closes (not normal closure)
-          if (event.code !== 1000) {
-            logError(
-              'WebSocket connection closed unexpectedly',
-              `Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}, URL: ${url}`,
-              null
-            )
-          }
-
-          const reconnectInterval = 5000
-
-          clearTimeout(reconnectTimeout.value)
-          reconnectTimeout.value = setTimeout(() => setupListener(), reconnectInterval)
-        })
-
-        websocket.addEventListener('error', (error) => {
-          logError('WebSocket error', `URL: ${url}`, error)
-        })
-
-        websocket.addEventListener('message', message => {
-          try {
-            const data = JSON.parse(message.data)
-            onWebsocketReceive(data)
-          } catch (error) {
-            logError('Error parsing websocket message', `URL: ${url}`, error)
-          }
-        })
-
-        websocket.addEventListener('open', () => {
-          console.log('[ReceivePage] Websocket opened', { url, index: x })
-          websockets.value[x].instance = markRaw(websocket)
-        })
-      }
-    }
-
-    function updatePayment (transaction) {
-      if (!updateTransactionList(transaction)) return
-
-      if (isCashtoken.value) {
-        if (transaction?.tokenId === `ct/${tokenCategory.value}`) {
-          const decimals = transaction.tokenDecimals;
-          const tokenAmount = transaction.tokenAmount;
-          const tokenAmountRounded = Number(tokenAmount.toFixed(decimals));
-          paymentsStore.addPayment(tokenAmountRounded);
-        }
-      } else {
-        const paidBchValue = transaction.value / 1e8
-        const paidBch = Number((paidBchValue).toFixed(8))
-        paymentsStore.addPayment(paidBch)
-      }
-      promptOnLeave.value = false
-      displayReceivedTransaction(transaction)
-
-      // Accumulate outputs per-txid
-      try {
-        const txid = transaction?.txid
-        if (txid) {
-          const list = txOutputsByTxid.get(txid) || []
-          list.push(transaction)
-          txOutputsByTxid.set(txid, list)
-        }
-      } catch (_) {}
-
-      // Debounce posting per-tx to allow all outputs to arrive
-      schedulePostOutputFiatAmounts(transaction?.txid)
-    }
-
-    function processLiveUpdate (data) {
-      const updateType = data?.update_type
-      let message = null
-
-      // someone scanned the QR code
-      if (updateType === 'qr_scanned') {
-        if (!qrScanned.value) {
-          stopQrExpirationCountdown()
-          qrScanned.value = true
-          message = t('SomeoneHasScannedQr')
-        }
-      }
-      else if (updateType === 'sending_payment') {
-        message = t('SendingPayment')
-      }
-      else if (updateType === 'cancel_payment') {
-        message = t('PaymentCancelled')
-        qrScanned.value = false
-        refreshQrCountdown()
-      }
-
-      if (message) {
-        $q.notify({
-          timeout: 3000,
-          icon: 'mdi-information',
-          color: 'brandblue',
-          message,
-        })
-      }
-    }
-    
-    function onWebsocketReceive(data) {
-      if (data?.update_type) processLiveUpdate(data)
-      if (!data?.value) return
-      if (data?.voucher) return
-
-      const parsedData = parseWebsocketDataReceived(data)
-      updatePayment(parsedData);
-    }
-
-    /**
-     * @param {Object} data 
-     * @param {String} data.token_id ct/xxxx
-     * @param {String} data.token_name
-     * @param {String} data.token_symbol 
-     * @param {Number} data.token_decimals
-     * @param {String} data.image_url for cashtokens only
-     * @param {Number} data.amount token units if cashtoken
-     * @param {Number} data.value satoshis
-     * @param {String} data.address
-     * @param {String} data.source
-     * @param {String} data.txid
-     * @param {Number} data.index
-     * @param {String} data.address_path
-     * @param {String[]} data.senders
-     * 
-     * @param {String} data.voucher
-     *
-     */
-    function parseWebsocketDataReceived(data) {
-      const marketValue = { amount: 0, currency: '' }
-      if (data?.tokenSymbol === 'BCH' && currencyBchRate.value?.rate) {
-        marketValue.amount = Number(
-          (Number(data?.value) * currencyBchRate.value.rate).toFixed(3)
-        )
-        marketValue.currency = currencyBchRate.value.currency || ''
-      }
-      const response = {
-        amount: data?.amount,
-        value: data?.value,
-        marketValue: marketValue,
-        txid: data?.txid,
-        index: data?.index,
-        address: data?.address,
-        tokenName: data?.token_name,
-        tokenId: data?.token_id,
-        tokenSymbol: data?.token_symbol,
-        tokenDecimals: data?.token_decimals,
-        addressPath: data?.address_path,
-        senders: Array.isArray(data?.senders) ? data?.senders : [],
-        source: data?.source,
-        logo: null,
-        voucher: data?.voucher,
-      }
-
-      if (!response?.amount && response?.value) response.amount = Math.round(response?.value) / 10 ** 8
-      if (typeof response.tokenSymbol === 'string') {
-        response.tokenSymbol = response.tokenSymbol.toUpperCase()
-        if (!isCashtoken.value && response.voucher !== null) response.tokenSymbol = 'BCH'
-      }
-      if (response.tokenSymbol === 'BCH') response.logo = 'bch-logo.png'
-      else if(data?.image_url) response.logo = data?.image_url
-
-      if (response?.tokenId && response?.amount) {
-        const decimals = response?.tokenDecimals;
-        response.tokenAmount = response?.amount / 10 ** decimals;
-      }
-      return response
-    }
-    /* Websocket tx-listener --> */
-
-    function displayReceivedTransaction (data) {
+    // Define displayReceivedTransaction before composable call
+    // It will receive transactionsReceived from the composable as a parameter
+    function displayReceivedTransaction (data, transactionsReceivedRef) {
       const _qrData = qrData.value
       let marketValue = data?.marketValue || { amount: 0, currency: '' }
       let receivedAmount = isCashtoken.value && data?.tokenId
@@ -1748,7 +820,10 @@ export default defineComponent({
       if (paid.value) {
         addressesStore.removeAddressSet(data?.address)
         receiveAmount.value = 0
-        transactionsReceived.value = []
+        // transactionsReceivedRef will be provided by the composable
+        if (transactionsReceivedRef) {
+          transactionsReceivedRef.value = []
+        }
         promptOnLeave.value = false
 
         const qrDataHash = sha256(_qrData)
@@ -1794,6 +869,80 @@ export default defineComponent({
       })
     }
 
+    /* <-- Payment tracking composable */
+    const {
+      transactionsReceived,
+      websockets,
+      websocketsReady,
+      qrScanned: qrScannedFromTracking,
+      canViewPayments,
+      closeWebsocket,
+      setupListener,
+      prepareForNewInvoice: prepareForNewInvoiceFromTracking,
+    } = usePaymentTracking({
+      addressSet,
+      isCashtoken,
+      tokenCategory,
+      isOnline,
+      currencyBchRate,
+      fiatReferenceCurrency,
+      fiatReferenceAmount,
+      cashtokenMetadata,
+      qrData,
+      onRefreshQrCountdown: refreshQrCountdown,
+      onStopQrExpirationCountdown: stopQrExpirationCountdown,
+      onDisplayReceivedTransaction: displayReceivedTransaction,
+    })
+
+    // Sync qrScanned ref with composable's qrScanned
+    watch(qrScannedFromTracking, (newVal) => {
+      qrScanned.value = newVal
+    }, { immediate: true })
+
+    // Create a wrapper for displayReceivedTransaction that has access to transactionsReceived
+    // This allows it to be called from the template without needing to pass transactionsReceived
+    const displayReceivedTransactionWrapper = (data) => {
+      displayReceivedTransaction(data, transactionsReceived)
+    }
+
+    // Wrapper for prepareForNewInvoice that adds page-specific logic
+    function prepareForNewInvoice () {
+      clearTimeout(triggerSecondConfettiTimeout)
+      triggerSecondConfettiTimeout = null
+      triggerSecondConfetti.value = false
+      promptOnLeave.value = true
+      refreshingQr.value = false
+      refreshQr.value = false
+      prepareForNewInvoiceFromTracking()
+    }
+
+    const qrCodeContainerClass = computed(() => {
+      if (paid.value) {
+        let classes = 'border-green '
+        classes += $q.dark.isActive ? 'bg-dark': 'bg-green-3'
+        return classes
+      }
+      return 'border-red'
+    })
+
+    watch(paid, (newVal, oldVal) => {
+      if (newVal) {
+        stopQrExpirationCountdown()
+        addressesStore.dequeueAddress()
+        clearTimeout(triggerSecondConfettiTimeout)
+        triggerSecondConfettiTimeout = setTimeout(() => triggerSecondConfetti.value = true, 1500)
+      } else if (oldVal) {
+        clearTimeout(triggerSecondConfettiTimeout)
+        triggerSecondConfettiTimeout = null
+        triggerSecondConfetti.value = false
+      }
+    })
+
+    onUnmounted(() => {
+      stopFiatRateRefreshTimer()
+    })
+    /* Payment tracking composable --> */
+
     function maybePostOutputFiatAmounts(txid) {
       try {
         // Require fiat reference available
@@ -1838,12 +987,11 @@ export default defineComponent({
           .then(() => { postedFiatMapTxIds.add(txid) })
           .catch((error) => {
             // Non-blocking notify
-            logError(t('UnableToSaveFiatBreakdown'), `Transaction ID: ${txid}`, error)
+            console.error('[ReceivePage] Error posting fiat amounts', error)
             $q.notify({ type: 'warning', message: t('UnableToSaveFiatBreakdown'), timeout: 3000 })
           })
       } catch (e) { 
-        logError('Error posting fiat amounts', `Transaction ID: ${txid}`, e)
-        console.error(e) 
+        console.error('[ReceivePage] Error in maybePostOutputFiatAmounts', e)
       }
     }
 
@@ -1859,9 +1007,8 @@ export default defineComponent({
     }
 
     onBeforeRouteLeave(async (to, from, next) => {
-      // Don't prompt if still initializing or if there's no QR data yet
-      // This prevents navigation guard from triggering incorrectly during initialization
-      if (isInitializing.value || !qrData.value || !promptOnLeave.value) return next()
+      // Don't prompt if there's no QR data yet
+      if (!qrData.value || !promptOnLeave.value) return next()
       
       // Don't prompt if there's a rate fetch error - user should be able to leave
       if (rateFetchError.value) return next()
@@ -1904,6 +1051,46 @@ export default defineComponent({
     onUnmounted(async () => await wakeLock.release())
     /** --------------- */
 
+    // Watch for debug mode changes (in case user toggles it in settings)
+    onMounted(() => {
+      // Update debug mode status on mount
+      isDebugModeEnabled.value = checkDebugMode()
+      // Poll for changes (simple approach that works even if watchers fail)
+      const debugCheckInterval = setInterval(() => {
+        const newValue = checkDebugMode()
+        if (newValue !== isDebugModeEnabled.value) {
+          isDebugModeEnabled.value = newValue
+        }
+      }, 1000)
+      
+      onUnmounted(() => {
+        clearInterval(debugCheckInterval)
+      })
+    })
+    
+    // Function to navigate to debug console with error handling
+    function goToDebugConsole() {
+      try {
+        $router.push({ name: 'debug' })
+      } catch (error) {
+        console.error('[ReceivePage] Error navigating to debug console', error)
+        // Fallback: try direct navigation
+        try {
+          window.location.href = '/#/debug'
+        } catch (e) {
+          console.error('[ReceivePage] Fallback navigation also failed', e)
+        }
+      }
+    }
+
+    // Add canShowQr computed now that websocketsReady is defined
+    const canShowQr = computed(() => {
+      return websocketsReady.value && 
+             !refreshingQr.value && 
+             !fiatRateLoading.value && 
+             !!qrData.value
+    })
+
     return {
       isOnline,
       promptOnLeave,
@@ -1919,11 +1106,12 @@ export default defineComponent({
       tokenAmount,
       showSetAmountDialog,
       qrData,
+      canShowQr,
       websockets,
       websocketsReady,
       transactionsReceived,
       canViewPayments,
-      displayReceivedTransaction,
+      displayReceivedTransaction: displayReceivedTransactionWrapper,
       paymentProgress,
       remainingPaymentRounded,
       remainingPaymentSymbol,
@@ -1952,6 +1140,8 @@ export default defineComponent({
       formatErrorTime,
       formatNumberAutoDecimals,
       formatNumberWithDecimals,
+      isDebugModeEnabled,
+      goToDebugConsole,
     }
   },
 })
@@ -1986,5 +1176,14 @@ export default defineComponent({
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+}
+
+.debug-console-button {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 </style>
