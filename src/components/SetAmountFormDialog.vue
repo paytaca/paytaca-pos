@@ -16,15 +16,15 @@
             <div class="text-subtitle2 q-mb-xs">{{ $t('EnterAmount') }}</div>
             <div class="row items-center no-wrap q-gutter-x-sm">
               <q-input
-                type="number"
+                type="text"
                 inputmode="decimal"
-                :step="10 ** -(amountFieldDecimals || 0)"
-                v-model.number="fiatAmountValue"
+                v-model="fiatAmountDisplay"
                 outlined
                 autofocus
                 clearable
                 class="q-space amount-input-large"
-                @update:model-value="debouncedUpdateAmount"
+                @update:model-value="handleAmountInput"
+                @blur="handleAmountBlur"
               >
                 <template v-slot:prepend>
                   <img
@@ -151,6 +151,7 @@ import { useMarketStore } from 'src/stores/market.js'
 import { useMarketplaceStore } from 'src/stores/marketplace.js'
 import { useWalletStore } from 'src/stores/wallet.js'
 import fiatCurrencies from '../assets/currencies.json'
+import { formatNumberAutoDecimals, parseNumericInput } from 'src/utils/number-format'
 
 export default defineComponent({
   name: 'SetAmountFormDialog',
@@ -178,6 +179,7 @@ export default defineComponent({
     
     const amountValue = ref(props.initialValue?.amount || null);
     const fiatAmountValue = ref(null);
+    const fiatAmountDisplay = ref(null); // Display value (string) that accepts both . and ,
     
     // Helper function to get country code from currency code
     const getCountryCodeFromCurrency = (currencyCode) => {
@@ -319,6 +321,39 @@ export default defineComponent({
       return fiatPerBch / tokenPerBch; // fiat per token
     })
 
+    // Handle amount input - accepts both . and , as decimal separators
+    function handleAmountInput(value) {
+      if (value === null || value === '') {
+        fiatAmountDisplay.value = null
+        fiatAmountValue.value = null
+        debouncedUpdateAmount(null)
+        return
+      }
+      
+      // Store the raw input for display
+      fiatAmountDisplay.value = value
+      
+      // Parse the input (handles both . and ,)
+      const parsed = parseNumericInput(value)
+      
+      if (parsed !== null) {
+        fiatAmountValue.value = parsed
+        debouncedUpdateAmount(parsed)
+      } else {
+        // Invalid input, but keep the display value for user to correct
+        fiatAmountValue.value = null
+      }
+    }
+    
+    // Handle blur - format the display value according to locale
+    function handleAmountBlur() {
+      if (fiatAmountValue.value !== null && fiatAmountValue.value !== undefined) {
+        // Format according to locale for display
+        const decimals = amountFieldDecimals.value || 0
+        fiatAmountDisplay.value = formatNumberAutoDecimals(fiatAmountValue.value, decimals)
+      }
+    }
+
     async function fetchConversionRates() {
       if (!fiatAmountValue.value || !isFiatSelected.value) return;
       
@@ -416,7 +451,7 @@ export default defineComponent({
     const formatPaymentAmount = computed(() => {
       if (!amountValue.value) return '0';
       const decimals = paymentCurrency.value?.decimals || 8;
-      return amountValue.value.toFixed(decimals).replace(/\.?0+$/, '');
+      return formatNumberAutoDecimals(amountValue.value, decimals);
     })
 
     const isFormValid = computed(() => {
@@ -442,6 +477,13 @@ export default defineComponent({
         selectedCurrency.value = allCurrencyOpts.value[0]; // First is the preferred fiat
       }
       paymentCurrency.value = bchAsset;
+      
+      // Initialize display value if initial value exists
+      if (props.initialValue?.amount && isFiatSelected.value) {
+        const decimals = amountFieldDecimals.value || 0
+        fiatAmountDisplay.value = formatNumberAutoDecimals(props.initialValue.amount, decimals)
+        fiatAmountValue.value = props.initialValue.amount
+      }
     })
     
     onUnmounted(() => {
@@ -476,6 +518,11 @@ export default defineComponent({
         fetchConversionRates().then(() => {
           updateAmount(fiatAmountValue.value);
         });
+      }
+      // Update display format when currency changes
+      if (isFiatSelected.value && fiatAmountValue.value !== null) {
+        const decimals = amountFieldDecimals.value || 0
+        fiatAmountDisplay.value = formatNumberAutoDecimals(fiatAmountValue.value, decimals)
       }
     })
 
@@ -521,7 +568,10 @@ export default defineComponent({
       onDialogCancel,
       amountValue,
       fiatAmountValue,
+      fiatAmountDisplay,
       amountFieldDecimals,
+      handleAmountInput,
+      handleAmountBlur,
       selectedCurrency,
       paymentCurrency,
 

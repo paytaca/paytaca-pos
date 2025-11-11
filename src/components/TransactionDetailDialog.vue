@@ -44,8 +44,8 @@
           </q-item-section>
           <q-item-section v-if="!transaction?._offline || transaction?.amount">
             <q-item-label class="text-h5">
-              <template v-if="transaction.record_type === 'outgoing'">{{ transactionAmount?.value * -1 }}</template>
-              <template v-else> {{ transactionAmount?.value }}</template>
+              <template v-if="transaction.record_type === 'outgoing'">{{ formatNumberAutoDecimals(transactionAmount?.value * -1) }}</template>
+              <template v-else> {{ formatNumberAutoDecimals(transactionAmount?.value) }}</template>
               {{ transactionAmount?.symbol }}
             </q-item-label>
             <q-item-label v-if="displayFiatAmount !== null" caption>
@@ -54,7 +54,7 @@
           </q-item-section>
           <q-item-section v-else-if="transaction?.marketValue?.amount && transaction?.marketValue?.currency">
             <q-item-label class="text-h5">
-              {{transaction?.marketValue?.amount}} {{transaction?.marketValue?.currency}}
+              {{formatNumberAutoDecimals(transaction?.marketValue?.amount)}} {{transaction?.marketValue?.currency}}
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -110,7 +110,7 @@
         <q-item v-if="transaction?.tx_fee">
           <q-item-section>
             <q-item-label caption class="text-grey">{{ $t('MinerFee') }}</q-item-label>
-            <q-item-label >{{ transaction?.tx_fee / (10**8) }} BCH</q-item-label>
+            <q-item-label >{{ formatNumberAutoDecimals(transaction?.tx_fee / (10**8)) }} BCH</q-item-label>
           </q-item-section>
         </q-item>
         <q-item v-if="commerceHubSalesOrderId" v-ripple clickable @click="() => displayCommerceHubSalesOrder()">
@@ -148,6 +148,7 @@ import { useI18n } from 'vue-i18n'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, defineComponent, inject, ref, watch } from 'vue'
 import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
+import { formatNumber, formatNumberAutoDecimals, formatNumberWithDecimals } from 'src/utils/number-format'
 
 
 export default defineComponent({
@@ -196,8 +197,8 @@ export default defineComponent({
     const displayFiatAmount = computed(() => {
       const v = Number(displayFiat.value?.value)
       if (Number.isNaN(v)) return null
-      if (v < 10 ** -2) return v
-      return v.toFixed(2)
+      if (v < 10 ** -2) return formatNumberAutoDecimals(v)
+      return formatNumberWithDecimals(v, 2)
     })
     const displayFiatCurrency = computed(() => displayFiat.value?.currency || selectedMarketCurrency.value)
 
@@ -273,6 +274,9 @@ export default defineComponent({
       formatDate,
       copyToClipboard,
       hexToRef,
+      formatNumber,
+      formatNumberAutoDecimals,
+      formatNumberWithDecimals,
 
       convertIpfsUrl,
       onImgErrorIpfsSrc,

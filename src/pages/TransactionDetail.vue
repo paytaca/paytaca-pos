@@ -67,10 +67,10 @@
             />
             <img v-else-if="displayLogo === 'bch-logo.png'" src="~assets/bch-logo.webp"/>
           </q-avatar>
-          <div class="text-h5 text-weight-medium">{{ displayAmount }} {{ displayTokenCurrency }}</div>
+          <div class="text-h5 text-weight-medium">{{ formatNumberAutoDecimals(displayAmount) }} {{ displayTokenCurrency }}</div>
         </div>
         <div v-if="displayFiatAmount !== null && displayFiatAmount !== undefined && displayFiatCurrency" class="text-h6 text-grey q-mt-xs">
-          {{ typeof displayFiatAmount === 'number' ? displayFiatAmount.toFixed(2) : displayFiatAmount }} {{ displayFiatCurrency }}
+          {{ typeof displayFiatAmount === 'number' ? formatNumberWithDecimals(displayFiatAmount, 2) : displayFiatAmount }} {{ displayFiatCurrency }}
         </div>
       </div>
 
@@ -118,6 +118,7 @@ import { useCashtokenStore } from 'src/stores/cashtoken'
 import { useWalletStore } from 'src/stores/wallet'
 import confetti from 'canvas-confetti'
 import { NativeAudio } from '@capacitor-community/native-audio'
+import { formatNumberAutoDecimals, formatNumberWithDecimals } from 'src/utils/number-format'
 
 export default defineComponent({
   name: 'TransactionDetail',
@@ -736,6 +737,8 @@ export default defineComponent({
       hexToRef,
       onImgErrorIpfsSrc,
       goBack,
+      formatNumberAutoDecimals,
+      formatNumberWithDecimals,
     }
   },
 })

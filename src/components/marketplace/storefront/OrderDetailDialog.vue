@@ -57,9 +57,9 @@
                     <div>{{ orderItem?.variant?.itemName }}</div>
                   </div>
                 </td>
-                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ formatNumberAutoDecimals(orderItem?.price) }} {{ orderCurrency }}</td>
                 <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
-                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price * orderItem?.quantity }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ formatNumberAutoDecimals(orderItem?.price * orderItem?.quantity) }} {{ orderCurrency }}</td>
               </tr>
               <tr v-for="(addon, index) in orderItem.addons" :key="`${orderItem?.id}-${index}`">
                 <td></td>
@@ -67,9 +67,9 @@
                   <div>{{ addon?.label }}</div>
                   <div v-if="addon?.inputValue" class="text-caption bottom">{{ addon?.inputValue }}</div>
                 </td>
-                <td class="text-center" style="white-space:nowrap;">{{ addon?.price }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ formatNumberAutoDecimals(addon?.price) }} {{ orderCurrency }}</td>
                 <td class="text-center" style="white-space:nowrap;">{{ addon?.quantity }}</td>
-                <td class="text-center" style="white-space:nowrap;">{{ round(addon?.price * orderItem?.quantity, 3) }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ formatNumberWithDecimals(round(addon?.price * orderItem?.quantity, 3), 3) }} {{ orderCurrency }}</td>
               </tr>
             </template>
           </tbody>
@@ -78,24 +78,24 @@
         <div class="row items-start">
           <div>{{ $t('Subtotal') }}</div>
           <q-space/>
-          <div>{{ order?.subtotal }} {{ orderCurrency }}</div>
+          <div>{{ formatNumberAutoDecimals(order?.subtotal) }} {{ orderCurrency }}</div>
         </div>
 
         <div class="row items-start">
           <div>{{ $t('Markup') }}</div>
           <q-space/>
-          <div>{{ order?.markupAmount }} {{ orderCurrency }}</div>
+          <div>{{ formatNumberAutoDecimals(order?.markupAmount) }} {{ orderCurrency }}</div>
         </div>
 
         <div class="row items-start">
           <div>{{ $t('DeliveryFee', {}, 'Delivery fee') }}</div>
           <q-space/>
-          <div>{{ order?.payment?.deliveryFee }} {{ orderCurrency }}</div>
+          <div>{{ formatNumberAutoDecimals(order?.payment?.deliveryFee) }} {{ orderCurrency }}</div>
         </div>
         <div class="row items-start">
           <div class="text-subtitle1">{{ $t('Total') }}</div>
           <q-space/>
-          <div>{{ order?.total }} {{ orderCurrency }}</div>
+          <div>{{ formatNumberAutoDecimals(order?.total) }} {{ orderCurrency }}</div>
         </div>
         <q-btn
           no-caps label="Go to page"
@@ -112,6 +112,7 @@ import { Order } from 'src/marketplace/objects'
 import { useDialogPluginComponent } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import { formatTimestampToText, round } from 'src/marketplace/utils'
+import { formatNumberAutoDecimals, formatNumberWithDecimals } from 'src/utils/number-format'
 
 export default defineComponent({
   name: 'OrderDetailDialog',
@@ -142,6 +143,8 @@ export default defineComponent({
 
       round,
       formatTimestampToText,
+      formatNumberAutoDecimals,
+      formatNumberWithDecimals,
     }
   },
 })

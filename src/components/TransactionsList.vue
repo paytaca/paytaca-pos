@@ -34,10 +34,10 @@
         </div>
         <div class="text-body2 text-weight-medium text-right">
           <div v-if="getTxAmount(tx)?.value">
-            {{ getTxAmount(tx)?.value }} {{ getTxAmount(tx)?.symbol }}
+            {{ formatNumberAutoDecimals(getTxAmount(tx)?.value) }} {{ getTxAmount(tx)?.symbol }}
           </div>
           <div v-else-if="tx?._offline && tx?.marketValue?.currency && tx?.marketValue?.amount">
-            {{ tx?.marketValue?.amount }} {{ tx?.marketValue?.currency }}
+            {{ formatNumberAutoDecimals(tx?.marketValue?.amount) }} {{ tx?.marketValue?.currency }}
           </div>
           <div 
             v-if="getTxDisplayFiat(tx)?.value !== null"
@@ -45,7 +45,7 @@
             :class="[$q.dark.isActive ? 'text-weight-light' : '']"
             style="margin-top:-0.25em;"
           >
-            {{ Number(getTxDisplayFiat(tx)?.value).toFixed(2) }} {{ getTxDisplayFiat(tx)?.currency }}
+            {{ formatNumberWithDecimals(Number(getTxDisplayFiat(tx)?.value), 2) }} {{ getTxDisplayFiat(tx)?.currency }}
           </div>
         </div>
       </div>
@@ -69,6 +69,7 @@ import TransactionDetailDialog from 'src/components/TransactionDetailDialog.vue'
 import { useTxCacheStore } from 'src/stores/tx-cache'
 import SalesOrderDetailDialog from './marketplace/sales/SalesOrderDetailDialog.vue'
 import { useI18n } from 'vue-i18n'
+import { formatNumberAutoDecimals, formatNumberWithDecimals } from 'src/utils/number-format'
 
 export default defineComponent({
   components: {
@@ -186,6 +187,8 @@ export default defineComponent({
 
       resolveTransactionSalesOrderId,
       formatDate,
+      formatNumberAutoDecimals,
+      formatNumberWithDecimals,
     }
   }
 })

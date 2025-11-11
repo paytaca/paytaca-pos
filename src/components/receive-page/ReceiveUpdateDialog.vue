@@ -35,10 +35,10 @@
           </q-item-section>
           <q-item-section>
             <q-item-label class="text-h5">
-              {{ displayAmount }} {{ displayTokenCurrency }}
+              {{ formatNumberAutoDecimals(displayAmount) }} {{ displayTokenCurrency }}
             </q-item-label>
             <q-item-label v-if="displayFiatAmount !== null && displayFiatAmount !== undefined && displayFiatCurrency" class="text-body1 text-grey">
-              {{ typeof displayFiatAmount === 'number' ? displayFiatAmount.toFixed(2) : displayFiatAmount }} {{ displayFiatCurrency }}
+              {{ typeof displayFiatAmount === 'number' ? formatNumberWithDecimals(displayFiatAmount, 2) : displayFiatAmount }} {{ displayFiatCurrency }}
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -82,6 +82,7 @@ import { useTransactionHelpers } from 'src/composables/transaction'
 import { useCashtokenStore } from 'src/stores/cashtoken'
 import { useWalletStore } from 'src/stores/wallet'
 import confetti from 'canvas-confetti'
+import { formatNumberAutoDecimals, formatNumberWithDecimals } from 'src/utils/number-format'
 
 export default defineComponent({
   name: 'ReceiveUpdateDialog',
@@ -303,6 +304,8 @@ export default defineComponent({
       copyText,
       hexToRef,
       onImgErrorIpfsSrc,
+      formatNumberAutoDecimals,
+      formatNumberWithDecimals,
     }
   },
 })

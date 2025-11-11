@@ -485,9 +485,9 @@
                     </div>
                   </div>
                 </td>
-                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ formatNumberAutoDecimals(orderItem?.price) }} {{ orderCurrency }}</td>
                 <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
-                <td class="text-center" style="white-space:nowrap;">{{ orderItem?.price * orderItem?.quantity }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ formatNumberAutoDecimals(orderItem?.price * orderItem?.quantity) }} {{ orderCurrency }}</td>
               </tr>
               <tr v-for="(addon, index) in orderItem.addons" :key="`${orderItem?.id}-${index}`">
                 <td></td>
@@ -495,9 +495,9 @@
                   <div>{{ addon?.label }}</div>
                   <div v-if="addon?.inputValue" class="text-caption bottom">{{ addon?.inputValue }}</div>
                 </td>
-                <td class="text-center" style="white-space:nowrap;">{{ addon?.price }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ formatNumberAutoDecimals(addon?.price) }} {{ orderCurrency }}</td>
                 <td class="text-center" style="white-space:nowrap;">{{ addon?.quantity }}</td>
-                <td class="text-center" style="white-space:nowrap;">{{ round(addon?.price * orderItem?.quantity, 3) }} {{ orderCurrency }}</td>
+                <td class="text-center" style="white-space:nowrap;">{{ formatNumberWithDecimals(round(addon?.price * orderItem?.quantity, 3), 3) }} {{ orderCurrency }}</td>
               </tr>
             </template>
             <tr v-if="order?.cutlerySubtotal">
@@ -507,7 +507,7 @@
               <td></td>
               <td></td>
               <td class="text-center" style="white-space:nowrap;">
-                {{ round(order?.cutlerySubtotal, 3) }} {{ orderCurrency }}
+                {{ formatNumberWithDecimals(round(order?.cutlerySubtotal, 3), 3) }} {{ orderCurrency }}
               </td>
             </tr>
           </tbody>
@@ -526,31 +526,31 @@
       <div class="q-px-xs" @click="toggleAmountsDisplay">
         <div class="row items-start text-subtitle2">
           <div class="q-space">{{ $t('Subtotal') }}</div>
-          <div v-if="displayBch">{{ orderAmounts.subtotal.bch }} BCH</div>
-          <div v-else>{{ orderAmounts.subtotal.currency }} {{ orderCurrency }}</div>
+          <div v-if="displayBch">{{ formatNumberAutoDecimals(orderAmounts.subtotal.bch) }} BCH</div>
+          <div v-else>{{ formatNumberAutoDecimals(orderAmounts.subtotal.currency) }} {{ orderCurrency }}</div>
         </div>
 
         <div class="row items-start text-subtitle2">
           <div class="q-space">{{ $t('Markup') }}</div>
-          <div v-if="displayBch">{{ orderAmounts.markupAmount.bch }} BCH</div>
-          <div v-else>{{ orderAmounts.markupAmount.currency }} {{ orderCurrency }}</div>
+          <div v-if="displayBch">{{ formatNumberAutoDecimals(orderAmounts.markupAmount.bch) }} BCH</div>
+          <div v-else>{{ formatNumberAutoDecimals(orderAmounts.markupAmount.currency) }} {{ orderCurrency }}</div>
         </div>
         <div class="row items-start text-subtitle2">
           <div class="q-space">{{ $t('DeliveryFee') }}</div>
-          <div v-if="displayBch">{{ orderAmounts.deliveryFee.bch }} BCH</div>
-          <div v-else>{{ orderAmounts.deliveryFee.currency }} {{ orderCurrency }}</div>
+          <div v-if="displayBch">{{ formatNumberAutoDecimals(orderAmounts.deliveryFee.bch) }} BCH</div>
+          <div v-else>{{ formatNumberAutoDecimals(orderAmounts.deliveryFee.currency) }} {{ orderCurrency }}</div>
         </div>
         <div class="row items-start text-h6">
           <div class="q-space">{{ $t('Total') }}</div>
-          <div v-if="displayBch">{{ orderAmounts.total.bch }} BCH</div>
-          <div v-else>{{ orderAmounts.total.currency }} {{ orderCurrency }}</div>
+          <div v-if="displayBch">{{ formatNumberAutoDecimals(orderAmounts.total.bch) }} BCH</div>
+          <div v-else>{{ formatNumberAutoDecimals(orderAmounts.total.currency) }} {{ orderCurrency }}</div>
         </div>
         <template v-if="orderAmounts.totalPaid.currency || orderAmounts.totalPendingPayment.currency">
           <q-separator/>
           <div class="row items-start text-body1">
             <div class="q-space">{{ $t('TotalPaid') }}</div>
-            <div v-if="displayBch">{{ orderAmounts.totalPaid.bch || 0 }} BCH</div>
-            <div v-else>{{ orderAmounts.totalPaid.currency || 0 }} {{ orderCurrency }}</div>
+            <div v-if="displayBch">{{ formatNumberAutoDecimals(orderAmounts.totalPaid.bch || 0) }} BCH</div>
+            <div v-else>{{ formatNumberAutoDecimals(orderAmounts.totalPaid.currency || 0) }} {{ orderCurrency }}</div>
           </div>
           <div
             v-if="orderAmounts.totalPendingPayment.currency"
@@ -558,21 +558,21 @@
             @click.stop
           >
             <div class="q-space">{{ $t('PendingAmount') }}</div>
-            <div v-if="displayBch">{{ orderAmounts.totalPendingPayment.bch }} BCH</div>
-            <div v-else>{{ orderAmounts.totalPendingPayment.currency }} {{ orderCurrency }}</div>
+            <div v-if="displayBch">{{ formatNumberAutoDecimals(orderAmounts.totalPendingPayment.bch) }} BCH</div>
+            <div v-else>{{ formatNumberAutoDecimals(orderAmounts.totalPendingPayment.currency) }} {{ orderCurrency }}</div>
             <q-menu class="q-pa-md">{{ $t('PendingAmountMsg') }}</q-menu>
           </div>
 
           <template v-if="orderAmounts.totalRefunded.currency">
             <div class="row items-start text-grey">
               <div class="q-space">{{ $t('TotalRefunded') }}</div>
-              <div v-if="displayBch">{{ orderAmounts.totalRefunded.bch }} BCH</div>
-              <div v-else>{{ orderAmounts.totalRefunded.currency }} {{ orderCurrency }}</div>
+              <div v-if="displayBch">{{ formatNumberAutoDecimals(orderAmounts.totalRefunded.bch) }} BCH</div>
+              <div v-else>{{ formatNumberAutoDecimals(orderAmounts.totalRefunded.currency) }} {{ orderCurrency }}</div>
             </div>
             <div class="row items-start">
               <div class="q-space">{{ $t('NetPaid') }}</div>
-              <div v-if="displayBch">{{ orderAmounts.netPaid.bch }} BCH</div>
-              <div v-else>{{ orderAmounts.netPaid.currency }} {{ orderCurrency }}</div>
+              <div v-if="displayBch">{{ formatNumberAutoDecimals(orderAmounts.netPaid.bch) }} BCH</div>
+              <div v-else>{{ formatNumberAutoDecimals(orderAmounts.netPaid.currency) }} {{ orderCurrency }}</div>
             </div>
           </template>
         </template>
@@ -655,6 +655,7 @@ import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import riderLocationPin from 'src/assets/marketplace/rider_map_marker_2.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
+import { formatNumberAutoDecimals, formatNumberWithDecimals } from 'src/utils/number-format'
 
 
 export default defineComponent({
@@ -1532,6 +1533,8 @@ export default defineComponent({
       parsePaymentStatusColor,
       formatTimestampToText,
       formatDateRelative,
+      formatNumberAutoDecimals,
+      formatNumberWithDecimals,
     }
   },
 })

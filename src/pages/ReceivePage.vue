@@ -89,25 +89,25 @@
         <!-- In fiat mode: show crypto amount in large text, fiat amount below -->
         <template v-if="fiatReferenceAmount && fiatReferenceCurrency">
           <div v-if="isCashtoken && !isNaN(tokenAmount)">
-            {{ tokenAmount }} {{ cashtokenMetadata?.symbol }}
+            {{ formatNumberAutoDecimals(tokenAmount) }} {{ cashtokenMetadata?.symbol }}
           </div>
           <div v-else-if="!isNaN(bchValue)">
-            {{ bchValue }} BCH
+            {{ formatNumberAutoDecimals(bchValue) }} BCH
           </div>
           <div class="text-subtitle2 text-grey">
-            {{ fiatReferenceAmount }} {{ fiatReferenceCurrency }}
+            {{ formatNumberAutoDecimals(fiatReferenceAmount) }} {{ fiatReferenceCurrency }}
           </div>
         </template>
         <!-- In crypto mode: show crypto amount in large text -->
         <template v-else>
           <div>
-            {{ receiveAmount }} {{ currency }}
+            {{ formatNumberAutoDecimals(receiveAmount) }} {{ currency }}
           </div>
           <div v-if="currency !== 'BCH' && !isNaN(bchValue)" class="text-caption text-grey">
-            {{ bchValue }} BCH
+            {{ formatNumberAutoDecimals(bchValue) }} BCH
           </div>
           <div v-else-if="cashtokenMetadata?.symbol !== currency && !isNaN(tokenAmount)" class="text-caption text-grey">
-            {{ tokenAmount }} {{ cashtokenMetadata?.symbol }}
+            {{ formatNumberAutoDecimals(tokenAmount) }} {{ cashtokenMetadata?.symbol }}
           </div>
         </template>
       </div>
@@ -138,7 +138,7 @@
               <q-menu>
                 <q-list style="min-width: 100px">
                   <q-item clickable v-close-popup>
-                    <q-item-section>{{ currencyAmountRemaining }} {{ currency }}</q-item-section>
+                    <q-item-section>{{ formatNumberAutoDecimals(currencyAmountRemaining) }} {{ currency }}</q-item-section>
                   </q-item>
                 </q-list>
               </q-menu>
@@ -172,10 +172,10 @@
           </q-item-section>
           <q-item-section class="text-right">
             <q-item-label caption>
-              {{ txReceived?.amount }} {{ txReceived?.tokenSymbol }}
+              {{ formatNumberAutoDecimals(txReceived?.amount) }} {{ txReceived?.tokenSymbol }}
             </q-item-label>
             <q-item-label v-if="txReceived?.marketValue?.amount && txReceived?.marketValue?.currency" caption>
-              {{ txReceived?.marketValue?.amount }} {{ txReceived?.marketValue?.currency }}
+              {{ formatNumberAutoDecimals(txReceived?.marketValue?.amount) }} {{ txReceived?.marketValue?.currency }}
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -265,6 +265,7 @@ import { sha256 } from 'src/wallet/utils'
 import bchLogo from 'src/assets/bch-logo.webp'
 import { postOutputFiatAmounts } from 'src/utils/watchtower'
 import { convertIpfsUrl } from 'src/utils/ipfs'
+import { formatNumberAutoDecimals, formatNumberWithDecimals } from 'src/utils/number-format'
 
 
 export default defineComponent({
@@ -1949,6 +1950,8 @@ export default defineComponent({
       showErrorDetails,
       clearErrorLogs,
       formatErrorTime,
+      formatNumberAutoDecimals,
+      formatNumberWithDecimals,
     }
   },
 })

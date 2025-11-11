@@ -6,13 +6,13 @@
         <q-space/>
       </div>
       <div class="column justify-center q-space">
-        <div class="text-weight-medium">{{ salesReport.total }} BCH</div>
+        <div class="text-weight-medium">{{ formatNumberAutoDecimals(salesReport.total) }} BCH</div>
         <div v-if="salesReport?.tokenAmounts?.length" class="text-caption q-r-mt-sm q-mb-xs">
           + {{ salesReport?.tokenAmounts?.length }}
           {{ salesReport?.tokenAmounts?.length === 1 ? $t('Token') : $t('Tokens') }}
         </div>
         <div v-if="(salesReport.currency && salesReport.totalMarketValue)" class="text-caption" style="margin-top:-0.5em;">
-          {{ salesReport.totalMarketValue }} {{ salesReport.currency }}
+          {{ formatNumberAutoDecimals(salesReport.totalMarketValue) }} {{ salesReport.currency }}
         </div>
       </div>
       <q-menu v-if="salesReport?.tokenAmounts?.length" class="q-pa-md">
@@ -37,6 +37,7 @@ import { useCashtokenStore } from 'src/stores/cashtoken'
 import { useQuasar } from 'quasar'
 import { defineComponent, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatNumberAutoDecimals } from 'src/utils/number-format'
 
 export default defineComponent({
   name: 'SalesReportCard',
@@ -70,7 +71,7 @@ export default defineComponent({
       const decimals = parseInt(tokenMetadata?.decimals) || 0;
       const symbol = tokenMetadata?.symbol;
       const amount = amountData.amount / 10 ** decimals;
-      return `${amount} ${symbol}`;
+      return `${formatNumberAutoDecimals(amount)} ${symbol}`;
     }
 
     const $copyText = inject('$copyText');
@@ -90,6 +91,7 @@ export default defineComponent({
     return {
       formatTokenAmount,
       copyToClipboard,
+      formatNumberAutoDecimals,
     }
   }
 })

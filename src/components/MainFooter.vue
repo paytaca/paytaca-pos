@@ -26,7 +26,7 @@
             padding="md"
             size="1.75rem"
             icon="qr_code"
-            :disable="(!$pinia.state.value.wallet?.walletHash || !walletStore.isDeviceValid)"
+            :disable="(!walletStore.walletHash || !walletStore.isDeviceValid)"
             @click="promptAmount"
           />
         </div>

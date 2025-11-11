@@ -14,6 +14,39 @@
         </q-btn>
       </template>
     </MainHeader>
+    
+    <!-- Locale Switcher Section -->
+    <q-card class="q-mx-md q-mt-md q-mb-md">
+      <q-card-section>
+        <div class="text-h6 q-mb-md">Locale Testing</div>
+        <div class="row items-center q-gutter-md">
+          <div class="col-auto">
+            <q-select
+              v-model="selectedLocale"
+              :options="localeOptions"
+              label="Test Locale"
+              outlined
+              dense
+              emit-value
+              map-options
+              style="min-width: 200px"
+            />
+          </div>
+          <div class="col">
+            <div class="text-caption text-grey q-mb-xs">Number Format Preview:</div>
+            <div class="text-body1">
+              <strong>1,234.56</strong> → <strong>{{ formatPreview }}</strong>
+            </div>
+          </div>
+        </div>
+        <q-separator class="q-mt-md q-mb-sm"/>
+        <div class="text-caption text-grey">
+          Current locale: <strong>{{ currentLocale }}</strong> | 
+          Number locale: <strong>{{ numberLocale }}</strong>
+        </div>
+      </q-card-section>
+    </q-card>
+
     <!-- Terminal Display -->
     <div class="terminal-container" :class="$q.dark.isActive ? 'dark' : ''">
       <div class="terminal-header">
@@ -63,12 +96,13 @@
 </template>
 
 <script>
-import { defineComponent, ref, onMounted, nextTick, watch, inject } from 'vue'
+import { defineComponent, ref, onMounted, nextTick, watch, inject, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import MainHeader from 'src/components/MainHeader.vue'
 import { useDebugLogger } from 'src/composables/useDebugLogger'
+import { useSettingsStore } from 'src/stores/settings'
 
 export default defineComponent({
   name: 'DebugPage',
@@ -78,10 +112,75 @@ export default defineComponent({
   setup() {
     const router = useRouter()
     const $q = useQuasar()
-    const { t } = useI18n()
+    const { locale, t } = useI18n({ useScope: 'global' })
+    const settingsStore = useSettingsStore()
     const terminalBody = ref(null)
     const { logs, clearLogs, stopInterception } = useDebugLogger()
     const $copyText = inject('$copyText', null)
+
+    // Locale switcher
+    const localeOptions = [
+      { value: 'af', label: 'Afrikaans' },
+      { value: 'ceb', label: 'Cebuano' },
+      { value: 'zh-cn', label: 'Chinese (Simplified)' },
+      { value: 'zh-tw', label: 'Chinese (Traditional)' },
+      { value: 'nl', label: 'Dutch' },
+      { value: 'en-us', label: 'English (US)' },
+      { value: 'de', label: 'German' },
+      { value: 'ha', label: 'Hausa' },
+      { value: 'id', label: 'Indonesian' },
+      { value: 'it', label: 'Italian' },
+      { value: 'ja', label: 'Japanese' },
+      { value: 'ko', label: 'Korean' },
+      { value: 'pt', label: 'Portuguese' },
+      { value: 'pt-br', label: 'Portuguese (Brazil)' },
+      { value: 'es', label: 'Spanish' },
+      { value: 'es-ar', label: 'Spanish (Argentina)' },
+    ]
+
+    const selectedLocale = ref(settingsStore.language || 'en-us')
+
+    // Watch for locale changes and update settings store
+    watch(selectedLocale, (newLocale) => {
+      settingsStore.language = newLocale
+      locale.value = newLocale
+    })
+
+    // Get locale mapping for number formatting
+    function getLocaleFromLanguage(language) {
+      const localeMap = {
+        'en-us': 'en-US',
+        'en': 'en-US',
+        'de': 'de-DE',
+        'zh-cn': 'zh-CN',
+        'zh-tw': 'zh-TW',
+        'es': 'es-ES',
+        'es-ar': 'es-AR',
+        'pt': 'pt-PT',
+        'pt-br': 'pt-BR',
+        'ha': 'ha',
+        'af': 'af',
+        'ceb': 'ceb',
+        'nl': 'nl-NL',
+        'id': 'id-ID',
+        'it': 'it-IT',
+        'ja': 'ja-JP',
+        'ko': 'ko-KR',
+      }
+      return localeMap[language] || localeMap['en-us']
+    }
+
+    const currentLocale = computed(() => selectedLocale.value)
+    const numberLocale = computed(() => getLocaleFromLanguage(selectedLocale.value))
+    const formatPreview = computed(() => {
+      const testNumber = 1234.56
+      const locale = getLocaleFromLanguage(selectedLocale.value)
+      return new Intl.NumberFormat(locale, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+        useGrouping: true
+      }).format(testNumber)
+    })
 
     function formatLogsForCopy() {
       if (logs.value.length === 0) {
@@ -167,6 +266,12 @@ export default defineComponent({
       clearLogs,
       copyLogs,
       handleClose,
+      // Locale switcher
+      selectedLocale,
+      localeOptions,
+      currentLocale,
+      numberLocale,
+      formatPreview,
     }
   }
 })
