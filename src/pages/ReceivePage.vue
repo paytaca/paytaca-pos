@@ -213,9 +213,9 @@ import { useAddressesStore } from 'stores/addresses'
 import { useCashtokenStore } from 'src/stores/cashtoken'
 import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, inject, markRaw } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
-import { useWakeLock } from '@vueuse/core'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
+import { Capacitor } from '@capacitor/core'
 import QRCode from 'vue-qrcode-component'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
@@ -768,13 +768,35 @@ export default defineComponent({
           }
         })
         .catch((error) => {
-          rateFetchError.value = true
-          $q.notify({
-            type: 'negative',
-            message: t('FailedToFetchExchangeRate', { currency: currency.value }, `Failed to fetch exchange rate for ${currency.value}`),
-            timeout: 5000,
-            icon: 'mdi-alert-circle'
-          })
+          // Only show error if we don't have a valid rate available
+          // If a rate exists (even if stale), the QR can still be generated
+          // Check for rates based on payment type:
+          // - Cashtoken in fiat mode: need tokenFiatRate OR (fiatReferenceRate + tokenBchRate for fallback calc)
+          // - BCH in fiat mode: need currencyBchRate
+          let stillHasValidRate = false
+          
+          if (isCashtoken.value && fiatReferenceCurrency.value) {
+            // For cashtoken payments, check if we have tokenFiatRate or can calculate via fallback
+            stillHasValidRate = !!(tokenFiatRate.value?.rate || 
+              (fiatReferenceRate.value?.rate && tokenBchRate.value?.rate))
+          } else {
+            // For BCH payments, just need currencyBchRate
+            stillHasValidRate = !!(currencyBchRate.value?.rate)
+          }
+
+          if (!stillHasValidRate) {
+            rateFetchError.value = true
+            $q.notify({
+              type: 'negative',
+              message: t('FailedToFetchExchangeRate', { currency: currency.value }, `Failed to fetch exchange rate for ${currency.value}`),
+              timeout: 5000,
+              icon: 'mdi-alert-circle'
+            })
+          } else {
+            // Rate exists, so clear any previous error state
+            rateFetchError.value = false
+            console.log('[ReceivePage] Rate refresh failed but using existing rate')
+          }
         })
         .finally(() => {
           fiatRateLoading.value = false
@@ -1046,9 +1068,94 @@ export default defineComponent({
     })
 
     /** Keeps screen on */
-    const wakeLock = reactive(useWakeLock())
-    onMounted(async () => await wakeLock.request('screen'))
-    onUnmounted(async () => await wakeLock.release())
+    let wakeLock = null
+    let visibilityChangeHandler = null
+    const isCapacitor = Capacitor.isNativePlatform()
+    
+    async function requestWakeLock() {
+      // Check if the Wake Lock API is supported
+      if (!('wakeLock' in navigator)) {
+        if (isCapacitor) {
+          console.warn('[ReceivePage] Wake Lock API not supported in Capacitor WebView. Screen may go dark on mobile.')
+        } else {
+          console.warn('[ReceivePage] Wake Lock API not supported in this browser')
+        }
+        return
+      }
+      
+      try {
+        // Release any existing wake lock first
+        if (wakeLock) {
+          await wakeLock.release().catch(() => {})
+          wakeLock = null
+        }
+        
+        // Request a new wake lock
+        wakeLock = await navigator.wakeLock.request('screen')
+        console.log('[ReceivePage] Wake Lock acquired successfully')
+        
+        // Handle wake lock release events
+        wakeLock.addEventListener('release', () => {
+          console.log('[ReceivePage] Wake Lock was released')
+          // Try to re-acquire if page is still visible
+          if (document.visibilityState === 'visible') {
+            requestWakeLock()
+          }
+        })
+      } catch (err) {
+        // Common errors:
+        // - "NotAllowedError": User denied permission or not in fullscreen
+        // - "NotSupportedError": Browser doesn't support wake lock
+        // - "AbortError": Request was aborted
+        console.error('[ReceivePage] Error requesting wake lock:', err.name, err.message)
+        if (isCapacitor && err.name === 'NotSupportedError') {
+          console.warn('[ReceivePage] Wake Lock not supported in Capacitor WebView. Consider using a native plugin.')
+        }
+      }
+    }
+    
+    function releaseWakeLock() {
+      if (wakeLock) {
+        wakeLock.release()
+          .then(() => {
+            wakeLock = null
+            console.log('[ReceivePage] Wake Lock released')
+          })
+          .catch((err) => {
+            console.error('[ReceivePage] Error releasing wake lock:', err)
+            wakeLock = null
+          })
+      }
+    }
+    
+    // Handle visibility changes - re-acquire wake lock when page becomes visible
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        // Re-acquire wake lock when page becomes visible again
+        // This is important because wake locks are automatically released when the page is hidden
+        if (wakeLock === null) {
+          requestWakeLock()
+        }
+      }
+    }
+    
+    onMounted(() => {
+      // Request wake lock when component mounts
+      requestWakeLock()
+      // Re-acquire wake lock when page becomes visible again
+      visibilityChangeHandler = handleVisibilityChange
+      document.addEventListener('visibilitychange', visibilityChangeHandler)
+    })
+    
+    onUnmounted(() => {
+      // Clean up event listener
+      if (visibilityChangeHandler) {
+        document.removeEventListener('visibilitychange', visibilityChangeHandler)
+        visibilityChangeHandler = null
+      }
+      // Release wake lock when component unmounts
+      releaseWakeLock()
+    })
     /** --------------- */
 
     // Watch for debug mode changes (in case user toggles it in settings)

@@ -118,6 +118,7 @@ import { useCashtokenStore } from 'src/stores/cashtoken'
 import { useWalletStore } from 'src/stores/wallet'
 import confetti from 'canvas-confetti'
 import { NativeAudio } from '@capacitor-community/native-audio'
+import { Capacitor } from '@capacitor/core'
 import { formatNumberAutoDecimals, formatNumberWithDecimals } from 'src/utils/number-format'
 
 export default defineComponent({
@@ -383,16 +384,25 @@ export default defineComponent({
           console.error('Error playing sound:', error)
           // Fallback: try to preload and play again
           try {
-            let path = 'send-success.mp3'
+            let path = '/send-success.mp3'
+            let isUrl = true
+            
             if ($q.platform.is.ios) {
-              path = 'public/assets/send-success.mp3'
+              path = 'public/assets/sounds/send-success.mp3'
+              isUrl = false
+            } else if ($q.platform.is.android) {
+              // For Android, use the full URL path
+              const baseUrl = window.location.origin
+              path = `${baseUrl}/send-success.mp3`
+              isUrl = true
             }
+            
             await NativeAudio.preload({
               assetId: 'send-success',
               assetPath: path,
               audioChannelNum: 1,
               volume: 1.0,
-              isUrl: false
+              isUrl: isUrl
             })
             await NativeAudio.play({
               assetId: 'send-success'
@@ -639,10 +649,20 @@ export default defineComponent({
       // Preload sound for native platforms
       if ($q.platform.is.capacitor) {
         try {
-          let path = 'send-success.mp3'
+          let path = '/send-success.mp3'
+          let isUrl = true
+          
           if ($q.platform.is.ios) {
-            // For iOS, use the correct path - file should be in public/assets/
-            path = 'public/assets/send-success.mp3'
+            // For iOS, use the correct path - file should be in public/assets/sounds/
+            path = 'public/assets/sounds/send-success.mp3'
+            isUrl = false
+          } else if ($q.platform.is.android) {
+            // For Android, use the full URL path
+            // Files in public/ are served via HTTP from Capacitor server
+            // Construct the full URL using window.location
+            const baseUrl = window.location.origin
+            path = `${baseUrl}/send-success.mp3`
+            isUrl = true
           }
           
           await NativeAudio.preload({
@@ -650,8 +670,9 @@ export default defineComponent({
             assetPath: path,
             audioChannelNum: 1,
             volume: 1.0,
-            isUrl: false
+            isUrl: isUrl
           })
+          console.log('[TransactionDetail] NativeAudio preloaded successfully for', $q.platform.is.android ? 'Android' : 'iOS', 'with path:', path)
         } catch (error) {
           console.warn('Failed to preload audio:', error)
           // Continue without preload - will use HTML5 fallback
