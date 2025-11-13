@@ -227,6 +227,7 @@ import { postOutputFiatAmounts } from 'src/utils/watchtower'
 import { useQrCodeGenerator } from 'src/composables/useQrCodeGenerator'
 import { useFiatRateManager } from 'src/composables/useFiatRateManager'
 import { usePaymentTracking } from 'src/composables/usePaymentTracking'
+import { validateBchRate, validateTokenRate, validateConversionResult } from 'src/utils/rate-validation'
 
 
 export default defineComponent({
@@ -414,8 +415,49 @@ export default defineComponent({
       if (isNotFiatMode.value) return receiveAmount.value
 
       const rateValue = currencyBchRate.value?.rate
-      if (!rateValue || rateValue === 0 || isNaN(rateValue)) return NaN
+      if (!rateValue || rateValue === 0 || isNaN(rateValue)) {
+        console.error('[ReceivePage] Invalid BCH rate value', {
+          rate: rateValue,
+          currency: currency.value,
+          rateObject: currencyBchRate.value
+        })
+        return NaN
+      }
+      
+      // Validate the rate before using it
+      const rateValidation = validateBchRate(rateValue, currency.value)
+      if (!rateValidation.valid) {
+        console.error('[ReceivePage] BCH rate validation failed:', rateValidation.error, {
+          rate: rateValue,
+          currency: currency.value,
+          rateObject: currencyBchRate.value,
+          receiveAmount: receiveAmount.value
+        })
+        return NaN // Return NaN to prevent showing incorrect QR
+      }
+      
       const finalBchValue = Number((receiveAmount.value / rateValue).toFixed(8))
+      
+      // Validate the conversion result
+      const conversionValidation = validateConversionResult(
+        receiveAmount.value,
+        finalBchValue,
+        currency.value,
+        'BCH',
+        rateValue
+      )
+      
+      if (!conversionValidation.valid) {
+        console.error('[ReceivePage] BCH conversion validation failed:', conversionValidation.error, {
+          fiatAmount: receiveAmount.value,
+          cryptoAmount: finalBchValue,
+          currency: currency.value,
+          rate: rateValue,
+          rateObject: currencyBchRate.value
+        })
+        return NaN // Return NaN to prevent showing incorrect QR
+      }
+      
       return finalBchValue
     })
     const tokenAmount = computed(() => {
@@ -426,22 +468,120 @@ export default defineComponent({
       
       // If using direct token-fiat rate, multiply (token per fiat)
       if (tokenFiatRate.value?.rate && tokenFiatRate.value.rate !== 0) {
+        const rate = tokenFiatRate.value.rate
+        
+        // Validate token rate (check if it's a stablecoin)
+        const isStablecoin = cashtokenMetadata.value?.symbol?.toUpperCase().includes('USD') || 
+                            cashtokenMetadata.value?.symbol?.toUpperCase().includes('STABLE')
+        const rateValidation = validateTokenRate(rate, isStablecoin)
+        
+        if (!rateValidation.valid) {
+          console.error('[ReceivePage] Token-fiat rate validation failed:', rateValidation.error, {
+            rate: rate,
+            tokenCategory: tokenCategory.value,
+            currency: fiatReferenceCurrency.value || currency.value,
+            rateObject: tokenFiatRate.value,
+            tokenSymbol: cashtokenMetadata.value?.symbol,
+            isStablecoin,
+            receiveAmount: receiveAmount.value
+          })
+          return NaN
+        }
+        
         // Direct rate: token per fiat (e.g., 0.01698626 MUSD per PHP)
         // Convert: PHP * (MUSD per PHP) = MUSD
         // Use Math.round with scaling to match Python's rounding behavior
         const factor = Math.pow(10, cashtokenDecimals);
-        return Math.round((receiveAmount.value * tokenFiatRate.value.rate) * factor) / factor;
+        const tokenAmount = Math.round((receiveAmount.value * rate) * factor) / factor;
+        
+        // Validate conversion result
+        const conversionValidation = validateConversionResult(
+          receiveAmount.value,
+          tokenAmount,
+          fiatReferenceCurrency.value || currency.value,
+          'TOKEN',
+          rate
+        )
+        
+        if (!conversionValidation.valid) {
+          console.error('[ReceivePage] Token conversion validation failed:', conversionValidation.error, {
+            fiatAmount: receiveAmount.value,
+            tokenAmount: tokenAmount,
+            currency: fiatReferenceCurrency.value || currency.value,
+            rate: rate,
+            rateObject: tokenFiatRate.value,
+            tokenCategory: tokenCategory.value,
+            tokenSymbol: cashtokenMetadata.value?.symbol
+          })
+          return NaN
+        }
+        
+        return tokenAmount
       }
       
       // Fallback: use currencyTokenPrice which is "fiat per token"
       const rateValue = currencyTokenPrice.value
-      if (!rateValue || rateValue === 0) return NaN
+      if (!rateValue || rateValue === 0) {
+        console.error('[ReceivePage] Invalid fallback token rate value', {
+          rate: rateValue,
+          tokenCategory: tokenCategory.value,
+          currency: fiatReferenceCurrency.value || currency.value,
+          currencyTokenPrice: currencyTokenPrice.value,
+          tokenBchRate: tokenBchRate.value,
+          currencyBchRate: currencyBchRate.value
+        })
+        return NaN
+      }
+      
+      // Validate the fallback rate
+      const isStablecoin = cashtokenMetadata.value?.symbol?.toUpperCase().includes('USD') || 
+                          cashtokenMetadata.value?.symbol?.toUpperCase().includes('STABLE')
+      const rateValidation = validateTokenRate(rateValue, isStablecoin)
+      
+      if (!rateValidation.valid) {
+        console.error('[ReceivePage] Fallback token rate validation failed:', rateValidation.error, {
+          rate: rateValue,
+          tokenCategory: tokenCategory.value,
+          currency: fiatReferenceCurrency.value || currency.value,
+          tokenSymbol: cashtokenMetadata.value?.symbol,
+          isStablecoin,
+          receiveAmount: receiveAmount.value,
+          tokenBchRate: tokenBchRate.value,
+          currencyBchRate: currencyBchRate.value
+        })
+        return NaN
+      }
       
       // Fallback rate: fiat per token (e.g., PHP per MUSD)
       // Convert: PHP / (PHP per MUSD) = MUSD
       // Use Math.round with scaling to match Python's rounding behavior
       const factor = Math.pow(10, cashtokenDecimals);
-      return Math.round((receiveAmount.value / rateValue) * factor) / factor;
+      const tokenAmount = Math.round((receiveAmount.value / rateValue) * factor) / factor;
+      
+      // Validate conversion result
+      const conversionValidation = validateConversionResult(
+        receiveAmount.value,
+        tokenAmount,
+        fiatReferenceCurrency.value || currency.value,
+        'TOKEN',
+        rateValue
+      )
+      
+      if (!conversionValidation.valid) {
+        console.error('[ReceivePage] Fallback token conversion validation failed:', conversionValidation.error, {
+          fiatAmount: receiveAmount.value,
+          tokenAmount: tokenAmount,
+          currency: fiatReferenceCurrency.value || currency.value,
+          rate: rateValue,
+          tokenCategory: tokenCategory.value,
+          tokenSymbol: cashtokenMetadata.value?.symbol,
+          tokenBchRate: tokenBchRate.value,
+          currencyBchRate: currencyBchRate.value
+        })
+        return NaN
+      }
+      
+      return tokenAmount
     })
 
     const totalCryptoAmount = computed(() => {
@@ -1192,10 +1332,36 @@ export default defineComponent({
 
     // Add canShowQr computed now that websocketsReady is defined
     const canShowQr = computed(() => {
-      return websocketsReady.value && 
-             !refreshingQr.value && 
-             !fiatRateLoading.value && 
-             !!qrData.value
+      if (!websocketsReady.value || refreshingQr.value || fiatRateLoading.value || !qrData.value) {
+        return false
+      }
+      
+      // In fiat mode, ensure we have valid rates before showing QR
+      if (!isNotFiatMode.value) {
+        if (isCashtoken.value && fiatReferenceCurrency.value) {
+          // For cashtoken payments, need tokenFiatRate OR (fiatReferenceRate + tokenBchRate for fallback)
+          const hasTokenFiatRate = tokenFiatRate.value?.rate && tokenFiatRate.value.rate !== 0
+          const hasFallbackRates = fiatReferenceRate.value?.rate && 
+                                   fiatReferenceRate.value.rate !== 0 &&
+                                   tokenBchRate.value?.rate && 
+                                   tokenBchRate.value.rate !== 0
+          if (!hasTokenFiatRate && !hasFallbackRates) {
+            return false
+          }
+        } else {
+          // For BCH payments, need currencyBchRate
+          if (!currencyBchRate.value?.rate || currencyBchRate.value.rate === 0) {
+            return false
+          }
+        }
+        
+        // Also ensure the computed crypto amount is valid (not NaN)
+        if (isNaN(totalCryptoAmount.value) || totalCryptoAmount.value <= 0) {
+          return false
+        }
+      }
+      
+      return true
     })
 
     return {

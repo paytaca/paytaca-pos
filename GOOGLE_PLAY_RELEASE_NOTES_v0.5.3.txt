@@ -1,0 +1,7 @@
+Paytaca POS v0.5.3
+
+• Debug page for troubleshooting (long press Settings icon) and improved transaction detail page
+• Locale-aware number formatting - amounts display correctly with proper separators for your region
+• Screen stays awake during payment reception and fixed Android sound playback for new transactions
+• Fixed incorrect exchange rate error messages and improved QR code reliability for ARS
+• Enhanced error handling and improved mobile user experience
