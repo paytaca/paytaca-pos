@@ -1,6 +1,6 @@
 <template>
   <q-header class="main-header text-brandblue">
-    <q-toolbar class="q-mt-md">
+    <q-toolbar class="q-mt-md main-header-toolbar">
       <div style="position:relative;">
         <q-btn
           flat
@@ -74,5 +74,12 @@ export default defineComponent({
 <style scoped>
 .main-header {
   background-color: rgba(0,0,0,0);
+  /* Add safe area padding for devices with notches */
+  padding-top: env(safe-area-inset-top);
+}
+
+.main-header-toolbar {
+  /* Ensure toolbar content is properly spaced */
+  min-height: 50px;
 }
 </style>
