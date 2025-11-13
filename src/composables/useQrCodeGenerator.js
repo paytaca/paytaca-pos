@@ -40,20 +40,34 @@ export function useQrCodeGenerator({
   totalCryptoAmount,
 }) {
   const qrData = computed(() => {
+    console.log('[useQrCodeGenerator] Computing QR data:', {
+      receiveAmount: receiveAmount.value,
+      totalCryptoAmount: totalCryptoAmount.value,
+      isNotFiatMode: isNotFiatMode.value,
+      receivingAddress: receivingAddress.value,
+      isCashtoken: isCashtoken.value,
+      tokenCategory: tokenCategory.value,
+      remainingPaymentRounded: remainingPaymentRounded.value,
+      remainingPaymentInTokenUnits: remainingPaymentInTokenUnits.value
+    })
+    
     // Don't generate QR if no receive amount
     if (!receiveAmount.value) {
+      console.log('[useQrCodeGenerator] No receiveAmount, returning empty')
       return ''
     }
 
     // In fiat mode, validate crypto amount
     if (!isNotFiatMode.value) {
       if (isNaN(totalCryptoAmount.value) || totalCryptoAmount.value <= 0) {
+        console.log('[useQrCodeGenerator] Invalid totalCryptoAmount in fiat mode:', totalCryptoAmount.value)
         return ''
       }
     }
 
     // Don't generate QR if no receiving address
     if (!receivingAddress.value) {
+      console.log('[useQrCodeGenerator] No receivingAddress, returning empty')
       return ''
     }
 
@@ -75,6 +89,12 @@ export function useQrCodeGenerator({
       
       // Add price_id if available - use tokenPriceId from dialog, or fallback to rates
       const priceId = tokenPriceId.value || tokenFiatRate.value?.priceId || tokenBchRate.value?.priceId
+      console.log('[useQrCodeGenerator] Token payment - priceId:', {
+        tokenPriceId: tokenPriceId.value,
+        tokenFiatRatePriceId: tokenFiatRate.value?.priceId,
+        tokenBchRatePriceId: tokenBchRate.value?.priceId,
+        finalPriceId: priceId
+      })
       if (priceId) {
         params.push(`price_id=${priceId}`)
       }
@@ -99,7 +119,9 @@ export function useQrCodeGenerator({
       params.push(`expires=${adjustedExpirationTimestamp}`)
     }
 
-    return address + '?' + params.join('&')
+    const qrString = address + '?' + params.join('&')
+    console.log('[useQrCodeGenerator] Generated QR data:', qrString)
+    return qrString
   })
 
   return {

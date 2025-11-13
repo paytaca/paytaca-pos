@@ -461,19 +461,44 @@ export default defineComponent({
       return finalBchValue
     })
     const tokenAmount = computed(() => {
-      if (!isCashtoken.value) return NaN
-      if (isNotFiatMode.value) return receiveAmount.value
+      console.log('[ReceivePage] tokenAmount computed - inputs:', {
+        isCashtoken: isCashtoken.value,
+        isNotFiatMode: isNotFiatMode.value,
+        receiveAmount: receiveAmount.value,
+        hasMetadata: !!cashtokenMetadata.value,
+        metadata: cashtokenMetadata.value,
+        tokenFiatRate: tokenFiatRate.value,
+        currencyTokenPrice: currencyTokenPrice.value
+      })
+      
+      if (!isCashtoken.value) {
+        console.log('[ReceivePage] tokenAmount: Not a cashtoken, returning NaN')
+        return NaN
+      }
+      if (isNotFiatMode.value) {
+        console.log('[ReceivePage] tokenAmount: Not fiat mode, returning receiveAmount:', receiveAmount.value)
+        return receiveAmount.value
+      }
+      
+      // Ensure metadata is loaded before conversion
+      if (!cashtokenMetadata.value) {
+        console.log('[ReceivePage] tokenAmount: No metadata available, returning NaN')
+        return NaN
+      }
 
       const cashtokenDecimals = cashtokenMetadata.value?.decimals;
+      console.log('[ReceivePage] tokenAmount: Using decimals:', cashtokenDecimals)
       
       // If using direct token-fiat rate, multiply (token per fiat)
       if (tokenFiatRate.value?.rate && tokenFiatRate.value.rate !== 0) {
         const rate = tokenFiatRate.value.rate
+        console.log('[ReceivePage] tokenAmount: Using direct token-fiat rate:', rate)
         
         // Validate token rate (check if it's a stablecoin)
+        // Note: This rate is "token per fiat" (e.g., 0.017 MUSD per PHP), so pass isTokenPerFiat=true
         const isStablecoin = cashtokenMetadata.value?.symbol?.toUpperCase().includes('USD') || 
                             cashtokenMetadata.value?.symbol?.toUpperCase().includes('STABLE')
-        const rateValidation = validateTokenRate(rate, isStablecoin)
+        const rateValidation = validateTokenRate(rate, isStablecoin, true) // true = isTokenPerFiat
         
         if (!rateValidation.valid) {
           console.error('[ReceivePage] Token-fiat rate validation failed:', rateValidation.error, {
@@ -493,6 +518,13 @@ export default defineComponent({
         // Use Math.round with scaling to match Python's rounding behavior
         const factor = Math.pow(10, cashtokenDecimals);
         const tokenAmount = Math.round((receiveAmount.value * rate) * factor) / factor;
+        
+        console.log('[ReceivePage] tokenAmount: Direct rate conversion:', {
+          fiatAmount: receiveAmount.value,
+          rate: rate,
+          factor: factor,
+          calculatedTokenAmount: tokenAmount
+        })
         
         // Validate conversion result
         const conversionValidation = validateConversionResult(
@@ -516,11 +548,13 @@ export default defineComponent({
           return NaN
         }
         
+        console.log('[ReceivePage] tokenAmount: Returning (direct rate):', tokenAmount)
         return tokenAmount
       }
       
       // Fallback: use currencyTokenPrice which is "fiat per token"
       const rateValue = currencyTokenPrice.value
+      console.log('[ReceivePage] tokenAmount: Checking fallback rate:', rateValue)
       if (!rateValue || rateValue === 0) {
         console.error('[ReceivePage] Invalid fallback token rate value', {
           rate: rateValue,
@@ -534,9 +568,10 @@ export default defineComponent({
       }
       
       // Validate the fallback rate
+      // Note: This rate is "fiat per token" (e.g., PHP per MUSD), so pass isTokenPerFiat=false
       const isStablecoin = cashtokenMetadata.value?.symbol?.toUpperCase().includes('USD') || 
                           cashtokenMetadata.value?.symbol?.toUpperCase().includes('STABLE')
-      const rateValidation = validateTokenRate(rateValue, isStablecoin)
+      const rateValidation = validateTokenRate(rateValue, isStablecoin, false) // false = fiat per token
       
       if (!rateValidation.valid) {
         console.error('[ReceivePage] Fallback token rate validation failed:', rateValidation.error, {
@@ -557,6 +592,13 @@ export default defineComponent({
       // Use Math.round with scaling to match Python's rounding behavior
       const factor = Math.pow(10, cashtokenDecimals);
       const tokenAmount = Math.round((receiveAmount.value / rateValue) * factor) / factor;
+      
+      console.log('[ReceivePage] tokenAmount: Fallback rate conversion:', {
+        fiatAmount: receiveAmount.value,
+        rate: rateValue,
+        factor: factor,
+        calculatedTokenAmount: tokenAmount
+      })
       
       // Validate conversion result
       const conversionValidation = validateConversionResult(
@@ -581,12 +623,19 @@ export default defineComponent({
         return NaN
       }
       
+      console.log('[ReceivePage] tokenAmount: Returning (fallback rate):', tokenAmount)
       return tokenAmount
     })
 
     const totalCryptoAmount = computed(() => {
-      if (isCashtoken.value) return tokenAmount.value
-      return bchValue.value
+      const result = isCashtoken.value ? tokenAmount.value : bchValue.value
+      console.log('[ReceivePage] totalCryptoAmount computed:', {
+        isCashtoken: isCashtoken.value,
+        tokenAmount: tokenAmount.value,
+        bchValue: bchValue.value,
+        result: result
+      })
+      return result
     })
     let isUpdatingTotalPayment = false
     let lastTotalCryptoAmount = null
@@ -620,54 +669,144 @@ export default defineComponent({
           initialValue: { amount: receiveAmount.value, currency: currency.value }
         }
       }).onOk(data => {
+        console.log('[ReceivePage] Set Amount Dialog returned data:', JSON.stringify(data, null, 2))
         const amount = data?.amount
         const newAmount = amount?.value
         const startingNewInvoice = paid.value
+
+        console.log('[ReceivePage] Parsed dialog data:', {
+          amount: amount,
+          newAmount: newAmount,
+          fiatAmount: amount?.fiatAmount,
+          fiatCurrency: amount?.fiatCurrency,
+          tokenCategory: amount?.tokenCategory,
+          currency: amount?.currency,
+          priceId: amount?.priceId
+        })
 
         if (startingNewInvoice) {
           prepareForNewInvoice()
         }
         
-        // Update tokenCategory if provided
+        // Update tokenCategory if provided and fetch metadata
+        let metadataPromise = Promise.resolve()
         if (amount?.tokenCategory) {
+          console.log('[ReceivePage] Setting tokenCategory:', amount.tokenCategory)
           tokenCategory.value = amount.tokenCategory
+          // Fetch metadata if not already loaded
+          const existingMetadata = cashTokenStore.getTokenMetadata(amount.tokenCategory)
+          console.log('[ReceivePage] Existing metadata:', existingMetadata)
+          if (!existingMetadata) {
+            console.log('[ReceivePage] Fetching token metadata...')
+            metadataPromise = cashTokenStore.fetchTokenMetadata(amount.tokenCategory)
+              .then(metadata => {
+                console.log('[ReceivePage] Metadata fetched:', metadata)
+                return metadata
+              })
+              .catch(error => {
+                console.error('[ReceivePage] Error fetching metadata:', error)
+                return null
+              })
+          } else {
+            console.log('[ReceivePage] Using cached metadata')
+          }
         }
-
-        receiveAmount.value = newAmount
         
         // Amount currency is what the user entered the amount in (fiat or crypto)
         // Payment currency is always BCH or token (what gets paid)
         if (amount?.fiatAmount && amount?.fiatCurrency) {
           // User entered amount in fiat - amount currency is fiat, payment currency is BCH or token
+          // Set receiveAmount to fiat amount so tokenAmount/bchValue computeds can convert correctly
+          console.log('[ReceivePage] Setting fiat mode values:', {
+            receiveAmount: amount.fiatAmount,
+            currency: amount.fiatCurrency,
+            fiatReferenceAmount: amount.fiatAmount,
+            fiatReferenceCurrency: amount.fiatCurrency
+          })
+          receiveAmount.value = amount.fiatAmount
           currency.value = amount.fiatCurrency  // amount currency (fiat, e.g., 'PHP')
           fiatReferenceAmount.value = amount.fiatAmount
           fiatReferenceCurrency.value = amount.fiatCurrency
           
           // Store price_id for token payments if provided
           if (amount?.tokenCategory && amount?.priceId) {
+            console.log('[ReceivePage] Setting tokenPriceId:', amount.priceId)
             tokenPriceId.value = amount.priceId
           } else {
             tokenPriceId.value = null
           }
         } else {
           // User entered amount in crypto - amount currency = payment currency
+          console.log('[ReceivePage] Setting crypto mode values:', {
+            receiveAmount: newAmount,
+            currency: amount?.currency || 'BCH'
+          })
+          receiveAmount.value = newAmount
           currency.value = amount?.currency || 'BCH'  // amount currency (same as payment currency)
           fiatReferenceAmount.value = null
           fiatReferenceCurrency.value = null
           tokenPriceId.value = null
         }
+        
+        console.log('[ReceivePage] After setting values:', {
+          receiveAmount: receiveAmount.value,
+          currency: currency.value,
+          tokenCategory: tokenCategory.value,
+          fiatReferenceAmount: fiatReferenceAmount.value,
+          fiatReferenceCurrency: fiatReferenceCurrency.value,
+          isCashtoken: isCashtoken.value,
+          isNotFiatMode: isNotFiatMode.value
+        })
 
         if (receiveAmount.value) {
-          refreshQrCountdown()
-          // Start fiat rate refresh timer if fiat amount is used
-          // Wait a bit for reactive updates to propagate
-          setTimeout(() => {
+          console.log('[ReceivePage] receiveAmount is set, proceeding with rate fetch and QR refresh')
+          // Wait for metadata to load (if needed), then fetch rates and refresh QR
+          metadataPromise.then(() => {
+            console.log('[ReceivePage] Metadata promise resolved, checking if fiat mode...')
+            // For fiat mode, ensure rates are fetched immediately
             if (fiatReferenceCurrency.value && fiatReferenceAmount.value && !isNotFiatMode.value) {
-              startFiatRateRefreshTimer()
+              console.log('[ReceivePage] Fiat mode detected, fetching rates...', {
+                fiatReferenceCurrency: fiatReferenceCurrency.value,
+                fiatReferenceAmount: fiatReferenceAmount.value,
+                isNotFiatMode: isNotFiatMode.value,
+                tokenCategory: tokenCategory.value
+              })
+              // Fetch rates immediately before refreshing QR
+              fiatRateLoading.value = true
+              updateSelectedCurrencyRate({ skipRefreshTimer: true })
+                .then(() => {
+                  console.log('[ReceivePage] Rates fetched successfully, refreshing QR...')
+                  // After rates are loaded, refresh QR countdown
+                  refreshQrCountdown()
+                  // Start fiat rate refresh timer
+                  setTimeout(() => {
+                    if (fiatReferenceCurrency.value && fiatReferenceAmount.value && !isNotFiatMode.value) {
+                      console.log('[ReceivePage] Starting fiat rate refresh timer')
+                      startFiatRateRefreshTimer()
+                    }
+                  }, 100)
+                })
+                .catch((error) => {
+                  console.error('[ReceivePage] Error fetching rates after setting amount', error)
+                  // Still try to refresh QR in case we have cached rates
+                  refreshQrCountdown()
+                })
+                .finally(() => {
+                  fiatRateLoading.value = false
+                })
             } else {
-              stopFiatRateRefreshTimer()
+              console.log('[ReceivePage] Not fiat mode or missing fiat ref, refreshing QR directly')
+              refreshQrCountdown()
             }
-          }, 100)
+          }).catch(error => {
+            console.error('[ReceivePage] Error in metadata promise:', error)
+            // Still try to proceed
+            if (fiatReferenceCurrency.value && fiatReferenceAmount.value && !isNotFiatMode.value) {
+              refreshQrCountdown()
+            }
+          })
+        } else {
+          console.log('[ReceivePage] receiveAmount is 0 or falsy, skipping rate fetch')
         }
       })
     }

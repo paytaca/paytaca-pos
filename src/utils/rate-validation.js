@@ -93,27 +93,43 @@ export function validateBchRate(rate, currency) {
  * Validates a token exchange rate
  * @param {number} rate - Rate (can be fiat per token or token per fiat depending on context)
  * @param {boolean} isStablecoin - Whether this is a stablecoin (should be ~1:1)
+ * @param {boolean} isTokenPerFiat - Whether the rate is "token per fiat" (true) or "fiat per token" (false)
  * @returns {{valid: boolean, error?: string}}
  */
-export function validateTokenRate(rate, isStablecoin = false) {
+export function validateTokenRate(rate, isStablecoin = false, isTokenPerFiat = false) {
   if (!rate || rate === 0) {
-    const error = `[RateValidation] Token rate is zero or missing (stablecoin: ${isStablecoin})`
-    console.error(error, { rate, isStablecoin })
+    const error = `[RateValidation] Token rate is zero or missing (stablecoin: ${isStablecoin}, tokenPerFiat: ${isTokenPerFiat})`
+    console.error(error, { rate, isStablecoin, isTokenPerFiat })
     return { valid: false, error }
   }
 
   if (isNaN(rate) || !isFinite(rate)) {
-    const error = `[RateValidation] Token rate is not a valid number (stablecoin: ${isStablecoin})`
-    console.error(error, { rate, isStablecoin })
+    const error = `[RateValidation] Token rate is not a valid number (stablecoin: ${isStablecoin}, tokenPerFiat: ${isTokenPerFiat})`
+    console.error(error, { rate, isStablecoin, isTokenPerFiat })
     return { valid: false, error }
   }
 
   if (rate < 0) {
-    const error = `[RateValidation] Token rate cannot be negative (stablecoin: ${isStablecoin})`
-    console.error(error, { rate, isStablecoin })
+    const error = `[RateValidation] Token rate cannot be negative (stablecoin: ${isStablecoin}, tokenPerFiat: ${isTokenPerFiat})`
+    console.error(error, { rate, isStablecoin, isTokenPerFiat })
     return { valid: false, error }
   }
 
+  // For "token per fiat" rates, skip the stablecoin range check
+  // because the rate depends on the fiat currency (e.g., 0.017 MUSD per PHP is correct)
+  if (isTokenPerFiat) {
+    // Just check it's not zero or astronomical - any positive value is potentially valid
+    const minRate = 1e-10 // Very small but not zero
+    const maxRate = 1e10 // Very large but not infinite
+    if (rate < minRate || rate > maxRate) {
+      const error = `[RateValidation] Token per fiat rate ${rate} is outside reasonable bounds (range: ${minRate}-${maxRate})`
+      console.error(error, { rate, isStablecoin, isTokenPerFiat, expectedMin: minRate, expectedMax: maxRate })
+      return { valid: false, error }
+    }
+    return { valid: true }
+  }
+
+  // For "fiat per token" rates, apply normal validation
   const range = isStablecoin 
     ? REASONABLE_TOKEN_RATE_RANGES.STABLECOIN 
     : REASONABLE_TOKEN_RATE_RANGES.DEFAULT
@@ -122,14 +138,14 @@ export function validateTokenRate(rate, isStablecoin = false) {
   if (isStablecoin) {
     if (rate < range.min || rate > range.max) {
       const error = `[RateValidation] Stablecoin rate ${rate} is suspicious. Expected to be close to 1:1 (range: ${range.min}-${range.max})`
-      console.error(error, { rate, isStablecoin, expectedMin: range.min, expectedMax: range.max })
+      console.error(error, { rate, isStablecoin, isTokenPerFiat, expectedMin: range.min, expectedMax: range.max })
       return { valid: false, error }
     }
   } else {
     // For other tokens, just check it's not zero or astronomical
     if (rate < range.min || rate > range.max) {
       const error = `[RateValidation] Token rate ${rate} is outside reasonable bounds (range: ${range.min}-${range.max})`
-      console.error(error, { rate, isStablecoin, expectedMin: range.min, expectedMax: range.max })
+      console.error(error, { rate, isStablecoin, isTokenPerFiat, expectedMin: range.min, expectedMax: range.max })
       return { valid: false, error }
     }
   }
@@ -147,6 +163,7 @@ export function validateTokenRate(rate, isStablecoin = false) {
  * @returns {{valid: boolean, error?: string, warning?: string}}
  */
 export function validateConversionResult(fiatAmount, cryptoAmount, fiatCurrency, cryptoType, expectedRate) {
+  // Basic sanity checks - these are always required
   if (!fiatAmount || fiatAmount <= 0) {
     const error = `[RateValidation] Fiat amount must be greater than zero`
     console.error(error, { fiatAmount, cryptoAmount, fiatCurrency, cryptoType })
@@ -165,8 +182,31 @@ export function validateConversionResult(fiatAmount, cryptoAmount, fiatCurrency,
     return { valid: false, error }
   }
 
+  // For tokens, we can't know acceptable ranges without context (stablecoin, token value, etc.)
+  // So we only do basic sanity checks and skip strict validation
+  if (cryptoType === 'TOKEN') {
+    // Only check for extremely suspicious values (essentially zero or infinite)
+    const conversionRatio = cryptoAmount / fiatAmount
+    if (conversionRatio < 1e-20 || conversionRatio > 1e20) {
+      const error = `[RateValidation] Conversion ratio ${conversionRatio} is extremely suspicious (near zero or infinite)`
+      console.error(error, { 
+        fiatAmount, 
+        cryptoAmount, 
+        fiatCurrency, 
+        cryptoType, 
+        expectedRate,
+        conversionRatio
+      })
+      return { valid: false, error }
+    }
+    // For tokens, we trust the rate validation that was done earlier
+    // and don't do additional strict checks on conversion results
+    return { valid: true }
+  }
+
+  // For BCH, we can do more validation since we know the expected ranges
   // Check if crypto amount is suspiciously small (dust level or below)
-  const dustThreshold = cryptoType === 'BCH' ? 546e-8 : 1e-8 // BCH dust is 546 satoshis
+  const dustThreshold = 546e-8 // BCH dust is 546 satoshis
   if (cryptoAmount < dustThreshold && fiatAmount > 1) {
     const error = `[RateValidation] Conversion result ${cryptoAmount} is suspiciously small for fiat amount ${fiatAmount} ${fiatCurrency}`
     console.error(error, { 
@@ -183,24 +223,22 @@ export function validateConversionResult(fiatAmount, cryptoAmount, fiatCurrency,
   // Calculate the effective rate from the conversion
   const effectiveRate = fiatAmount / cryptoAmount
 
-  // Validate the effective rate
-  if (cryptoType === 'BCH') {
-    const rateValidation = validateBchRate(effectiveRate, fiatCurrency)
-    if (!rateValidation.valid) {
-      const error = `[RateValidation] Conversion produces invalid rate: ${rateValidation.error}. Fiat: ${fiatAmount} ${fiatCurrency}, Crypto: ${cryptoAmount} ${cryptoType}`
-      console.error(error, { 
-        fiatAmount, 
-        cryptoAmount, 
-        fiatCurrency, 
-        cryptoType, 
-        expectedRate,
-        effectiveRate 
-      })
-      return { valid: false, error }
-    }
+  // Validate the effective rate for BCH
+  const rateValidation = validateBchRate(effectiveRate, fiatCurrency)
+  if (!rateValidation.valid) {
+    const error = `[RateValidation] Conversion produces invalid rate: ${rateValidation.error}. Fiat: ${fiatAmount} ${fiatCurrency}, Crypto: ${cryptoAmount} ${cryptoType}`
+    console.error(error, { 
+      fiatAmount, 
+      cryptoAmount, 
+      fiatCurrency, 
+      cryptoType, 
+      expectedRate,
+      effectiveRate 
+    })
+    return { valid: false, error }
   }
 
-  // Check if the conversion ratio is reasonable
+  // For BCH, check if the conversion ratio is reasonable
   // For example, 1000 ARS should not convert to 0.0000000001 BCH or 10000 BCH
   const conversionRatio = cryptoAmount / fiatAmount
   
@@ -232,7 +270,7 @@ export function validateConversionResult(fiatAmount, cryptoAmount, fiatCurrency,
     return { valid: false, error }
   }
 
-  // Compare expected rate with effective rate (should be close)
+  // Compare expected rate with effective rate (should be close) - only for BCH
   if (expectedRate && expectedRate > 0) {
     const rateDifference = Math.abs(effectiveRate - expectedRate) / expectedRate
     if (rateDifference > 0.5) { // More than 50% difference
@@ -252,4 +290,5 @@ export function validateConversionResult(fiatAmount, cryptoAmount, fiatCurrency,
 
   return { valid: true }
 }
+
 

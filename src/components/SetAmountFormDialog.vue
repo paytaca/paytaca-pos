@@ -557,6 +557,17 @@ export default defineComponent({
         }
       }
       
+      console.log('[SetAmountFormDialog] Returning amount data:', {
+        data: data,
+        amountValue: amountValue.value,
+        fiatAmountValue: fiatAmountValue.value,
+        isFiatSelected: isFiatSelected.value,
+        paymentAsset: paymentAsset,
+        selectedCurrency: selectedCurrency.value,
+        paymentCurrency: paymentCurrency.value,
+        tokenFiatRate: tokenFiatRate.value
+      })
+      
       onDialogOK({ amount: data })
     }
 
