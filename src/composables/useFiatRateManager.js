@@ -151,8 +151,10 @@ export function useFiatRateManager({
     if (!isCashtoken.value) return undefined
     if (isNotFiatMode.value) return undefined
 
+    // tokenFiatRate from API is "fiat per token" (e.g., ARS per MUSD)
+    // currencyTokenPrice should also be "fiat per token" for consistency
     if (tokenFiatRate.value?.rate && tokenFiatRate.value.rate !== 0) {
-      return 1 / tokenFiatRate.value.rate
+      return tokenFiatRate.value.rate
     }
 
     const currencyPerBchRate = currencyBchRate.value?.rate
@@ -183,11 +185,13 @@ export function useFiatRateManager({
     const refreshPromises = []
 
     if (isCashtoken.value && tokenCategory.value && fiatReferenceCurrency.value) {
+      // Force fresh fetch if skipRefreshTimer is set (we need the rate immediately)
+      const forceRefresh = opts?.skipRefreshTimer ? { age: 0 } : {}
       refreshPromises.push(
         marketStore.refreshTokenFiatPrice(
           tokenCategory.value,
           fiatReferenceCurrency.value,
-          refreshOpts
+          { ...refreshOpts, ...forceRefresh }
         )
       )
     } else {
@@ -199,6 +203,11 @@ export function useFiatRateManager({
 
     try {
       await Promise.all(refreshPromises)
+      // Clear cached tokenFiatRate to force recomputation after store update
+      if (isCashtoken.value && tokenCategory.value && fiatReferenceCurrency.value) {
+        cachedTokenFiatRate = null
+        cachedTokenFiatRateKey = null
+      }
     } catch (error) {
       console.error('[useFiatRateManager] Error updating currency rates', error)
       throw error

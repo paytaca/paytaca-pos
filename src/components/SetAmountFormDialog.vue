@@ -291,13 +291,6 @@ export default defineComponent({
       return marketStore.getTokenFiatRate(tokenCategory, selectedCurrency.value.symbol);
     })
 
-    // Check if we're using the direct token-fiat rate (which is "token per fiat")
-    const isUsingDirectTokenFiatRate = computed(() => {
-      return isFiatSelected.value && 
-             paymentCurrency.value?.id?.startsWith?.('ct/') && 
-             tokenFiatRate.value?.rate != null;
-    })
-
     const fiatToPaymentRate = computed(() => {
       if (!isFiatSelected.value || !paymentCurrency.value) return null;
       
@@ -307,13 +300,13 @@ export default defineComponent({
       }
       
       // For tokens, use direct token-fiat rate if available (optimized)
-      // Note: This rate is "token per fiat" (e.g., MUSD per PHP)
+      // Note: API returns "fiat per token" (e.g., ARS per MUSD), not "token per fiat"
       if (tokenFiatRate.value?.rate) {
-        return tokenFiatRate.value.rate;
+        return tokenFiatRate.value.rate; // fiat per token
       }
       
       // Fallback: convert through BCH (for backward compatibility)
-      // This gives us "fiat per token" (e.g., PHP per MUSD)
+      // This gives us "fiat per token" (e.g., ARS per MUSD)
       const fiatPerBch = fiatBchRate.value?.rate;
       const tokenPerBch = tokenBchRate.value?.rate;
       
@@ -424,15 +417,13 @@ export default defineComponent({
         const decimals = paymentCurrency.value?.decimals || 8;
         let paymentAmount;
         
-        // Direct token-fiat rate is "token per fiat" (e.g., MUSD per PHP), so multiply
-        // BCH rates and fallback rates are "fiat per token" (e.g., PHP per MUSD), so divide
+        // All rates are "fiat per token" or "fiat per BCH" format, so always divide
+        // Direct token-fiat rate from API: "fiat per token" (e.g., ARS per MUSD)
+        // BCH rates: "fiat per BCH" (e.g., ARS per BCH)
+        // Fallback rates: "fiat per token" (e.g., ARS per MUSD)
         // Use Math.round with scaling to match Python's rounding behavior
         const factor = Math.pow(10, decimals);
-        if (isUsingDirectTokenFiatRate.value) {
-          paymentAmount = Math.round((amount * fiatToPaymentRate.value) * factor) / factor;
-        } else {
-          paymentAmount = Math.round((amount / fiatToPaymentRate.value) * factor) / factor;
-        }
+        paymentAmount = Math.round((amount / fiatToPaymentRate.value) * factor) / factor;
         
         amountValue.value = paymentAmount;
         

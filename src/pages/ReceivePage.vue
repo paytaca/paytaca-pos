@@ -489,16 +489,17 @@ export default defineComponent({
       const cashtokenDecimals = cashtokenMetadata.value?.decimals;
       console.log('[ReceivePage] tokenAmount: Using decimals:', cashtokenDecimals)
       
-      // If using direct token-fiat rate, multiply (token per fiat)
+      // If using direct token-fiat rate from API
+      // NOTE: API returns "fiat per token" (e.g., ARS per MUSD), NOT "token per fiat"
       if (tokenFiatRate.value?.rate && tokenFiatRate.value.rate !== 0) {
         const rate = tokenFiatRate.value.rate
         console.log('[ReceivePage] tokenAmount: Using direct token-fiat rate:', rate)
         
         // Validate token rate (check if it's a stablecoin)
-        // Note: This rate is "token per fiat" (e.g., 0.017 MUSD per PHP), so pass isTokenPerFiat=true
+        // Note: This rate is "fiat per token" (e.g., 765459.57 ARS per MUSD), so pass isTokenPerFiat=false
         const isStablecoin = cashtokenMetadata.value?.symbol?.toUpperCase().includes('USD') || 
                             cashtokenMetadata.value?.symbol?.toUpperCase().includes('STABLE')
-        const rateValidation = validateTokenRate(rate, isStablecoin, true) // true = isTokenPerFiat
+        const rateValidation = validateTokenRate(rate, isStablecoin, false) // false = fiat per token
         
         if (!rateValidation.valid) {
           console.error('[ReceivePage] Token-fiat rate validation failed:', rateValidation.error, {
@@ -513,11 +514,11 @@ export default defineComponent({
           return NaN
         }
         
-        // Direct rate: token per fiat (e.g., 0.01698626 MUSD per PHP)
-        // Convert: PHP * (MUSD per PHP) = MUSD
+        // Direct rate: fiat per token (e.g., 765459.57 ARS per MUSD)
+        // Convert: ARS / (ARS per MUSD) = MUSD
         // Use Math.round with scaling to match Python's rounding behavior
         const factor = Math.pow(10, cashtokenDecimals);
-        const tokenAmount = Math.round((receiveAmount.value * rate) * factor) / factor;
+        const tokenAmount = Math.round((receiveAmount.value / rate) * factor) / factor;
         
         console.log('[ReceivePage] tokenAmount: Direct rate conversion:', {
           fiatAmount: receiveAmount.value,
@@ -775,7 +776,24 @@ export default defineComponent({
               fiatRateLoading.value = true
               updateSelectedCurrencyRate({ skipRefreshTimer: true })
                 .then(() => {
-                  console.log('[ReceivePage] Rates fetched successfully, refreshing QR...')
+                  console.log('[ReceivePage] Rates fetched successfully, waiting for reactivity...')
+                  // Wait for Vue reactivity to propagate store updates to computed properties
+                  return new Promise(resolve => {
+                    // Use nextTick to ensure computed properties have re-evaluated
+                    setTimeout(() => {
+                      // Verify tokenFiatRate is now available
+                      if (tokenFiatRate.value?.rate) {
+                        console.log('[ReceivePage] tokenFiatRate is available:', tokenFiatRate.value)
+                        resolve()
+                      } else {
+                        console.warn('[ReceivePage] tokenFiatRate still not available after fetch')
+                        resolve() // Continue anyway, will use fallback or show error
+                      }
+                    }, 100)
+                  })
+                })
+                .then(() => {
+                  console.log('[ReceivePage] Refreshing QR...')
                   // After rates are loaded, refresh QR countdown
                   refreshQrCountdown()
                   // Start fiat rate refresh timer
