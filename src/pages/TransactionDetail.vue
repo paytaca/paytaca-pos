@@ -181,15 +181,51 @@ export default defineComponent({
       return fiat?.currency
     })
     
-    const displayLogo = computed(() => {
-      if (!transaction.value) return 'bch-logo.png'
+    // Watch store changes to ensure reactivity
+    const tokenMetadataRef = ref(null)
+    
+    // Watch the store's fungibleCashtokens array for changes
+    watch(() => cashtokenStore.fungibleCashtokens, () => {
+      if (!transaction.value) return
       const tokenCategory = transaction.value?.ft_category || transaction.value?.nft_category
       if (tokenCategory) {
-        const metadata = cashtokenStore.getTokenMetadata(tokenCategory)
-        if (metadata?.imageUrl) {
-          return convertIpfsUrl(metadata.imageUrl)
-        }
+        tokenMetadataRef.value = cashtokenStore.getTokenMetadata(tokenCategory)
       }
+    }, { deep: true, immediate: true })
+    
+    // Also watch transaction changes to update metadata ref
+    watch(() => transaction.value?.ft_category || transaction.value?.nft_category, (tokenCategory) => {
+      if (tokenCategory) {
+        tokenMetadataRef.value = cashtokenStore.getTokenMetadata(tokenCategory)
+      } else {
+        tokenMetadataRef.value = null
+      }
+    }, { immediate: true })
+    
+    const displayLogo = computed(() => {
+      if (!transaction.value) return 'bch-logo.png'
+      
+      // First, check if logo is directly available in transaction (from websocket)
+      if (transaction.value?.logo && transaction.value.logo !== 'bch-logo.png') {
+        // It's a token logo URL (from websocket image_url), convert IPFS if needed
+        return convertIpfsUrl(transaction.value.logo)
+      }
+      
+      // Check if it's BCH (either explicitly set or no token category)
+      const tokenCategory = transaction.value?.ft_category || transaction.value?.nft_category
+      if (!tokenCategory) {
+        return 'bch-logo.png'
+      }
+      
+      // Try to get from metadata store (use both the ref and direct call for reactivity)
+      const metadata = tokenMetadataRef.value || cashtokenStore.getTokenMetadata(tokenCategory)
+      if (metadata?.imageUrl) {
+        return convertIpfsUrl(metadata.imageUrl)
+      }
+      
+      // If metadata doesn't have imageUrl yet, but we have token category, 
+      // it means metadata is still loading - return BCH as fallback for now
+      // The logo will update once metadata is loaded (computed is reactive)
       return 'bch-logo.png'
     })
     
@@ -239,8 +275,9 @@ export default defineComponent({
       const tokenCategory = tx?.ft_category || tx?.nft_category
       if (!tokenCategory) return
       
-      // Check if we already have metadata cached
-      if (cashtokenStore.getTokenMetadata(tokenCategory)) return
+      // Check if we already have metadata cached with imageUrl
+      const existingMetadata = cashtokenStore.getTokenMetadata(tokenCategory)
+      if (existingMetadata?.imageUrl) return
       
       // If transaction has websocket metadata (from payment received), use it
       if (tx?.tokenSymbol || tx?.tokenName || tx?.tokenDecimals !== undefined) {
@@ -249,14 +286,16 @@ export default defineComponent({
           name: tx?.tokenName || '',
           symbol: tx?.tokenSymbol || '',
           decimals: tx?.tokenDecimals ?? 0,
-          imageUrl: null // Image not available from websocket
+          imageUrl: tx?.logo && tx.logo !== 'bch-logo.png' ? tx.logo : null // Use logo from websocket if available
         }
         cashtokenStore.saveTokenMetadata(metadata)
         
-        // Still try to fetch from API for image URL, but don't fail if it doesn't exist
-        cashtokenStore.fetchTokenMetadata(tokenCategory).catch(() => {
-          // Silently fail - we already have the essential metadata from websocket
-        })
+        // Always try to fetch from API for image URL if we don't have it yet
+        if (!metadata.imageUrl) {
+          cashtokenStore.fetchTokenMetadata(tokenCategory).catch(() => {
+            // Silently fail - we already have the essential metadata from websocket
+          })
+        }
       } else {
         // No websocket metadata, try to fetch from API
         cashtokenStore.fetchTokenMetadata(tokenCategory)

@@ -152,12 +152,20 @@ export function usePaymentTracking({
 
   function maybePostOutputFiatAmounts(txid) {
     try {
-      if (!fiatReferenceAmount.value || !fiatReferenceCurrency.value) { return }
-      if (!txid) { return }
-      if (postedFiatMapTxIds.has(txid)) { return }
+      if (!fiatReferenceAmount.value || !fiatReferenceCurrency.value) { 
+        return 
+      }
+      if (!txid) { 
+        return 
+      }
+      if (postedFiatMapTxIds.has(txid)) { 
+        return 
+      }
 
       const outputs = txOutputsByTxid.get(txid) || []
-      if (!outputs.length) { return }
+      if (!outputs.length) { 
+        return 
+      }
 
       const isTokenPayment = isCashtoken.value
       const tokenDecimals = cashtokenMetadata.value?.decimals || 0
@@ -166,7 +174,9 @@ export function usePaymentTracking({
         const bch = (typeof o?.value === 'number') ? (o.value / 1e8) : (Number(o?.amount) || 0)
         return s + (bch || 0)
       }, 0)
-      if (totalCrypto <= 0) { return }
+      if (totalCrypto <= 0) { 
+        return 
+      }
 
       const map = {}
       outputs.forEach(o => {
@@ -188,7 +198,9 @@ export function usePaymentTracking({
       })
       
       postOutputFiatAmounts({ txid, outputFiatAmounts: map })
-        .then(() => { postedFiatMapTxIds.add(txid) })
+        .then(() => { 
+          postedFiatMapTxIds.add(txid) 
+        })
         .catch((error) => {
           console.error('[usePaymentTracking] Error posting fiat amounts', error)
           $q.notify({ type: 'warning', message: t('UnableToSaveFiatBreakdown'), timeout: 3000 })

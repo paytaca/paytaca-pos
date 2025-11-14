@@ -458,7 +458,9 @@ export default defineComponent({
                 }
               }
             }
-          } catch (e) { console.error(e) }
+          } catch (e) { 
+            console.error('[SalesOrderDetail] Error in fiat amount posting logic', e)
+          }
           return response
         })
         .catch(error => {

@@ -1118,6 +1118,44 @@ export default defineComponent({
       const originalFiatAmount = fiatReferenceAmount.value
       const originalFiatCurrency = fiatReferenceCurrency.value
 
+      // Post fiat amounts immediately before navigation if we have fiat reference
+      if (originalFiatAmount && originalFiatCurrency && data?.txid) {
+        try {
+          // Construct output fiat amounts map for this single transaction
+          const isTokenPayment = isCashtoken.value && data?.tokenId
+          const tokenDecimals = isTokenPayment ? (data?.tokenDecimals ?? cashtokenMetadata.value?.decimals ?? 0) : 0
+          const receivedCryptoAmount = isTokenPayment 
+            ? (data?.tokenAmount || 0)
+            : (data?.value / 1e8 || 0)
+          
+          if (receivedCryptoAmount > 0) {
+            const map = {}
+            const entry = {
+              fiat_amount: `${originalFiatAmount}`,
+              fiat_currency: `${originalFiatCurrency}`,
+              recipient: data?.address,
+            }
+            
+            if (isTokenPayment) {
+              entry.token_amount = receivedCryptoAmount.toFixed(tokenDecimals)
+              entry.token_category = tokenCategory.value
+            }
+            
+            // Use the output index from the transaction data, or default to 0
+            const outputIndex = String(data?.index ?? 0)
+            map[outputIndex] = entry
+            
+            // Post immediately (fire and forget)
+            postOutputFiatAmounts({ txid: data.txid, outputFiatAmounts: map })
+              .catch((error) => {
+                console.error('[ReceivePage] Error posting fiat amounts', error)
+              })
+          }
+        } catch (e) {
+          console.error('[ReceivePage] Error in fiat amount posting', e)
+        }
+      }
+
       if (paid.value) {
         addressesStore.removeAddressSet(data?.address)
         receiveAmount.value = 0
@@ -1145,6 +1183,7 @@ export default defineComponent({
         tokenSymbol: data?.tokenSymbol, // Include token symbol from websocket
         tokenName: data?.tokenName, // Include token name from websocket
         tokenDecimals: data?.tokenDecimals, // Include decimals from websocket
+        logo: data?.logo, // Include logo from websocket (set in parseWebsocketDataReceived)
         tx_timestamp: new Date().toISOString(),
         date_created: new Date().toISOString(),
         senders: data?.senders || [],
@@ -1247,13 +1286,21 @@ export default defineComponent({
     function maybePostOutputFiatAmounts(txid) {
       try {
         // Require fiat reference available
-        if (!fiatReferenceAmount.value || !fiatReferenceCurrency.value) { return }
-        if (!txid) { return }
-        if (postedFiatMapTxIds.has(txid)) { return }
+        if (!fiatReferenceAmount.value || !fiatReferenceCurrency.value) { 
+          return 
+        }
+        if (!txid) { 
+          return 
+        }
+        if (postedFiatMapTxIds.has(txid)) { 
+          return 
+        }
 
         // Collect merchant outputs for this txid
         const outputs = txOutputsByTxid.get(txid) || []
-        if (!outputs.length) { return }
+        if (!outputs.length) { 
+          return 
+        }
 
         // Compute proportional split by crypto amount
         const isTokenPayment = isCashtoken.value
@@ -1263,7 +1310,9 @@ export default defineComponent({
           const bch = (typeof o?.value === 'number') ? (o.value / 1e8) : (Number(o?.amount) || 0)
           return s + (bch || 0)
         }, 0)
-        if (totalCrypto <= 0) { return }
+        if (totalCrypto <= 0) { 
+          return 
+        }
 
         const map = {}
         outputs.forEach(o => {
@@ -1285,7 +1334,9 @@ export default defineComponent({
         })
         // Fire and forget with basic retry handled in helper
         postOutputFiatAmounts({ txid, outputFiatAmounts: map })
-          .then(() => { postedFiatMapTxIds.add(txid) })
+          .then(() => { 
+            postedFiatMapTxIds.add(txid) 
+          })
           .catch((error) => {
             // Non-blocking notify
             console.error('[ReceivePage] Error posting fiat amounts', error)

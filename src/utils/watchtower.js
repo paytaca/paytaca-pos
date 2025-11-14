@@ -11,10 +11,13 @@ export async function postOutputFiatAmounts({ txid, outputFiatAmounts, endpoint 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
+    
     if (!res.ok) {
       const text = await res.text().catch(() => '')
+      console.error('[watchtower] Request failed', { status: res.status, statusText: res.statusText, responseText: text })
       throw new Error(text || `HTTP ${res.status}`)
     }
+    
     return res.json().catch(() => ({}))
   }
 

@@ -47,17 +47,24 @@ export function useTransactionHelpers() {
       }
     }
 
+    // Get token decimals if this is a token transaction
+    let tokenAmount = Number(transaction?.amount)
+    if (transaction?.ft_category) {
+      const decimals = transaction?.tokenDecimals ?? cashtokenStore.getTokenMetadata(transaction.ft_category)?.decimals ?? 0
+      tokenAmount = tokenAmount / (10 ** decimals)
+    }
+
     // Fallback 1: use market price in the selected currency if available
     const priceInSelected = transaction?.market_prices?.[currency]
     if (priceInSelected) {
-      const val = Number(transaction?.amount) * Number(priceInSelected)
+      const val = tokenAmount * Number(priceInSelected)
       const num = Number(val)
       if (!Number.isNaN(num)) return { value: num, currency }
     }
 
     // Fallback 2: use USD price if available and selected currency is not priced
     if (transaction?.usd_price) {
-      const val = Number(transaction?.amount) * Number(transaction.usd_price)
+      const val = tokenAmount * Number(transaction.usd_price)
       const num = Number(val)
       if (!Number.isNaN(num)) return { value: num, currency: 'USD' }
     }

@@ -1,6 +1,6 @@
 <template>
   <q-header class="main-header text-brandblue">
-    <q-toolbar class="q-mt-md main-header-toolbar">
+    <q-toolbar class="main-header-toolbar">
       <div style="position:relative;">
         <q-btn
           flat
@@ -74,8 +74,9 @@ export default defineComponent({
 <style scoped>
 .main-header {
   background-color: rgba(0,0,0,0);
-  /* Add safe area padding for devices with notches */
-  padding-top: env(safe-area-inset-top);
+  /* Add safe area padding for devices with notches - with fallback for older iOS */
+  padding-top: constant(safe-area-inset-top); /* iOS 11.0-11.2 */
+  padding-top: env(safe-area-inset-top); /* iOS 11.2+ */
 }
 
 .main-header-toolbar {
