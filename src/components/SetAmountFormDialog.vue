@@ -362,21 +362,23 @@ export default defineComponent({
         const isPaymentToken = paymentCurrency.value?.id?.startsWith?.('ct/');
         
         if (isPaymentToken) {
-          // Optimized: single API call to fetch token price directly in fiat currency
+          // Always fetch fresh rate - no caching
           const tokenCategory = paymentCurrency.value?.id?.replace('ct/', '');
           if (tokenCategory) {
             await marketStore.refreshTokenFiatPrice(
               tokenCategory, 
               selectedCurrency.value.symbol,
-              { age: 60000 } // 1 minute cache
+              { age: 0 } // Always fetch fresh
             );
           }
         } else {
-          // For BCH, fetch fiat to BCH rate
-          await marketStore.refreshBchPrice(selectedCurrency.value.symbol);
+          // For BCH, fetch fiat to BCH rate - always fresh
+          await marketStore.refreshBchPrice(selectedCurrency.value.symbol, { age: 0 });
         }
       } catch (error) {
-        // Error fetching conversion rates
+        // Error fetching conversion rates - will show "Price unavailable"
+        console.error('[SetAmountFormDialog] Error fetching conversion rates', error);
+        throw error; // Re-throw to let caller handle
       } finally {
         conversionLoading.value = false;
       }
@@ -412,10 +414,30 @@ export default defineComponent({
 
       // If fiat is selected, we need conversion
       if (isFiatSelected.value) {
-        // Always fetch fresh rates from server
-        await fetchConversionRates();
+        try {
+          // Always fetch fresh rates from server
+          await fetchConversionRates();
+        } catch (error) {
+          // Rate fetch failed - show error and clear amount
+          $q.notify({
+            type: 'negative',
+            message: 'Price unavailable',
+            timeout: 5000,
+            icon: 'mdi-alert-circle'
+          });
+          amountValue.value = null;
+          stopRateRefreshTimer();
+          return;
+        }
 
         if (!fiatToPaymentRate.value) {
+          // No rate available after fetch
+          $q.notify({
+            type: 'negative',
+            message: 'Price unavailable',
+            timeout: 5000,
+            icon: 'mdi-alert-circle'
+          });
           amountValue.value = null;
           stopRateRefreshTimer();
           return;

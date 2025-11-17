@@ -649,7 +649,8 @@ export default defineComponent({
     }
     
     function goBack() {
-      router.push({ name: 'home' })
+      // Navigate to home page and reload
+      window.location.href = '/'
     }
     
     onMounted(async () => {

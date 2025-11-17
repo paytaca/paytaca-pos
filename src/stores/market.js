@@ -91,18 +91,10 @@ export const useMarketStore = defineStore('market', {
     },
     async refreshCurrencyBchPrice(currency, opts) {
       if (!currency) return Promise.reject()
-      if (!Array.isArray(this.bchRates)) return Promise.reject()
 
       currency = currency.toUpperCase()
 
-      const rate = this.bchRates.find(_rate => _rate?.currency === currency)
-      // Force refresh if cached rate doesn't have priceId (from old API) or if rate is expired
-      const isRateValid = rate?.timestamp && opts?.age && Date.now() - opts?.age <= rate?.timestamp
-      const hasPriceId = rate?.priceId != null
-      if (isRateValid && hasPriceId) {
-        return Promise.resolve(rate)
-      }
-
+      // Always fetch live rate from server - no caching
       return axios.get(`https://watchtower.cash/api/asset-prices/`, { 
         params: { 
           assets: 'bch',
@@ -120,22 +112,15 @@ export const useMarketStore = defineStore('market', {
           }
 
           if (!newRate?.rate) return Promise.reject({ response })
+          // Store rate temporarily for immediate access (not as cache - always fetch fresh)
           this.updateBchPrice(newRate)
           return newRate
         })
     },
     refreshTokenBchPrice(category, opts) {
       if (!category) return Promise.reject()
-      if (!Array.isArray(this.bchRates)) return Promise.reject()
 
-      const rate = this.bchRates.find(_rate => _rate?.category === category)
-      // Force refresh if cached rate doesn't have priceId (from old API) or if rate is expired
-      const isRateValid = rate?.timestamp && opts?.age && Date.now() - opts?.age <= rate?.timestamp
-      const hasPriceId = rate?.priceId != null
-      if (isRateValid && hasPriceId) {
-        return Promise.resolve(rate)
-      }
-
+      // Always fetch live rate from server - no caching
       return axios.get(`https://watchtower.cash/api/asset-prices/`, {
         params: {
           assets: `ct/${category}`,
@@ -155,6 +140,7 @@ export const useMarketStore = defineStore('market', {
           }
 
           if (!newRate.rate) return Promise.reject({ response })
+          // Store rate temporarily for immediate access (not as cache - always fetch fresh)
           this.updateBchPrice(newRate);
           return newRate;
         })
@@ -168,21 +154,10 @@ export const useMarketStore = defineStore('market', {
      */
     async refreshTokenFiatPrice(category, fiatCurrency, opts) {
       if (!category || !fiatCurrency) return Promise.reject()
-      if (!Array.isArray(this.bchRates)) return Promise.reject()
 
       fiatCurrency = fiatCurrency.toUpperCase()
 
-      // Check for cached rate matching both category and currency
-      const rate = this.bchRates.find(_rate => 
-        _rate?.category === category && _rate?.currency === fiatCurrency
-      )
-      // Force refresh if cached rate doesn't have priceId (from old API) or if rate is expired
-      const isRateValid = rate?.timestamp && opts?.age && Date.now() - opts?.age <= rate?.timestamp
-      const hasPriceId = rate?.priceId != null
-      if (isRateValid && hasPriceId) {
-        return Promise.resolve(rate)
-      }
-
+      // Always fetch live rate from server - no caching
       return axios.get(`https://watchtower.cash/api/asset-prices/`, {
         params: {
           assets: `ct/${category}`,
@@ -203,6 +178,7 @@ export const useMarketStore = defineStore('market', {
           }
 
           if (!newRate.rate) return Promise.reject({ response })
+          // Store rate temporarily for immediate access (not as cache - always fetch fresh)
           this.updateBchPrice(newRate);
           return newRate;
         })

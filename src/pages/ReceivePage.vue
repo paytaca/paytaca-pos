@@ -760,6 +760,14 @@ export default defineComponent({
 
         if (receiveAmount.value) {
           console.log('[ReceivePage] receiveAmount is set, proceeding with rate fetch and QR refresh')
+          // Start new session when new QR is generated (new amount set)
+          // Pass fiat amount/currency to create session with correct fiat data
+          if (fiatReferenceAmount.value && fiatReferenceCurrency.value) {
+            startNewSession(fiatReferenceAmount.value, fiatReferenceCurrency.value)
+          } else if (receivingAddress.value) {
+            // If no fiat amount, still start session (crypto-only mode)
+            startNewSession(null, null)
+          }
           // Wait for metadata to load (if needed), then fetch rates and refresh QR
           metadataPromise.then(() => {
             console.log('[ReceivePage] Metadata promise resolved, checking if fiat mode...')
@@ -1004,6 +1012,9 @@ export default defineComponent({
       }
     }, { flush: 'post' })
     
+    // Note: We no longer cache fiat amounts per address
+    // We always use the latest fiat amount entered to ensure the most recent value is used
+    
     // Simplified initialization - QR data is now computed automatically
     onMounted(() => {
       refreshQrCountdown()
@@ -1047,35 +1058,14 @@ export default defineComponent({
           }
         })
         .catch((error) => {
-          // Only show error if we don't have a valid rate available
-          // If a rate exists (even if stale), the QR can still be generated
-          // Check for rates based on payment type:
-          // - Cashtoken in fiat mode: need tokenFiatRate OR (fiatReferenceRate + tokenBchRate for fallback calc)
-          // - BCH in fiat mode: need currencyBchRate
-          let stillHasValidRate = false
-          
-          if (isCashtoken.value && fiatReferenceCurrency.value) {
-            // For cashtoken payments, check if we have tokenFiatRate or can calculate via fallback
-            stillHasValidRate = !!(tokenFiatRate.value?.rate || 
-              (fiatReferenceRate.value?.rate && tokenBchRate.value?.rate))
-          } else {
-            // For BCH payments, just need currencyBchRate
-            stillHasValidRate = !!(currencyBchRate.value?.rate)
-          }
-
-          if (!stillHasValidRate) {
-            rateFetchError.value = true
-            $q.notify({
-              type: 'negative',
-              message: t('FailedToFetchExchangeRate', { currency: currency.value }, `Failed to fetch exchange rate for ${currency.value}`),
-              timeout: 5000,
-              icon: 'mdi-alert-circle'
-            })
-          } else {
-            // Rate exists, so clear any previous error state
-            rateFetchError.value = false
-            console.log('[ReceivePage] Rate refresh failed but using existing rate')
-          }
+          // Always show error - no fallback to cached rates
+          rateFetchError.value = true
+          $q.notify({
+            type: 'negative',
+            message: t('PriceUnavailable', { currency: currency.value }, `Price unavailable for ${currency.value}`),
+            timeout: 5000,
+            icon: 'mdi-alert-circle'
+          })
         })
         .finally(() => {
           fiatRateLoading.value = false
@@ -1114,11 +1104,80 @@ export default defineComponent({
         }
       }
 
-      // Store the original fiat amount before it gets cleared
+      // Use the CURRENT fiat amount displayed on the page
+      // This is the fiat amount that's visible below the QR code
+      // Capture IMMEDIATELY to avoid any timing issues
       const originalFiatAmount = fiatReferenceAmount.value
       const originalFiatCurrency = fiatReferenceCurrency.value
+      
+      // If fiat amounts are missing, log warning but continue
+      if (!originalFiatAmount || !originalFiatCurrency) {
+        console.warn('[ReceivePage] No fiat amount available when transaction received:', {
+          txid: data?.txid,
+          fiatReferenceAmount: fiatReferenceAmount.value,
+          fiatReferenceCurrency: fiatReferenceCurrency.value
+        })
+      }
 
-      // Post fiat amounts immediately before navigation if we have fiat reference
+      // Helper function to navigate to transaction details
+      const navigateToTransactionDetails = () => {
+        if (paid.value) {
+          addressesStore.removeAddressSet(data?.address)
+          receiveAmount.value = 0
+          // Clear fiat reference amounts after payment is complete
+          fiatReferenceAmount.value = null
+          fiatReferenceCurrency.value = null
+          // transactionsReceivedRef will be provided by the composable
+          if (transactionsReceivedRef) {
+            transactionsReceivedRef.value = []
+          }
+          promptOnLeave.value = false
+
+          const qrDataHash = sha256(_qrData)
+          delete walletStore.qrDataTimestampCache[qrDataHash]
+        }
+
+        // Construct transaction object from websocket data
+        const txObject = {
+          txid: data?.txid,
+          record_type: 'incoming',
+          // For cashtokens, use raw amount from websocket (already in token units)
+          // For BCH, convert satoshis to BCH (divide by 1e8) since getTxAmount() expects BCH units
+          amount: isCashtoken.value && data?.tokenId
+            ? data?.amount  // data.amount is already in raw token units from websocket
+            : data?.value / 1e8,  // data.value is in satoshis, convert to BCH (8 decimals)
+          ft_category: isCashtoken.value ? data?.tokenId : undefined,
+          nft_category: undefined,
+          tokenSymbol: data?.tokenSymbol, // Include token symbol from websocket
+          tokenName: data?.tokenName, // Include token name from websocket
+          tokenDecimals: data?.tokenDecimals, // Include decimals from websocket
+          logo: data?.logo, // Include logo from websocket (set in parseWebsocketDataReceived)
+          tx_timestamp: new Date().toISOString(),
+          date_created: new Date().toISOString(),
+          senders: data?.senders || [],
+          fiat_amounts: originalFiatAmount && originalFiatCurrency
+            ? { [originalFiatCurrency]: originalFiatAmount }
+            : undefined,
+          market_prices: marketValue.amount && marketValue.currency
+            ? { [marketValue.currency]: marketValue.amount / receivedAmount }
+            : undefined,
+        }
+        
+        // Navigate to transaction detail page with new transaction flag
+        paymentDialogOpen.value = true
+        $router.push({
+          name: 'transaction-detail',
+          params: { txid: data?.txid },
+          query: { new: 'true' },
+          state: { tx: txObject }
+        }).then(() => {
+          paymentDialogOpen.value = false
+        }).catch(() => {
+          paymentDialogOpen.value = false
+        })
+      }
+
+      // Post fiat amounts IMMEDIATELY using current page state, then navigate on success
       if (originalFiatAmount && originalFiatCurrency && data?.txid) {
         try {
           // Construct output fiat amounts map for this single transaction
@@ -1145,68 +1204,76 @@ export default defineComponent({
             const outputIndex = String(data?.index ?? 0)
             map[outputIndex] = entry
             
-            // Post immediately (fire and forget)
+            // Post API call and ONLY navigate on success
             postOutputFiatAmounts({ txid: data.txid, outputFiatAmounts: map })
-              .catch((error) => {
-                console.error('[ReceivePage] Error posting fiat amounts', error)
+              .then(() => {
+                console.log('[ReceivePage] Fiat amounts posted successfully, navigating to transaction details')
+                navigateToTransactionDetails()
               })
+              .catch((error) => {
+                console.error('[ReceivePage] Error posting fiat amounts, NOT navigating:', error)
+                
+                // Check if error is due to duplicate submission
+                const errorMessage = error?.message || ''
+                const isConflict = error?.status === 409 || 
+                                    errorMessage.includes('409') || 
+                                    errorMessage.toLowerCase().includes('conflict') ||
+                                    errorMessage.toLowerCase().includes('already exists') ||
+                                    errorMessage.toLowerCase().includes('duplicate')
+                
+                if (isConflict) {
+                  // If it's a conflict, check if the existing data matches
+                  const existingData = error?.existingData
+                  if (existingData) {
+                    const existingAmount = Number(Object.values(existingData)[0]?.fiat_amount || 0)
+                    const existingCurrency = Object.values(existingData)[0]?.fiat_currency || ''
+                    const expectedAmount = Number(originalFiatAmount)
+                    
+                    // If amounts match, treat as success and navigate
+                    if (Math.abs(existingAmount - expectedAmount) <= 0.01 && 
+                        existingCurrency === originalFiatCurrency) {
+                      console.log('[ReceivePage] Duplicate with matching data, proceeding with navigation')
+                      navigateToTransactionDetails()
+                    } else {
+                      // Amounts don't match - show error but don't navigate
+                      $q.notify({ 
+                        type: 'warning', 
+                        message: t('FiatAmountMismatch', 
+                          { 
+                            existing: `${existingAmount} ${existingCurrency}`,
+                            current: `${originalFiatAmount} ${originalFiatCurrency}`
+                          },
+                          `Fiat amount mismatch: ${existingAmount} ${existingCurrency} already saved, but current amount is ${originalFiatAmount} ${originalFiatCurrency}`
+                        ), 
+                        timeout: 5000 
+                      })
+                    }
+                  } else {
+                    // No existing data to compare, but it's a conflict - likely duplicate, navigate anyway
+                    console.log('[ReceivePage] Conflict error but no existing data, proceeding with navigation')
+                    navigateToTransactionDetails()
+                  }
+                } else {
+                  // Non-conflict error - show error and don't navigate
+                  $q.notify({ 
+                    type: 'warning', 
+                    message: t('UnableToSaveFiatBreakdown'), 
+                    timeout: 3000 
+                  })
+                }
+              })
+          } else {
+            // No crypto amount, navigate immediately without API call
+            navigateToTransactionDetails()
           }
         } catch (e) {
           console.error('[ReceivePage] Error in fiat amount posting', e)
+          // On error, don't navigate
         }
+      } else {
+        // No fiat amount - navigate immediately without API call
+        navigateToTransactionDetails()
       }
-
-      if (paid.value) {
-        addressesStore.removeAddressSet(data?.address)
-        receiveAmount.value = 0
-        // transactionsReceivedRef will be provided by the composable
-        if (transactionsReceivedRef) {
-          transactionsReceivedRef.value = []
-        }
-        promptOnLeave.value = false
-
-        const qrDataHash = sha256(_qrData)
-        delete walletStore.qrDataTimestampCache[qrDataHash]
-      }
-
-      // Construct transaction object from websocket data
-      const txObject = {
-        txid: data?.txid,
-        record_type: 'incoming',
-        // For cashtokens, use raw amount from websocket (already in token units)
-        // For BCH, convert satoshis to BCH (divide by 1e8) since getTxAmount() expects BCH units
-        amount: isCashtoken.value && data?.tokenId
-          ? data?.amount  // data.amount is already in raw token units from websocket
-          : data?.value / 1e8,  // data.value is in satoshis, convert to BCH (8 decimals)
-        ft_category: isCashtoken.value ? data?.tokenId : undefined,
-        nft_category: undefined,
-        tokenSymbol: data?.tokenSymbol, // Include token symbol from websocket
-        tokenName: data?.tokenName, // Include token name from websocket
-        tokenDecimals: data?.tokenDecimals, // Include decimals from websocket
-        logo: data?.logo, // Include logo from websocket (set in parseWebsocketDataReceived)
-        tx_timestamp: new Date().toISOString(),
-        date_created: new Date().toISOString(),
-        senders: data?.senders || [],
-        fiat_amounts: originalFiatAmount && originalFiatCurrency
-          ? { [originalFiatCurrency]: originalFiatAmount }
-          : undefined,
-        market_prices: marketValue.amount && marketValue.currency
-          ? { [marketValue.currency]: marketValue.amount / receivedAmount }
-          : undefined,
-      }
-      
-      // Navigate to transaction detail page with new transaction flag
-      paymentDialogOpen.value = true
-      $router.push({
-        name: 'transaction-detail',
-        params: { txid: data?.txid },
-        query: { new: 'true' },
-        state: { tx: txObject }
-      }).then(() => {
-        paymentDialogOpen.value = false
-      }).catch(() => {
-        paymentDialogOpen.value = false
-      })
     }
 
     /* <-- Payment tracking composable */
@@ -1219,6 +1286,9 @@ export default defineComponent({
       closeWebsocket,
       setupListener,
       prepareForNewInvoice: prepareForNewInvoiceFromTracking,
+      startNewSession,
+      clearPendingApiCalls,
+      resetSessionData,
     } = usePaymentTracking({
       addressSet,
       isCashtoken,
@@ -1239,21 +1309,69 @@ export default defineComponent({
       qrScanned.value = newVal
     }, { immediate: true })
 
+    // Start session if fiat amount was provided via props (after composable is initialized)
+    if (props.setFiatAmount && props.setFiatCurrency && fiatReferenceAmount.value && fiatReferenceCurrency.value) {
+      startNewSession(fiatReferenceAmount.value, fiatReferenceCurrency.value)
+    }
+
     // Create a wrapper for displayReceivedTransaction that has access to transactionsReceived
     // This allows it to be called from the template without needing to pass transactionsReceived
     const displayReceivedTransactionWrapper = (data) => {
       displayReceivedTransaction(data, transactionsReceived)
     }
 
-    // Wrapper for prepareForNewInvoice that adds page-specific logic
-    function prepareForNewInvoice () {
+    // Comprehensive cleanup function to reset all state as if app is newly opened
+    function resetAllState() {
+      // Stop QR expiration countdown
+      stopQrExpirationCountdown()
+      
+      // Clear timeouts
       clearTimeout(triggerSecondConfettiTimeout)
       triggerSecondConfettiTimeout = null
+      
+      // Clear state flags
       triggerSecondConfetti.value = false
       promptOnLeave.value = true
       refreshingQr.value = false
       refreshQr.value = false
+      paymentDialogOpen.value = false
+      disableAmount.value = false
+      qrScanned.value = false
+      
+      // Clear fiat reference amounts
+      fiatReferenceAmount.value = null
+      fiatReferenceCurrency.value = null
+      
+      // Clear amount and currency
+      receiveAmount.value = 0
+      currency.value = 'BCH'
+      
+      // Clear token-related state
+      tokenCategory.value = ''
+      tokenPriceId.value = null
+      
+      // Reset QR timestamp
+      qrTimestamp.value = Math.floor(Date.now() / 1000)
+      
+      // Reset QR expiration timer
+      qrExpirationTimer.value = 1
+      
+      // Stop rate refresh timer
+      stopFiatRateRefreshTimer()
+      
+      // Reset payment store
+      paymentsStore.resetPayment()
+      
+      // Reset all session data (clears session maps and resets session ID)
+      resetSessionData()
+      
+      // Call composable's prepare for new invoice
       prepareForNewInvoiceFromTracking()
+    }
+
+    // Wrapper for prepareForNewInvoice that adds page-specific logic
+    function prepareForNewInvoice () {
+      resetAllState()
     }
 
     const qrCodeContainerClass = computed(() => {
@@ -1285,10 +1403,6 @@ export default defineComponent({
 
     function maybePostOutputFiatAmounts(txid) {
       try {
-        // Require fiat reference available
-        if (!fiatReferenceAmount.value || !fiatReferenceCurrency.value) { 
-          return 
-        }
         if (!txid) { 
           return 
         }
@@ -1299,6 +1413,17 @@ export default defineComponent({
         // Collect merchant outputs for this txid
         const outputs = txOutputsByTxid.get(txid) || []
         if (!outputs.length) { 
+          return 
+        }
+
+        // Use the latest fiat amount/currency entered
+        // This ensures we always use the most recent amount the user entered
+        // Note: The composable version captures the amount when transaction is received
+        const fiatAmount = fiatReferenceAmount.value
+        const fiatCurrency = fiatReferenceCurrency.value
+
+        // Require fiat reference available
+        if (!fiatAmount || !fiatCurrency) { 
           return 
         }
 
@@ -1319,11 +1444,11 @@ export default defineComponent({
           const unit = isTokenPayment ? (Number(o?.tokenAmount) || 0) : ((typeof o?.value === 'number') ? (o.value / 1e8) : (Number(o?.amount) || 0))
           const share = unit / totalCrypto
           const fiatPart = share >= 1 || outputs.length === 1
-            ? Number(fiatReferenceAmount.value)
-            : Number((Number(fiatReferenceAmount.value) * share).toFixed(2))
+            ? Number(fiatAmount)
+            : Number((Number(fiatAmount) * share).toFixed(2))
           const entry = {
             fiat_amount: `${fiatPart}`,
-            fiat_currency: `${fiatReferenceCurrency.value}`,
+            fiat_currency: `${fiatCurrency}`,
             recipient: o?.address,
           }
           if (isTokenPayment) {
@@ -1340,7 +1465,76 @@ export default defineComponent({
           .catch((error) => {
             // Non-blocking notify
             console.error('[ReceivePage] Error posting fiat amounts', error)
-            $q.notify({ type: 'warning', message: t('UnableToSaveFiatBreakdown'), timeout: 3000 })
+            
+            // Check if error is due to duplicate submission
+            const errorMessage = error?.message || ''
+            const isConflict = error?.status === 409 || 
+                                errorMessage.includes('409') || 
+                                errorMessage.toLowerCase().includes('conflict') ||
+                                errorMessage.toLowerCase().includes('already exists') ||
+                                errorMessage.toLowerCase().includes('duplicate')
+            
+            if (isConflict) {
+              // Check if existing data matches what we're trying to save
+              const existingData = error?.existingData
+              if (existingData && fiatReferenceAmount.value && fiatReferenceCurrency.value) {
+                // Compare existing data with what we're trying to save
+                let amountsMatch = true
+                const expectedAmount = Number(fiatReferenceAmount.value)
+                
+                // Check all outputs in existing data
+                for (const outputIndex in existingData) {
+                  const existing = existingData[outputIndex]
+                  const existingAmount = Number(existing.fiat_amount || 0)
+                  const existingCurrency = existing.fiat_currency
+                  
+                  // For single output, compare directly
+                  // For multiple outputs, we'd need to sum them, but typically it's one output
+                  if (Object.keys(existingData).length === 1) {
+                    // Allow small floating point differences (0.01)
+                    if (Math.abs(existingAmount - expectedAmount) > 0.01 || 
+                        existingCurrency !== fiatReferenceCurrency.value) {
+                      amountsMatch = false
+                      break
+                    }
+                  } else {
+                    // Multiple outputs - sum them up and compare
+                    const totalExisting = Object.values(existingData).reduce((sum, entry) => {
+                      return sum + Number(entry.fiat_amount || 0)
+                    }, 0)
+                    if (Math.abs(totalExisting - expectedAmount) > 0.01 ||
+                        existingCurrency !== fiatReferenceCurrency.value) {
+                      amountsMatch = false
+                      break
+                    }
+                  }
+                }
+                
+                if (!amountsMatch) {
+                  // Amounts don't match - show helpful error
+                  const existingAmount = Object.values(existingData)[0]?.fiat_amount || 'unknown'
+                  const existingCurrency = Object.values(existingData)[0]?.fiat_currency || ''
+                  $q.notify({ 
+                    type: 'warning', 
+                    message: t('FiatAmountMismatch', 
+                      { 
+                        existing: `${existingAmount} ${existingCurrency}`,
+                        current: `${fiatReferenceAmount.value} ${fiatReferenceCurrency.value}`
+                      },
+                      `Fiat amount mismatch: ${existingAmount} ${existingCurrency} already saved, but current amount is ${fiatReferenceAmount.value} ${fiatReferenceCurrency.value}`
+                    ), 
+                    timeout: 5000 
+                  })
+                }
+                // If amounts match, silently ignore (duplicate with same data)
+              } else {
+                // No existing data to compare, but it's a conflict - likely duplicate
+                // Silently ignore
+              }
+            } else {
+              // Not a conflict error - show generic error
+              $q.notify({ type: 'warning', message: t('UnableToSaveFiatBreakdown'), timeout: 3000 })
+            }
           })
       } catch (e) { 
         console.error('[ReceivePage] Error in maybePostOutputFiatAmounts', e)
@@ -1359,6 +1553,12 @@ export default defineComponent({
     }
 
     onBeforeRouteLeave(async (to, from, next) => {
+      // If navigating to home, always reset all state
+      if (to.name === 'home') {
+        resetAllState()
+        return next()
+      }
+      
       // Don't prompt if there's no QR data yet
       if (!qrData.value || !promptOnLeave.value) return next()
       

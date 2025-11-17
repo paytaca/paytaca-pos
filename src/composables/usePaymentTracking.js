@@ -4,13 +4,12 @@ import { usePaymentsStore } from 'stores/payments'
 import { useAddressesStore } from 'stores/addresses'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
-import { postOutputFiatAmounts } from 'src/utils/watchtower'
-import { sha256 } from 'src/wallet/utils'
 
 /**
  * Composable for managing payment tracking, websocket connections, and transaction handling
  * @param {Object} params
  * @param {import('vue').ComputedRef<Object>} params.addressSet - Address set from addresses store
+ * @param {import('vue').ComputedRef<string>} params.receivingAddress - Current receiving address (used for session tracking)
  * @param {import('vue').Ref<boolean>} params.isCashtoken - Whether this is a cashtoken payment
  * @param {import('vue').Ref<string>} params.tokenCategory - Token category if cashtoken
  * @param {import('vue').Ref<boolean>} params.isOnline - Online status
@@ -150,79 +149,33 @@ export function usePaymentTracking({
     }
   }
 
-  function maybePostOutputFiatAmounts(txid) {
-    try {
-      if (!fiatReferenceAmount.value || !fiatReferenceCurrency.value) { 
-        return 
-      }
-      if (!txid) { 
-        return 
-      }
-      if (postedFiatMapTxIds.has(txid)) { 
-        return 
-      }
 
-      const outputs = txOutputsByTxid.get(txid) || []
-      if (!outputs.length) { 
-        return 
-      }
-
-      const isTokenPayment = isCashtoken.value
-      const tokenDecimals = cashtokenMetadata.value?.decimals || 0
-      const totalCrypto = outputs.reduce((s, o) => {
-        if (isTokenPayment) return s + (Number(o?.tokenAmount) || 0)
-        const bch = (typeof o?.value === 'number') ? (o.value / 1e8) : (Number(o?.amount) || 0)
-        return s + (bch || 0)
-      }, 0)
-      if (totalCrypto <= 0) { 
-        return 
-      }
-
-      const map = {}
-      outputs.forEach(o => {
-        const unit = isTokenPayment ? (Number(o?.tokenAmount) || 0) : ((typeof o?.value === 'number') ? (o.value / 1e8) : (Number(o?.amount) || 0))
-        const share = unit / totalCrypto
-        const fiatPart = share >= 1 || outputs.length === 1
-          ? Number(fiatReferenceAmount.value)
-          : Number((Number(fiatReferenceAmount.value) * share).toFixed(2))
-        const entry = {
-          fiat_amount: `${fiatPart}`,
-          fiat_currency: `${fiatReferenceCurrency.value}`,
-          recipient: o?.address,
-        }
-        if (isTokenPayment) {
-          entry.token_amount = (Number(o?.tokenAmount) || 0).toFixed(tokenDecimals)
-          entry.token_category = tokenCategory.value
-        }
-        map[String(o?.index)] = entry
-      })
-      
-      postOutputFiatAmounts({ txid, outputFiatAmounts: map })
-        .then(() => { 
-          postedFiatMapTxIds.add(txid) 
-        })
-        .catch((error) => {
-          console.error('[usePaymentTracking] Error posting fiat amounts', error)
-          $q.notify({ type: 'warning', message: t('UnableToSaveFiatBreakdown'), timeout: 3000 })
-        })
-    } catch (e) { 
-      console.error('[usePaymentTracking] Error in maybePostOutputFiatAmounts', e)
-    }
+  function clearPendingApiCalls() {
+    // Clear all pending timers
+    fiatMapPostTimers.forEach(timer => clearTimeout(timer))
+    fiatMapPostTimers.clear()
+    
+    // Clear posted txids set
+    postedFiatMapTxIds.clear()
   }
 
-  function schedulePostOutputFiatAmounts(txid) {
-    if (!txid) return
-    const existing = fiatMapPostTimers.get(txid)
-    if (existing) clearTimeout(existing)
-    const timer = setTimeout(() => {
-      fiatMapPostTimers.delete(txid)
-      maybePostOutputFiatAmounts(txid)
-    }, 800)
-    fiatMapPostTimers.set(txid, timer)
+  function resetSessionData() {
+    // Clear all session data - used when navigating away or resetting state
+    clearPendingApiCalls()
   }
+
+  function startNewSession(fiatAmount, fiatCurrency) {
+    // Clear all pending API calls from previous sessions
+    clearPendingApiCalls()
+    // Note: Fiat amounts are now handled directly in ReceivePage.vue using fiatReferenceAmount/fiatReferenceCurrency
+    // No need to track them here
+  }
+
 
   function updatePayment(transaction) {
     if (!updateTransactionList(transaction)) return
+
+    const txid = transaction?.txid
 
     if (isCashtoken.value) {
       if (transaction?.tokenId === `ct/${tokenCategory.value}`) {
@@ -237,18 +190,17 @@ export function usePaymentTracking({
       paymentsStore.addPayment(paidBch)
     }
 
+    // Call displayReceivedTransaction - it will handle the API call and navigation
+    // Fiat amounts are read directly from fiatReferenceAmount/fiatReferenceCurrency in ReceivePage
     onDisplayReceivedTransaction(transaction, transactionsReceived)
 
     try {
-      const txid = transaction?.txid
       if (txid) {
         const list = txOutputsByTxid.get(txid) || []
         list.push(transaction)
         txOutputsByTxid.set(txid, list)
       }
     } catch (_) {}
-
-    schedulePostOutputFiatAmounts(transaction?.txid)
   }
 
   function onWebsocketReceive(data) {
@@ -333,7 +285,11 @@ export function usePaymentTracking({
     qrScanned.value = false
     closeWebsocket()
     setupListener()
+    // Reset session data when preparing for new invoice
+    resetSessionData()
   }
+
+  // Note: Sessions are now started explicitly when fiat amount is set, not based on address changes
 
   // Watch address set changes
   watch(addressSet, () => {
@@ -378,6 +334,9 @@ export function usePaymentTracking({
     closeWebsocket,
     setupListener,
     prepareForNewInvoice,
+    startNewSession,
+    clearPendingApiCalls,
+    resetSessionData,
   }
 }
 
