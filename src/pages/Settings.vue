@@ -1,5 +1,5 @@
 <template>
-  <div class="q-pb-md">
+  <div class="settings-page">
     <MainHeader :title="$t('Settings')">
       <template #title>
         <q-toolbar-title
@@ -35,198 +35,267 @@
         </q-btn>
       </template>
     </MainHeader>
-    <q-card
-      class="q-mx-md q-mt-lg text-weight-medium"
-      style="border-radius: 16px"
-    >
-      <q-list separator>
-        <q-item
-          v-if="walletStore?.branchInfo?.id"
-          clickable
-          v-ripple
-          :to="{ name: 'marketplace' }"
-        >
-          <q-item-section
-            :class="$q.dark.isActive ? 'text-white' : 'text-brandblue'"
-          >
-            <q-item-label>{{ $t("Marketplace") }}</q-item-label>
-          </q-item-section>
-          <q-item-section avatar>
-            <q-item-label class="text-caption text-underline">{{
-              $t("GoToMarketPlace")
-            }}</q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable v-ripple @click="$q.dark.toggle()">
-          <q-item-section
-            :class="$q.dark.isActive ? 'text-white' : 'text-brandblue'"
-          >
-            <q-item-label>{{ $t("DarkMode") }}</q-item-label>
-          </q-item-section>
-          <q-item-section avatar>
-            <q-toggle
-              :model-value="$q.dark.isActive"
-              color="blue-9"
-              keep-color
-              @update:model-value="(val) => $q.dark.set(val)"
-            />
-          </q-item-section>
-        </q-item>
-        <q-item
-          v-if="walletStore.walletHash"
-          :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'"
-        >
-          <q-item-section>
-            <q-item-label>
-              {{ $t("POSDevice") }}
-            </q-item-label>
-          </q-item-section>
-          <q-item-section avatar>
-            <q-item-label class="text-subtitle1">
-              {{ truncatedWalletHash }}
-              <span>#{{ padPosId(walletStore.posId) }}</span>
-            </q-item-label>
-            <q-item-label v-if="walletStore.deviceInfo.name">
-              {{ walletStore.deviceInfo.name }}
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item
-          v-if="
-            walletStore.walletHash && walletStore.preferences.selectedCurrency
-          "
-          :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'"
-        >
-          <q-item-section>
-            <q-item-label>
-              {{ $t("Currency") }}
-            </q-item-label>
-          </q-item-section>
-          <q-item-section avatar>
-            <q-item-label>
-              {{ walletStore.preferences.selectedCurrency }}
-              <q-icon name="info" class="" size="1.5em">
-                <q-popup-proxy :breakpoint="0">
-                  <div class="q-pa-md">
-                    {{ $t("CurrencySettingNote") }}
-                  </div>
-                </q-popup-proxy>
-              </q-icon>
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item :class="$q.dark.isActive ? 'text-grey' : 'text-grey-8'">
-          <q-item-section>
-            <q-item-label>
-              {{ $t("Language") }}
-            </q-item-label>
-          </q-item-section>
-          <q-item-section>
-            <LanguageSelector />
-          </q-item-section>
-        </q-item>
-      </q-list>
-    </q-card>
-    <q-card
-      v-if="walletStore?.merchantInfo?.id"
-      class="q-mx-md q-mt-lg text-weight-medium"
-      style="border-radius: 16px"
-    >
-      <q-card-section class="q-pb-xs">
-        <div class="text-h6">
-          <q-icon name="storefront" size="1.5em" class="q-mr-xs" />
-          {{ $t("MerchantDetails") }}
-        </div>
-      </q-card-section>
-      <q-separator />
-      <q-list separator dense class="q-pb-md">
-        <q-item class="">
-          <q-item-section class="text-grey">
-            <q-item-label>{{ $t("Name") }}</q-item-label>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>
-              {{ walletStore.merchantInfo.name }}
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item
-          v-if="walletStore.branchInfo.id && walletStore.branchInfo.name"
-          class=""
-        >
-          <q-item-section class="text-grey">
-            <q-item-label>{{ $t("Branch") }}</q-item-label>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>
-              {{ walletStore.branchInfo.name }}
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item class="">
-          <q-item-section class="text-grey">
-            <q-item-label>{{ $t("PhoneNumber") }}</q-item-label>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>
-              {{ walletStore.merchantInfo.primaryContactNumber }}
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item class="">
-          <q-item-section class="text-grey">
-            <q-item-label>{{ $t("Address") }}</q-item-label>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>
-              {{ walletStore.formattedMerchantAddress }}
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item v-if="walletStore.formattedBranchAddress" class="">
-          <q-item-section class="text-grey">
-            {{ $t("BranchAddress") }}
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>
-              {{ walletStore.formattedBranchAddress }}
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-      </q-list>
-    </q-card>
-    <q-card
-      class="q-mx-md q-mt-lg text-weight-medium"
-      style="border-radius: 16px"
-    >
-      <q-list>
-        <q-item>
-          <q-item-section class="text-grey">
-            {{ $t("AppVersion") }}
-          </q-item-section>
-          <q-item-section>
-            <q-item-label> v{{ appVersion }} </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item>
-          <q-item-section class="text-grey">
-            {{ $t("Repository") }}
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>
-              <a
-                :href="repoUrl"
-                style="text-decoration: none"
-                :style="{ color: $q.dark.isActive ? 'white' : 'black' }"
-                target="_blank"
+
+    <div class="settings-content q-px-md q-pt-lg q-pb-xl">
+      <div v-if="walletStore?.merchantInfo?.id" class="profile-section q-mb-lg">
+        <q-card class="profile-card" :class="{ 'bg-dark': $q.dark.isActive }">
+          <q-card-section class="q-pa-lg">
+            <div class="row items-center q-gutter-md">
+              <q-avatar
+                size="64px"
+                color="brandblue"
+                text-color="white"
+                class="profile-avatar"
               >
-                Paytaca POS Repo @ Github
-              </a>
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-      </q-list>
-    </q-card>
+                <q-icon name="store" size="32px" />
+              </q-avatar>
+              <div class="col">
+                <div class="text-h5 text-weight-medium ellipsis">
+                  {{ walletStore.merchantInfo.name }}
+                </div>
+                <div
+                  v-if="walletStore.branchInfo.name"
+                  class="text-subtitle2 text-grey-7 q-mt-xs"
+                >
+                  <q-icon name="location_on" size="16px" class="q-mr-xs" />
+                  {{ walletStore.branchInfo.name }}
+                </div>
+              </div>
+            </div>
+            <q-separator class="q-my-md" :dark="$q.dark.isActive" />
+            <q-btn
+              v-if="walletStore?.branchInfo?.id"
+              outline
+              no-caps
+              :label="$t('GoToMarketPlace')"
+              icon="storefront"
+              :to="{ name: 'marketplace' }"
+              color="brandblue"
+              class="full-width marketplace-btn q-mb-md"
+            />
+            <div class="row q-gutter-y-sm">
+              <div
+                v-if="walletStore.merchantInfo.primaryContactNumber"
+                class="col-12"
+              >
+                <div class="text-caption text-grey">
+                  {{ $t("PhoneNumber") }}
+                </div>
+                <div class="text-body2">
+                  {{ walletStore.merchantInfo.primaryContactNumber }}
+                </div>
+              </div>
+              <div v-if="walletStore.formattedMerchantAddress" class="col-12">
+                <div class="text-caption text-grey">{{ $t("Address") }}</div>
+                <div class="text-body2">
+                  {{ walletStore.formattedMerchantAddress }}
+                </div>
+              </div>
+              <div v-if="walletStore.formattedBranchAddress" class="col-12">
+                <div class="text-caption text-grey">
+                  {{ $t("BranchAddress") }}
+                </div>
+                <div class="text-body2">
+                  {{ walletStore.formattedBranchAddress }}
+                </div>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+
+      <div class="section-title text-overline text-uppercase q-mb-sm q-pl-sm">
+        {{ $t("Preferences") }}
+      </div>
+      <q-card
+        class="settings-card q-mb-lg"
+        :class="{ 'bg-dark': $q.dark.isActive }"
+      >
+        <q-list class="rounded-borders">
+          <q-item clickable v-ripple @click="$q.dark.toggle()" class="q-py-md">
+            <q-item-section avatar>
+              <q-avatar
+                :color="$q.dark.isActive ? 'yellow' : 'grey-7'"
+                text-color="white"
+                size="40px"
+              >
+                <q-icon :name="$q.dark.isActive ? 'dark_mode' : 'light_mode'" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-medium">{{
+                $t("DarkMode")
+              }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-toggle
+                :model-value="$q.dark.isActive"
+                color="brandblue"
+                keep-color
+                @update:model-value="(val) => $q.dark.set(val)"
+              />
+            </q-item-section>
+          </q-item>
+
+          <q-separator :dark="$q.dark.isActive" inset="item" />
+
+          <q-item class="q-py-md">
+            <q-item-section avatar>
+              <q-avatar color="blue-9" text-color="white" size="40px">
+                <q-icon name="language" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-medium">{{
+                $t("Language")
+              }}</q-item-label>
+            </q-item-section>
+            <q-item-section side class="language-selector">
+              <LanguageSelector />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card>
+
+      <div
+        v-if="walletStore.walletHash"
+        class="section-title text-overline text-uppercase q-mb-sm q-pl-sm"
+      >
+        {{ $t("Device") }}
+      </div>
+      <q-card
+        v-if="walletStore.walletHash"
+        class="settings-card q-mb-lg"
+        :class="{ 'bg-dark': $q.dark.isActive }"
+      >
+        <q-list class="rounded-borders">
+          <q-item class="q-py-md">
+            <q-item-section avatar>
+              <q-avatar color="accent" text-color="white" size="40px">
+                <q-icon name="devices" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-medium">{{
+                $t("POSDevice")
+              }}</q-item-label>
+              <q-item-label caption class="q-mt-xs">
+                <span class="text-weight-medium">{{
+                  truncatedWalletHash
+                }}</span>
+                <span class="q-ml-xs">#{{ padPosId(walletStore.posId) }}</span>
+              </q-item-label>
+              <q-item-label v-if="walletStore.deviceInfo.name" caption>
+                {{ walletStore.deviceInfo.name }}
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-separator
+            v-if="
+              walletStore.walletHash && walletStore.preferences.selectedCurrency
+            "
+            :dark="$q.dark.isActive"
+            inset="item"
+          />
+
+          <q-item
+            v-if="
+              walletStore.walletHash && walletStore.preferences.selectedCurrency
+            "
+            class="q-py-md"
+          >
+            <q-item-section avatar>
+              <q-avatar color="green-7" text-color="white" size="40px">
+                <q-icon name="paid" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-medium">{{
+                $t("Currency")
+              }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <div class="row items-center q-gutter-xs">
+                <span class="text-subtitle2">{{
+                  walletStore.preferences.selectedCurrency
+                }}</span>
+                <q-icon
+                  name="info"
+                  size="18px"
+                  color="grey"
+                  class="cursor-pointer"
+                >
+                  <q-popup-proxy :breakpoint="0">
+                    <q-card class="q-pa-md" style="max-width: 280px">
+                      <div class="text-caption">
+                        {{ $t("CurrencySettingNote") }}
+                      </div>
+                    </q-card>
+                  </q-popup-proxy>
+                </q-icon>
+              </div>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card>
+
+      <div class="section-title text-overline text-uppercase q-mb-sm q-pl-sm">
+        {{ $t("About") }}
+      </div>
+      <q-card
+        class="settings-card q-mb-lg"
+        :class="{ 'bg-dark': $q.dark.isActive }"
+      >
+        <q-list class="rounded-borders">
+          <q-item class="q-py-md">
+            <q-item-section avatar>
+              <q-avatar color="primary" text-color="white" size="40px">
+                <q-icon name="info" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-medium">{{
+                $t("AppVersion")
+              }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-badge
+                color="brandblue"
+                :label="`v${appVersion}`"
+                class="text-subtitle2"
+              />
+            </q-item-section>
+          </q-item>
+
+          <q-separator :dark="$q.dark.isActive" inset="item" />
+
+          <q-item
+            clickable
+            v-ripple
+            tag="a"
+            :href="repoUrl"
+            target="_blank"
+            class="q-py-md"
+          >
+            <q-item-section avatar>
+              <q-avatar color="grey-8" text-color="white" size="40px">
+                <q-icon name="code" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-medium">{{
+                $t("Repository")
+              }}</q-item-label>
+              <q-item-label caption>Paytaca POS @ Github</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-icon name="open_in_new" color="grey" />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card>
+    </div>
   </div>
 </template>
 
@@ -257,16 +326,13 @@ export default defineComponent({
     const repoUrl = "https://github.com/paytaca/paytaca-pos";
     const { startInterception, stopInterception } = useDebugLogger();
 
-    // Debug icon visibility state
     const debugIconVisible = ref(false);
     const longPressTimer = ref(null);
-    const LONG_PRESS_DURATION = 500; // 500ms
+    const LONG_PRESS_DURATION = 500;
 
-    // Initialize debug visibility from localStorage
     onMounted(() => {
       const stored = localStorage.getItem("debugIconVisible");
       debugIconVisible.value = stored === "true";
-      // Start/stop interception based on initial state
       if (debugIconVisible.value) {
         startInterception();
       } else {
@@ -278,7 +344,6 @@ export default defineComponent({
       debugIconVisible.value = !debugIconVisible.value;
       localStorage.setItem("debugIconVisible", String(debugIconVisible.value));
 
-      // Start or stop console interception based on visibility
       if (debugIconVisible.value) {
         startInterception();
       } else {
@@ -287,14 +352,11 @@ export default defineComponent({
     }
 
     function showDebugConfirmation() {
-      // Only show confirmation if debug icon is currently hidden
       if (debugIconVisible.value) {
-        // If already visible, just toggle it off without confirmation
         toggleDebugIcon();
         return;
       }
 
-      // Show confirmation dialog before showing debug icon
       $q.dialog({
         title: t("Show Debug Tools"),
         message: t(
@@ -375,3 +437,67 @@ export default defineComponent({
   },
 });
 </script>
+
+<style lang="scss" scoped>
+.settings-page {
+  min-height: 100vh;
+}
+
+.settings-content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.section-title {
+  letter-spacing: 1px;
+  font-weight: 500;
+  color: var(--q-primary);
+}
+
+.settings-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.profile-card {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.profile-avatar {
+  background: linear-gradient(135deg, $brandblue 0%, $primary 100%);
+}
+
+.language-selector {
+  min-width: 150px;
+}
+
+.marketplace-btn {
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.body--dark {
+  .settings-card,
+  .profile-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+}
+</style>

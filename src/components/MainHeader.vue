@@ -13,8 +13,16 @@
           @click="handleBack"
         />
         <slot name="title">
-          <q-toolbar-title class="text-center text-h4">
-            {{ route.meta?.title ||  title || '' }}
+          <q-toolbar-title
+            class="text-h4"
+            style="
+              position: absolute;
+              left: 50%;
+              transform: translateX(-50%);
+              text-align: center;
+            "
+          >
+            {{ route.meta?.title || title || "" }}
           </q-toolbar-title>
         </slot>
         <slot name="right-actions"></slot>
@@ -25,57 +33,57 @@
   </div>
 </template>
 <script>
-import { defineComponent } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { defineComponent } from "vue";
+import { useRouter, useRoute } from "vue-router";
 
 export default defineComponent({
-  name: 'MainHeader',
+  name: "MainHeader",
   props: {
     title: String,
     backTo: {
       type: String,
-      default: null
-    }
+      default: null,
+    },
   },
   setup(props) {
-    const router = useRouter()
-    const route = useRoute()
-    
+    const router = useRouter();
+    const route = useRoute();
+
     function handleBack(event) {
       if (event) {
-        event.preventDefault()
-        event.stopPropagation()
+        event.preventDefault();
+        event.stopPropagation();
       }
-      
+
       // Defer navigation to avoid recursive updates
       if (props.backTo) {
         // Don't navigate if we're already on the target route
-        const currentRouteName = route.name
-        if (currentRouteName === props.backTo) return
-        
+        const currentRouteName = route.name;
+        if (currentRouteName === props.backTo) return;
+
         setTimeout(() => {
           router.push({ name: props.backTo }).catch((err) => {
             // Silently handle navigation errors (e.g., already navigating)
-            console.error('Navigation error:', err)
-          })
-        }, 0)
+            console.error("Navigation error:", err);
+          });
+        }, 0);
       } else {
         setTimeout(() => {
-          router.go(-1)
-        }, 0)
+          router.go(-1);
+        }, 0);
       }
     }
-    
+
     return {
       handleBack,
-      route
-    }
+      route,
+    };
   },
-})
+});
 </script>
 <style scoped>
 .main-header {
-  background-color: rgba(0,0,0,0);
+  background-color: rgba(0, 0, 0, 0);
   /* Position header at the very top of viewport */
   position: fixed;
   top: 0;
