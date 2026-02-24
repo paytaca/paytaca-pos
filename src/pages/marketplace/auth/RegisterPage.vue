@@ -1,6 +1,6 @@
 <template>
   <q-page class="q-pa-md">
-    <div class="row items-center q-mt-lg q-mb-md">
+    <div class="row items-center q-mt-sm q-mb-md">
       <q-btn
         flat
         round

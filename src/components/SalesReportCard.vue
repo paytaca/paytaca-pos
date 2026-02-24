@@ -1,20 +1,12 @@
 <template>
   <q-card class="sales-card q-pa-md column full-height">
     <div class="row items-center">
-      <q-avatar
-        :color="avatarColor"
-        text-color="white"
-        size="32px"
-        class="q-mr-sm"
-      >
-        <q-icon :name="icon" size="18px" />
-      </q-avatar>
-      <div class="text-subtitle1 text-weight-medium">{{ title }}</div>
+      <div class="text-body2">{{ title }}</div>
       <q-space />
       <q-badge :label="salesReport.count" color="primary" class="q-ml-xs" />
     </div>
     <div class="column justify-center q-space q-mt-md">
-      <div class="text-h6">
+      <div class="text-body1 text-weight-bold">
         {{ formatNumberAutoDecimals(salesReport.total) }} BCH
       </div>
       <div
@@ -59,7 +51,7 @@
 <script>
 import { useCashtokenStore } from "src/stores/cashtoken";
 import { useQuasar } from "quasar";
-import { defineComponent, inject, computed } from "vue";
+import { defineComponent, inject } from "vue";
 import { useI18n } from "vue-i18n";
 import { formatNumberAutoDecimals } from "src/utils/number-format";
 
@@ -84,25 +76,6 @@ export default defineComponent({
     const $q = useQuasar();
     const { t: $t } = useI18n();
     const cashtokenStore = useCashtokenStore();
-
-    const iconMap = {
-      Today: "today",
-      Yesterday: "event",
-      Last7Days: "date_range",
-      LastSevenDays: "date_range",
-      ThisMonth: "calendar_month",
-    };
-
-    const colorMap = {
-      Today: "brandblue",
-      Yesterday: "primary",
-      Last7Days: "secondary",
-      LastSevenDays: "secondary",
-      ThisMonth: "accent",
-    };
-
-    const icon = computed(() => iconMap[props.title] || "analytics");
-    const avatarColor = computed(() => colorMap[props.title] || "brandblue");
 
     function formatTokenAmount(amountData) {
       const tokenMetadata = cashtokenStore.getTokenMetadata(
@@ -134,8 +107,6 @@ export default defineComponent({
       formatTokenAmount,
       copyToClipboard,
       formatNumberAutoDecimals,
-      icon,
-      avatarColor,
     };
   },
 });
@@ -151,6 +122,24 @@ export default defineComponent({
   &:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     transform: translateY(-2px);
+  }
+
+  .text-body2 {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .text-body1 {
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .text-caption {
+    font-size: 0.7rem;
   }
 }
 
