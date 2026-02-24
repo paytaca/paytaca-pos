@@ -1,6 +1,13 @@
 <template>
   <q-page class="q-pa-md">
     <div class="row items-center q-mt-lg q-mb-md">
+      <q-btn
+        flat
+        round
+        icon="arrow_back"
+        @click="$router.push({ name: 'home' })"
+        class="q-mr-sm"
+      />
       <div class="q-space">
         <div class="text-h4">{{ $t("Marketplace") }}</div>
       </div>
