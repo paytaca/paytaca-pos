@@ -10,11 +10,7 @@
         :display-link-button="forceDisplayWalletLink"
         @device-linked="() => (forceDisplayWalletLink = false)"
       />
-      <div
-        v-else
-        class="home-main-content q-py-md full-width"
-        :style="$q.platform.is.ios ? 'padding-top:3.8em;' : ''"
-      >
+      <div v-else class="home-main-content q-py-md full-width">
         <div class="q-px-md q-mb-md">
           <template v-if="isRefreshing || isInitialLoading">
             <q-card

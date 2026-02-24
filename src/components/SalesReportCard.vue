@@ -14,7 +14,7 @@
       <q-badge :label="salesReport.count" color="primary" class="q-ml-xs" />
     </div>
     <div class="column justify-center q-space q-mt-md">
-      <div class="text-h6 text-weight-bold">
+      <div class="text-h6">
         {{ formatNumberAutoDecimals(salesReport.total) }} BCH
       </div>
       <div
