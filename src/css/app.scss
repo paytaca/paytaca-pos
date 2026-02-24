@@ -19,6 +19,12 @@ body.body--dark,
   background-color: $dark-page !important;
 }
 
+.q-page.q-pa-md,
+.q-page[class*="q-pa-"] {
+  padding-top: calc(constant(safe-area-inset-top) + 16px) !important;
+  padding-top: calc(env(safe-area-inset-top) + 16px) !important;
+}
+
 .q-page {
   padding-top: constant(safe-area-inset-top);
   padding-top: env(safe-area-inset-top);
