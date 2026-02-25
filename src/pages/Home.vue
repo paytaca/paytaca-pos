@@ -1,6 +1,5 @@
 <template>
   <q-page class="home-page q-pb-lg">
-    <MainHeader :title="$t('Home')" />
     <q-pull-to-refresh
       @refresh="refreshPage"
       :disable="forceDisplayWalletLink || !walletStore.walletHash"
@@ -217,8 +216,15 @@
 import { useWalletStore } from "stores/wallet";
 import { useMarketplaceStore } from "src/stores/marketplace";
 import { defineAsyncComponent } from "vue";
-import { defineComponent, markRaw, nextTick, onMounted, ref, watch } from "vue";
-import MainHeader from "src/components/MainHeader.vue";
+import {
+  defineComponent,
+  markRaw,
+  nextTick,
+  onMounted,
+  ref,
+  watch,
+  computed,
+} from "vue";
 import MainFooter from "src/components/MainFooter.vue";
 import MarketplaceWidget from "src/components/marketplace/MarketplaceWidget.vue";
 import {
@@ -235,7 +241,6 @@ import { useRouter } from "vue-router";
 export default defineComponent({
   name: "HomePage",
   components: {
-    MainHeader,
     SalesReportCard: defineAsyncComponent(() =>
       import("src/components/SalesReportCard.vue")
     ),
@@ -539,6 +544,8 @@ export default defineComponent({
   flex-direction: column;
   justify-content: flex-start;
   align-items: stretch;
+  padding-top: constant(safe-area-inset-top);
+  padding-top: env(safe-area-inset-top);
 }
 
 .body--dark {
