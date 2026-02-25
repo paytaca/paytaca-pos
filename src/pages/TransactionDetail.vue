@@ -924,11 +924,12 @@ export default defineComponent({
     const isDarkMode = computed(() => $q.dark.isActive);
 
     // Safe area padding for iOS and Android status bar
+    // Only add safe-area inset, the base 1rem padding is already in CSS
     const headerPaddingStyle = computed(() => {
       if ($q.platform.is.ios) {
-        return "padding-top: calc(1rem + env(safe-area-inset-top));";
+        return "padding-top: calc(1rem + constant(safe-area-inset-top)); padding-top: calc(1rem + env(safe-area-inset-top));";
       } else if ($q.platform.is.android) {
-        return "padding-top: 1.5em;";
+        return "padding-top: 1rem;";
       }
       return "";
     });
@@ -964,6 +965,10 @@ export default defineComponent({
 <style lang="scss" scoped>
 .transaction-detail-page {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
 
   &.bg-brandwhite {
     background-color: $brandlight !important;

@@ -7,7 +7,7 @@
       size="25px"
       flat
       class="scanner-close-btn"
-      :style="{'margin-top': $q.platform.is.ios ? 'calc(20px + env(safe-area-inset-top))' : '20px'}"
+      :style="{'margin-top': $q.platform.is.ios ? 'calc(20px + constant(safe-area-inset-top)); margin-top: calc(20px + env(safe-area-inset-top))' : '20px'}"
       @click="stopScan"
     />
     <div class="scanner-box">

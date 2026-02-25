@@ -25,11 +25,6 @@ body.body--dark,
   padding-top: calc(env(safe-area-inset-top) + 16px) !important;
 }
 
-.q-page {
-  padding-top: constant(safe-area-inset-top);
-  padding-top: env(safe-area-inset-top);
-}
-
 .text-brandblue {
   color: $brandblue;
 }
