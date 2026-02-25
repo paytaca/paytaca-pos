@@ -926,10 +926,8 @@ export default defineComponent({
     // Safe area padding for iOS and Android status bar
     // Only add safe-area inset, the base 1rem padding is already in CSS
     const headerPaddingStyle = computed(() => {
-      if ($q.platform.is.ios) {
+      if ($q.platform.is.ios || $q.platform.is.android) {
         return "padding-top: calc(1rem + constant(safe-area-inset-top)); padding-top: calc(1rem + env(safe-area-inset-top));";
-      } else if ($q.platform.is.android) {
-        return "padding-top: 1rem;";
       }
       return "";
     });

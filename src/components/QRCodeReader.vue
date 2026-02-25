@@ -7,7 +7,10 @@
       size="25px"
       flat
       class="scanner-close-btn"
-      :style="{'margin-top': $q.platform.is.ios ? 'calc(20px + constant(safe-area-inset-top)); margin-top: calc(20px + env(safe-area-inset-top))' : '20px'}"
+      :style="{
+        'margin-top':
+          'calc(20px + constant(safe-area-inset-top)); margin-top: calc(20px + env(safe-area-inset-top))',
+      }"
       @click="stopScan"
     />
     <div class="scanner-box">
@@ -41,13 +44,16 @@
 </template>
 
 <script>
-import { i18n } from 'src/boot/i18n'
-import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner';
-import { QrcodeStream } from 'vue3-qrcode-reader'
-import { useQuasar } from 'quasar'
-import { ref, computed, onBeforeUnmount, watch } from 'vue'
+import { i18n } from "src/boot/i18n";
+import {
+  BarcodeScanner,
+  SupportedFormat,
+} from "@capacitor-community/barcode-scanner";
+import { QrcodeStream } from "vue3-qrcode-reader";
+import { useQuasar } from "quasar";
+import { ref, computed, onBeforeUnmount, watch } from "vue";
 
-const { t: $t } = i18n.global
+const { t: $t } = i18n.global;
 
 export default {
   components: { QrcodeStream },
@@ -55,93 +61,102 @@ export default {
     modelValue: Boolean,
     text: {
       type: String,
-      default: $t('ScanQrCode'),
+      default: $t("ScanQrCode"),
     },
-    toggle: Function
+    toggle: Function,
   },
-  emits: ['decode', 'error', 'update:modelValue'],
-  setup (props, { emit: $emit }) {
-    const $q = useQuasar()
-    const errorMessage = ref(null)
-    const innerVal = ref(props.modelValue)
-    watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
-    watch(innerVal, () => $emit('update:modelValue', innerVal.value))
+  emits: ["decode", "error", "update:modelValue"],
+  setup(props, { emit: $emit }) {
+    const $q = useQuasar();
+    const errorMessage = ref(null);
+    const innerVal = ref(props.modelValue);
+    watch(
+      () => [props.modelValue],
+      () => (innerVal.value = props.modelValue)
+    );
+    watch(innerVal, () => $emit("update:modelValue", innerVal.value));
 
     const isMobile = computed(() => {
-      return $q.platform.is.mobile || $q.platform.is.android || $q.platform.is.ios
-    })
+      return (
+        $q.platform.is.mobile || $q.platform.is.android || $q.platform.is.ios
+      );
+    });
 
     watch(innerVal, () => {
       if (innerVal.value && isMobile.value) {
-        prepareScanner()
+        prepareScanner();
       } else if (!innerVal.value) {
-        stopScan()
+        stopScan();
       }
-    })
-    onBeforeUnmount(() => stopScan())
+    });
+    onBeforeUnmount(() => stopScan());
 
-    function onScannerDecode (content) {
-      $emit('decode', content)
+    function onScannerDecode(content) {
+      $emit("decode", content);
     }
 
-    function onScannerInit (promise) {
+    function onScannerInit(promise) {
       promise
         .then(() => {
-          errorMessage.value = ''
+          errorMessage.value = "";
         })
-        .catch(error => {
-          if (error.name === 'NotAllowedError') {
-            errorMessage.value = 'Permission required to access to camera'
+        .catch((error) => {
+          if (error.name === "NotAllowedError") {
+            errorMessage.value = "Permission required to access to camera";
             // this.error = 'Hey! I need access to your camera'
-          } else if (error.name === 'NotFoundError') {
-            errorMessage.value = 'No camera found on this device'
+          } else if (error.name === "NotFoundError") {
+            errorMessage.value = "No camera found on this device";
             // this.error = 'Do you even have a camera on your device?'
-          } else if (error.name === 'NotSupportedError') {
-            errorMessage.value = 'Unable to acccess camera in non-secure context'
+          } else if (error.name === "NotSupportedError") {
+            errorMessage.value =
+              "Unable to acccess camera in non-secure context";
             // this.error = 'Seems like this page is served in non-secure context (HTTPS, localhost or file://)'
-          } else if (error.name === 'NotReadableError') {
-            errorMessage.value = 'Unable to access camera.'
+          } else if (error.name === "NotReadableError") {
+            errorMessage.value = "Unable to access camera.";
             // this.error = 'Couldn\'t access your camera. Is it already in use?'
-          } else if (error.name === 'OverconstrainedError') {
-            errorMessage.value = 'Constraints don\'t match any installed camera. Did you ask for the front camera although there is none?'
+          } else if (error.name === "OverconstrainedError") {
+            errorMessage.value =
+              "Constraints don't match any installed camera. Did you ask for the front camera although there is none?";
           } else {
-            errorMessage.value = 'Unknown error: ' + error.message
+            errorMessage.value = "Unknown error: " + error.message;
           }
 
           if (errorMessage.value) {
-            $emit('error', errorMessage.value)
+            $emit("error", errorMessage.value);
           }
-        })
+        });
     }
 
     async function prepareScanner() {
-      const status = await checkPermission()
+      const status = await checkPermission();
       if (status) {
-        await BarcodeScanner.prepare({ targetedFormats: [SupportedFormat.QR_CODE] })
-        scanBarcode()
+        await BarcodeScanner.prepare({
+          targetedFormats: [SupportedFormat.QR_CODE],
+        });
+        scanBarcode();
       } else {
-        $emit('error', 'Permission denied')
+        $emit("error", "Permission denied");
       }
     }
 
-    async function checkPermission () {
-      const status = await BarcodeScanner.checkPermission({ force: true })
+    async function checkPermission() {
+      const status = await BarcodeScanner.checkPermission({ force: true });
       // console.log('PERMISSION STATUS: ', JSON.stringify(status))
 
       if (status.granted) {
         // user granted permission
-        return true
+        return true;
       }
 
       if (status.denied) {
         // user denied permission
-        return false
+        return false;
       }
 
       if (status.asked) {
         // system requested the user for permission during this call
         // only possible when force set to true
-        BarcodeScanner.openAppSettings()
+        BarcodeScanner.openAppSettings();
       }
 
       if (status.neverAsked) {
@@ -149,80 +164,84 @@ export default {
         // it is advised to show the user some sort of prompt
         // this way you will not waste your only chance to ask for the permission
         // const c = confirm('We need your permission to use your camera to be able to scan QR codes')
-        BarcodeScanner.openAppSettings()
+        BarcodeScanner.openAppSettings();
       }
 
       if (status.restricted || status.unknown) {
         // ios only
         // probably means the permission has been denied
-        return false
+        return false;
       }
 
       // user has not denied permission
       // but the user also has not yet granted the permission
       // so request it
-      const statusRequest = await BarcodeScanner.checkPermission({ force: true })
+      const statusRequest = await BarcodeScanner.checkPermission({
+        force: true,
+      });
       // console.log('PERMISSION STATUS 2: ', JSON.stringify(statusRequest))
 
       if (statusRequest.asked) {
         // system requested the user for permission during this call
         // only possible when force set to true
         if (statusRequest.granted) {
-          return true
+          return true;
         } else {
-          return false
+          return false;
         }
       }
 
       if (statusRequest.granted) {
         // the user did grant the permission now
-        return true
+        return true;
       }
 
       // user did not grant the permission, so he must have declined the request
-      return false
+      return false;
     }
 
-    async function scanBarcode () {
-      await BarcodeScanner.hideBackground()
-      adjustComponentsClasslist(true)
+    async function scanBarcode() {
+      await BarcodeScanner.hideBackground();
+      adjustComponentsClasslist(true);
 
-      const res = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] })
-      if (res.hasContent) $emit('decode', res.content)
-      stopScan()
+      const res = await BarcodeScanner.startScan({
+        targetedFormats: [SupportedFormat.QR_CODE],
+      });
+      if (res.hasContent) $emit("decode", res.content);
+      stopScan();
     }
 
-    function stopScan () {
-      BarcodeScanner.showBackground()
-      BarcodeScanner.stopScan()
-      adjustComponentsClasslist(false)
+    function stopScan() {
+      BarcodeScanner.showBackground();
+      BarcodeScanner.stopScan();
+      adjustComponentsClasslist(false);
 
-      innerVal.value = false
+      innerVal.value = false;
       // if (this.$route?.name === 'transaction-send') this.$router.push({ path: '/send/select-asset' })
     }
 
-    const scannerContainerRef = ref()
+    const scannerContainerRef = ref();
     function adjustComponentsClasslist(isScanning) {
-      const appContainer = document.getElementById('q-app')
-      const scannerUI = scannerContainerRef.value
-      const transparent = 'transparent-body'
-      const visibilityHidden = 'visibility-hide'
-      const visibilityVisible = 'visibility-visible'
-      const scannerActive = 'scanner-container--active'
+      const appContainer = document.getElementById("q-app");
+      const scannerUI = scannerContainerRef.value;
+      const transparent = "transparent-body";
+      const visibilityHidden = "visibility-hide";
+      const visibilityVisible = "visibility-visible";
+      const scannerActive = "scanner-container--active";
 
-      if (!appContainer) console.warn('Qrscanner: App container DOM not found')
-      if (!scannerUI) console.warn('Qrscanner: Scanner UI DOM not found')
+      if (!appContainer) console.warn("Qrscanner: App container DOM not found");
+      if (!scannerUI) console.warn("Qrscanner: Scanner UI DOM not found");
 
       if (isScanning) {
-        document.body.classList.add(transparent)
-        appContainer?.classList?.add?.(visibilityHidden)
-        scannerUI?.classList?.add?.(scannerActive)
-        scannerUI?.classList?.add?.(visibilityVisible)
+        document.body.classList.add(transparent);
+        appContainer?.classList?.add?.(visibilityHidden);
+        scannerUI?.classList?.add?.(scannerActive);
+        scannerUI?.classList?.add?.(visibilityVisible);
       } else {
-        document.body.classList.remove(transparent)
-        appContainer?.classList?.remove?.(visibilityHidden)
-        scannerUI?.classList?.remove?.(visibilityVisible)
-        scannerUI?.classList?.remove?.(scannerActive)
+        document.body.classList.remove(transparent);
+        appContainer?.classList?.remove?.(visibilityHidden);
+        scannerUI?.classList?.remove?.(visibilityVisible);
+        scannerUI?.classList?.remove?.(scannerActive);
       }
     }
 
@@ -234,9 +253,9 @@ export default {
       stopScan,
 
       scannerContainerRef,
-    }
-  }
-}
+    };
+  },
+};
 </script>
 
 <style>
@@ -262,23 +281,23 @@ export default {
   z-index: 2022;
 }
 .scanner-text {
-	position: absolute;
-	bottom: -30px;
-	color: white;
-	z-index: 3000;
+  position: absolute;
+  bottom: -30px;
+  color: white;
+  z-index: 3000;
 }
 .scanner-box {
-	position: relative !important;
-	display: flex !important;
-	height: 220px !important;
-	width: 220px !important;
-	border-radius: 16% !important;
-	box-shadow: 0px 0px 0px 1000px rgba(0, 0, 0, 0.6);
-	vertical-align: middle;
-	z-index: 2000 !important;
-	align-self: center;
-	margin-left: auto;
-	margin-right: auto;
+  position: relative !important;
+  display: flex !important;
+  height: 220px !important;
+  width: 220px !important;
+  border-radius: 16% !important;
+  box-shadow: 0px 0px 0px 1000px rgba(0, 0, 0, 0.6);
+  vertical-align: middle;
+  z-index: 2000 !important;
+  align-self: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 .hide-section {
   display: none !important;
@@ -300,68 +319,68 @@ export default {
 </style>
 <style scoped>
 .scan-design1 {
-	position: absolute;
-	height: 24px;
-	width: 24px;
-	left: 10px;
-	top: 10px;
-	overflow: hidden;
+  position: absolute;
+  height: 24px;
+  width: 24px;
+  left: 10px;
+  top: 10px;
+  overflow: hidden;
 }
 .line-design1 {
-	height: 150px;
-	width: 150px;
-	border: 3px solid #3b7bf6;
-	border-radius: 15%;
+  height: 150px;
+  width: 150px;
+  border: 3px solid #3b7bf6;
+  border-radius: 15%;
 }
 .scan-design2 {
-	position: absolute;
-	height: 24px;
-	width: 24px;
-	right: 10px;
-	top: 10px;
-	overflow: hidden;
+  position: absolute;
+  height: 24px;
+  width: 24px;
+  right: 10px;
+  top: 10px;
+  overflow: hidden;
 }
 .line-design2 {
-	position: absolute;
-	height: 150px;
-	width: 150px;
-	right: 0px;
-	top: 0px;
-	border: 3px solid #3b7bf6;
-	border-radius: 15%;
+  position: absolute;
+  height: 150px;
+  width: 150px;
+  right: 0px;
+  top: 0px;
+  border: 3px solid #3b7bf6;
+  border-radius: 15%;
 }
 .scan-design3 {
-	position: absolute;
-	height: 24px;
-	width: 24px;
-	right: 10px;
-	bottom: 10px;
-	overflow: hidden;
+  position: absolute;
+  height: 24px;
+  width: 24px;
+  right: 10px;
+  bottom: 10px;
+  overflow: hidden;
 }
 .line-design3 {
-	position: absolute;
-	height: 150px;
-	width: 150px;
-	right: 0px;
-	bottom: 0px;
-	border: 3px solid #3b7bf6;
-	border-radius: 15%;
+  position: absolute;
+  height: 150px;
+  width: 150px;
+  right: 0px;
+  bottom: 0px;
+  border: 3px solid #3b7bf6;
+  border-radius: 15%;
 }
 .scan-design4 {
-	position: absolute;
-	height: 24px;
-	width: 24px;
-	left: 10px;
-	bottom: 10px;
-	overflow: hidden;
+  position: absolute;
+  height: 24px;
+  width: 24px;
+  left: 10px;
+  bottom: 10px;
+  overflow: hidden;
 }
 .line-design4 {
-	position: absolute;
-	height: 150px;
-	width: 150px;
-	left: 0px;
-	bottom: 0px;
-	border: 3px solid #3b7bf6;
-	border-radius: 15%;
+  position: absolute;
+  height: 150px;
+  width: 150px;
+  left: 0px;
+  bottom: 0px;
+  border: 3px solid #3b7bf6;
+  border-radius: 15%;
 }
 </style>

@@ -1,5 +1,11 @@
 <template>
-  <div class="row no-wrap q-mt-sm q-mb-md q-r-ml-lg">
+  <div
+    class="row no-wrap q-mt-sm q-mb-md q-r-ml-lg"
+    style="
+      padding-top: constant(safe-area-inset-top);
+      padding-top: env(safe-area-inset-top);
+    "
+  >
     <slot name="title">
       <div class="q-space">
         <div class="text-h4">{{ title }}</div>

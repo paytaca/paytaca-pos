@@ -1,5 +1,11 @@
 <template>
-  <q-page class="q-pa-md">
+  <q-page
+    class="q-pa-md"
+    style="
+      padding-top: calc(1rem + constant(safe-area-inset-top));
+      padding-top: calc(1rem + env(safe-area-inset-top));
+    "
+  >
     <div class="row items-center q-mt-lg q-mb-md">
       <q-btn
         flat
