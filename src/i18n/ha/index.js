@@ -78,7 +78,8 @@ export default {
   CancelOrderMsg: "Soke oda, ka tabbata?",
   Cancelled: "Soke",
   CartOptions: "Zaɓin aikin sawun",
-  CartOptionsMsg: "Profafarin Cikarin Abokan ciniki dole ne su samar da lokacin da akaara zuwa keken",
+  CartOptionsMsg:
+    "Profafarin Cikarin Abokan ciniki dole ne su samar da lokacin da akaara zuwa keken",
   CartOptionsUpdated: "Zaɓuɓɓukan Cart",
   Cashier: "Kashiya",
   Categories: "Kungiyoyi",
@@ -140,14 +141,16 @@ export default {
   CreatingDeliveryRequest: "Creatirƙirar Neman isarwa",
   CreatingPaymentRequest: "Createirƙirar buƙatar biyan kuɗi",
   Currency: "Kuɗi",
-  CurrencySettingNote: "An saita Currency ta hanyar mai shi a cikin App ɗin PayTaca",
+  CurrencySettingNote:
+    "An saita Currency ta hanyar mai shi a cikin App ɗin PayTaca",
   CurrentPassword: "kalmar shiga na halin yanzu",
   Custom: "Al'ada",
   CustomItem: "Abu na al'ada",
   CustomItemName: "Sunan abu (al'ada)",
   Customer: "Mai ciniki",
   CustomerNameOrOrderId: "Sunan Abokin Ciniki / Umurnin ID",
-  CustomerPickupHelpText: "An sanar da abokin ciniki cewa oda ta shirya don ɗaukar kaya.Hakanan zaka iya tuntuɓar abokin ciniki ta hanyar",
+  CustomerPickupHelpText:
+    "An sanar da abokin ciniki cewa oda ta shirya don ɗaukar kaya.Hakanan zaka iya tuntuɓar abokin ciniki ta hanyar",
   CustomerReview: "Neman Abokin Ciniki",
   CutleryCost: "Yanke Cost",
   Daily: "Na kullum",
@@ -182,10 +185,12 @@ export default {
   DeliveryId: "Isarwa # {id}",
   DeliveryRequest: "Buƙatar isarwa",
   DeliveryStatus: "Matsayin bayarwa",
-  DeliveryStatusMsg: "Isar da ba zai zama bayyananne ga mahaya yayin binciken isar da sako ba.Sanya mahaya ko saita ga jama'a.",
+  DeliveryStatusMsg:
+    "Isar da ba zai zama bayyananne ga mahaya yayin binciken isar da sako ba.Sanya mahaya ko saita ga jama'a.",
   DeliveryTypes: "Nau'in bayarwa",
   Description: "Siffantarwa",
-  DetectedDeviceTimeNotMatch: "An gano cewa na'urar ba ta dace da lokacin Server ba.An daidaita lambar QR)",
+  DetectedDeviceTimeNotMatch:
+    "An gano cewa na'urar ba ta dace da lokacin Server ba.An daidaita lambar QR)",
   DetectedOffline: "Gano layi",
   DeviceLinked: "Na'urar da aka haɗa",
   DeviceTimeAhead: "Na'ura ita ce {value} sakan gaba",
@@ -207,8 +212,10 @@ export default {
   Email: "Imel",
   EnableNotifsToReceiveUpdates: "Sanya sanarwar sanarwa don karban sabuntawa",
   EncounteredError: "An ci karo da kuskure",
-  EncounteredErrorInUpdatingStocks: "An ci karo da kuskure a cikin sabunta hannun jari",
-  EncounteredErrorsInUpdatingStocks: "Ci karo da kurakurai a cikin sabunta hannun jari",
+  EncounteredErrorInUpdatingStocks:
+    "An ci karo da kuskure a cikin sabunta hannun jari",
+  EncounteredErrorsInUpdatingStocks:
+    "Ci karo da kurakurai a cikin sabunta hannun jari",
   EncounteredUnknownError: "CIGABA da kuskure",
   English: "Na turilishi",
   EnterAmount: "Shigar da adadin",
@@ -279,7 +286,8 @@ export default {
   InStock: "A cikin hannun jari",
   InaccurateProductDescriptions: "Bayanin samfurin ba daidai ba",
   IncludeTextbox: "Haɗe akwatin rubutu",
-  IncludeTextboxDescription: "Za'a iya samar da akwatin rubutu ga abokin ciniki don ƙarin cikakkun bayanai yayin zabar wannan Addon",
+  IncludeTextboxDescription:
+    "Za'a iya samar da akwatin rubutu ga abokin ciniki don ƙarin cikakkun bayanai yayin zabar wannan Addon",
   Indonesian: "Indonesiyan",
   Info: "Ba da labari",
   InitialStock: "Hannun farko",
@@ -288,7 +296,8 @@ export default {
   InputLink: "Hanyar shigar",
   InputOption: "Zabin Input",
   InputWalletLinkCode: "Input Wuy Wuy Wallet Link",
-  InsufficientPermissionToAccessInventory: "Yi haƙuri, ba ku da isasshen izini don samun damar amfani da kaya.",
+  InsufficientPermissionToAccessInventory:
+    "Yi haƙuri, ba ku da isasshen izini don samun damar amfani da kaya.",
   Invalid: "Ba daidai ba",
   InvalidDevice: "Na'urar da ba ta dace ba",
   InvalidDeviceLabel: "Danganta wani walat",
@@ -317,7 +326,8 @@ export default {
   LastSalesOrderNumber: "Lambar umarnin tallace-tallace na ƙarshe",
   LastSevenDays: "Kwanaki 7 da suka gabata",
   LeavePage: "Barin shafi",
-  LeavePagePromptMsg: "Shin kun tabbata kuna son barin wannan shafin ba tare da karɓar biyan kuɗi ba?",
+  LeavePagePromptMsg:
+    "Shin kun tabbata kuna son barin wannan shafin ba tare da karɓar biyan kuɗi ba?",
   LessThan: "Kasa da",
   LinkCodeDataInvalid: "Hoton lambar lambar ba daidai ba",
   LinkCodeDataNotFound: "Ba a samo bayanan link ba",
@@ -330,7 +340,8 @@ export default {
   LoadMore: "Like more",
   LoadProductsData: "Load bayanan bayanan",
   LoadProductsHint: "Fayil na Fayil na CSV / ZIP / ZIP",
-  LoadProductsNote: "SAURARA: Loading fayil zai goge bayanan da ke cikin halin yanzu",
+  LoadProductsNote:
+    "SAURARA: Loading fayil zai goge bayanan da ke cikin halin yanzu",
   Loading: "Loading...",
   LocalDelivery: "Isar da gida",
   Logout: "Logout",
@@ -340,7 +351,8 @@ export default {
   MarkPending: "Mark a lokacin",
   MarkReceived: "Mark ya karba",
   MarkReviewed: "Mark ya duba",
-  MarkReviewedMsg1: "Duk abubuwan dole ne a yiwa alama a matsayin wanda aka kawo a gaban bita",
+  MarkReviewedMsg1:
+    "Duk abubuwan dole ne a yiwa alama a matsayin wanda aka kawo a gaban bita",
   MarkReviewedMsg2: "An sanya sayan sayan ga wani mai amfani",
   MarkUnavailable: "Mark bai iya zama ba",
   Marketplace: "Wurin zama",
@@ -348,7 +360,8 @@ export default {
   MarkupAmount: "Jimhin sarrafawa",
   MarkupPrice: "Farashin ciniki",
   MarkupPriceRate: "Kudaden farashin kuɗi",
-  MarkupSaleRateValue: "Ana sayar da abubuwa tare da {rate} Canza daga farashinsu na asali",
+  MarkupSaleRateValue:
+    "Ana sayar da abubuwa tare da {rate} Canza daga farashinsu na asali",
   MaximumSelect: "Mafi girman zabi",
   MerchantDetails: "Cikakkun dakaru",
   Message: "Saƙo",
@@ -388,6 +401,7 @@ export default {
   NoStocksToUpdate: "Babu hannun jari don sabuntawa",
   NoStorefront: "Babu Storefront",
   NoTransactionsReceived: "Babu ma'amaloli da aka karɓa",
+  NoTransactionsToDisplay: "Babu ma'amala don nuna",
   NoVariantFound: "Babu bambance-bambancen da aka samo",
   NonDeliveryOrLateDelivery: "Rashin isarwa ko marigayi",
   None: "M",
@@ -408,7 +422,8 @@ export default {
   Order: "Tsari",
   OrderCancelMsg: "Za'a soke oda bayan warware jayayya.Ci gaba?",
   OrderCancelled: "An soke umarnin",
-  OrderCompleteMsg: "Za'a saita oda kamar yadda aka kammala bayan warware rikicin.Ci gaba?",
+  OrderCompleteMsg:
+    "Za'a saita oda kamar yadda aka kammala bayan warware rikicin.Ci gaba?",
   OrderCompleted: "Umarni",
   OrderDispute: "Oda",
   OrderDisputeMsg: "Oda a halin yanzu a cikin jayayya",
@@ -464,10 +479,12 @@ export default {
   Portuguese: "Fotigal",
   PortugueseBrazil: "Fotigal (Brazil)",
   PosDeviceLinkedSuccessfully: "Na'urar POS ta shiga cikin nasara!",
-  PosDeviceSuspensionMsg: "An dakatar da na'urar POM, tuntuɓi ɗan kasuwa don na'urar ba ta da tushe",
+  PosDeviceSuspensionMsg:
+    "An dakatar da na'urar POM, tuntuɓi ɗan kasuwa don na'urar ba ta da tushe",
   PreparationTime: "Lokacin shiri",
   PreparationTimer: "Timperti",
-  PreparationTimerMessage: "Kammala abubuwa a cikin tsari kuma saita kamar yadda aka shirya don ɗaukar hoto a ko kafin lokaci ya ƙare",
+  PreparationTimerMessage:
+    "Kammala abubuwa a cikin tsari kuma saita kamar yadda aka shirya don ɗaukar hoto a ko kafin lokaci ya ƙare",
   PrepareOrder: "Shirya tsari",
   Preparing: "Shirya",
   Preview: "Duba na farko",
@@ -502,10 +519,12 @@ export default {
   PurchaseOrderNumber: "Lambar Siyarwa Lambar",
   PurchaseOrderReviewed: "Bayar da oda na sake dubawa {kwanan wata}",
   PurchaseOrderReviewedBy: "Umurnin sayan na sake dubawa {kwanan wata} {date}",
-  PurchaseOrderReviewedYou: "Aikace-aikacen siyan na duba {kwanan wata} {date} (ku)",
+  PurchaseOrderReviewedYou:
+    "Aikace-aikacen siyan na duba {kwanan wata} {date} (ku)",
   PurchaseOrders: "Siyarwa umarni",
   QrExpired: "QR ya ƙare",
-  QrRefreshMessage: "QR ya ƙare saboda sabunta farashin BCH.Kuna so in sake farfaɗo?",
+  QrRefreshMessage:
+    "QR ya ƙare saboda sabunta farashin BCH.Kuna so in sake farfaɗo?",
   QrScannerError: "Kuskuren QR Scanner",
   Qty: "Qty",
   Quantity: "Yawa",
@@ -537,7 +556,8 @@ export default {
   Register: "Yi rejista",
   RegisterNewuser: "Yi rijistar Sabon Mai amfani",
   Registered: "Registered!",
-  RegisteringUserErrorMsg: "Ci karo da kurakurai a cikin rijistar sabon mai amfani",
+  RegisteringUserErrorMsg:
+    "Ci karo da kurakurai a cikin rijistar sabon mai amfani",
   RegistrationSuccessful: "Rajista nasara!",
   Remarks: "Nuna ra'ayi",
   Remove: "Motsa",
@@ -545,13 +565,16 @@ export default {
   RemoveAddonMsg: "Cire Addon '{addonLabel}'.Ka tabbata?",
   RemoveImage: "Cire hoto",
   RemoveProductsStorefrontMsg: "Ana cire kayayyaki daga storefront",
-  RemoveSelectedProductsMsg: "Ana cire samfuran samfuran daga storefront, kun tabbata?",
+  RemoveSelectedProductsMsg:
+    "Ana cire samfuran samfuran daga storefront, kun tabbata?",
   RemoveStock: "Cire jari",
-  RemoveStockErr1: "Yi haƙuri, ba ku da isasshen izini don samun damar amfani da kaya.",
+  RemoveStockErr1:
+    "Yi haƙuri, ba ku da isasshen izini don samun damar amfani da kaya.",
   RemoveStockErr2: "Ya kasa cire jari",
-  RemoveStockItemMsg: "Cire jari don \"{item}\".Ka tabbata?",
+  RemoveStockItemMsg: 'Cire jari don "{item}".Ka tabbata?',
   RemoveStockRequirement: "Cire buƙatun hannun jari",
-  RemoveStockRequirementDesc: "Samfurin ba zai buƙaci wadatar jari ba lokacin da aka yi oda",
+  RemoveStockRequirementDesc:
+    "Samfurin ba zai buƙaci wadatar jari ba lokacin da aka yi oda",
   RemoveStocks: "Cire hannun jari",
   RemoveStocksMsg: "Cire {count} {naúrar}.Ka tabbata?",
   RemoveStorefrontProduct: "Cire {count} samfur (s) daga storefront",
@@ -643,7 +666,8 @@ export default {
   SettlementTx: "Ma'amala",
   SetupStorefront: "Saita Shagon Shagon",
   Shop: "Kanti",
-  ShopAccessWarningMsg: "Ba ku da damar yin amfani da shagon.Tuntuɓi abokin ciniki don ba da damar shiga.",
+  ShopAccessWarningMsg:
+    "Ba ku da damar yin amfani da shagon.Tuntuɓi abokin ciniki don ba da damar shiga.",
   ShopInfo: "Bayani na kantin",
   ShopTimezoneOffsetAhead: "Kai ne {sa'o'i kafin adireshin shagon 'lokaci",
   ShopTimezoneOffsetBehind: "Kai {sa'o'i a bayan adireshin shagon 'lokaci",
@@ -742,7 +766,8 @@ export default {
   UpdateEscrowPayment: "Sabunta biyan bashin",
   UpdateItems: "Sabunta abubuwa",
   UpdateLastPurchaseOrderNumber: "Sabunta lambar oda na ƙarshe",
-  UpdateLastSalesOrderNumber: "Sabunta lambar umarnin tallace-tallace na ƙarshe",
+  UpdateLastSalesOrderNumber:
+    "Sabunta lambar umarnin tallace-tallace na ƙarshe",
   UpdatePassword: "Sabunta kalmar sirri",
   UpdateProduct: "Sabunta samfurin",
   UpdateStockErrorMsg: "Kuskuren da aka ci karo da sabunta jari",
@@ -787,5 +812,5 @@ export default {
   minutes: "ƙanƙane",
   stock: "jari",
   stockId: "stock#{id}",
-  stocks: "hannun jari"
-}
+  stocks: "hannun jari",
+};

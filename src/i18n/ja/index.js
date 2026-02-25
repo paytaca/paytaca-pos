@@ -32,7 +32,8 @@ export default {
   AddingStockErrorMsg: "在庫の追加中にエラーが発生しました",
   AddingUserErrorMsg: "ユーザーの追加中にエラーが発生しました",
   AddonOptions: "アドオンオプション",
-  AddonOptionsEnabled: "このアドオンの一部のオプションではテキストボックスが有効になっています",
+  AddonOptionsEnabled:
+    "このアドオンの一部のオプションではテキストボックスが有効になっています",
   AddonOptionsUpdated: "アドオンオプションが更新されました",
   AddonsForm: "アドオンフォーム",
   Address: "住所",
@@ -140,14 +141,16 @@ export default {
   CreatingDeliveryRequest: "配送リクエストの作成",
   CreatingPaymentRequest: "支払いリクエストの作成",
   Currency: "通貨",
-  CurrencySettingNote: "通貨はPaytacaアプリのウォレット所有者によって設定されます",
+  CurrencySettingNote:
+    "通貨はPaytacaアプリのウォレット所有者によって設定されます",
   CurrentPassword: "現在のパスワード",
   Custom: "カスタム",
   CustomItem: "カスタムアイテム",
   CustomItemName: "項目名（カスタム）",
   Customer: "お客様",
   CustomerNameOrOrderId: "顧客名/注文ID",
-  CustomerPickupHelpText: "注文品の受け取り準備ができたことが顧客に通知されます。を通じて顧客に連絡することもできます",
+  CustomerPickupHelpText:
+    "注文品の受け取り準備ができたことが顧客に通知されます。を通じて顧客に連絡することもできます",
   CustomerReview: "お客様のレビュー",
   CutleryCost: "刃物代",
   Daily: "毎日",
@@ -182,10 +185,12 @@ export default {
   DeliveryId: "配送番号{id}",
   DeliveryRequest: "配送依頼",
   DeliveryStatus: "配送状況",
-  DeliveryStatusMsg: "配達を検索する際、配達は乗客には表示されません。ライダーを割り当てるか、パブリックに設定します。",
+  DeliveryStatusMsg:
+    "配達を検索する際、配達は乗客には表示されません。ライダーを割り当てるか、パブリックに設定します。",
   DeliveryTypes: "配送タイプ",
   Description: "説明",
-  DetectedDeviceTimeNotMatch: "デバイスがサーバー時刻と一致しないことが検出されました。QRコードの有効期限が調整されました",
+  DetectedDeviceTimeNotMatch:
+    "デバイスがサーバー時刻と一致しないことが検出されました。QRコードの有効期限が調整されました",
   DetectedOffline: "オフラインで検出されました",
   DeviceLinked: "デバイスがリンクされました",
   DeviceTimeAhead: "デバイスは {value} 秒進んでいます",
@@ -260,7 +265,8 @@ export default {
   FromPurchaseOrder: "注文書から",
   FromSales: "売上から",
   FromStockRecount: "在庫再計算から",
-  FungibleTokenFilterPlaceholder: "トークン ID、シンボル、または名前でフィルターする",
+  FungibleTokenFilterPlaceholder:
+    "トークン ID、シンボル、または名前でフィルターする",
   GeneratingVerifyingXpubkey: "検証用の xpubkey を生成しています",
   German: "ドイツ語",
   GoHome: "家に帰る",
@@ -279,7 +285,8 @@ export default {
   InStock: "在庫あり",
   InaccurateProductDescriptions: "不正確な商品説明",
   IncludeTextbox: "テキストボックスを含める",
-  IncludeTextboxDescription: "このアドオンを選択すると、追加の詳細を記載するテキストボックスが顧客に提供されます。",
+  IncludeTextboxDescription:
+    "このアドオンを選択すると、追加の詳細を記載するテキストボックスが顧客に提供されます。",
   Indonesian: "インドネシア語",
   Info: "情報",
   InitialStock: "初期在庫",
@@ -288,7 +295,8 @@ export default {
   InputLink: "入力リンク",
   InputOption: "入力オプション",
   InputWalletLinkCode: "ウォレットリンクコードを入力してください",
-  InsufficientPermissionToAccessInventory: "申し訳ありませんが、インベントリにアクセスするための十分な権限がありません。",
+  InsufficientPermissionToAccessInventory:
+    "申し訳ありませんが、インベントリにアクセスするための十分な権限がありません。",
   Invalid: "無効です",
   InvalidDevice: "無効なデバイス",
   InvalidDeviceLabel: "別のウォレットをリンクする",
@@ -330,7 +338,8 @@ export default {
   LoadMore: "さらにロードする",
   LoadProductsData: "製品データのロード",
   LoadProductsHint: "Excel/csv/zipファイルをアップロードする",
-  LoadProductsNote: "注: ファイルをロードすると、フォーム内の現在の情報が上書きされます。",
+  LoadProductsNote:
+    "注: ファイルをロードすると、フォーム内の現在の情報が上書きされます。",
   Loading: "Loading...",
   LocalDelivery: "地方発送",
   Logout: "ログアウト",
@@ -340,7 +349,8 @@ export default {
   MarkPending: "マーク保留中",
   MarkReceived: "マークを受け取りました",
   MarkReviewed: "マークがレビュー済み",
-  MarkReviewedMsg1: "レビューする前に、すべてのアイテムに配達済みのマークを付ける必要があります",
+  MarkReviewedMsg1:
+    "レビューする前に、すべてのアイテムに配達済みのマークを付ける必要があります",
   MarkReviewedMsg2: "購入のレビューは別のユーザーに割り当てられています",
   MarkUnavailable: "使用不可としてマークする",
   Marketplace: "マーケットプレイス",
@@ -388,6 +398,7 @@ export default {
   NoStocksToUpdate: "更新する在庫がありません",
   NoStorefront: "店頭なし",
   NoTransactionsReceived: "トランザクションは受信されませんでした",
+  NoTransactionsToDisplay: "表示する取引がありません",
   NoVariantFound: "バリアントは見つかりませんでした",
   NonDeliveryOrLateDelivery: "配達不能または配達遅延",
   None: "なし",
@@ -398,7 +409,8 @@ export default {
   NumberOfStocks: "{count} {unit}",
   OK: "OK",
   OPEN: "開く",
-  OfflineDetectionMsg: "検出されたデバイスはオフラインです。ページを離れます...",
+  OfflineDetectionMsg:
+    "検出されたデバイスはオフラインです。ページを離れます...",
   Okay: "わかりました",
   OnDelivery: "配達中",
   OpenFrom: "Excel/CSV/ZIPから開く",
@@ -408,7 +420,8 @@ export default {
   Order: "注文",
   OrderCancelMsg: "紛争解決後、注文はキャンセルされます。続く？",
   OrderCancelled: "注文がキャンセルされました",
-  OrderCompleteMsg: "注文は紛争の解決後に完了したものとして設定されます。続く？",
+  OrderCompleteMsg:
+    "注文は紛争の解決後に完了したものとして設定されます。続く？",
   OrderCompleted: "注文完了",
   OrderDispute: "注文に関する紛争",
   OrderDisputeMsg: "注文は現在係争中です",
@@ -464,10 +477,12 @@ export default {
   Portuguese: "ポルトガル語",
   PortugueseBrazil: "ポルトガル語 (ブラジル)",
   PosDeviceLinkedSuccessfully: "POS デバイスが正常にリンクされました。",
-  PosDeviceSuspensionMsg: "POS デバイスは一時停止されています。販売者に連絡してデバイスの一時停止を解除してください",
+  PosDeviceSuspensionMsg:
+    "POS デバイスは一時停止されています。販売者に連絡してデバイスの一時停止を解除してください",
   PreparationTime: "準備時間",
   PreparationTimer: "準備タイマー",
-  PreparationTimerMessage: "注文した商品を完了し、タイマーが切れる前に受け取り準備完了として設定します",
+  PreparationTimerMessage:
+    "注文した商品を完了し、タイマーが切れる前に受け取り準備完了として設定します",
   PrepareOrder: "注文の準備",
   Preparing: "準備中",
   Preview: "プレビュー",
@@ -505,7 +520,8 @@ export default {
   PurchaseOrderReviewedYou: "注文書を {date} (あなた) が {name} で確認しました",
   PurchaseOrders: "注文書",
   QrExpired: "QR の有効期限が切れました",
-  QrRefreshMessage: "BCH価格更新のためQRの有効期限が切れました。リフレッシュしますか?",
+  QrRefreshMessage:
+    "BCH価格更新のためQRの有効期限が切れました。リフレッシュしますか?",
   QrScannerError: "QRスキャナエラー",
   Qty: "数量",
   Quantity: "数量",
@@ -547,7 +563,8 @@ export default {
   RemoveProductsStorefrontMsg: "店頭から商品を撤去する",
   RemoveSelectedProductsMsg: "選択した商品を店頭から削除してもよろしいですか?",
   RemoveStock: "在庫を削除します",
-  RemoveStockErr1: "申し訳ありませんが、インベントリにアクセスするための十分な権限がありません。",
+  RemoveStockErr1:
+    "申し訳ありませんが、インベントリにアクセスするための十分な権限がありません。",
   RemoveStockErr2: "在庫の削除に失敗しました",
   RemoveStockItemMsg: "「{item}」の在庫を削除します。本気ですか？",
   RemoveStockRequirement: "在庫要件の削除",
@@ -643,10 +660,13 @@ export default {
   SettlementTx: "決済取引",
   SetupStorefront: "ストアフロントのセットアップ",
   Shop: "ショップ",
-  ShopAccessWarningMsg: "ショップへのアクセス権がありません。ショップ管理者に連絡してアクセスを許可してください。",
+  ShopAccessWarningMsg:
+    "ショップへのアクセス権がありません。ショップ管理者に連絡してアクセスを許可してください。",
   ShopInfo: "ショップ情報",
-  ShopTimezoneOffsetAhead: "ショップの住所のタイムゾーンより {hours} 時間進んでいます",
-  ShopTimezoneOffsetBehind: "ショップの住所のタイムゾーンより {hours} 時間遅れています",
+  ShopTimezoneOffsetAhead:
+    "ショップの住所のタイムゾーンより {hours} 時間進んでいます",
+  ShopTimezoneOffsetBehind:
+    "ショップの住所のタイムゾーンより {hours} 時間遅れています",
   ShowMore: "もっと見る",
   ShowSummary: "概要を表示",
   SignIn: "Sign-in",
@@ -702,7 +722,8 @@ export default {
   TransactionCopied: "トランザクションがコピーされました",
   TransactionID: "トランザクションID",
   TransactionIdCopied: "トランザクションIDがコピーされました",
-  TransactionWasConfirmedOffline: "トランザクションはオフラインで確認されました",
+  TransactionWasConfirmedOffline:
+    "トランザクションはオフラインで確認されました",
   Transactions: "取引",
   Type: "タイプ",
   UnableToAccessPhotoSelector: "フォトセレクターにアクセスできません",
@@ -787,5 +808,5 @@ export default {
   minutes: "分",
   stock: "在庫",
   stockId: "stock#{id}",
-  stocks: "株"
-}
+  stocks: "株",
+};

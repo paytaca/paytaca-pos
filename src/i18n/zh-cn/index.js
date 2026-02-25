@@ -147,7 +147,8 @@ export default {
   CustomItemName: "商品名称（自定义）",
   Customer: "客户",
   CustomerNameOrOrderId: "客户名称/订单 ID",
-  CustomerPickupHelpText: "客户会收到订单已准备好取货的通知。您还可以通过以下方式联系客户",
+  CustomerPickupHelpText:
+    "客户会收到订单已准备好取货的通知。您还可以通过以下方式联系客户",
   CustomerReview: "客户评价",
   CutleryCost: "餐具费用",
   Daily: "每日",
@@ -279,7 +280,8 @@ export default {
   InStock: "有现货",
   InaccurateProductDescriptions: "产品描述不准确",
   IncludeTextbox: "包括文本框",
-  IncludeTextboxDescription: "选择此插件时，将向客户提供一个文本框以获取更多详细信息",
+  IncludeTextboxDescription:
+    "选择此插件时，将向客户提供一个文本框以获取更多详细信息",
   Indonesian: "印度尼西亚语",
   Info: "信息",
   InitialStock: "初始库存",
@@ -388,6 +390,7 @@ export default {
   NoStocksToUpdate: "没有库存可更新",
   NoStorefront: "无店面",
   NoTransactionsReceived: "未收到任何交易",
+  NoTransactionsToDisplay: "没有交易可显示",
   NoVariantFound: "未找到变体",
   NonDeliveryOrLateDelivery: "未交货或延迟交货",
   None: "无",
@@ -787,5 +790,5 @@ export default {
   minutes: "分钟",
   stock: "库存",
   stockId: "stock#{id}",
-  stocks: "股票"
-}
+  stocks: "股票",
+};

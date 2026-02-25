@@ -50,7 +50,8 @@ export default {
   AmountErrTitle: "Amount does not match",
   AmountLeftValue: "{price} {symbol} left",
   AnyCondition: "any condition",
-  AppOfflineMessage: "The app is offline, you will not receive payment notifications.",
+  AppOfflineMessage:
+    "The app is offline, you will not receive payment notifications.",
   AppVersion: "App version",
   ApplyFilter: "Apply filter",
   ArbitrationFee: "Arbitration fee",
@@ -78,7 +79,8 @@ export default {
   CancelOrderMsg: "Cancel order, are you sure?",
   Cancelled: "Cancelled",
   CartOptions: "Cart options",
-  CartOptionsMsg: "Additional details customers must provide when adding to cart",
+  CartOptionsMsg:
+    "Additional details customers must provide when adding to cart",
   CartOptionsUpdated: "Cart options updated",
   Cashier: "Cashier",
   Categories: "Categories",
@@ -147,7 +149,8 @@ export default {
   CustomItemName: "Item name (Custom)",
   Customer: "Customer",
   CustomerNameOrOrderId: "Customer name / Order ID",
-  CustomerPickupHelpText: "Customer is notified that the order is ready for pickup. You can also contact customer through",
+  CustomerPickupHelpText:
+    "Customer is notified that the order is ready for pickup. You can also contact customer through",
   CustomerReview: "Customer review",
   CutleryCost: "Cutlery cost",
   Daily: "Daily",
@@ -182,10 +185,12 @@ export default {
   DeliveryId: "Delivery #{id}",
   DeliveryRequest: "Delivery request",
   DeliveryStatus: "Delivery status",
-  DeliveryStatusMsg: "Delivery will not be visible to riders when searching deliveries. Assign a rider or set to public.",
+  DeliveryStatusMsg:
+    "Delivery will not be visible to riders when searching deliveries. Assign a rider or set to public.",
   DeliveryTypes: "Delivery Types",
   Description: "Description",
-  DetectedDeviceTimeNotMatch: "Detected that device does not match server time. QR code expiration is adjusted",
+  DetectedDeviceTimeNotMatch:
+    "Detected that device does not match server time. QR code expiration is adjusted",
   DetectedOffline: "Detected offline",
   DeviceLinked: "Device Linked",
   DeviceTimeAhead: "Device is {value} seconds ahead",
@@ -279,7 +284,8 @@ export default {
   InStock: "In Stock",
   InaccurateProductDescriptions: "Inaccurate Product Descriptions",
   IncludeTextbox: "Include textbox",
-  IncludeTextboxDescription: "A textbox will be provided to the customer for additional details when selecting this addon",
+  IncludeTextboxDescription:
+    "A textbox will be provided to the customer for additional details when selecting this addon",
   Indonesian: "Indonesian",
   Info: "Info",
   InitialStock: "Initial Stock",
@@ -288,7 +294,8 @@ export default {
   InputLink: "Input link",
   InputOption: "Input option",
   InputWalletLinkCode: "Input wallet link code",
-  InsufficientPermissionToAccessInventory: "Sorry, you do not have sufficient permissions to access the inventory.",
+  InsufficientPermissionToAccessInventory:
+    "Sorry, you do not have sufficient permissions to access the inventory.",
   Invalid: "Invalid",
   InvalidDevice: "Invalid device",
   InvalidDeviceLabel: "Link another wallet",
@@ -317,7 +324,8 @@ export default {
   LastSalesOrderNumber: "Last Sales Order Number",
   LastSevenDays: "Last 7 days",
   LeavePage: "Leave Page",
-  LeavePagePromptMsg: "Are you sure you want to leave this page without receiving a payment?",
+  LeavePagePromptMsg:
+    "Are you sure you want to leave this page without receiving a payment?",
   LessThan: "Less than",
   LinkCodeDataInvalid: "Link code data invalid",
   LinkCodeDataNotFound: "Link code data not found",
@@ -330,7 +338,8 @@ export default {
   LoadMore: "Load more",
   LoadProductsData: "Load products data",
   LoadProductsHint: "Upload excel / csv / zip file",
-  LoadProductsNote: "NOTE: Loading a file will overwrite current info in the form",
+  LoadProductsNote:
+    "NOTE: Loading a file will overwrite current info in the form",
   Loading: "Loading...",
   LocalDelivery: "Local delivery",
   Logout: "Logout",
@@ -348,7 +357,8 @@ export default {
   MarkupAmount: "Markup amount",
   MarkupPrice: "Markup Price",
   MarkupPriceRate: "Markup price rate",
-  MarkupSaleRateValue: "Items are sold with {rate} change from their original price",
+  MarkupSaleRateValue:
+    "Items are sold with {rate} change from their original price",
   MaximumSelect: "Maximum select",
   MerchantDetails: "Merchant details",
   Message: "Message",
@@ -388,6 +398,7 @@ export default {
   NoStocksToUpdate: "No stocks to update",
   NoStorefront: "No storefront",
   NoTransactionsReceived: "No transactions received",
+  NoTransactionsToDisplay: "No transactions to display",
   NoVariantFound: "No variant found",
   NonDeliveryOrLateDelivery: "Non-Delivery or Late Delivery",
   None: "None",
@@ -408,7 +419,8 @@ export default {
   Order: "Order",
   OrderCancelMsg: "Order will be cancelled after resolving dispute. Continue?",
   OrderCancelled: "Order cancelled",
-  OrderCompleteMsg: "Order will be set as completed after resolving dispute. Continue?",
+  OrderCompleteMsg:
+    "Order will be set as completed after resolving dispute. Continue?",
   OrderCompleted: "Order completed",
   OrderDispute: "Order dispute",
   OrderDisputeMsg: "Order is currently in dispute",
@@ -464,10 +476,12 @@ export default {
   Portuguese: "Portuguese",
   PortugueseBrazil: "Portuguese (Brazil)",
   PosDeviceLinkedSuccessfully: "POS device linked successfully!",
-  PosDeviceSuspensionMsg: "POS Device is suspended, contact merchant to unsuspend device",
+  PosDeviceSuspensionMsg:
+    "POS Device is suspended, contact merchant to unsuspend device",
   PreparationTime: "Preparation time",
   PreparationTimer: "Preparation timer",
-  PreparationTimerMessage: "Complete items in the order and set as ready for pickup on or before timer expires",
+  PreparationTimerMessage:
+    "Complete items in the order and set as ready for pickup on or before timer expires",
   PrepareOrder: "Prepare order",
   Preparing: "Preparing",
   Preview: "Preview",
@@ -505,7 +519,8 @@ export default {
   PurchaseOrderReviewedYou: "Purchase order reviewed {date} by {name} (you)",
   PurchaseOrders: "Purchase Orders",
   QrExpired: "QR Expired",
-  QrRefreshMessage: "The QR has expired due to BCH price update. Do you wish to refresh it?",
+  QrRefreshMessage:
+    "The QR has expired due to BCH price update. Do you wish to refresh it?",
   QrScannerError: "QR Scanner error",
   Qty: "Qty",
   Quantity: "Quantity",
@@ -545,13 +560,16 @@ export default {
   RemoveAddonMsg: "Remove addon '{addonLabel}'. Are you sure?",
   RemoveImage: "Remove image",
   RemoveProductsStorefrontMsg: "Removing products from storefront",
-  RemoveSelectedProductsMsg: "Removing selected products from storefront, are you sure?",
+  RemoveSelectedProductsMsg:
+    "Removing selected products from storefront, are you sure?",
   RemoveStock: "Remove stock",
-  RemoveStockErr1: "Sorry, you do not have sufficient permissions to access the inventory.",
+  RemoveStockErr1:
+    "Sorry, you do not have sufficient permissions to access the inventory.",
   RemoveStockErr2: "Failed to remove stock",
-  RemoveStockItemMsg: "Remove stock for \"{item}\". Are you sure?",
+  RemoveStockItemMsg: 'Remove stock for "{item}". Are you sure?',
   RemoveStockRequirement: "Remove stock requirement",
-  RemoveStockRequirementDesc: "The product will not require stock availability when ordering",
+  RemoveStockRequirementDesc:
+    "The product will not require stock availability when ordering",
   RemoveStocks: "Remove stocks",
   RemoveStocksMsg: "Removing {count} {unit}. Are you sure?",
   RemoveStorefrontProduct: "Remove {count} product(s) from storefront",
@@ -643,10 +661,13 @@ export default {
   SettlementTx: "Settlement transaction",
   SetupStorefront: "Setup storefront",
   Shop: "Shop",
-  ShopAccessWarningMsg: "You do not have access to the shop. Contact a shop admin to grant access.",
+  ShopAccessWarningMsg:
+    "You do not have access to the shop. Contact a shop admin to grant access.",
   ShopInfo: "Shop info",
-  ShopTimezoneOffsetAhead: "You are {hours} hours ahead of the shop address' timezone",
-  ShopTimezoneOffsetBehind: "You are {hours} hours behind of the shop address' timezone",
+  ShopTimezoneOffsetAhead:
+    "You are {hours} hours ahead of the shop address' timezone",
+  ShopTimezoneOffsetBehind:
+    "You are {hours} hours behind of the shop address' timezone",
   ShowMore: "Show more",
   ShowSummary: "Show summary",
   SignIn: "Sign-in",
@@ -787,5 +808,5 @@ export default {
   minutes: "minutes",
   stock: "stock",
   stockId: "stock#{id}",
-  stocks: "stocks"
-}
+  stocks: "stocks",
+};

@@ -32,7 +32,8 @@ export default {
   AddingStockErrorMsg: "Mengalami kesalahan dalam penambahan stok",
   AddingUserErrorMsg: "Terjadi kesalahan saat menambahkan pengguna",
   AddonOptions: "Opsi Tambahan",
-  AddonOptionsEnabled: "Beberapa opsi untuk addon ini telah mengaktifkan kotak teks",
+  AddonOptionsEnabled:
+    "Beberapa opsi untuk addon ini telah mengaktifkan kotak teks",
   AddonOptionsUpdated: "Opsi tambahan diperbarui",
   AddonsForm: "Formulir Tambahan",
   Address: "Alamat",
@@ -46,11 +47,13 @@ export default {
   All: "Semua",
   AllConditions: "semua kondisi",
   Amount: "Jumlah",
-  AmountErrMsg: "Jumlahnya tidak sesuai dengan jumlah yang diharapkan.Melanjutkan?",
+  AmountErrMsg:
+    "Jumlahnya tidak sesuai dengan jumlah yang diharapkan.Melanjutkan?",
   AmountErrTitle: "Jumlahnya tidak cocok",
   AmountLeftValue: "{price} {symbol} tersisa",
   AnyCondition: "kondisi apapun",
-  AppOfflineMessage: "Aplikasi sedang offline, Anda tidak akan menerima notifikasi pembayaran.",
+  AppOfflineMessage:
+    "Aplikasi sedang offline, Anda tidak akan menerima notifikasi pembayaran.",
   AppVersion: "Versi aplikasi",
   ApplyFilter: "Terapkan penyaring",
   ArbitrationFee: "Biaya arbitrase",
@@ -78,7 +81,8 @@ export default {
   CancelOrderMsg: "Batalkan pesanan, apakah Anda yakin?",
   Cancelled: "Dibatalkan",
   CartOptions: "Opsi keranjang",
-  CartOptionsMsg: "Detail tambahan yang harus diberikan pelanggan saat menambahkan ke keranjang",
+  CartOptionsMsg:
+    "Detail tambahan yang harus diberikan pelanggan saat menambahkan ke keranjang",
   CartOptionsUpdated: "Opsi keranjang diperbarui",
   Cashier: "Kasir",
   Categories: "Kategori",
@@ -140,14 +144,16 @@ export default {
   CreatingDeliveryRequest: "Membuat permintaan pengiriman",
   CreatingPaymentRequest: "Membuat permintaan pembayaran",
   Currency: "Mata uang",
-  CurrencySettingNote: "Mata uang diatur oleh pemilik dompet di Aplikasi Paytaca",
+  CurrencySettingNote:
+    "Mata uang diatur oleh pemilik dompet di Aplikasi Paytaca",
   CurrentPassword: "Kata Sandi Saat Ini",
   Custom: "Adat",
   CustomItem: "Barang khusus",
   CustomItemName: "Nama item (Kustom)",
   Customer: "Pelanggan",
   CustomerNameOrOrderId: "Nama Pelanggan / ID Pesanan",
-  CustomerPickupHelpText: "Pelanggan diberitahu bahwa pesanan siap diambil.Anda juga dapat menghubungi pelanggan melalui",
+  CustomerPickupHelpText:
+    "Pelanggan diberitahu bahwa pesanan siap diambil.Anda juga dapat menghubungi pelanggan melalui",
   CustomerReview: "Ulasan pelanggan",
   CutleryCost: "Biaya peralatan makan",
   Daily: "Setiap hari",
@@ -165,7 +171,8 @@ export default {
   DeleteCollection: "Hapus koleksi",
   DeleteCollectionMsg: "Menghapus koleksi '{name}'.Apa kamu yakin?",
   DeleteDraft: "Hapus draf",
-  DeleteDraftMsg1: "Draf pesanan penjualan telah pembayaran diterima.Melanjutkan?",
+  DeleteDraftMsg1:
+    "Draf pesanan penjualan telah pembayaran diterima.Melanjutkan?",
   DeleteDraftMsg2: "Menghapus draf pesanan penjualan.Apa kamu yakin?",
   DeleteProduct: "Hapus produk",
   DeleteProductPromptMsg: "Hapus produk '{name}'.Apa kamu yakin?",
@@ -182,10 +189,12 @@ export default {
   DeliveryId: "Pengiriman #{id}",
   DeliveryRequest: "Permintaan pengiriman",
   DeliveryStatus: "Status pengiriman",
-  DeliveryStatusMsg: "Pengiriman tidak akan terlihat oleh pengendara saat mencari pengiriman.Tetapkan pengendara atau atur ke publik.",
+  DeliveryStatusMsg:
+    "Pengiriman tidak akan terlihat oleh pengendara saat mencari pengiriman.Tetapkan pengendara atau atur ke publik.",
   DeliveryTypes: "Jenis Pengiriman",
   Description: "Deskripsi",
-  DetectedDeviceTimeNotMatch: "Terdeteksi bahwa perangkat tidak cocok dengan waktu server.Kedaluwarsa kode QR disesuaikan",
+  DetectedDeviceTimeNotMatch:
+    "Terdeteksi bahwa perangkat tidak cocok dengan waktu server.Kedaluwarsa kode QR disesuaikan",
   DetectedOffline: "Terdeteksi offline",
   DeviceLinked: "Perangkat Tertaut",
   DeviceTimeAhead: "Perangkat lebih cepat {value} detik",
@@ -207,8 +216,10 @@ export default {
   Email: "Surel",
   EnableNotifsToReceiveUpdates: "Aktifkan notifikasi untuk menerima pembaruan",
   EncounteredError: "Terjadi kesalahan",
-  EncounteredErrorInUpdatingStocks: "Mengalami kesalahan dalam memperbarui stok",
-  EncounteredErrorsInUpdatingStocks: "Mengalami kesalahan dalam memperbarui stok",
+  EncounteredErrorInUpdatingStocks:
+    "Mengalami kesalahan dalam memperbarui stok",
+  EncounteredErrorsInUpdatingStocks:
+    "Mengalami kesalahan dalam memperbarui stok",
   EncounteredUnknownError: "Terjadi kesalahan yang tidak diketahui",
   English: "bahasa Inggris",
   EnterAmount: "Masukkan Jumlah",
@@ -260,7 +271,8 @@ export default {
   FromPurchaseOrder: "dari pesanan pembelian",
   FromSales: "dari penjualan",
   FromStockRecount: "dari penghitungan ulang saham",
-  FungibleTokenFilterPlaceholder: "Filter berdasarkan ID token, simbol, atau nama",
+  FungibleTokenFilterPlaceholder:
+    "Filter berdasarkan ID token, simbol, atau nama",
   GeneratingVerifyingXpubkey: "Menghasilkan verifikasi xpubkey",
   German: "Jerman",
   GoHome: "Pulanglah",
@@ -279,7 +291,8 @@ export default {
   InStock: "Tersedia",
   InaccurateProductDescriptions: "Deskripsi Produk Tidak Akurat",
   IncludeTextbox: "Sertakan kotak teks",
-  IncludeTextboxDescription: "Kotak teks akan diberikan kepada pelanggan untuk detail tambahan saat memilih addon ini",
+  IncludeTextboxDescription:
+    "Kotak teks akan diberikan kepada pelanggan untuk detail tambahan saat memilih addon ini",
   Indonesian: "bahasa Indonesia",
   Info: "Informasi",
   InitialStock: "Stok Awal",
@@ -288,7 +301,8 @@ export default {
   InputLink: "Tautan masukan",
   InputOption: "Opsi masukan",
   InputWalletLinkCode: "Masukkan kode tautan dompet",
-  InsufficientPermissionToAccessInventory: "Maaf, Anda tidak memiliki izin yang memadai untuk mengakses inventaris.",
+  InsufficientPermissionToAccessInventory:
+    "Maaf, Anda tidak memiliki izin yang memadai untuk mengakses inventaris.",
   Invalid: "Tidak valid",
   InvalidDevice: "Perangkat tidak valid",
   InvalidDeviceLabel: "Tautkan dompet lain",
@@ -317,7 +331,8 @@ export default {
   LastSalesOrderNumber: "Nomor Pesanan Penjualan Terakhir",
   LastSevenDays: "7 hari terakhir",
   LeavePage: "Tinggalkan Halaman",
-  LeavePagePromptMsg: "Apakah Anda yakin ingin meninggalkan halaman ini tanpa menerima pembayaran?",
+  LeavePagePromptMsg:
+    "Apakah Anda yakin ingin meninggalkan halaman ini tanpa menerima pembayaran?",
   LessThan: "Kurang dari",
   LinkCodeDataInvalid: "Data kode tautan tidak valid",
   LinkCodeDataNotFound: "Data kode tautan tidak ditemukan",
@@ -330,7 +345,8 @@ export default {
   LoadMore: "Muat lebih banyak",
   LoadProductsData: "Muat data produk",
   LoadProductsHint: "Unggah file excel/csv/zip",
-  LoadProductsNote: "CATATAN: Memuat file akan menimpa info terkini di formulir",
+  LoadProductsNote:
+    "CATATAN: Memuat file akan menimpa info terkini di formulir",
   Loading: "Loading...",
   LocalDelivery: "Pengiriman lokal",
   Logout: "Keluar",
@@ -340,7 +356,8 @@ export default {
   MarkPending: "Tandai tertunda",
   MarkReceived: "Markus menerimanya",
   MarkReviewed: "Tandai ditinjau",
-  MarkReviewedMsg1: "Semua barang harus ditandai sebagai terkirim sebelum ditinjau",
+  MarkReviewedMsg1:
+    "Semua barang harus ditandai sebagai terkirim sebelum ditinjau",
   MarkReviewedMsg2: "Meninjau pembelian ditugaskan ke pengguna lain",
   MarkUnavailable: "Tandai tidak tersedia",
   Marketplace: "Pasar",
@@ -388,6 +405,7 @@ export default {
   NoStocksToUpdate: "Tidak ada stok untuk diperbarui",
   NoStorefront: "Tidak ada etalase",
   NoTransactionsReceived: "Tidak ada transaksi yang diterima",
+  NoTransactionsToDisplay: "Tidak ada transaksi untuk ditampilkan",
   NoVariantFound: "Tidak ada varian yang ditemukan",
   NonDeliveryOrLateDelivery: "Pengiriman Tidak Terkirim atau Terlambat",
   None: "Tidak ada",
@@ -398,7 +416,8 @@ export default {
   NumberOfStocks: "{count} {unit}",
   OK: "Oke",
   OPEN: "BUKA",
-  OfflineDetectionMsg: "Perangkat yang terdeteksi sedang offline.Meninggalkan halaman...",
+  OfflineDetectionMsg:
+    "Perangkat yang terdeteksi sedang offline.Meninggalkan halaman...",
   Okay: "Oke",
   OnDelivery: "Saat pengiriman",
   OpenFrom: "Buka dari Excel / CSV / ZIP",
@@ -406,9 +425,11 @@ export default {
   OpensAt: "Buka pada tanggal {date}",
   Options: "Pilihan",
   Order: "Memesan",
-  OrderCancelMsg: "Pesanan akan dibatalkan setelah menyelesaikan perselisihan.Melanjutkan?",
+  OrderCancelMsg:
+    "Pesanan akan dibatalkan setelah menyelesaikan perselisihan.Melanjutkan?",
   OrderCancelled: "Pesanan dibatalkan",
-  OrderCompleteMsg: "Pesanan akan ditetapkan sebagai selesai setelah menyelesaikan perselisihan.Melanjutkan?",
+  OrderCompleteMsg:
+    "Pesanan akan ditetapkan sebagai selesai setelah menyelesaikan perselisihan.Melanjutkan?",
   OrderCompleted: "Pesanan selesai",
   OrderDispute: "Perselisihan pesanan",
   OrderDisputeMsg: "Pesanan saat ini sedang dalam sengketa",
@@ -464,10 +485,12 @@ export default {
   Portuguese: "Portugis",
   PortugueseBrazil: "Portugis (Brasil)",
   PosDeviceLinkedSuccessfully: "Perangkat POS berhasil ditautkan!",
-  PosDeviceSuspensionMsg: "Perangkat POS ditangguhkan, hubungi pedagang untuk membatalkan penangguhan perangkat",
+  PosDeviceSuspensionMsg:
+    "Perangkat POS ditangguhkan, hubungi pedagang untuk membatalkan penangguhan perangkat",
   PreparationTime: "Waktu persiapan",
   PreparationTimer: "Pengatur waktu persiapan",
-  PreparationTimerMessage: "Selesaikan item dalam pesanan dan siap untuk diambil pada atau sebelum waktu berakhir",
+  PreparationTimerMessage:
+    "Selesaikan item dalam pesanan dan siap untuk diambil pada atau sebelum waktu berakhir",
   PrepareOrder: "Siapkan pesanan",
   Preparing: "Mempersiapkan",
   Preview: "Pratinjau",
@@ -496,16 +519,20 @@ export default {
   Province: "Provinsi",
   Public: "Publik",
   PurchaseOrder: "Pesanan Pembelian",
-  PurchaseOrderCount: "{count} pesanan pembelian ditugaskan kepada Anda untuk ditinjau",
+  PurchaseOrderCount:
+    "{count} pesanan pembelian ditugaskan kepada Anda untuk ditinjau",
   PurchaseOrderCreated: "Pesanan Pembelian dibuat",
   PurchaseOrderHistory: "Riwayat pesanan pembelian",
   PurchaseOrderNumber: "Nomor Pesanan Pembelian",
   PurchaseOrderReviewed: "Pesanan pembelian ditinjau pada tanggal {date}",
-  PurchaseOrderReviewedBy: "Pesanan pembelian ditinjau pada tanggal {date} oleh {name}",
-  PurchaseOrderReviewedYou: "Pesanan pembelian ditinjau pada tanggal {date} oleh {name} (Anda)",
+  PurchaseOrderReviewedBy:
+    "Pesanan pembelian ditinjau pada tanggal {date} oleh {name}",
+  PurchaseOrderReviewedYou:
+    "Pesanan pembelian ditinjau pada tanggal {date} oleh {name} (Anda)",
   PurchaseOrders: "Pesanan Pembelian",
   QrExpired: "QR Kedaluwarsa",
-  QrRefreshMessage: "QR telah kedaluwarsa karena pembaruan harga BCH.Apakah Anda ingin menyegarkannya?",
+  QrRefreshMessage:
+    "QR telah kedaluwarsa karena pembaruan harga BCH.Apakah Anda ingin menyegarkannya?",
   QrScannerError: "Kesalahan Pemindai QR",
   Qty: "Jumlah",
   Quantity: "Kuantitas",
@@ -545,13 +572,16 @@ export default {
   RemoveAddonMsg: "Hapus tambahan '{addonLabel}'.Apa kamu yakin?",
   RemoveImage: "Hapus gambar",
   RemoveProductsStorefrontMsg: "Menghapus produk dari etalase",
-  RemoveSelectedProductsMsg: "Menghapus produk pilihan dari etalase, apakah Anda yakin?",
+  RemoveSelectedProductsMsg:
+    "Menghapus produk pilihan dari etalase, apakah Anda yakin?",
   RemoveStock: "Hapus stok",
-  RemoveStockErr1: "Maaf, Anda tidak memiliki izin yang memadai untuk mengakses inventaris.",
+  RemoveStockErr1:
+    "Maaf, Anda tidak memiliki izin yang memadai untuk mengakses inventaris.",
   RemoveStockErr2: "Gagal menghapus stok",
-  RemoveStockItemMsg: "Hapus stok untuk \"{item}\".Apa kamu yakin?",
+  RemoveStockItemMsg: 'Hapus stok untuk "{item}".Apa kamu yakin?',
   RemoveStockRequirement: "Hapus persyaratan stok",
-  RemoveStockRequirementDesc: "Produk tidak memerlukan ketersediaan stok saat pemesanan",
+  RemoveStockRequirementDesc:
+    "Produk tidak memerlukan ketersediaan stok saat pemesanan",
   RemoveStocks: "Hapus stok",
   RemoveStocksMsg: "Menghapus {count} {unit}.Apa kamu yakin?",
   RemoveStorefrontProduct: "Hapus {count} produk dari etalase",
@@ -643,10 +673,13 @@ export default {
   SettlementTx: "Transaksi penyelesaian",
   SetupStorefront: "Siapkan etalase",
   Shop: "Berbelanja",
-  ShopAccessWarningMsg: "Anda tidak memiliki akses ke toko.Hubungi admin toko untuk memberikan akses.",
+  ShopAccessWarningMsg:
+    "Anda tidak memiliki akses ke toko.Hubungi admin toko untuk memberikan akses.",
   ShopInfo: "Informasi toko",
-  ShopTimezoneOffsetAhead: "Anda {hours} jam lebih cepat dari zona waktu alamat toko",
-  ShopTimezoneOffsetBehind: "Anda terlambat {hours} jam dari zona waktu alamat toko",
+  ShopTimezoneOffsetAhead:
+    "Anda {hours} jam lebih cepat dari zona waktu alamat toko",
+  ShopTimezoneOffsetBehind:
+    "Anda terlambat {hours} jam dari zona waktu alamat toko",
   ShowMore: "Tampilkan lebih banyak",
   ShowSummary: "Tampilkan ringkasan",
   SignIn: "Sign-in",
@@ -667,7 +700,8 @@ export default {
   StockId: "Stock#{id}",
   StockRecount: "Penghitungan Ulang Saham",
   StockRecountCreated: "Penghitungan ulang saham telah dibuat!",
-  StockRecountErrMsg: "Mengalami kesalahan dalam pembuatan penghitungan ulang saham",
+  StockRecountErrMsg:
+    "Mengalami kesalahan dalam pembuatan penghitungan ulang saham",
   StockUpdate: "Pembaruan Stok",
   Stocks: "Saham",
   StocksRemoved: "Stok dihapus",
@@ -787,5 +821,5 @@ export default {
   minutes: "menit",
   stock: "stok",
   stockId: "stock#{id}",
-  stocks: "saham"
-}
+  stocks: "saham",
+};

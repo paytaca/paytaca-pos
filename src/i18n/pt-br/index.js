@@ -32,7 +32,8 @@ export default {
   AddingStockErrorMsg: "Erros encontrados ao adicionar estoque",
   AddingUserErrorMsg: "Erro encontrado ao adicionar usuário",
   AddonOptions: "Opções de complementos",
-  AddonOptionsEnabled: "Algumas opções para este complemento têm caixa de texto habilitada",
+  AddonOptionsEnabled:
+    "Algumas opções para este complemento têm caixa de texto habilitada",
   AddonOptionsUpdated: "Opções de complemento atualizadas",
   AddonsForm: "Formulário de complementos",
   Address: "Endereço",
@@ -40,7 +41,8 @@ export default {
   Address2: "Endereço 2",
   AdjustType: "Ajustar tipo",
   Admin: "Administrador",
-  AdminPermissionErrMsg: "Desculpe, você não tem permissões de administrador suficientes.",
+  AdminPermissionErrMsg:
+    "Desculpe, você não tem permissões de administrador suficientes.",
   Afrikaans: "Africâner",
   After: "Depois",
   All: "Todos",
@@ -50,7 +52,8 @@ export default {
   AmountErrTitle: "O valor não corresponde",
   AmountLeftValue: "{preço} {símbolo} restante",
   AnyCondition: "qualquer condição",
-  AppOfflineMessage: "O aplicativo está offline, você não receberá notificações de pagamento.",
+  AppOfflineMessage:
+    "O aplicativo está offline, você não receberá notificações de pagamento.",
   AppVersion: "Versão do aplicativo",
   ApplyFilter: "Aplicar filtro",
   ArbitrationFee: "Taxa de arbitragem",
@@ -78,7 +81,8 @@ export default {
   CancelOrderMsg: "Cancelar pedido, tem certeza?",
   Cancelled: "Cancelado",
   CartOptions: "Opções de carrinho",
-  CartOptionsMsg: "Detalhes adicionais que os clientes devem fornecer ao adicionar ao carrinho",
+  CartOptionsMsg:
+    "Detalhes adicionais que os clientes devem fornecer ao adicionar ao carrinho",
   CartOptionsUpdated: "Opções de carrinho atualizadas",
   Cashier: "Caixa",
   Categories: "Categorias",
@@ -102,7 +106,8 @@ export default {
   Close: "Fechar",
   Code: "Código",
   CollectionDeleted: "Coleção excluída",
-  CollectionDescriptionAuto: "Os produtos são adicionados por algumas condições",
+  CollectionDescriptionAuto:
+    "Os produtos são adicionados por algumas condições",
   CollectionDescriptionManual: "Selecionar produtos manualmente",
   CollectionType: "Tipo de coleção",
   Collections: "Coleções",
@@ -140,14 +145,16 @@ export default {
   CreatingDeliveryRequest: "Criando solicitação de entrega",
   CreatingPaymentRequest: "Criando solicitação de pagamento",
   Currency: "Moeda",
-  CurrencySettingNote: "A moeda é definida pelo proprietário da carteira no aplicativo Paytaca",
+  CurrencySettingNote:
+    "A moeda é definida pelo proprietário da carteira no aplicativo Paytaca",
   CurrentPassword: "Senha atual",
   Custom: "Personalizado",
   CustomItem: "Item personalizado",
   CustomItemName: "Nome do item (Personalizado)",
   Customer: "Cliente",
   CustomerNameOrOrderId: "Nome do cliente/ID do pedido",
-  CustomerPickupHelpText: "O cliente é notificado de que o pedido está pronto para retirada.Você também pode entrar em contato com o cliente através",
+  CustomerPickupHelpText:
+    "O cliente é notificado de que o pedido está pronto para retirada.Você também pode entrar em contato com o cliente através",
   CustomerReview: "Avaliação do cliente",
   CutleryCost: "Custo de talheres",
   Daily: "Diariamente",
@@ -165,7 +172,8 @@ export default {
   DeleteCollection: "Excluir coleção",
   DeleteCollectionMsg: "Excluindo coleção '{name}'.Tem certeza?",
   DeleteDraft: "Excluir rascunho",
-  DeleteDraftMsg1: "O rascunho do pedido de venda tem o pagamento recebido.Continuar?",
+  DeleteDraftMsg1:
+    "O rascunho do pedido de venda tem o pagamento recebido.Continuar?",
   DeleteDraftMsg2: "Removendo rascunho de pedido de venda.Tem certeza?",
   DeleteProduct: "Excluir produto",
   DeleteProductPromptMsg: "Exclua o produto '{name}'.Tem certeza?",
@@ -182,10 +190,12 @@ export default {
   DeliveryId: "Entrega #{id}",
   DeliveryRequest: "Solicitação de entrega",
   DeliveryStatus: "Status de entrega",
-  DeliveryStatusMsg: "A entrega não ficará visível para os passageiros ao pesquisar entregas.Atribua um passageiro ou defina como público.",
+  DeliveryStatusMsg:
+    "A entrega não ficará visível para os passageiros ao pesquisar entregas.Atribua um passageiro ou defina como público.",
   DeliveryTypes: "Tipos de entrega",
   Description: "Descrição",
-  DetectedDeviceTimeNotMatch: "Detectado que o dispositivo não corresponde ao horário do servidor.A expiração do código QR é ajustada",
+  DetectedDeviceTimeNotMatch:
+    "Detectado que o dispositivo não corresponde ao horário do servidor.A expiração do código QR é ajustada",
   DetectedOffline: "Detectado off-line",
   DeviceLinked: "Dispositivo vinculado",
   DeviceTimeAhead: "O dispositivo está {value} segundos à frente",
@@ -207,8 +217,10 @@ export default {
   Email: "E-mail",
   EnableNotifsToReceiveUpdates: "Ative notificações para receber atualizações",
   EncounteredError: "Erro encontrado",
-  EncounteredErrorInUpdatingStocks: "Erro encontrado na atualização de estoques",
-  EncounteredErrorsInUpdatingStocks: "Erros encontrados na atualização de estoques",
+  EncounteredErrorInUpdatingStocks:
+    "Erro encontrado na atualização de estoques",
+  EncounteredErrorsInUpdatingStocks:
+    "Erros encontrados na atualização de estoques",
   EncounteredUnknownError: "Erro desconhecido encontrado",
   English: "Inglês",
   EnterAmount: "Insira o valor",
@@ -230,7 +242,8 @@ export default {
   FailedToCreateSale: "Falha ao criar venda",
   FailedToFetchUserData: "Falha ao buscar dados do usuário",
   FailedToRemoveStocks: "Falha ao remover ações",
-  FailedToRetrieveDeviceInformation: "Falha ao recuperar informações do dispositivo",
+  FailedToRetrieveDeviceInformation:
+    "Falha ao recuperar informações do dispositivo",
   FailedToRetrieveItemDetails: "Falha ao recuperar detalhes do item",
   FailedToSaveDraft: "Falha ao salvar o rascunho",
   FailedToUpdateServer: "Falha ao atualizar o servidor",
@@ -279,7 +292,8 @@ export default {
   InStock: "Em estoque",
   InaccurateProductDescriptions: "Descrições de produtos imprecisas",
   IncludeTextbox: "Incluir caixa de texto",
-  IncludeTextboxDescription: "Uma caixa de texto será fornecida ao cliente para detalhes adicionais ao selecionar este complemento",
+  IncludeTextboxDescription:
+    "Uma caixa de texto será fornecida ao cliente para detalhes adicionais ao selecionar este complemento",
   Indonesian: "Indonésio",
   Info: "Informações",
   InitialStock: "Estoque inicial",
@@ -288,7 +302,8 @@ export default {
   InputLink: "Link de entrada",
   InputOption: "Opção de entrada",
   InputWalletLinkCode: "Insira o código do link da carteira",
-  InsufficientPermissionToAccessInventory: "Desculpe, você não tem permissões suficientes para acessar o inventário.",
+  InsufficientPermissionToAccessInventory:
+    "Desculpe, você não tem permissões suficientes para acessar o inventário.",
   Invalid: "Inválido",
   InvalidDevice: "Dispositivo inválido",
   InvalidDeviceLabel: "Vincular outra carteira",
@@ -317,7 +332,8 @@ export default {
   LastSalesOrderNumber: "Número do último pedido de venda",
   LastSevenDays: "Últimos 7 dias",
   LeavePage: "Sair da página",
-  LeavePagePromptMsg: "Tem certeza de que deseja sair desta página sem receber um pagamento?",
+  LeavePagePromptMsg:
+    "Tem certeza de que deseja sair desta página sem receber um pagamento?",
   LessThan: "Menos que",
   LinkCodeDataInvalid: "Dados do código do link inválidos",
   LinkCodeDataNotFound: "Dados do código do link não encontrados",
@@ -330,7 +346,8 @@ export default {
   LoadMore: "Carregar mais",
   LoadProductsData: "Carregar dados de produtos",
   LoadProductsHint: "Carregar arquivo excel/csv/zip",
-  LoadProductsNote: "NOTA: Carregar um arquivo substituirá as informações atuais no formulário",
+  LoadProductsNote:
+    "NOTA: Carregar um arquivo substituirá as informações atuais no formulário",
   Loading: "Loading...",
   LocalDelivery: "Entrega local",
   Logout: "Sair",
@@ -340,7 +357,8 @@ export default {
   MarkPending: "Marcar como pendente",
   MarkReceived: "Marca recebida",
   MarkReviewed: "Marcar revisado",
-  MarkReviewedMsg1: "Todos os itens devem ser marcados como entregues antes da revisão",
+  MarkReviewedMsg1:
+    "Todos os itens devem ser marcados como entregues antes da revisão",
   MarkReviewedMsg2: "A revisão da compra está atribuída a outro usuário",
   MarkUnavailable: "Marcar como indisponível",
   Marketplace: "Mercado",
@@ -348,7 +366,8 @@ export default {
   MarkupAmount: "Valor de marcação",
   MarkupPrice: "Preço de marcação",
   MarkupPriceRate: "Taxa de preço de marcação",
-  MarkupSaleRateValue: "Os itens são vendidos com uma alteração de {rate} em relação ao preço original",
+  MarkupSaleRateValue:
+    "Os itens são vendidos com uma alteração de {rate} em relação ao preço original",
   MaximumSelect: "Seleção máxima",
   MerchantDetails: "Detalhes do comerciante",
   Message: "Mensagem",
@@ -388,6 +407,7 @@ export default {
   NoStocksToUpdate: "Não há ações para atualizar",
   NoStorefront: "Sem vitrine",
   NoTransactionsReceived: "Nenhuma transação recebida",
+  NoTransactionsToDisplay: "Sem transações para exibir",
   NoVariantFound: "Nenhuma variante encontrada",
   NonDeliveryOrLateDelivery: "Não entrega ou entrega atrasada",
   None: "Nenhum",
@@ -398,7 +418,8 @@ export default {
   NumberOfStocks: "{count} {unit}",
   OK: "OK",
   OPEN: "ABRIR",
-  OfflineDetectionMsg: "O dispositivo detectado está offline.Saindo da página...",
+  OfflineDetectionMsg:
+    "O dispositivo detectado está offline.Saindo da página...",
   Okay: "Ok",
   OnDelivery: "Na entrega",
   OpenFrom: "Abrir em Excel/CSV/ZIP",
@@ -406,9 +427,11 @@ export default {
   OpensAt: "Abre em {date}",
   Options: "Opções",
   Order: "Pedido",
-  OrderCancelMsg: "O pedido será cancelado após a resolução da disputa.Continuar?",
+  OrderCancelMsg:
+    "O pedido será cancelado após a resolução da disputa.Continuar?",
   OrderCancelled: "Pedido cancelado",
-  OrderCompleteMsg: "O pedido será definido como concluído após a resolução da disputa.Continuar?",
+  OrderCompleteMsg:
+    "O pedido será definido como concluído após a resolução da disputa.Continuar?",
   OrderCompleted: "Pedido concluído",
   OrderDispute: "Disputa de pedido",
   OrderDisputeMsg: "O pedido está atualmente em disputa",
@@ -460,14 +483,17 @@ export default {
   PoItemName2: "Nome do item/PO#",
   PoNumber: "PO#{number}",
   PoNumberItems: "PO#{número} Itens",
-  PoSupplierItemNameCode: "Nº da ordem de compra, fornecedor, nome/código do item",
+  PoSupplierItemNameCode:
+    "Nº da ordem de compra, fornecedor, nome/código do item",
   Portuguese: "Português",
   PortugueseBrazil: "Português (Brasil)",
   PosDeviceLinkedSuccessfully: "Dispositivo POS vinculado com sucesso!",
-  PosDeviceSuspensionMsg: "O dispositivo PDV está suspenso. Entre em contato com o comerciante para cancelar a suspensão do dispositivo",
+  PosDeviceSuspensionMsg:
+    "O dispositivo PDV está suspenso. Entre em contato com o comerciante para cancelar a suspensão do dispositivo",
   PreparationTime: "Tempo de preparação",
   PreparationTimer: "Temporizador de preparação",
-  PreparationTimerMessage: "Conclua os itens do pedido e defina-os como prontos para retirada até ou antes do tempo expirar",
+  PreparationTimerMessage:
+    "Conclua os itens do pedido e defina-os como prontos para retirada até ou antes do tempo expirar",
   PrepareOrder: "Preparar pedido",
   Preparing: "Preparando",
   Preview: "Visualização",
@@ -496,16 +522,19 @@ export default {
   Province: "Província",
   Public: "Público",
   PurchaseOrder: "Ordem de compra",
-  PurchaseOrderCount: "{count} pedidos de compra atribuídos a você para revisão",
+  PurchaseOrderCount:
+    "{count} pedidos de compra atribuídos a você para revisão",
   PurchaseOrderCreated: "Pedido de compra criado",
   PurchaseOrderHistory: "Histórico de pedidos de compra",
   PurchaseOrderNumber: "Número do pedido de compra",
   PurchaseOrderReviewed: "Pedido de compra revisado em {date}",
   PurchaseOrderReviewedBy: "Pedido de compra revisado em {date} por {name}",
-  PurchaseOrderReviewedYou: "Pedido de compra revisado em {date} por {name} (você)",
+  PurchaseOrderReviewedYou:
+    "Pedido de compra revisado em {date} por {name} (você)",
   PurchaseOrders: "Pedidos de compra",
   QrExpired: "QR expirado",
-  QrRefreshMessage: "O QR expirou devido à atualização do preço do BCH.Você deseja atualizá-lo?",
+  QrRefreshMessage:
+    "O QR expirou devido à atualização do preço do BCH.Você deseja atualizá-lo?",
   QrScannerError: "Erro do scanner QR",
   Qty: "Quantidade",
   Quantity: "Quantidade",
@@ -545,13 +574,16 @@ export default {
   RemoveAddonMsg: "Remova o complemento '{addonLabel}'.Tem certeza?",
   RemoveImage: "Remover imagem",
   RemoveProductsStorefrontMsg: "Remoção de produtos da vitrine",
-  RemoveSelectedProductsMsg: "Removendo produtos selecionados da vitrine, tem certeza?",
+  RemoveSelectedProductsMsg:
+    "Removendo produtos selecionados da vitrine, tem certeza?",
   RemoveStock: "Remover estoque",
-  RemoveStockErr1: "Desculpe, você não tem permissões suficientes para acessar o inventário.",
+  RemoveStockErr1:
+    "Desculpe, você não tem permissões suficientes para acessar o inventário.",
   RemoveStockErr2: "Falha ao remover estoque",
-  RemoveStockItemMsg: "Remover estoque de \"{item}\".Tem certeza?",
+  RemoveStockItemMsg: 'Remover estoque de "{item}".Tem certeza?',
   RemoveStockRequirement: "Remover necessidade de estoque",
-  RemoveStockRequirementDesc: "O produto não exigirá disponibilidade de estoque no momento do pedido",
+  RemoveStockRequirementDesc:
+    "O produto não exigirá disponibilidade de estoque no momento do pedido",
   RemoveStocks: "Remover ações",
   RemoveStocksMsg: "Removendo {count} {unit}.Tem certeza?",
   RemoveStorefrontProduct: "Remover {count} produto(s) da vitrine",
@@ -562,7 +594,8 @@ export default {
   Reports: "Relatórios",
   Repository: "Repositório de código-fonte",
   RequireStock: "Exigir ações",
-  RequireStockDesc: "O produto exigirá disponibilidade de estoque no momento do pedido",
+  RequireStockDesc:
+    "O produto exigirá disponibilidade de estoque no momento do pedido",
   Required: "Obrigatório",
   RequiredSelected: "Obrigatório selecionado",
   Reset: "Redefinir",
@@ -600,7 +633,8 @@ export default {
   Scan: "Digitalizar",
   ScanBarcode: "Digitalizar código de barras",
   ScanQrCode: "Digitalize o código QR",
-  ScanQrCodeForWalletLink: "Digitalize o código QR para obter o link da carteira",
+  ScanQrCodeForWalletLink:
+    "Digitalize o código QR para obter o link da carteira",
   ScanToPay: "Digitalize para pagar",
   Search: "Pesquisar",
   SearchForRider: "Procure por piloto",
@@ -643,10 +677,13 @@ export default {
   SettlementTx: "Transação de liquidação",
   SetupStorefront: "Configurar vitrine",
   Shop: "Loja",
-  ShopAccessWarningMsg: "Você não tem acesso à loja.Contate um administrador da loja para conceder acesso.",
+  ShopAccessWarningMsg:
+    "Você não tem acesso à loja.Contate um administrador da loja para conceder acesso.",
   ShopInfo: "Informações da loja",
-  ShopTimezoneOffsetAhead: "Você está {hours} horas adiantado em relação ao fuso horário do endereço da loja",
-  ShopTimezoneOffsetBehind: "Você está {hours} horas atrasado em relação ao fuso horário do endereço da loja",
+  ShopTimezoneOffsetAhead:
+    "Você está {hours} horas adiantado em relação ao fuso horário do endereço da loja",
+  ShopTimezoneOffsetBehind:
+    "Você está {hours} horas atrasado em relação ao fuso horário do endereço da loja",
   ShowMore: "Mostrar mais",
   ShowSummary: "Mostrar resumo",
   SignIn: "Sign-in",
@@ -711,8 +748,10 @@ export default {
   UnableToAssignRider: "Não foi possível atribuir o passageiro",
   UnableToCancelOrder: "Não é possível cancelar o pedido",
   UnableToConfirmOrder: "Não foi possível confirmar o pedido",
-  UnableToCreateDeliveryRequest: "Não foi possível criar solicitação de entrega",
-  UnableToCreatePaymentRequest: "Não foi possível criar a solicitação de pagamento",
+  UnableToCreateDeliveryRequest:
+    "Não foi possível criar solicitação de entrega",
+  UnableToCreatePaymentRequest:
+    "Não foi possível criar a solicitação de pagamento",
   UnableToCreateReview: "Não foi possível criar a avaliação",
   UnableToDecodeQrData: "Não é possível decodificar dados QR",
   UnableToDecryptXpubkey: "Não foi possível descriptografar o xpubkey",
@@ -722,7 +761,8 @@ export default {
   UnableToRevertStatus: "Não foi possível reverter o status",
   UnableToUnassignRider: "Não foi possível cancelar a atribuição do passageiro",
   UnableToUpdateOrder: "Não foi possível atualizar o pedido",
-  UnableToUpdatePreparationTime: "Não foi possível atualizar o tempo de preparação",
+  UnableToUpdatePreparationTime:
+    "Não foi possível atualizar o tempo de preparação",
   UnableToUupdateStatus: "Não foi possível atualizar o status",
   UnassignRider: "Cancelar atribuição de passageiro",
   UnassigningRider: "Cancelando atribuição de passageiro",
@@ -741,7 +781,8 @@ export default {
   UpdateBchFiatPrice: "Rastrear preço BCH-Fiat",
   UpdateEscrowPayment: "Atualizar pagamento de garantia",
   UpdateItems: "Atualizar itens",
-  UpdateLastPurchaseOrderNumber: "Atualizar o número do último pedido de compra",
+  UpdateLastPurchaseOrderNumber:
+    "Atualizar o número do último pedido de compra",
   UpdateLastSalesOrderNumber: "Atualizar o último número do pedido de venda",
   UpdatePassword: "Atualizar senha",
   UpdateProduct: "Atualizar produto",
@@ -787,5 +828,5 @@ export default {
   minutes: "minutos",
   stock: "estoque",
   stockId: "stock#{id}",
-  stocks: "ações"
-}
+  stocks: "ações",
+};

@@ -26,13 +26,18 @@ export default {
   AddUser: "Gebruiker toevoegen",
   AddVariant: "Variant toevoegen",
   AddedQuantity: "{quantity} toegevoegd",
-  AddingProductErrMsg: "Er zijn fouten opgetreden bij het toevoegen van het product",
+  AddingProductErrMsg:
+    "Er zijn fouten opgetreden bij het toevoegen van het product",
   AddingProducts: "Producten toevoegen",
-  AddingProductsErrMsg: "Er zijn fouten opgetreden bij het toevoegen van producten",
-  AddingStockErrorMsg: "Er zijn fouten opgetreden bij het toevoegen van voorraad",
-  AddingUserErrorMsg: "Er is een fout opgetreden bij het toevoegen van de gebruiker",
+  AddingProductsErrMsg:
+    "Er zijn fouten opgetreden bij het toevoegen van producten",
+  AddingStockErrorMsg:
+    "Er zijn fouten opgetreden bij het toevoegen van voorraad",
+  AddingUserErrorMsg:
+    "Er is een fout opgetreden bij het toevoegen van de gebruiker",
   AddonOptions: "Add-on-opties",
-  AddonOptionsEnabled: "Voor sommige optie(s) voor deze add-on is het tekstvak ingeschakeld",
+  AddonOptionsEnabled:
+    "Voor sommige optie(s) voor deze add-on is het tekstvak ingeschakeld",
   AddonOptionsUpdated: "Add-onopties bijgewerkt",
   AddonsForm: "Add-ons formulier",
   Address: "Adres",
@@ -78,7 +83,8 @@ export default {
   CancelOrderMsg: "Bestelling annuleren, weet je het zeker?",
   Cancelled: "Geannuleerd",
   CartOptions: "Winkelwagenopties",
-  CartOptionsMsg: "Aanvullende gegevens die klanten moeten opgeven bij het toevoegen aan hun winkelwagentje",
+  CartOptionsMsg:
+    "Aanvullende gegevens die klanten moeten opgeven bij het toevoegen aan hun winkelwagentje",
   CartOptionsUpdated: "Winkelwagenopties bijgewerkt",
   Cashier: "Kassier",
   Categories: "Categorieën",
@@ -102,7 +108,8 @@ export default {
   Close: "Sluiten",
   Code: "Codeer",
   CollectionDeleted: "Collectie verwijderd",
-  CollectionDescriptionAuto: "Producten worden onder bepaalde voorwaarden toegevoegd",
+  CollectionDescriptionAuto:
+    "Producten worden onder bepaalde voorwaarden toegevoegd",
   CollectionDescriptionManual: "Handmatig producten selecteren",
   CollectionType: "Soort verzameling",
   Collections: "Collecties",
@@ -126,7 +133,8 @@ export default {
   Country: "Land",
   Create: "Creëer",
   CreateCollection: "Verzameling maken",
-  CreateCollectionError: "Er zijn fouten opgetreden bij het maken van de collectie",
+  CreateCollectionError:
+    "Er zijn fouten opgetreden bij het maken van de collectie",
   CreateDeliveryRequest: "Afleveraanvraag aanmaken",
   CreatePayment: "Betaling aanmaken",
   CreatePaymentQR: "Maak een betalings-QR aan",
@@ -140,14 +148,16 @@ export default {
   CreatingDeliveryRequest: "Afleververzoek aanmaken",
   CreatingPaymentRequest: "Betaalverzoek aanmaken",
   Currency: "Valuta",
-  CurrencySettingNote: "De valuta wordt ingesteld door de portemonnee-eigenaar in de Paytaca-app",
+  CurrencySettingNote:
+    "De valuta wordt ingesteld door de portemonnee-eigenaar in de Paytaca-app",
   CurrentPassword: "Huidig wachtwoord",
   Custom: "Aangepast",
   CustomItem: "Aangepast artikel",
   CustomItemName: "Artikelnaam (aangepast)",
   Customer: "Klant",
   CustomerNameOrOrderId: "Klantnaam / Bestelling-ID",
-  CustomerPickupHelpText: "Klant krijgt bericht dat de bestelling klaar staat om afgehaald te worden.U kunt ook contact opnemen met de klant via",
+  CustomerPickupHelpText:
+    "Klant krijgt bericht dat de bestelling klaar staat om afgehaald te worden.U kunt ook contact opnemen met de klant via",
   CustomerReview: "Klantrecensie",
   CutleryCost: "Bestek kosten",
   Daily: "Dagelijks",
@@ -165,13 +175,15 @@ export default {
   DeleteCollection: "Verzameling verwijderen",
   DeleteCollectionMsg: "Verzameling '{name}' verwijderen.Weet je het zeker?",
   DeleteDraft: "Concept verwijderen",
-  DeleteDraftMsg1: "Er is betaling ontvangen voor conceptverkooporder.Doorgaan?",
+  DeleteDraftMsg1:
+    "Er is betaling ontvangen voor conceptverkooporder.Doorgaan?",
   DeleteDraftMsg2: "Conceptverkooporder verwijderen.Weet je het zeker?",
   DeleteProduct: "Product verwijderen",
   DeleteProductPromptMsg: "Verwijder product '{name}'.Weet je het zeker?",
   DeleteProductPromptTitle: "Verwijder '{name}'",
   DeletingProduct: "Product verwijderen",
-  DeletingProductErrMsg: "Er is een fout opgetreden bij het verwijderen van het product",
+  DeletingProductErrMsg:
+    "Er is een fout opgetreden bij het verwijderen van het product",
   Delivered: "Geleverd",
   DeliveredAt: "Bezorgd op {date}",
   DeliveredDate: "Bezorgd op {relativeDate}",
@@ -182,10 +194,12 @@ export default {
   DeliveryId: "Leveringsnummer{id}",
   DeliveryRequest: "Leveringsaanvraag",
   DeliveryStatus: "Leveringsstatus",
-  DeliveryStatusMsg: "De bezorging is niet zichtbaar voor passagiers bij het zoeken naar bezorgingen.Wijs een rijder toe of zet deze op openbaar.",
+  DeliveryStatusMsg:
+    "De bezorging is niet zichtbaar voor passagiers bij het zoeken naar bezorgingen.Wijs een rijder toe of zet deze op openbaar.",
   DeliveryTypes: "Leveringstypen",
   Description: "Beschrijving",
-  DetectedDeviceTimeNotMatch: "Gedetecteerd dat het apparaat niet overeenkomt met de servertijd.De vervaldatum van de QR-code is aangepast",
+  DetectedDeviceTimeNotMatch:
+    "Gedetecteerd dat het apparaat niet overeenkomt met de servertijd.De vervaldatum van de QR-code is aangepast",
   DetectedOffline: "Offline gedetecteerd",
   DeviceLinked: "Apparaat gekoppeld",
   DeviceTimeAhead: "Apparaat heeft een voorsprong van {value} seconden",
@@ -207,8 +221,10 @@ export default {
   Email: "E-mail",
   EnableNotifsToReceiveUpdates: "Schakel meldingen in om updates te ontvangen",
   EncounteredError: "Er is een fout opgetreden",
-  EncounteredErrorInUpdatingStocks: "Er is een fout opgetreden bij het bijwerken van de aandelen",
-  EncounteredErrorsInUpdatingStocks: "Er zijn fouten opgetreden bij het bijwerken van de voorraden",
+  EncounteredErrorInUpdatingStocks:
+    "Er is een fout opgetreden bij het bijwerken van de aandelen",
+  EncounteredErrorsInUpdatingStocks:
+    "Er zijn fouten opgetreden bij het bijwerken van de voorraden",
   EncounteredUnknownError: "Er is een onbekende fout opgetreden",
   English: "Engels",
   EnterAmount: "Voer Bedrag in",
@@ -250,7 +266,8 @@ export default {
   FilterDate: "Datum filteren",
   FilterRoles: "Rol(len) filteren",
   FirstName: "Voornaam",
-  FormErrorPasswordMsg: "Er is een fout opgetreden bij het bijwerken van het wachtwoord",
+  FormErrorPasswordMsg:
+    "Er is een fout opgetreden bij het bijwerken van het wachtwoord",
   FormPreview: "Formuliervoorbeeld",
   FormPreview2: "Formulier (voorbeeld)",
   FrequentActionErrMsg1: "Je onderneemt frequente acties",
@@ -279,7 +296,8 @@ export default {
   InStock: "Op voorraad",
   InaccurateProductDescriptions: "Onnauwkeurige productbeschrijvingen",
   IncludeTextbox: "Inclusief tekstvak",
-  IncludeTextboxDescription: "Er wordt een tekstvak aan de klant verstrekt met aanvullende details wanneer deze add-on wordt geselecteerd",
+  IncludeTextboxDescription:
+    "Er wordt een tekstvak aan de klant verstrekt met aanvullende details wanneer deze add-on wordt geselecteerd",
   Indonesian: "Indonesisch",
   Info: "Info",
   InitialStock: "Initiële voorraad",
@@ -288,7 +306,8 @@ export default {
   InputLink: "Ingangslink",
   InputOption: "Invoer optie",
   InputWalletLinkCode: "Voer de portemonnee-linkcode in",
-  InsufficientPermissionToAccessInventory: "Sorry, u heeft niet voldoende rechten om toegang te krijgen tot de inventaris.",
+  InsufficientPermissionToAccessInventory:
+    "Sorry, u heeft niet voldoende rechten om toegang te krijgen tot de inventaris.",
   Invalid: "Ongeldig",
   InvalidDevice: "Ongeldig apparaat",
   InvalidDeviceLabel: "Koppel een andere portemonnee",
@@ -317,7 +336,8 @@ export default {
   LastSalesOrderNumber: "Laatste verkoopordernummer",
   LastSevenDays: "Laatste 7 dagen",
   LeavePage: "Verlaat pagina",
-  LeavePagePromptMsg: "Weet u zeker dat u deze pagina wilt verlaten zonder een betaling te ontvangen?",
+  LeavePagePromptMsg:
+    "Weet u zeker dat u deze pagina wilt verlaten zonder een betaling te ontvangen?",
   LessThan: "Minder dan",
   LinkCodeDataInvalid: "Linkcodegegevens ongeldig",
   LinkCodeDataNotFound: "Linkcodegegevens niet gevonden",
@@ -330,7 +350,8 @@ export default {
   LoadMore: "Laad meer",
   LoadProductsData: "Productgegevens laden",
   LoadProductsHint: "Upload excel/csv/zip-bestand",
-  LoadProductsNote: "OPMERKING: Als u een bestand laadt, wordt de huidige informatie in het formulier overschreven",
+  LoadProductsNote:
+    "OPMERKING: Als u een bestand laadt, wordt de huidige informatie in het formulier overschreven",
   Loading: "Loading...",
   LocalDelivery: "Lokale bezorging",
   Logout: "Uitloggen",
@@ -340,15 +361,18 @@ export default {
   MarkPending: "Markeer in behandeling",
   MarkReceived: "Mark ontvangen",
   MarkReviewed: "Mark beoordeeld",
-  MarkReviewedMsg1: "Alle artikelen moeten worden gemarkeerd als afgeleverd voordat ze worden beoordeeld",
-  MarkReviewedMsg2: "Het beoordelen van de aankoop is toegewezen aan een andere gebruiker",
+  MarkReviewedMsg1:
+    "Alle artikelen moeten worden gemarkeerd als afgeleverd voordat ze worden beoordeeld",
+  MarkReviewedMsg2:
+    "Het beoordelen van de aankoop is toegewezen aan een andere gebruiker",
   MarkUnavailable: "Markeer als niet beschikbaar",
   Marketplace: "Marktplaats",
   Markup: "Opmaak",
   MarkupAmount: "Opmaakbedrag",
   MarkupPrice: "Opmaakprijs",
   MarkupPriceRate: "Prijsverhoging",
-  MarkupSaleRateValue: "Artikelen worden verkocht met een wijziging van {rate} ten opzichte van de oorspronkelijke prijs",
+  MarkupSaleRateValue:
+    "Artikelen worden verkocht met een wijziging van {rate} ten opzichte van de oorspronkelijke prijs",
   MaximumSelect: "Maximale selectie",
   MerchantDetails: "Gegevens van de handelaar",
   Message: "Bericht",
@@ -388,6 +412,7 @@ export default {
   NoStocksToUpdate: "Geen aandelen om bij te werken",
   NoStorefront: "Geen winkelpand",
   NoTransactionsReceived: "Geen transacties ontvangen",
+  NoTransactionsToDisplay: "Geen transacties om weer te geven",
   NoVariantFound: "Geen variant gevonden",
   NonDeliveryOrLateDelivery: "Niet-levering of late levering",
   None: "Geen",
@@ -398,7 +423,8 @@ export default {
   NumberOfStocks: "{count} {unit}",
   OK: "Oké",
   OPEN: "GEOPEND",
-  OfflineDetectionMsg: "Het gedetecteerde apparaat is offline.Pagina verlaten...",
+  OfflineDetectionMsg:
+    "Het gedetecteerde apparaat is offline.Pagina verlaten...",
   Okay: "Oké",
   OnDelivery: "Bij levering",
   OpenFrom: "Openen vanuit Excel/CSV/ZIP",
@@ -406,9 +432,11 @@ export default {
   OpensAt: "Gaat open op {date}",
   Options: "Opties",
   Order: "Bestel",
-  OrderCancelMsg: "De bestelling wordt geannuleerd nadat het geschil is opgelost.Doorgaan?",
+  OrderCancelMsg:
+    "De bestelling wordt geannuleerd nadat het geschil is opgelost.Doorgaan?",
   OrderCancelled: "Bestelling geannuleerd",
-  OrderCompleteMsg: "De bestelling wordt als voltooid beschouwd nadat het geschil is opgelost.Doorgaan?",
+  OrderCompleteMsg:
+    "De bestelling wordt als voltooid beschouwd nadat het geschil is opgelost.Doorgaan?",
   OrderCompleted: "Bestelling voltooid",
   OrderDispute: "Bestelling geschil",
   OrderDisputeMsg: "De bestelling is momenteel in geschil",
@@ -464,10 +492,12 @@ export default {
   Portuguese: "Portugees",
   PortugueseBrazil: "Portugees (Brazilië)",
   PosDeviceLinkedSuccessfully: "POS-apparaat succesvol gekoppeld!",
-  PosDeviceSuspensionMsg: "POS-apparaat is opgeschort. Neem contact op met de verkoper om de opschorting van het apparaat op te heffen",
+  PosDeviceSuspensionMsg:
+    "POS-apparaat is opgeschort. Neem contact op met de verkoper om de opschorting van het apparaat op te heffen",
   PreparationTime: "Voorbereidingstijd",
   PreparationTimer: "Voorbereidingstimer",
-  PreparationTimerMessage: "Voltooi de artikelen in de bestelling en stel ze in als gereed voor afhalen op of voordat de timer afloopt",
+  PreparationTimerMessage:
+    "Voltooi de artikelen in de bestelling en stel ze in als gereed voor afhalen op of voordat de timer afloopt",
   PrepareOrder: "Bestelling klaarmaken",
   Preparing: "Voorbereiden",
   Preview: "Voorbeeld",
@@ -496,7 +526,8 @@ export default {
   Province: "Provincie",
   Public: "Openbaar",
   PurchaseOrder: "Aankooporder",
-  PurchaseOrderCount: "{count} inkooporder(s) die aan u zijn toegewezen ter beoordeling",
+  PurchaseOrderCount:
+    "{count} inkooporder(s) die aan u zijn toegewezen ter beoordeling",
   PurchaseOrderCreated: "Inkooporder aangemaakt",
   PurchaseOrderHistory: "Geschiedenis van inkooporders",
   PurchaseOrderNumber: "Inkoopordernummer",
@@ -505,7 +536,8 @@ export default {
   PurchaseOrderReviewedYou: "Inkooporder beoordeeld op {date} door {name} (u)",
   PurchaseOrders: "Inkooporders",
   QrExpired: "QR Verlopen",
-  QrRefreshMessage: "De QR is verlopen vanwege een BCH-prijsupdate.Wilt u deze vernieuwen?",
+  QrRefreshMessage:
+    "De QR is verlopen vanwege een BCH-prijsupdate.Wilt u deze vernieuwen?",
   QrScannerError: "QR-scannerfout",
   Qty: "Aantal",
   Quantity: "Hoeveelheid",
@@ -537,7 +569,8 @@ export default {
   Register: "Registreren",
   RegisterNewuser: "Registreer een nieuwe gebruiker",
   Registered: "Registered!",
-  RegisteringUserErrorMsg: "Er zijn fouten opgetreden bij het registreren van een nieuwe gebruiker",
+  RegisteringUserErrorMsg:
+    "Er zijn fouten opgetreden bij het registreren van een nieuwe gebruiker",
   RegistrationSuccessful: "Registratie succesvol!",
   Remarks: "Opmerkingen",
   Remove: "Verwijderen",
@@ -545,13 +578,16 @@ export default {
   RemoveAddonMsg: "Verwijder add-on '{addonLabel}'.Weet je het zeker?",
   RemoveImage: "Afbeelding verwijderen",
   RemoveProductsStorefrontMsg: "Producten uit de winkel verwijderen",
-  RemoveSelectedProductsMsg: "Geselecteerde producten uit de winkel verwijderen, weet u het zeker?",
+  RemoveSelectedProductsMsg:
+    "Geselecteerde producten uit de winkel verwijderen, weet u het zeker?",
   RemoveStock: "Verwijder de voorraad",
-  RemoveStockErr1: "Sorry, u heeft niet voldoende rechten om toegang te krijgen tot de inventaris.",
+  RemoveStockErr1:
+    "Sorry, u heeft niet voldoende rechten om toegang te krijgen tot de inventaris.",
   RemoveStockErr2: "Kan de voorraad niet verwijderen",
-  RemoveStockItemMsg: "Verwijder voorraad voor \"{item}\".Weet je het zeker?",
+  RemoveStockItemMsg: 'Verwijder voorraad voor "{item}".Weet je het zeker?',
   RemoveStockRequirement: "Verwijder de voorraadvereiste",
-  RemoveStockRequirementDesc: "Het product vereist geen voorraadbeschikbaarheid bij het bestellen",
+  RemoveStockRequirementDesc:
+    "Het product vereist geen voorraadbeschikbaarheid bij het bestellen",
   RemoveStocks: "Verwijder voorraden",
   RemoveStocksMsg: "{count} {unit} verwijderen.Weet je het zeker?",
   RemoveStorefrontProduct: "Verwijder {count} product(en) uit de winkel",
@@ -562,7 +598,8 @@ export default {
   Reports: "Rapporten",
   Repository: "Broncodeopslagplaats",
   RequireStock: "Vereist voorraden",
-  RequireStockDesc: "Bij het bestellen is voor het product de beschikbaarheid van voorraad vereist",
+  RequireStockDesc:
+    "Bij het bestellen is voor het product de beschikbaarheid van voorraad vereist",
   Required: "Vereist",
   RequiredSelected: "Verplicht geselecteerd",
   Reset: "Opnieuw instellen",
@@ -643,10 +680,13 @@ export default {
   SettlementTx: "Afrekeningstransactie",
   SetupStorefront: "Winkelpui opzetten",
   Shop: "Winkel",
-  ShopAccessWarningMsg: "U heeft geen toegang tot de winkel.Neem contact op met een winkelbeheerder om toegang te verlenen.",
+  ShopAccessWarningMsg:
+    "U heeft geen toegang tot de winkel.Neem contact op met een winkelbeheerder om toegang te verlenen.",
   ShopInfo: "Winkelinformatie",
-  ShopTimezoneOffsetAhead: "U loopt {hours} uur voor op de tijdzone van het winkeladres",
-  ShopTimezoneOffsetBehind: "U loopt {hours} uur achter op de tijdzone van het winkeladres",
+  ShopTimezoneOffsetAhead:
+    "U loopt {hours} uur voor op de tijdzone van het winkeladres",
+  ShopTimezoneOffsetBehind:
+    "U loopt {hours} uur achter op de tijdzone van het winkeladres",
   ShowMore: "Laat meer zien",
   ShowSummary: "Samenvatting weergeven",
   SignIn: "Sign-in",
@@ -667,7 +707,8 @@ export default {
   StockId: "Stock#{id}",
   StockRecount: "Voorraad hertelling",
   StockRecountCreated: "Voorraadhertelling gemaakt!",
-  StockRecountErrMsg: "Er zijn fouten opgetreden bij het maken van de voorraadhertelling",
+  StockRecountErrMsg:
+    "Er zijn fouten opgetreden bij het maken van de voorraadhertelling",
   StockUpdate: "Voorraadupdate",
   Stocks: "Voorraden",
   StocksRemoved: "Voorraden verwijderd",
@@ -745,14 +786,16 @@ export default {
   UpdateLastSalesOrderNumber: "Laatste verkoopordernummer bijwerken",
   UpdatePassword: "Wachtwoord bijwerken",
   UpdateProduct: "Product bijwerken",
-  UpdateStockErrorMsg: "Er is een fout opgetreden bij het bijwerken van de voorraad",
+  UpdateStockErrorMsg:
+    "Er is een fout opgetreden bij het bijwerken van de voorraad",
   UpdateStocks: "Voorraden bijwerken",
   Updated: "Bijgewerkt",
   UpdatedStocks: "Bijgewerkte voorraden",
   UpdatingDelivery: "Levering bijwerken",
   UpdatingOrderStatus: "Orderstatus bijwerken",
   UpdatingPassword: "Wachtwoord bijwerken",
-  UpdatingProductErrMsg: "Er zijn fouten opgetreden bij het updaten van het product",
+  UpdatingProductErrMsg:
+    "Er zijn fouten opgetreden bij het updaten van het product",
   UpdatingServer: "Server bijwerken",
   UpdatingStocks: "Voorraden bijwerken",
   UploadAFile: "Upload een bestand",
@@ -787,5 +830,5 @@ export default {
   minutes: "minuten",
   stock: "voorraad",
   stockId: "stock#{id}",
-  stocks: "voorraden"
-}
+  stocks: "voorraden",
+};

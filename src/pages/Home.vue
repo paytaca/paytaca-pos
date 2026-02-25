@@ -197,7 +197,17 @@
                 >
                   <q-linear-progress query color="brandblue" />
                 </div>
+                <div
+                  v-else-if="!transactions?.history?.length"
+                  class="row items-center justify-center q-pa-md text-grey"
+                >
+                  <q-icon name="receipt_long" size="48px" class="q-mb-sm" />
+                  <div class="full-width text-center">
+                    {{ $t("NoTransactionsToDisplay") }}
+                  </div>
+                </div>
                 <TransactionsList
+                  v-else
                   :transactions="transactions"
                   class="transactions-list"
                   :class="transactions?.num_pages > 1 ? 'pagination' : ''"
@@ -298,8 +308,6 @@ export default defineComponent({
     const isRefreshing = ref(false);
     const isInitialLoading = ref(true);
     function fetchTransactions(page = 1) {
-      transactions.value = [];
-      return true;
       if (!walletStore.walletHash) return Promise.resolve();
       const opts = {
         page: Number.isInteger(page) ? page : 1,
@@ -533,13 +541,13 @@ export default defineComponent({
 }
 
 .transactions-list {
-  height: 35vh;
+  max-height: 35vh;
   min-height: 200px;
   overflow-y: auto;
 }
 
 .transactions-list.pagination {
-  height: 31vh;
+  max-height: 31vh;
 }
 
 .home-page {

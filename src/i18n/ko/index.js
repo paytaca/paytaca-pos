@@ -32,7 +32,8 @@ export default {
   AddingStockErrorMsg: "재고를 추가하는 중에 오류가 발생했습니다.",
   AddingUserErrorMsg: "사용자를 추가하는 중 오류가 발생했습니다.",
   AddonOptions: "애드온 옵션",
-  AddonOptionsEnabled: "이 애드온의 일부 옵션에는 텍스트 상자가 활성화되어 있습니다.",
+  AddonOptionsEnabled:
+    "이 애드온의 일부 옵션에는 텍스트 상자가 활성화되어 있습니다.",
   AddonOptionsUpdated: "애드온 옵션이 업데이트되었습니다.",
   AddonsForm: "애드온 양식",
   Address: "주소",
@@ -147,7 +148,8 @@ export default {
   CustomItemName: "항목 이름(맞춤)",
   Customer: "고객",
   CustomerNameOrOrderId: "고객 이름 / 주문 ID",
-  CustomerPickupHelpText: "고객에게 주문 상품을 픽업할 준비가 되었음을 알립니다.다음을 통해 고객에게 연락할 수도 있습니다.",
+  CustomerPickupHelpText:
+    "고객에게 주문 상품을 픽업할 준비가 되었음을 알립니다.다음을 통해 고객에게 연락할 수도 있습니다.",
   CustomerReview: "고객 리뷰",
   CutleryCost: "칼 비용",
   Daily: "매일",
@@ -182,10 +184,12 @@ export default {
   DeliveryId: "배달 #{id}",
   DeliveryRequest: "배송요청",
   DeliveryStatus: "배송상태",
-  DeliveryStatusMsg: "배달을 검색할 때 승객이 배달을 볼 수 없습니다.라이더를 지정하거나 공개로 설정하세요.",
+  DeliveryStatusMsg:
+    "배달을 검색할 때 승객이 배달을 볼 수 없습니다.라이더를 지정하거나 공개로 설정하세요.",
   DeliveryTypes: "배송 유형",
   Description: "설명",
-  DetectedDeviceTimeNotMatch: "장치가 서버 시간과 일치하지 않는 것으로 감지되었습니다.QR 코드 만료일이 조정되었습니다.",
+  DetectedDeviceTimeNotMatch:
+    "장치가 서버 시간과 일치하지 않는 것으로 감지되었습니다.QR 코드 만료일이 조정되었습니다.",
   DetectedOffline: "오프라인으로 감지됨",
   DeviceLinked: "연결된 장치",
   DeviceTimeAhead: "기기가 {value}초 앞서 있습니다.",
@@ -279,7 +283,8 @@ export default {
   InStock: "재고 있음",
   InaccurateProductDescriptions: "부정확한 제품 설명",
   IncludeTextbox: "텍스트 상자 포함",
-  IncludeTextboxDescription: "이 애드온을 선택할 때 추가 세부정보를 위한 텍스트 상자가 고객에게 제공됩니다.",
+  IncludeTextboxDescription:
+    "이 애드온을 선택할 때 추가 세부정보를 위한 텍스트 상자가 고객에게 제공됩니다.",
   Indonesian: "인도네시아어",
   Info: "정보",
   InitialStock: "초기 재고",
@@ -288,7 +293,8 @@ export default {
   InputLink: "입력링크",
   InputOption: "입력옵션",
   InputWalletLinkCode: "지갑링크코드 입력",
-  InsufficientPermissionToAccessInventory: "죄송합니다. 인벤토리에 액세스할 수 있는 권한이 없습니다.",
+  InsufficientPermissionToAccessInventory:
+    "죄송합니다. 인벤토리에 액세스할 수 있는 권한이 없습니다.",
   Invalid: "유효하지 않음",
   InvalidDevice: "잘못된 장치",
   InvalidDeviceLabel: "다른 지갑 연결",
@@ -388,6 +394,7 @@ export default {
   NoStocksToUpdate: "업데이트할 주식이 없습니다.",
   NoStorefront: "매장 없음",
   NoTransactionsReceived: "수신된 거래가 없습니다.",
+  NoTransactionsToDisplay: "표시할 거래가 없습니다",
   NoVariantFound: "변종을 찾을 수 없습니다.",
   NonDeliveryOrLateDelivery: "미배송 또는 배송 지연",
   None: "없음",
@@ -408,7 +415,8 @@ export default {
   Order: "주문",
   OrderCancelMsg: "분쟁 해결 후 주문이 취소됩니다.계속하다?",
   OrderCancelled: "주문이 취소됨",
-  OrderCompleteMsg: "분쟁이 해결된 후 주문이 완료된 것으로 설정됩니다.계속하다?",
+  OrderCompleteMsg:
+    "분쟁이 해결된 후 주문이 완료된 것으로 설정됩니다.계속하다?",
   OrderCompleted: "주문 완료",
   OrderDispute: "주문 분쟁",
   OrderDisputeMsg: "주문이 현재 분쟁 중입니다.",
@@ -464,10 +472,12 @@ export default {
   Portuguese: "포르투갈어",
   PortugueseBrazil: "포르투갈어(브라질)",
   PosDeviceLinkedSuccessfully: "POS 장치가 성공적으로 연결되었습니다!",
-  PosDeviceSuspensionMsg: "POS 장치가 정지되었습니다. 장치 정지를 해제하려면 판매자에게 문의하세요.",
+  PosDeviceSuspensionMsg:
+    "POS 장치가 정지되었습니다. 장치 정지를 해제하려면 판매자에게 문의하세요.",
   PreparationTime: "준비시간",
   PreparationTimer: "준비 타이머",
-  PreparationTimerMessage: "주문 항목을 완료하고 타이머가 만료되기 전에 픽업 준비가 완료되도록 설정하세요.",
+  PreparationTimerMessage:
+    "주문 항목을 완료하고 타이머가 만료되기 전에 픽업 준비가 완료되도록 설정하세요.",
   PrepareOrder: "주문 준비",
   Preparing: "준비 중",
   Preview: "미리보기",
@@ -502,10 +512,12 @@ export default {
   PurchaseOrderNumber: "구매 주문 번호",
   PurchaseOrderReviewed: "구매 주문이 {날짜}에 검토되었습니다.",
   PurchaseOrderReviewedBy: "{date}님이 {name}에 구매 주문을 검토했습니다.",
-  PurchaseOrderReviewedYou: "{date}(귀하)이 {name}에 구매 주문서를 검토했습니다.",
+  PurchaseOrderReviewedYou:
+    "{date}(귀하)이 {name}에 구매 주문서를 검토했습니다.",
   PurchaseOrders: "구매 주문",
   QrExpired: "QR 만료됨",
-  QrRefreshMessage: "BCH 가격 업데이트로 인해 QR이 만료되었습니다.새로고침하시겠습니까?",
+  QrRefreshMessage:
+    "BCH 가격 업데이트로 인해 QR이 만료되었습니다.새로고침하시겠습니까?",
   QrScannerError: "QR 스캐너 오류",
   Qty: "수량",
   Quantity: "수량",
@@ -549,7 +561,7 @@ export default {
   RemoveStock: "재고 제거",
   RemoveStockErr1: "죄송합니다. 인벤토리에 액세스할 수 있는 권한이 없습니다.",
   RemoveStockErr2: "재고를 제거하지 못했습니다.",
-  RemoveStockItemMsg: "\"{item}\"의 재고를 제거합니다.확실합니까?",
+  RemoveStockItemMsg: '"{item}"의 재고를 제거합니다.확실합니까?',
   RemoveStockRequirement: "재고 요구 사항 제거",
   RemoveStockRequirementDesc: "제품 주문 시 재고 유무가 필요하지 않습니다.",
   RemoveStocks: "재고 제거",
@@ -643,9 +655,11 @@ export default {
   SettlementTx: "정산거래",
   SetupStorefront: "매장 설정",
   Shop: "쇼핑",
-  ShopAccessWarningMsg: "당신은 상점에 접근할 수 없습니다.액세스 권한을 부여하려면 매장 관리자에게 문의하세요.",
+  ShopAccessWarningMsg:
+    "당신은 상점에 접근할 수 없습니다.액세스 권한을 부여하려면 매장 관리자에게 문의하세요.",
   ShopInfo: "상점 정보",
-  ShopTimezoneOffsetAhead: "귀하는 매장 주소의 시간대보다 {hours}시간 빠릅니다.",
+  ShopTimezoneOffsetAhead:
+    "귀하는 매장 주소의 시간대보다 {hours}시간 빠릅니다.",
   ShopTimezoneOffsetBehind: "매장 주소의 시간대보다 {hours}시간 늦습니다.",
   ShowMore: "더 보기",
   ShowSummary: "요약 표시",
@@ -787,5 +801,5 @@ export default {
   minutes: "분",
   stock: "주식",
   stockId: "stock#{id}",
-  stocks: "주식"
-}
+  stocks: "주식",
+};
