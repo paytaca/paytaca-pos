@@ -298,6 +298,8 @@ export default defineComponent({
     const isRefreshing = ref(false);
     const isInitialLoading = ref(true);
     function fetchTransactions(page = 1) {
+      transactions.value = [];
+      return true;
       if (!walletStore.walletHash) return Promise.resolve();
       const opts = {
         page: Number.isInteger(page) ? page : 1,
@@ -532,6 +534,7 @@ export default defineComponent({
 
 .transactions-list {
   height: 35vh;
+  min-height: 200px;
   overflow-y: auto;
 }
 
