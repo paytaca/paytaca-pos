@@ -1,5 +1,5 @@
 <template>
-  <q-page class="flex flex-center q-pb-lg">
+  <q-page class="home-page q-pb-lg">
     <q-pull-to-refresh
       @refresh="refreshPage"
       :disable="forceDisplayWalletLink || !walletStore.walletHash"
@@ -529,6 +529,13 @@ export default defineComponent({
 
 .transactions-list.pagination {
   height: 31vh;
+}
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
 }
 
 .body--dark {
