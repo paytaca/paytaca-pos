@@ -926,7 +926,7 @@ export default defineComponent({
     // Safe area padding for iOS and Android status bar
     const headerPaddingStyle = computed(() => {
       if ($q.platform.is.ios) {
-        return "padding-top: 3.8em;";
+        return "padding-top: calc(1rem + env(safe-area-inset-top));";
       } else if ($q.platform.is.android) {
         return "padding-top: 1.5em;";
       }
