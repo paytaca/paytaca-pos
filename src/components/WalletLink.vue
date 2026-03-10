@@ -242,7 +242,7 @@ export default defineComponent({
       try {
         dialog.update({ message: t("RetrievingLinkCodeData") });
         const response = await watchtower.BCH._api.get(
-          `paytacapos/devices/link_code_data/`,
+          `paytacapos/devices/link_code_data_v2/`,
           { params: { code: qrCodeData.code } }
         );
         return response?.data;
@@ -321,7 +321,7 @@ export default defineComponent({
           device_id: deviceInfo?.uuid,
         };
         const response = await watchtower.BCH._api.post(
-          "paytacapos/devices/redeem_link_device_code/",
+          "paytacapos/devices/redeem_link_device_code_v2/",
           data
         );
         walletStore.$patch((walletStoreState) => {
