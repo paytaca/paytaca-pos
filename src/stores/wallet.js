@@ -18,6 +18,7 @@ export const useWalletStore = defineStore('wallet', {
     posId: -1,
     walletHash: null,
     xPubKey: null,
+    authPublicKey: null,
     linkCode: null,
     firstReceivingAddress: null,
 
@@ -507,10 +508,14 @@ export const useWalletStore = defineStore('wallet', {
         timestamp: timestamp,
       }
     },
+    setAuthPublicKey(publicKey) {
+      this.authPublicKey = publicKey
+    },
     clearAll() {
       this.walletHash = ''
       this.posId = -1
       this.xPubKey = ''
+      this.authPublicKey = null
       this.linkCode = ''
       this.setDeviceInfo(null)
       this.setBranchInfo(null)

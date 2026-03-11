@@ -2,6 +2,7 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { useWalletStore } from 'stores/wallet'
 import { backend } from './backend.js';
 import { loadSignerFromWIF } from './keypair.js';
+import { getPublicKeyFromPrivate } from './utils.js';
 
 const TOKEN_STORAGE_KEY = 'card-auth-key'
 const WIF_STORAGE_KEY = 'card-auth-wif'
@@ -46,7 +47,7 @@ export class MerchantUser {
      */
     set raw(data) {
         this._rawData = data;
-        this.id = data?.id;
+        this.id = data?.ref_id;
         this.public_key = data?.public_key;
         this.is_authenticated = data?.is_authenticated;
     }
@@ -60,8 +61,8 @@ export class MerchantUser {
      */
     static async createWithSigner(data) {
         const user = MerchantUser.parse(data);
-        const wif = await getPrivateKeyWif();
-        user.signer = loadSignerFromWIF(wif);
+        const privateKeyWif = await getPrivateKeyWif();
+        user.signer = loadSignerFromWIF(privateKeyWif);
         return user;
     }
 
@@ -75,7 +76,7 @@ export class MerchantUser {
     async getChallenge(publicKey) {
         try {
             const payload = { public_key: publicKey };
-            const { data: { challenge } } = await backend.post('/auth/challenge/', payload);
+            const { data: { challenge } } = await backend.post('/auth/merchant/challenge/', payload);
             return challenge;
         } catch (error) {
             console.error('Failed to get challenge:', error);
@@ -95,7 +96,7 @@ export class MerchantUser {
                 public_key: publicKey,
                 signature: signature
             };
-            const verifyResponse = await backend.post('/auth/verify/', body);
+            const verifyResponse = await backend.post('/auth/merchant/verify/', body);
             return verifyResponse.data;
         } catch (error) {
             console.error('Failed to verify challenge:', error);
@@ -142,7 +143,7 @@ export class MerchantUser {
 export async function fetchCardMerchantUser(publicKey) {
     try {
         const response = await backend.get(`/auth/merchant/${publicKey}/`);
-        return new MerchantUser(response.data);
+        return await MerchantUser.createWithSigner(response.data);
     } catch (error) {
         console.error('Card Merchant User fetch failed:', error.response?.status || error.message);
         throw error;
@@ -155,12 +156,12 @@ export async function fetchCardMerchantUser(publicKey) {
  */
 export async function loadCardMerchantUser() {
     try {
-        const keypairWif = await getPrivateKeyWif();
-        if (!keypairWif) {
+        const privateKeyWif = await getPrivateKeyWif();
+        if (!privateKeyWif) {
             throw new Error('No private key WIF found for current wallet');
         }
 
-        const signer = loadSignerFromWIF(keypairWif);
+        const signer = loadSignerFromWIF(privateKeyWif);
         const publicKey = signer.keypair().publicKey;
         console.log('publicKey:', publicKey);
 
@@ -236,6 +237,8 @@ export async function saveAuthToken (value) {
     } catch (error) {
         console.error('Failed to save auth token:', error);
         throw error;
+    } finally {
+        console.log('saveAuthToken completed');
     }
 }
 
@@ -246,7 +249,7 @@ export async function saveAuthToken (value) {
 export async function clearAuthToken () {
     console.log('Clearing auth token...');
     try {
-        SecureStoragePlugin.remove({ key: TOKEN_STORAGE_KEY })
+        await SecureStoragePlugin.remove({ key: TOKEN_STORAGE_KEY });
         console.log('Card auth token deleted');
     } catch (error) {
         console.error('Failed to clear auth token:', error);
@@ -259,6 +262,11 @@ export async function savePrivateKeyWif(wif) {
     try {
         const storedValue = typeof wif === 'string' ? wif : JSON.stringify(wif);
         const result = await SecureStoragePlugin.set({ key: WIF_STORAGE_KEY, value: storedValue });
+
+        const publicKey = getPublicKeyFromPrivate(wif);
+        const walletStore = useWalletStore();
+        walletStore.setAuthPublicKey(publicKey);
+
         return result.value;
     } catch (error) {
         console.error('Failed to save private key WIF:', error);

@@ -17,7 +17,7 @@ backend.interceptors.request.use(async (config) => {
     return config
   }
   const walletStore = useWalletStore();
-  config.headers['wallet-hash'] = walletStore.walletHash
+  config.headers['public-key'] = walletStore.authPublicKey
   await getAuthToken().then(token => {
     config.headers.Authorization = `Token ${token}`
   }).catch(error => {

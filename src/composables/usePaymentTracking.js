@@ -4,6 +4,10 @@ import { usePaymentsStore } from 'stores/payments'
 import { useAddressesStore } from 'stores/addresses'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
+import { getPrivateKeyWif, loadCardMerchantUser } from 'src/nfc/user'
+import { getAuthToken } from 'src/nfc/user'
+import { getPublicKeyFromPrivate } from 'src/nfc/utils'
+import { payWithCard } from 'src/nfc/payment'
 
 /**
  * Composable for managing payment tracking, websocket connections, and transaction handling
@@ -227,7 +231,9 @@ export function usePaymentTracking({
     }
   }
 
-  function setupListener() {
+  async function setupListener() {
+    await setupNFCListener()
+
     const merchantReceivingAddress = addressSet.value?.receiving
     
     if (!merchantReceivingAddress) {
@@ -237,13 +243,15 @@ export function usePaymentTracking({
     // Initialize websocket URLs
     const websocketInits = [
       merchantReceivingAddress,
-      walletStore.firstReceivingAddress,
+      walletStore.firstReceivingAddress
     ]
       .filter(Boolean)
       .map(address => ({
         instance: { readyState: 0 },
         url: `${websocketUrl}/${address}/`,
       }))
+    
+    console.log('websocketInits', websocketInits)
 
     const isZerothAddress = walletStore.firstReceivingAddress === merchantReceivingAddress
     websockets.value = isZerothAddress ? websocketInits.slice(0,1) : websocketInits
@@ -277,6 +285,75 @@ export function usePaymentTracking({
         websockets.value[x].instance = markRaw(websocket)
       })
     }
+  }
+
+  let nfcListenerWebsocket = ref(null)
+  async function setupNFCListener() {
+    
+    console.log('Setting up NFC listener...')
+    const merchantUser = await loadCardMerchantUser()
+    console.log(merchantUser)
+
+    const token = await getAuthToken()
+    if (!token) {
+      console.error('No auth token found, cannot set up NFC listener')
+      return
+    }
+
+    const privateKey = await getPrivateKeyWif()
+    const publicKey = getPublicKeyFromPrivate(privateKey)
+    const nfcListenerUrl = `${process.env.NFC_LISTENER_URL}/?public_key=${publicKey}&token=${token}`
+
+    nfcListenerWebsocket.value = new WebSocket(nfcListenerUrl)
+    
+    nfcListenerWebsocket.value.addEventListener('open', () => {
+      console.log('NFC listener websocket connected')
+      nfcListenerWebsocket.value.send("start_listening")
+      nfcListenerWebsocket.value.send("status")
+    })
+
+    nfcListenerWebsocket.value.addEventListener('message', async message => {
+      console.log('Message from NFC listener:', message.data)
+      const data = JSON.parse(message.data);
+      console.log("Received tag data:", data);
+
+      const uid = data?.uid || null
+      const scannedUrl = data?.url || data?.ntag_url || data?.tag_url || null
+      console.log('Scanned URL from websocket:', scannedUrl)
+      if (!scannedUrl) {
+        console.warn('No NFC URL found in websocket payload')
+        return
+      }
+
+      onNFCUrlReceived(merchantUser, uid, scannedUrl)
+    })
+    
+    nfcListenerWebsocket.value.addEventListener('close', () => {
+      console.log('NFC listener websocket closed')
+    })
+  }
+
+  async function onNFCUrlReceived(merchant, uid, url) {
+    const receivingAddress = addressSet.value?.receiving
+    if (!receivingAddress) {
+      console.error('No receiving address available for processing NFC URL')
+      return
+    }
+
+    const paymentsStore = usePaymentsStore()
+    const bchAmount = paymentsStore.total || 0
+
+    const params = {
+      uid,
+      merchantId: merchant.id,
+      receivingAddress,
+      amountSats: Math.round(bchAmount * 1e8),
+      url
+    }
+
+    console.log('Spending with params:', params)
+    const result = await payWithCard(params)
+    console.log('Payment result:', result)
   }
 
   function prepareForNewInvoice() {
