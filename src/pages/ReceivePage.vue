@@ -211,7 +211,7 @@ import { useWalletStore } from 'stores/wallet'
 import { usePaymentsStore } from 'stores/payments'
 import { useAddressesStore } from 'stores/addresses'
 import { useCashtokenStore } from 'src/stores/cashtoken'
-import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, inject, markRaw } from 'vue'
+import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, inject, markRaw, onBeforeUnmount } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
@@ -317,6 +317,19 @@ export default defineComponent({
         cashTokenStore.fetchTokenMetadata(tokenCategory.value)
       }
     })
+
+    onMounted (() => {
+      console.log('[ReceivePage] Setting up NFC listener...')
+      closeNfcListener()
+      setupNFCListener()
+    })
+
+    onBeforeUnmount(() => {
+      console.log('[ReceivePage] onBeforeUnmount - cleaning up resources')
+      closeNfcListener()
+      closeStatusNotification()
+    })
+
     const receiveAmount = ref(0)
     // Initialize currency from props, but prefer fiat currency if provided
     const currency = ref(props.setFiatCurrency || props.setCurrency || 'BCH')
@@ -1289,6 +1302,10 @@ export default defineComponent({
       startNewSession,
       clearPendingApiCalls,
       resetSessionData,
+      setupNFCListener,
+      closeNfcListener,
+      nfcListenerActive,
+      closeStatusNotification
     } = usePaymentTracking({
       addressSet,
       isCashtoken,
@@ -1302,6 +1319,10 @@ export default defineComponent({
       onRefreshQrCountdown: refreshQrCountdown,
       onStopQrExpirationCountdown: stopQrExpirationCountdown,
       onDisplayReceivedTransaction: displayReceivedTransaction,
+    })
+
+    watch(() => nfcListenerActive.value, (active) => {
+      console.log('[ReceivePage] NFC listener active state changed:', active)
     })
 
     // Sync qrScanned ref with composable's qrScanned

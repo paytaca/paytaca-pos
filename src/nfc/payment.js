@@ -54,8 +54,9 @@ async function parseUrl(url) {
       picc_data: piccData,
       cmac: cmac
     }).catch(error => {
-      console.log(error.response?.data || error.message || 'Error during preimage request');
-      throw new Error('Failed to get preimages for spend transaction');
+      const errorMessage = error.response?.data?.error || error.message || 'Error during preimage request'
+      console.error(errorMessage);
+      throw new Error(errorMessage);
     });
 
     const data = response.data;
@@ -82,8 +83,9 @@ async function parseUrl(url) {
         inputs: data.inputs
       }
     }).catch(error => {
-      console.log(error.response?.data || error.message || 'Error during spend transaction request');
-      throw new Error('Failed to complete spend transaction');
+      const errorMessage = error.response?.data?.error || error.message || 'Error during spend transaction request'
+      console.error(errorMessage);
+      throw new Error(errorMessage);
     });
     
     return spendResponse.data

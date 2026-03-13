@@ -2,12 +2,13 @@ import { ref, computed, watch, onMounted, onUnmounted, markRaw } from 'vue'
 import { useWalletStore } from 'stores/wallet'
 import { usePaymentsStore } from 'stores/payments'
 import { useAddressesStore } from 'stores/addresses'
-import { useQuasar } from 'quasar'
+import { QSpinnerTail, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getPrivateKeyWif, loadCardMerchantUser } from 'src/nfc/user'
 import { getAuthToken } from 'src/nfc/user'
 import { getPublicKeyFromPrivate } from 'src/nfc/utils'
 import { payWithCard } from 'src/nfc/payment'
+import { da } from 'translate-google/languages'
 
 /**
  * Composable for managing payment tracking, websocket connections, and transaction handling
@@ -232,7 +233,6 @@ export function usePaymentTracking({
   }
 
   async function setupListener() {
-    await setupNFCListener()
 
     const merchantReceivingAddress = addressSet.value?.receiving
     
@@ -287,7 +287,22 @@ export function usePaymentTracking({
     }
   }
 
+  const nfcStatusNotification = ref(null)
   let nfcListenerWebsocket = ref(null)
+  let nfcListenerActive = ref(false)
+
+  async function closeNfcListener() {
+    console.log('Closing NFC listener websocket if exists...')
+    if (nfcListenerWebsocket.value) {
+      try {
+        nfcListenerWebsocket.value.close()
+        nfcListenerWebsocket.value = null
+      } catch (error) {
+        console.error('Error closing NFC listener websocket', error)
+      }
+    }
+  }
+
   async function setupNFCListener() {
     
     console.log('Setting up NFC listener...')
@@ -313,15 +328,14 @@ export function usePaymentTracking({
     })
 
     nfcListenerWebsocket.value.addEventListener('message', async message => {
-      console.log('Message from NFC listener:', message.data)
       const data = JSON.parse(message.data);
-      console.log("Received tag data:", data);
+      console.log("-----------Received tag data:", data);
+
+      handleNfcStatus(data)
 
       const uid = data?.uid || null
       const scannedUrl = data?.url || data?.ntag_url || data?.tag_url || null
-      console.log('Scanned URL from websocket:', scannedUrl)
       if (!scannedUrl) {
-        console.warn('No NFC URL found in websocket payload')
         return
       }
 
@@ -330,7 +344,73 @@ export function usePaymentTracking({
     
     nfcListenerWebsocket.value.addEventListener('close', () => {
       console.log('NFC listener websocket closed')
+      closeStatusNotification()
     })
+  }
+
+  let nfcTagDetected = false
+  function handleNfcStatus(data) {
+    const status = data?.status
+    switch (status) {
+      case 'listening_started':
+        nfcTagDetected = false
+        console.log('NFC listener started and listening for tags')
+        closeStatusNotification()
+        nfcStatusNotification.value = $q.notify({
+          timeout: 0,
+          icon: 'mdi-nfc',
+          color: 'brandblue',
+          message: t('NFCListenerActive', 'NFC listener active and listening for tags'),
+        })
+        nfcListenerActive.value = true
+        break
+      case 'tag_detected':
+        nfcTagDetected = true
+        console.log('NFC tag detected by listener', data)
+        closeStatusNotification()
+        if (!data?.url) {
+          nfcStatusNotification.value = $q.notify({
+            timeout: 3000,
+            icon: 'warning',
+            color: 'negative',
+            message: t('NFCInvalidCard', 'NFC tag detected but no valid URL found. Please try again with a compatible card.'),
+          })
+          setTimeout(() => {
+            nfcListenerWebsocket.value.send("start_listening")
+          }, 5000)
+        } else {
+          nfcStatusNotification.value = $q.notify({
+            timeout: 3000,
+            spinner: QSpinnerTail,
+            color: 'info',
+            message: t('NFCTagDetected', 'NFC tag detected. Processing payment.'),
+          })
+        }
+        
+        break
+      case 'idle':
+        if (!nfcTagDetected) {
+          closeStatusNotification()
+          nfcStatusNotification.value = $q.notify({
+            timeout: 3000,
+            icon: 'warning',
+            color: 'negative',
+            message: t('NFCReadFailed', 'Failed to read NFC tag. Please try again.'),
+          })
+        }
+        nfcListenerActive.value = false
+        setTimeout(() => {
+          nfcListenerWebsocket.value.send("start_listening")
+        }, 3000)
+        break
+    }
+  } 
+
+  function closeStatusNotification() {
+    if (nfcStatusNotification.value) {
+      nfcStatusNotification.value?.()
+      nfcStatusNotification.value = null
+    }
   }
 
   async function onNFCUrlReceived(merchant, uid, url) {
@@ -352,8 +432,32 @@ export function usePaymentTracking({
     }
 
     console.log('Spending with params:', params)
-    const result = await payWithCard(params)
-    console.log('Payment result:', result)
+    try {
+      const result = await payWithCard(params)
+      console.log('Payment result:', result)
+      if (result?.success) {
+        closeStatusNotification()
+        nfcStatusNotification.value = $q.notify({
+          timeout: 3000,
+          icon: 'mdi-check-circle',
+          color: 'positive',
+          message: t('NFCPaymentSuccess', 'NFC payment successful'),
+        })
+      }
+    } catch (error) {
+      console.error('Error processing NFC payment', error)
+      closeStatusNotification()
+      nfcStatusNotification.value = $q.notify({
+        timeout: 3000,
+        icon: 'mdi-close-circle',
+        color: 'negative',
+        message: t('NFCPaymentError', `Error processing NFC payment: ${error.message}`),
+      })
+      setTimeout(() => {
+        nfcListenerWebsocket.value.send("start_listening")
+      }, 5000)
+    }
+    
   }
 
   function prepareForNewInvoice() {
@@ -414,6 +518,10 @@ export function usePaymentTracking({
     startNewSession,
     clearPendingApiCalls,
     resetSessionData,
+    setupNFCListener,
+    closeNfcListener,
+    nfcListenerActive,
+    closeStatusNotification
   }
 }
 
