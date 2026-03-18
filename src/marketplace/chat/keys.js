@@ -2,16 +2,13 @@ import crypto from 'crypto'
 import { backend } from "../backend"
 import * as secp from '@noble/secp256k1'
 import { SecureStoragePlugin } from "capacitor-secure-storage-plugin";
-import { Device } from "@capacitor/device";
+import { pushNotificationsManager } from 'src/boot/push-notifications';
 
 const AES_STORAGE_KEY = 'marketplace-chat-aes-key'
 
 let deviceId
 async function getDeviceId() {
-  if (!deviceId) {
-    const deviceIdResp = await Device.getId()
-    deviceId = deviceIdResp?.uuid
-  }
+  if (!deviceId) deviceId = await pushNotificationsManager.fetchDeviceId()
   return deviceId
 }
 
