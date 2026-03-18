@@ -511,7 +511,7 @@ export default defineComponent({
           if (membersPubkeys.value?.includes(pubkey)) return
           membersPubkeys.value.push(pubkey)
         })
-      } else if (parsedData?.type == 'pubkey') {
+      } else if (parsedData?.type == 'new_pubkey') {
         if (typeof parsedData?.data === 'string' && !membersPubkeys.value?.includes(parsedData?.data)) {
           membersPubkeys.value.push(parsedData?.data)
         }
