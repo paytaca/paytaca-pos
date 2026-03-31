@@ -46,9 +46,12 @@
 <script>
 import { i18n } from "src/boot/i18n";
 import {
-  BarcodeScanner,
-  SupportedFormat,
-} from "@capacitor-community/barcode-scanner";
+  checkPermission,
+  prepareScanner as prepareScannerUtil,
+  startScan,
+  stopScan as stopScanUtil,
+  openAppSettings,
+} from "src/utils/barcodeScanner";
 import { QrcodeStream } from "vue3-qrcode-reader";
 import { useQuasar } from "quasar";
 import { ref, computed, onBeforeUnmount, watch } from "vue";
@@ -128,96 +131,54 @@ export default {
     }
 
     async function prepareScanner() {
-      const status = await checkPermission();
-      if (status) {
-        await BarcodeScanner.prepare({
-          targetedFormats: [SupportedFormat.QR_CODE],
-        });
-        scanBarcode();
+      const status = await checkPermissionUtil();
+      if (status?.granted) {
+        const prepared = await prepareScannerUtil();
+        if (prepared) {
+          scanBarcode();
+        } else {
+          $emit("error", "Failed to prepare scanner");
+        }
       } else {
         $emit("error", "Permission denied");
       }
     }
 
-    async function checkPermission() {
-      const status = await BarcodeScanner.checkPermission({ force: true });
-      // console.log('PERMISSION STATUS: ', JSON.stringify(status))
+    async function checkPermissionUtil() {
+      const status = await checkPermission();
 
       if (status.granted) {
-        // user granted permission
-        return true;
+        return status;
       }
 
       if (status.denied) {
-        // user denied permission
-        return false;
+        return status;
       }
 
-      if (status.asked) {
-        // system requested the user for permission during this call
-        // only possible when force set to true
-        BarcodeScanner.openAppSettings();
-      }
-
-      if (status.neverAsked) {
-        // user has not been requested this permission before
-        // it is advised to show the user some sort of prompt
-        // this way you will not waste your only chance to ask for the permission
-        // const c = confirm('We need your permission to use your camera to be able to scan QR codes')
-        BarcodeScanner.openAppSettings();
+      if (status.asked || status.neverAsked) {
+        await openAppSettings();
       }
 
       if (status.restricted || status.unknown) {
-        // ios only
-        // probably means the permission has been denied
-        return false;
+        return status;
       }
 
-      // user has not denied permission
-      // but the user also has not yet granted the permission
-      // so request it
-      const statusRequest = await BarcodeScanner.checkPermission({
-        force: true,
-      });
-      // console.log('PERMISSION STATUS 2: ', JSON.stringify(statusRequest))
-
-      if (statusRequest.asked) {
-        // system requested the user for permission during this call
-        // only possible when force set to true
-        if (statusRequest.granted) {
-          return true;
-        } else {
-          return false;
-        }
-      }
-
-      if (statusRequest.granted) {
-        // the user did grant the permission now
-        return true;
-      }
-
-      // user did not grant the permission, so he must have declined the request
-      return false;
+      return status;
     }
 
     async function scanBarcode() {
-      await BarcodeScanner.hideBackground();
       adjustComponentsClasslist(true);
 
-      const res = await BarcodeScanner.startScan({
-        targetedFormats: [SupportedFormat.QR_CODE],
-      });
+      const res = await startScan();
       if (res.hasContent) $emit("decode", res.content);
       stopScan();
     }
 
     function stopScan() {
-      BarcodeScanner.showBackground();
-      BarcodeScanner.stopScan();
+      stopScanUtil();
       adjustComponentsClasslist(false);
 
       innerVal.value = false;
-      // if (this.$route?.name === 'transaction-send') this.$router.push({ path: '/send/select-asset' })
     }
 
     const scannerContainerRef = ref();

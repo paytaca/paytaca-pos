@@ -55,7 +55,7 @@ import { useWalletStore } from "stores/wallet";
 import { useAddressesStore } from "src/stores/addresses";
 import { aes, getPubkeyAt } from "src/wallet/utils";
 import QRCodeReader from "src/components/QRCodeReader.vue";
-import { Device } from "@capacitor/device";
+import { getDeviceInfo, getDeviceId } from "src/utils/device";
 import { defineComponent, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useQuasar } from "quasar";
@@ -215,8 +215,8 @@ export default defineComponent({
               progress: true,
               message: "Retrieving device information",
             });
-            const deviceInfo = await Device.getInfo();
-            deviceInfo.uuid = (await Device.getId())?.uuid;
+            const deviceInfo = await getDeviceInfo();
+            deviceInfo.uuid = await getDeviceId();
             return { qrCodeData, xpubkey, verifyingPubkey, deviceInfo };
           })
           .catch((error) => {

@@ -166,8 +166,13 @@ import { useTransactionHelpers } from "src/composables/transaction";
 import { useCashtokenStore } from "src/stores/cashtoken";
 import { useWalletStore } from "src/stores/wallet";
 import confetti from "canvas-confetti";
-import { NativeAudio } from "@capacitor-community/native-audio";
 import { Capacitor } from "@capacitor/core";
+import {
+  playNativeAudio,
+  preloadNativeAudio,
+  unloadNativeAudio,
+  playHtml5Audio,
+} from "src/utils/audio";
 import {
   formatNumberAutoDecimals,
   formatNumberWithDecimals,
@@ -516,49 +521,29 @@ export default defineComponent({
     async function playSound(success) {
       if (!success) return;
 
-      // Try NativeAudio first (works on Android, should work on iOS with correct setup)
-      if ($q.platform.is.capacitor) {
-        try {
-          await NativeAudio.play({
-            assetId: "send-success",
-          });
-        } catch (error) {
-          console.error("Error playing sound:", error);
-          // Fallback: try to preload and play again
-          try {
-            let path = "/send-success.mp3";
-            let isUrl = true;
+      const webPath = "/send-success.mp3";
+      const baseUrl = window.location.origin;
 
-            if ($q.platform.is.ios) {
-              path = "public/assets/sounds/send-success.mp3";
-              isUrl = false;
-            } else if ($q.platform.is.android) {
-              // For Android, use the full URL path
-              const baseUrl = window.location.origin;
-              path = `${baseUrl}/send-success.mp3`;
-              isUrl = true;
-            }
-
-            await NativeAudio.preload({
-              assetId: "send-success",
-              assetPath: path,
-              audioChannelNum: 1,
-              volume: 1.0,
-              isUrl: isUrl,
-            });
-            await NativeAudio.play({
-              assetId: "send-success",
-            });
-          } catch (retryError) {
-            console.error("Error retrying sound playback:", retryError);
-            // Final fallback to HTML5 Audio
-            await playHtml5Audio();
-          }
-        }
+      if ($q.platform.is.ios) {
+        const path = "public/assets/sounds/send-success.mp3";
+        const played = await playNativeAudio("send-success", path, {
+          isUrl: false,
+        });
+        if (played) return;
+      } else if ($q.platform.is.android) {
+        const path = `${baseUrl}/send-success.mp3`;
+        const played = await playNativeAudio("send-success", path, {
+          isUrl: true,
+        });
+        if (played) return;
       } else {
-        // Web fallback (includes Safari)
-        await playHtml5Audio();
+        const played = await playNativeAudio("send-success", webPath, {
+          isUrl: true,
+        });
+        if (played) return;
       }
+
+      await playHtml5Audio(webPath);
     }
 
     async function launchConfetti() {
@@ -845,34 +830,27 @@ export default defineComponent({
           let isUrl = true;
 
           if ($q.platform.is.ios) {
-            // For iOS, use the correct path - file should be in public/assets/sounds/
             path = "public/assets/sounds/send-success.mp3";
             isUrl = false;
           } else if ($q.platform.is.android) {
-            // For Android, use the full URL path
-            // Files in public/ are served via HTTP from Capacitor server
-            // Construct the full URL using window.location
             const baseUrl = window.location.origin;
             path = `${baseUrl}/send-success.mp3`;
             isUrl = true;
           }
 
-          await NativeAudio.preload({
-            assetId: "send-success",
-            assetPath: path,
-            audioChannelNum: 1,
-            volume: 1.0,
-            isUrl: isUrl,
+          const preloaded = await preloadNativeAudio("send-success", path, {
+            isUrl,
           });
-          console.log(
-            "[TransactionDetail] NativeAudio preloaded successfully for",
-            $q.platform.is.android ? "Android" : "iOS",
-            "with path:",
-            path
-          );
+          if (preloaded) {
+            console.log(
+              "[TransactionDetail] NativeAudio preloaded successfully for",
+              $q.platform.is.android ? "Android" : "iOS",
+              "with path:",
+              path
+            );
+          }
         } catch (error) {
           console.warn("Failed to preload audio:", error);
-          // Continue without preload - will use HTML5 fallback
         }
       }
 
@@ -909,15 +887,8 @@ export default defineComponent({
     });
 
     onUnmounted(async () => {
-      // Cleanup: unload audio asset for native platforms
       if ($q.platform.is.capacitor) {
-        try {
-          await NativeAudio.unload({
-            assetId: "send-success",
-          });
-        } catch (error) {
-          // Silently fail if unload doesn't work
-        }
+        await unloadNativeAudio("send-success");
       }
     });
 

@@ -1,266 +1,525 @@
-import { boot } from 'quasar/wrappers'
-import { PushNotifications } from '@capacitor/push-notifications';
-import { App } from '@capacitor/app'
-import { registerPlugin } from '@capacitor/core'
-import { Capacitor } from '@capacitor/core';
-import { Device } from '@capacitor/device';
-import { Platform } from 'quasar'
-import { reactive } from 'vue';
-import { markRaw } from 'vue';
-import { useNotificationsStore } from 'src/stores/notifications';
+import { boot } from "quasar/wrappers";
+import { Capacitor } from "@capacitor/core";
+import { Platform } from "quasar";
+import { reactive } from "vue";
+import { markRaw } from "vue";
+import { useNotificationsStore } from "src/stores/notifications";
 
-const PushNotificationSettings = registerPlugin('PushNotificationSettings'); 
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
 
-/**
- * This is a proxy events emitter for PushNotification plugin's events
- * - Created a proxy emitter class since the original event emitter lack removing specific event listeners
- * - This is meant to be singleton class, use `PushNotificationsEventEmitter.getInstance()` to access
- */
-export class PushNotificationsEventEmitter {
-  static events = [
-    'registration',
-    'registrationError',
-    'pushNotificationReceived',
-    'pushNotificationActionPerformed',
-  ]
-
-  /**
-   * @returns {PushNotificationsEventEmitter}
-   */
-  static getInstance() {
-    if (!PushNotificationsEventEmitter.instance) {
-      PushNotificationsEventEmitter.instance = new PushNotificationsEventEmitter()
-    }
-
-    return PushNotificationsEventEmitter.instance
-  }
-
+class WebPushManager {
   constructor() {
-    if (PushNotificationsEventEmitter.instance) return PushNotificationsEventEmitter.instance
-    PushNotificationsEventEmitter.instance = this
-
-    this.listeners = {}
-
-    this.eventHandlers = {}
-    PushNotificationsEventEmitter.events.forEach(eventName => {
-      this.eventHandlers[eventName] = eventData => this.emitEvent(eventName, eventData)
-    })
-    this.setupEventHandlers()
+    this.registrationToken = "";
+    this.deviceId = "";
+    this.permissionStatus = Notification?.permission || "default";
+    this.subscription = null;
+    this.swRegistration = null;
   }
 
-  setupEventHandlers() {
-    Object.getOwnPropertyNames(this.eventHandlers)
-      .forEach(eventName => {
-        PushNotifications.addListener(eventName, this.eventHandlers[eventName])
-      })
+  get isSupported() {
+    return "serviceWorker" in navigator && "PushManager" in window;
   }
 
-  addEventListener(eventName='', callback) {
-    if (!eventName || typeof callback !== 'function') return
-    if (!Array.isArray(this.listeners[eventName])) this.listeners[eventName] = []
-    if (this.listeners[eventName].indexOf(callback) >= 0) return
-    this.listeners[eventName].push(callback)
-  }
-
-  removeEventListener(eventName='', callback) {
-    if (!Array.isArray(this.listeners[eventName])) return
-
-    const index = this.listeners[eventName].indexOf(callback)
-    if (index >= 0) {
-      this.listeners[eventName].splice(index, 1);
+  async registerServiceWorker() {
+    if (!this.isSupported) return null;
+    try {
+      this.swRegistration = await navigator.serviceWorker.register("/sw.js");
+      return this.swRegistration;
+    } catch (error) {
+      console.error("Service worker registration failed:", error);
+      return null;
     }
   }
 
-  emitEvent(eventName, data) {
-    if (!Array.isArray(this.listeners[eventName])) return
-    this.listeners[eventName]
-      .forEach(callback => {
-        try {
-          callback(data)
-        } catch(error) {
-          console.error(error)
-        }
-      })
+  async checkPermissions() {
+    if (!("Notification" in window)) {
+      return { receive: "denied" };
+    }
+    return { receive: Notification.permission };
+  }
+
+  async requestPermission() {
+    if (!("Notification" in window)) {
+      return { receive: "denied" };
+    }
+    const permission = await Notification.requestPermission();
+    this.permissionStatus = permission;
+    return { receive: permission };
+  }
+
+  async fetchDeviceId() {
+    if (this.deviceId) return this.deviceId;
+
+    const storedId = localStorage.getItem("paytaca-web-device-id");
+    if (storedId) {
+      this.deviceId = storedId;
+      return this.deviceId;
+    }
+
+    this.deviceId = crypto.randomUUID();
+    localStorage.setItem("paytaca-web-device-id", this.deviceId);
+    return this.deviceId;
+  }
+
+  async isPushNotificationEnabled() {
+    if (!this.isSupported) return { isEnabled: false };
+
+    const permission = await this.checkPermissions();
+    if (permission.receive !== "granted") return { isEnabled: false };
+
+    if (!this.swRegistration) {
+      await this.registerServiceWorker();
+    }
+
+    if (!this.swRegistration) return { isEnabled: false };
+
+    const subscription =
+      await this.swRegistration.pushManager.getSubscription();
+    return { isEnabled: !!subscription };
+  }
+
+  async subscribeToPush() {
+    if (!this.isSupported) {
+      throw new Error("Web push is not supported");
+    }
+
+    const permission = await this.requestPermission();
+    if (permission.receive !== "granted") {
+      throw new Error("Notification permission denied");
+    }
+
+    if (!this.swRegistration) {
+      await this.registerServiceWorker();
+    }
+
+    if (!this.swRegistration) {
+      throw new Error("Service worker registration failed");
+    }
+
+    const subscription = await this.swRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: VAPID_PUBLIC_KEY
+        ? this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        : undefined,
+    });
+
+    this.subscription = subscription;
+    this.registrationToken = JSON.stringify(subscription);
+    return subscription;
+  }
+
+  async unsubscribeFromPush() {
+    if (!this.subscription) {
+      const reg = await this.registerServiceWorker();
+      if (!reg) return;
+      this.subscription = await reg.pushManager.getSubscription();
+    }
+
+    if (this.subscription) {
+      await this.subscription.unsubscribe();
+      this.subscription = null;
+      this.registrationToken = "";
+    }
+  }
+
+  urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  async fetchRegistrationToken() {
+    if (!this.isSupported) {
+      throw new Error("Web push is not supported");
+    }
+
+    await this.registerServiceWorker();
+
+    if (!this.swRegistration) {
+      throw new Error("Service worker not registered");
+    }
+
+    let subscription = await this.swRegistration.pushManager.getSubscription();
+
+    if (!subscription) {
+      subscription = await this.subscribeToPush();
+    }
+
+    this.registrationToken = JSON.stringify(subscription);
+    return { value: this.registrationToken };
+  }
+
+  async openPushNotificationsSettings() {
+    if (this.permissionStatus === "denied") {
+      window.open("notification-settings:");
+    }
+    return { isEnabled: this.permissionStatus === "granted" };
+  }
+
+  async openPushNotificationsSettingsPrompt() {
+    return this.openPushNotificationsSettings();
   }
 }
 
-
-class PushNotificationsManager {
+class NativePushNotificationsManager {
   constructor() {
-    this.events = PushNotificationsEventEmitter.getInstance()
-    this.registrationToken = ''
-    this.deviceId = ''
-    this.appInfo = null
-    this.registrationTokenError= 'no error'
-    this.permissionStatus = null
-    this.isEnabled = null
+    this.events = PushNotificationsEventEmitter.getInstance();
+    this.registrationToken = "";
+    this.deviceId = "";
+    this.appInfo = null;
+    this.registrationTokenError = "no error";
+    this.permissionStatus = null;
+    this.isEnabled = null;
+  }
 
-    if (this.isMobile) {
-      this.fetchRegistrationToken()
-        .catch(error => {
-          this.registrationTokenError = error
-        })
+  get isMobile() {
+    return Platform.is.mobile;
+  }
+
+  get platform() {
+    return Capacitor.getPlatform();
+  }
+
+  async fetchAppInfo() {
+    const { App } = await import("@capacitor/app");
+    const response = await App.getInfo();
+    this.appInfo = response;
+    return response;
+  }
+
+  async isPushNotificationEnabled() {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    const PushNotificationSettings = (
+      await import("@capacitor/core")
+    ).registerPlugin("PushNotificationSettings");
+
+    return PushNotificationSettings.getNotificationStatus()
+      .catch((error) => {
+        if (error.code === "UNIMPLEMENTED") return { isEnabled: null };
+        return Promise.reject(error);
+      })
+      .then((response) => {
+        this.isEnabled = response?.isEnabled;
+        return response;
+      });
+  }
+
+  async openPushNotificationsSettings() {
+    const PushNotificationSettings = (
+      await import("@capacitor/core")
+    ).registerPlugin("PushNotificationSettings");
+
+    if (this._openSettingsPromise) return this._openSettingsPromise;
+    this._openSettingsPromise =
+      PushNotificationSettings.openNotificationSettingsPrompt(opts);
+    return PushNotificationSettings.openNotificationSettings()
+      .catch((error) => {
+        if (error.code === "UNIMPLEMENTED") return { isEnabled: null };
+        return Promise.reject(error);
+      })
+      .then((response) => {
+        this.isEnabled = response?.isEnabled;
+        return response;
+      })
+      .finally(() => {
+        this._openSettingsPromise = undefined;
+      });
+  }
+
+  async openPushNotificationsSettingsPrompt(opts) {
+    const PushNotificationSettings = (
+      await import("@capacitor/core")
+    ).registerPlugin("PushNotificationSettings");
+
+    if (this._openSettingsPromptPromise) return this._openSettingsPromptPromise;
+    this._openSettingsPromptPromise =
+      PushNotificationSettings.openNotificationSettingsPrompt(opts);
+    return this._openSettingsPromptPromise
+      .catch((error) => {
+        if (error.code === "UNIMPLEMENTED") return { isEnabled: null };
+        return Promise.reject(error);
+      })
+      .then((response) => {
+        this.isEnabled = response?.isEnabled;
+        return response;
+      })
+      .finally(() => {
+        this._openSettingsPromptPromise = undefined;
+      });
+  }
+
+  async checkPermissions() {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    const response = await PushNotifications.checkPermissions();
+    this.permissionStatus = response?.receive;
+    return Promise.resolve(response);
+  }
+
+  async requestPermission() {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    const response = await PushNotifications.requestPermissions();
+    this.permissionStatus = response?.receive;
+    return Promise.resolve(response);
+  }
+
+  async fetchDeviceId() {
+    const { Device } = await import("@capacitor/device");
+    const response = await Device.getId();
+    const identifier = response?.identifier || response?.uuid;
+    if (!identifier) throw response;
+    this.deviceId = identifier;
+    return this.deviceId;
+  }
+
+  async fetchRegistrationToken(opts = {}) {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    const manager = this;
+
+    return new Promise((resolve, reject) => {
+      const registrationSuccessHandler = (token) => {
+        manager.registrationToken = token?.value || token;
+        resolve(token);
+        removeListeners();
+      };
+      const registrationErrorHandler = (error) => {
+        reject(error);
+        removeListeners();
+      };
+
+      const removeListeners = () => {
+        this.events.removeEventListener(
+          "registration",
+          registrationSuccessHandler
+        );
+        this.events.removeEventListener(
+          "registrationError",
+          registrationErrorHandler
+        );
+      };
+
+      this.events.addEventListener("registration", registrationSuccessHandler);
+      this.events.addEventListener(
+        "registrationError",
+        registrationErrorHandler
+      );
+
+      setTimeout(() => {
+        const error = new Error("Timeout exceeded");
+        error.name = "RegistrationTokenTimeout";
+        reject(error);
+        removeListeners();
+      }, opts?.timeout || 30 * 1000);
+
+      PushNotifications.register();
+    });
+  }
+}
+
+let PushNotificationsEventEmitter, PushNotifications;
+
+if (Capacitor.isNativePlatform()) {
+  const { PushNotifications: PN } = require("@capacitor/push-notifications");
+  PushNotifications = PN;
+
+  PushNotificationsEventEmitter = class {
+    static events = [
+      "registration",
+      "registrationError",
+      "pushNotificationReceived",
+      "pushNotificationActionPerformed",
+    ];
+
+    static getInstance() {
+      if (!PushNotificationsEventEmitter.instance) {
+        PushNotificationsEventEmitter.instance =
+          new PushNotificationsEventEmitter();
+      }
+      return PushNotificationsEventEmitter.instance;
+    }
+
+    constructor() {
+      if (PushNotificationsEventEmitter.instance)
+        return PushNotificationsEventEmitter.instance;
+      PushNotificationsEventEmitter.instance = this;
+
+      this.listeners = {};
+      this.eventHandlers = {};
+      PushNotificationsEventEmitter.events.forEach((eventName) => {
+        this.eventHandlers[eventName] = (eventData) =>
+          this.emitEvent(eventName, eventData);
+      });
+      this.setupEventHandlers();
+    }
+
+    setupEventHandlers() {
+      Object.getOwnPropertyNames(this.eventHandlers).forEach((eventName) => {
+        PushNotifications.addListener(eventName, this.eventHandlers[eventName]);
+      });
+    }
+
+    addEventListener(eventName = "", callback) {
+      if (!eventName || typeof callback !== "function") return;
+      if (!Array.isArray(this.listeners[eventName]))
+        this.listeners[eventName] = [];
+      if (this.listeners[eventName].indexOf(callback) >= 0) return;
+      this.listeners[eventName].push(callback);
+    }
+
+    removeEventListener(eventName = "", callback) {
+      if (!Array.isArray(this.listeners[eventName])) return;
+      const index = this.listeners[eventName].indexOf(callback);
+      if (index >= 0) {
+        this.listeners[eventName].splice(index, 1);
+      }
+    }
+
+    emitEvent(eventName, data) {
+      if (!Array.isArray(this.listeners[eventName])) return;
+      this.listeners[eventName].forEach((callback) => {
+        try {
+          callback(data);
+        } catch (error) {
+          console.error(error);
+        }
+      });
+    }
+  };
+}
+
+class UnifiedPushNotificationsManager {
+  constructor() {
+    if (Capacitor.isNativePlatform()) {
+      this.nativeManager = new NativePushNotificationsManager();
+    } else {
+      this.webManager = new WebPushManager();
     }
   }
 
   get isMobile() {
-    return Platform.is.mobile
+    return Platform.is.mobile;
   }
 
   get platform() {
-    return Capacitor.getPlatform()
+    return Capacitor.getPlatform();
   }
 
-  fetchAppInfo() {
-    return App.getInfo()
-      .then(response => {
-        this.appInfo = response
-        return response
-      })
+  get events() {
+    if (Capacitor.isNativePlatform()) {
+      return this.nativeManager.events;
+    }
+    return null;
   }
 
-  /**
-   * @returns {Promise<{ isEnabled:Boolean }>}
-   */
+  async fetchAppInfo() {
+    if (Capacitor.isNativePlatform()) {
+      return this.nativeManager.fetchAppInfo();
+    }
+    return { name: "Paytaca POS Web", version: "1.0.0" };
+  }
+
   async isPushNotificationEnabled() {
-    return PushNotificationSettings.getNotificationStatus()
-      .catch(error => {
-        if (error.code === 'UNIMPLEMENTED') return { isEnabled: null }
-        return Promise.reject(error)
-      })
-      .then(response => {
-        this.isEnabled = response?.isEnabled
-        return response
-      })
+    if (Capacitor.isNativePlatform()) {
+      return this.nativeManager.isPushNotificationEnabled();
+    }
+    return this.webManager.isPushNotificationEnabled();
   }
 
-  /**
-   * @param {{message: String, title: String}} opts
-   * @returns {Promise<{ resultCode:Number, isEnabled:Boolean, data:any }>}
-   */
   async openPushNotificationsSettings() {
-    if (this._openSettingsPromise) return this._openSettingsPromise
-    this._openSettingsPromise = PushNotificationSettings.openNotificationSettingsPrompt(opts)
-    return PushNotificationSettings.openNotificationSettings()
-      .catch(error => {
-        if (error.code === 'UNIMPLEMENTED') return { isEnabled: null }
-        return Promise.reject(error)
-      })
-      .then(response => {
-        this.isEnabled = response?.isEnabled
-        return response
-      })
-      .finally(() => {
-        this._openSettingsPromise = undefined
-      })
+    if (Capacitor.isNativePlatform()) {
+      return this.nativeManager.openPushNotificationsSettings();
+    }
+    return this.webManager.openPushNotificationsSettings();
   }
 
-  /**
-   * @param {{message: String, title: String}} opts
-   * @returns {Promise<{ resultCode:Number, isEnabled:Boolean, data:any } | null>}
-   */
   async openPushNotificationsSettingsPrompt(opts) {
-    if (this._openSettingsPromptPromise) return this._openSettingsPromptPromise
-    this._openSettingsPromptPromise = PushNotificationSettings.openNotificationSettingsPrompt(opts)
-    return this._openSettingsPromptPromise
-      .catch(error => {
-        if (error.code === 'UNIMPLEMENTED') return { isEnabled: null }
-        return Promise.reject(error)
-      })
-      .then(response => {
-        this.isEnabled = response?.isEnabled
-        return response
-      })
-      .finally(() => {
-        this._openSettingsPromptPromise = undefined
-      })
+    if (Capacitor.isNativePlatform()) {
+      return this.nativeManager.openPushNotificationsSettingsPrompt(opts);
+    }
+    return this.webManager.openPushNotificationsSettingsPrompt();
   }
 
-  checkPermissions() {
-    return PushNotifications.checkPermissions()
-      .then(response => {
-        this.permissionStatus = response?.receive
-        return Promise.resolve(response)
-      })
+  async checkPermissions() {
+    if (Capacitor.isNativePlatform()) {
+      return this.nativeManager.checkPermissions();
+    }
+    return this.webManager.checkPermissions();
   }
 
-  requestPermission() {
-    return PushNotifications.requestPermissions()
-      .then(response => {
-        this.permissionStatus = response?.receive 
-        return Promise.resolve(response)
-      })
+  async requestPermission() {
+    if (Capacitor.isNativePlatform()) {
+      return this.nativeManager.requestPermission();
+    }
+    return this.webManager.requestPermission();
   }
 
-  fetchDeviceId() {
-    return Device.getId()
-      .then(response => {
-        const identifier = response?.identifier || response?.uuid
-        if (!identifier) throw response
-        this.deviceId = identifier
-        return this.deviceId
-      })
+  async fetchDeviceId() {
+    if (Capacitor.isNativePlatform()) {
+      return this.nativeManager.fetchDeviceId();
+    }
+    return this.webManager.fetchDeviceId();
   }
 
-  /**
-   * @param {Object} opts 
-   * @param {Number} opts.timeout
-   */
-  fetchRegistrationToken(opts) {
-    const manager = this
-    return new Promise((resolve, reject) => {
-      const registrationSuccessHandler = token => {
-        manager.registrationToken = token?.value || token
-        resolve(token)
-        removeListeners()
-      }
-      const registrationErrorHandler = error => {
-        reject(error)
-        removeListeners()
-      }
+  async fetchRegistrationToken(opts) {
+    if (Capacitor.isNativePlatform()) {
+      return this.nativeManager.fetchRegistrationToken(opts);
+    }
+    return this.webManager.fetchRegistrationToken();
+  }
 
-      const removeListeners = () => {
-        this.events.removeEventListener('registration', registrationSuccessHandler)
-        this.events.removeEventListener('registrationError', registrationErrorHandler)
-      }
+  async subscribeToPush() {
+    if (Capacitor.isNativePlatform()) {
+      throw new Error("subscribeToPush not available on native");
+    }
+    return this.webManager.subscribeToPush();
+  }
 
-      this.events.addEventListener('registration', registrationSuccessHandler)
-      this.events.addEventListener('registrationError', registrationErrorHandler)
-      setTimeout(() => {
-        const error = new Error('Timeout exceeded')
-        error.name = 'RegistrationTokenTimeout'
-        reject(error)
-        removeListeners()
-      }, opts?.timeout || 30 * 1000)
-
-      PushNotifications.register()
-    })
+  async unsubscribeFromPush() {
+    if (Capacitor.isNativePlatform()) {
+      throw new Error("unsubscribeFromPush not available on native");
+    }
+    return this.webManager.unsubscribeFromPush();
   }
 }
 
-export const pushNotificationsManager = new PushNotificationsManager()
+export const pushNotificationsManager = new UnifiedPushNotificationsManager();
 
 export default boot(({ app }) => {
-  if (pushNotificationsManager.isMobile) {
-    const manager = reactive(
-      markRaw(pushNotificationsManager)
-    )
+  if (Capacitor.isNativePlatform()) {
+    const manager = reactive(markRaw(pushNotificationsManager.nativeManager));
 
-    app.config.globalProperties.$pushNotifications = manager
-    app.provide('$pushNotifications', manager)
+    app.config.globalProperties.$pushNotifications = manager;
+    app.provide("$pushNotifications", manager);
 
-    // Pinia notification module will act as the event bus for events when user opens app using
-    // push notifications, any page expected to do something when a push notification arrives
-    // should be handled within the page itself
-    // The reason is to have the same handlers for both cases where the app is closed/open
-    const notificationStore = useNotificationsStore()
-    manager.events.addEventListener(
-      'pushNotificationActionPerformed',
-      notificationAction => {
-        console.log('Notification action:', JSON.stringify(notificationAction, null, 2))
-        notificationStore.setOpenedNotification(notificationAction?.notification)
-        notificationStore.handleOpenedNotification()
-      },
-    )
+    const notificationStore = useNotificationsStore();
+
+    if (pushNotificationsManager.nativeManager.events) {
+      pushNotificationsManager.nativeManager.events.addEventListener(
+        "pushNotificationActionPerformed",
+        (notificationAction) => {
+          console.log(
+            "Notification action:",
+            JSON.stringify(notificationAction, null, 2)
+          );
+          notificationStore.setOpenedNotification(
+            notificationAction?.notification
+          );
+          notificationStore.handleOpenedNotification();
+        }
+      );
+    }
+  } else {
+    const manager = reactive(markRaw(pushNotificationsManager.webManager));
+
+    app.config.globalProperties.$pushNotifications = manager;
+    app.provide("$pushNotifications", manager);
   }
-})
+});
