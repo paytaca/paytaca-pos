@@ -1,6 +1,9 @@
 @use "sass:math";
 
 // app global css in SCSS form
+body {
+  margin-bottom: env(safe-area-inset-bottom);
+}
 
 html,
 body,
@@ -21,8 +24,8 @@ body.body--dark,
 
 .q-page.q-pa-md,
 .q-page[class*="q-pa-"] {
-  padding-top: calc(constant(safe-area-inset-top) + 16px) !important;
-  padding-top: calc(env(safe-area-inset-top) + 16px) !important;
+  padding-top: calc(env(safe-area-inset-top) + 12px) !important;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
 }
 
 .text-brandblue {
@@ -148,4 +151,22 @@ body.body--dark,
 .slide-down-leave-to {
   transform: translateY(-100%);
   opacity: 0;
+}
+
+.fixed-bottom {
+  bottom: env(safe-area-inset-bottom);
+}
+
+.fixed-bottom::after {
+  content: "";
+  height: calc(env(safe-area-inset-bottom)) !important;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: $dark-page !important;
+}
+
+body.body--light .fixed-bottom::after {
+  background-color: $brandlight !important;
 }
