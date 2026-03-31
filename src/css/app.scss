@@ -1,6 +1,9 @@
 @use "sass:math";
 
 // app global css in SCSS form
+body {
+  margin-bottom: env(safe-area-inset-bottom);
+}
 
 html,
 body,
@@ -148,4 +151,8 @@ body.body--dark,
 .slide-down-leave-to {
   transform: translateY(-100%);
   opacity: 0;
+}
+
+.fixed-bottom {
+  bottom: env(safe-area-inset-bottom);
 }
