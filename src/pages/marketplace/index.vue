@@ -1,6 +1,6 @@
 <template>
   <q-page class="q-pa-md" style="padding-bottom: 4.5rem;">
-    <q-pull-to-refresh @refresh="refreshPage">
+    <q-pull-to-refresh @refresh="refreshPage" class="q-pb-xl">
       <MarketplaceHeader class="q-pl-md">
         <template v-slot:title>
           <div class="q-space">
