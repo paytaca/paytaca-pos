@@ -1,12 +1,25 @@
-import { boot } from 'quasar/wrappers'
-import { RpcWebSocketClient } from 'rpc-websocket-client';
-import { computed, ref, watch } from 'vue';
-import Watchtower from 'watchtower-cash-js';
+import { boot } from "quasar/wrappers";
+import { RpcWebSocketClient } from "rpc-websocket-client";
+import { computed, ref, watch } from "vue";
+import Watchtower from "watchtower-cash-js";
 
-const watchtower = new Watchtower()
-const watchtowerUrl = new URL(watchtower.BCH._api.defaults.baseURL)
-const host = watchtowerUrl.host
-const scheme = watchtowerUrl.protocol === 'https:' ? 'wss' : 'ws'
+let host = "";
+let scheme = "wss";
+try {
+  const watchtower = new Watchtower();
+  const baseURL = watchtower?.BCH?._api?.defaults?.baseURL;
+  if (baseURL) {
+    const watchtowerUrl = new URL(baseURL);
+    host = watchtowerUrl.host;
+    scheme = watchtowerUrl.protocol === "https:" ? "wss" : "ws";
+  } else {
+    console.warn(
+      "Watchtower baseURL is not available, WebSocket will not connect"
+    );
+  }
+} catch (err) {
+  console.error("Failed to initialize Watchtower URL:", err);
+}
 
 export default boot(({ app, store }) => {
   const $rpc = {
@@ -14,43 +27,46 @@ export default boot(({ app, store }) => {
     enableReconnection: ref(true),
     client: new RpcWebSocketClient(),
     url: computed(() => {
-      if (!store.state.value?.wallet?.walletHash) return ''
-      return `${scheme}://${host}/ws/paytacapos/updates/${store.state.value?.wallet?.walletHash}/${store.state.value?.wallet?.posId}/`
+      if (!store.state.value?.wallet?.walletHash) return "";
+      return `${scheme}://${host}/ws/paytacapos/updates/${store.state.value?.wallet?.walletHash}/${store.state.value?.wallet?.posId}/`;
     }),
 
     rpcReconnectTimeout: null,
     connectRpcClient() {
-      this.client?.ws?.close?.()
-      this.client.connect(this.url.value)
-        .then(response => {
-          clearTimeout(this.rpcReconnectTimeout)
-      })
-    }
-  }
+      this.client?.ws?.close?.();
+      this.client.connect(this.url.value).then((response) => {
+        clearTimeout(this.rpcReconnectTimeout);
+      });
+    },
+  };
 
   watch($rpc.url, () => {
-    if (!$rpc.url.value) return
-    $rpc.connectRpcClient()
-  })
+    if (!$rpc.url.value) return;
+    $rpc.connectRpcClient();
+  });
 
-  $rpc.client.onClose(error => {
-    console.error('RPC Client connection error:', error)
+  $rpc.client.onClose((error) => {
+    console.error("RPC Client connection error:", error);
     if ($rpc.enableReconnection.value) {
-      console.debug('Reconnecting after', $rpc.RECONNECT_INTERVAL/1000, 'second/s',)
-      clearTimeout($rpc.rpcReconnectTimeout)
+      console.debug(
+        "Reconnecting after",
+        $rpc.RECONNECT_INTERVAL / 1000,
+        "second/s"
+      );
+      clearTimeout($rpc.rpcReconnectTimeout);
       $rpc.rpcReconnectTimeout = setTimeout(
         () => $rpc.connectRpcClient(),
-        $rpc.RECONNECT_INTERVAL,
-      )
+        $rpc.RECONNECT_INTERVAL
+      );
     } else {
-      console.debug('Skipping reconnection')
+      console.debug("Skipping reconnection");
     }
-  })
+  });
 
-  window.c = $rpc
+  window.c = $rpc;
   watch($rpc.enableReconnection, () => {
-    if(!$rpc.enableReconnection) clearTimeout($rpc.rpcReconnectTimeout)
-  })
-  app.config.globalProperties.$rpc = $rpc
-  app.provide('$rpc', $rpc)
-})
+    if (!$rpc.enableReconnection) clearTimeout($rpc.rpcReconnectTimeout);
+  });
+  app.config.globalProperties.$rpc = $rpc;
+  app.provide("$rpc", $rpc);
+});
