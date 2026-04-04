@@ -57,7 +57,26 @@ module.exports = configure(function (ctx) {
     build: {
       vueRouterMode: "hash", // available values: 'hash', 'history'
 
-      env: require("dotenv").config().parsed,
+      // Merge dotenv (.env file) with process.env so Docker build args are also picked up
+      env: Object.assign(
+        {},
+        require("dotenv").config().parsed,
+        Object.fromEntries(
+          [
+            "WATCHTOWER_API",
+            "WATCHTOWER_WEBSOCKET",
+            "WATCHTOWER_PROJECT_ID",
+            "MARKETPLACE_BASE_URL",
+            "MARKETPLACE_AUTH_TOTP_BASE_SECRET",
+            "VAPID_PUBLIC_KEY",
+            "PURELYPEER_HEADER_VALUE",
+            "COINGECKO_API_KEY",
+            "PINATA_GATEWAY_TOKEN",
+          ]
+            .filter((key) => process.env[key])
+            .map((key) => [key, process.env[key]])
+        )
+      ),
 
       // transpile: false,
       // publicPath: '/',
