@@ -8,11 +8,14 @@ RUN npm install
 COPY . .
 RUN npx quasar build
 
-FROM nginx:alpine
+FROM node:20-slim
 
-COPY --from=builder /app/dist/spa /usr/share/nginx/html
-COPY deployment/nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app
+
+RUN npm install -g serve
+
+COPY --from=builder /app/dist/spa /app/dist/spa
 
 EXPOSE 8080
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["serve", "-s", "/app/dist/spa", "-l", "8080"]
