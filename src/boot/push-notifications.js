@@ -11,13 +11,18 @@ class WebPushManager {
   constructor() {
     this.registrationToken = "";
     this.deviceId = "";
-    this.permissionStatus = Notification?.permission || "default";
+    this.permissionStatus =
+      typeof Notification !== "undefined" ? Notification.permission : "default";
     this.subscription = null;
     this.swRegistration = null;
   }
 
   get isSupported() {
-    return "serviceWorker" in navigator && "PushManager" in window;
+    return (
+      "serviceWorker" in navigator &&
+      "PushManager" in window &&
+      VAPID_PUBLIC_KEY
+    );
   }
 
   async registerServiceWorker() {
@@ -56,9 +61,23 @@ class WebPushManager {
       return this.deviceId;
     }
 
-    this.deviceId = crypto.randomUUID();
+    this.deviceId = this.generateUUID();
     localStorage.setItem("paytaca-web-device-id", this.deviceId);
     return this.deviceId;
+  }
+
+  generateUUID() {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+      /[xy]/g,
+      function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      }
+    );
   }
 
   async isPushNotificationEnabled() {
@@ -499,8 +518,6 @@ export default boot(({ app }) => {
     app.config.globalProperties.$pushNotifications = manager;
     app.provide("$pushNotifications", manager);
 
-    const notificationStore = useNotificationsStore();
-
     if (pushNotificationsManager.nativeManager.events) {
       pushNotificationsManager.nativeManager.events.addEventListener(
         "pushNotificationActionPerformed",
@@ -509,6 +526,7 @@ export default boot(({ app }) => {
             "Notification action:",
             JSON.stringify(notificationAction, null, 2)
           );
+          const notificationStore = useNotificationsStore();
           notificationStore.setOpenedNotification(
             notificationAction?.notification
           );
