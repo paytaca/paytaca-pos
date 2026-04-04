@@ -1,7 +1,0 @@
-services:
-  paytaca-pos:
-    build: /root/paytaca-pos
-    image: paytaca-pos:latest
-    ports:
-      - "8080:8080"
-    restart: unless-stopped

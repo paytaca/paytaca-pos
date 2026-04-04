@@ -57,7 +57,6 @@ module.exports = configure(function (ctx) {
     build: {
       vueRouterMode: "hash", // available values: 'hash', 'history'
 
-      // Merge dotenv (.env file) with process.env so Docker build args are also picked up
       env: Object.assign(
         {},
         require("dotenv").config().parsed,

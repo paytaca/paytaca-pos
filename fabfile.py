@@ -25,6 +25,20 @@ def get_connection(network):
     )
 
 
+def get_compose_file(network):
+    return f"{network}.yml"
+
+
+def get_env_file(network):
+    return f".env_{network}"
+
+
+def compose_cmd(network):
+    compose_file = get_compose_file(network)
+    env_file = get_env_file(network)
+    return f"docker-compose --env-file {env_file} -f {compose_file} -p {CONTAINER_NAME}"
+
+
 @task
 def mainnet(ctx):
     ctx.config.run.env["network"] = "mainnet"
@@ -63,22 +77,25 @@ def sync(ctx):
 @task
 def build(ctx):
     conn = ctx.config.run.env["conn"]
+    network = ctx.config.run.env["network"]
     with conn.cd(f"{DEPLOY_PATH}/deployment"):
-        conn.run(f"docker-compose -p {CONTAINER_NAME} -f prod.yml build")
+        conn.run(f"{compose_cmd(network)} build")
 
 
 @task
 def up(ctx):
     conn = ctx.config.run.env["conn"]
+    network = ctx.config.run.env["network"]
     with conn.cd(f"{DEPLOY_PATH}/deployment"):
-        conn.run(f"docker-compose -p {CONTAINER_NAME} -f prod.yml up -d")
+        conn.run(f"{compose_cmd(network)} up -d")
 
 
 @task
 def down(ctx):
     conn = ctx.config.run.env["conn"]
+    network = ctx.config.run.env["network"]
     with conn.cd(f"{DEPLOY_PATH}/deployment"):
-        conn.run(f"docker-compose -p {CONTAINER_NAME} -f prod.yml down")
+        conn.run(f"{compose_cmd(network)} down")
 
 
 @task
@@ -92,5 +109,6 @@ def deploy(ctx):
 @task
 def logs(ctx):
     conn = ctx.config.run.env["conn"]
+    network = ctx.config.run.env["network"]
     with conn.cd(f"{DEPLOY_PATH}/deployment"):
-        conn.run(f"docker-compose -f prod.yml -p {CONTAINER_NAME} logs -f")
+        conn.run(f"{compose_cmd(network)} logs -f")
