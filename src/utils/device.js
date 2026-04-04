@@ -11,6 +11,42 @@ function generateUUID() {
   });
 }
 
+function getBrowserModel() {
+  const ua = navigator.userAgent || "";
+  let browser = "Unknown Browser";
+
+  if (ua.includes("Firefox/")) {
+    const match = ua.match(/Firefox\/(\d+)/);
+    browser = "Firefox" + (match ? " " + match[1] : "");
+  } else if (ua.includes("Edg/")) {
+    const match = ua.match(/Edg\/(\d+)/);
+    browser = "Edge" + (match ? " " + match[1] : "");
+  } else if (ua.includes("OPR/") || ua.includes("Opera/")) {
+    const match = ua.match(/OPR\/(\d+)/);
+    browser = "Opera" + (match ? " " + match[1] : "");
+  } else if (ua.includes("Chrome/")) {
+    const match = ua.match(/Chrome\/(\d+)/);
+    browser = "Chrome" + (match ? " " + match[1] : "");
+  } else if (ua.includes("Safari/") && ua.includes("Version/")) {
+    const match = ua.match(/Version\/(\d+)/);
+    browser = "Safari" + (match ? " " + match[1] : "");
+  }
+
+  return browser.slice(0, 50);
+}
+
+function getOS() {
+  const ua = navigator.userAgent || "";
+
+  if (ua.includes("Windows")) return "Windows";
+  if (ua.includes("Mac OS X") || ua.includes("Macintosh")) return "macOS";
+  if (ua.includes("CrOS")) return "ChromeOS";
+  if (ua.includes("Android")) return "Android";
+  if (ua.includes("iPhone") || ua.includes("iPad")) return "iOS";
+  if (ua.includes("Linux")) return "Linux";
+  return "unknown";
+}
+
 export async function getDeviceId() {
   if (Capacitor.isNativePlatform()) {
     const { Device } = await import("@capacitor/device");
@@ -35,8 +71,8 @@ export async function getDeviceInfo() {
   return {
     name: "Web Browser",
     platform: "web",
-    model: navigator.userAgent,
-    operatingSystem: "unknown",
+    model: getBrowserModel(),
+    operatingSystem: getOS(),
     osVersion: "unknown",
     manufacturer: navigator.vendor || "unknown",
     isVirtual: true,
