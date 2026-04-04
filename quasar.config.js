@@ -24,6 +24,7 @@ module.exports = configure(function (ctx) {
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-webpack/boot-files
     boot: [
+      "error-handler",
       "capacitor",
       "clipboard",
       "leaflet",
@@ -94,7 +95,17 @@ module.exports = configure(function (ctx) {
           .use(ESLintPlugin, [{ extensions: ["js", "vue"] }]);
 
         const nodePolyfillWebpackPlugin = require("node-polyfill-webpack-plugin");
-        chain.plugin("node-polyfill").use(nodePolyfillWebpackPlugin);
+        chain.plugin("node-polyfill").use(nodePolyfillWebpackPlugin, [
+          {
+            excludeAliases: [
+              "_stream_duplex",
+              "_stream_passthrough",
+              "_stream_readable",
+              "_stream_transform",
+              "_stream_writable",
+            ],
+          },
+        ]);
         chain.resolve.alias.set("fs", require.resolve("browserfs"));
 
         chain.module
