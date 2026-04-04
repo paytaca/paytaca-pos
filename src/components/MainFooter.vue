@@ -70,6 +70,7 @@ export default defineComponent({
     );
 
     async function generateFirstReceivingAddress() {
+      if (!walletStore.xPubKey) return null;
       const wallet = new Wallet({
         xPubKey: walletStore.xPubKey,
         walletHash: walletStore.walletHash,
@@ -78,11 +79,13 @@ export default defineComponent({
       const addressSet = await wallet.generateReceivingAddress(1, {
         skipSubscription: false,
       });
-      return addressSet.receiving;
+      return addressSet?.receiving || null;
     }
     onMounted(async () => {
       const firstReceivingAddress = await generateFirstReceivingAddress();
-      walletStore.$patch({ firstReceivingAddress });
+      if (firstReceivingAddress) {
+        walletStore.$patch({ firstReceivingAddress });
+      }
     });
 
     function promptAmount() {
