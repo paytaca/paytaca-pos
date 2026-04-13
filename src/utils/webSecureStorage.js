@@ -30,10 +30,12 @@ function openDatabase() {
 async function getEncryptionKey() {
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode("paytaca-secure-storage-key"),
+    new TextEncoder().encode(
+      process.env.SECURE_STORAGE_KEY || "paytaca-secure-storage-key",
+    ),
     { name: "PBKDF2" },
     false,
-    ["deriveKey"]
+    ["deriveKey"],
   );
 
   return crypto.subtle.deriveKey(
@@ -46,7 +48,7 @@ async function getEncryptionKey() {
     keyMaterial,
     { name: "AES-GCM", length: 256 },
     false,
-    ["encrypt", "decrypt"]
+    ["encrypt", "decrypt"],
   );
 }
 
@@ -56,7 +58,7 @@ async function encrypt(data) {
   const encrypted = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
     key,
-    new TextEncoder().encode(JSON.stringify(data))
+    new TextEncoder().encode(JSON.stringify(data)),
   );
   return {
     iv: Array.from(iv),
@@ -69,7 +71,7 @@ async function decrypt(encryptedObj) {
   const decrypted = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: new Uint8Array(encryptedObj.iv) },
     key,
-    new Uint8Array(encryptedObj.data)
+    new Uint8Array(encryptedObj.data),
   );
   return JSON.parse(new TextDecoder().decode(decrypted));
 }
@@ -77,9 +79,8 @@ async function decrypt(encryptedObj) {
 export class WebSecureStorage {
   static async get({ key }) {
     if (Capacitor.isNativePlatform()) {
-      const { SecureStoragePlugin } = await import(
-        "capacitor-secure-storage-plugin"
-      );
+      const { SecureStoragePlugin } =
+        await import("capacitor-secure-storage-plugin");
       const result = await SecureStoragePlugin.get({ key });
       return result;
     }
@@ -113,9 +114,8 @@ export class WebSecureStorage {
 
   static async set({ key, value }) {
     if (Capacitor.isNativePlatform()) {
-      const { SecureStoragePlugin } = await import(
-        "capacitor-secure-storage-plugin"
-      );
+      const { SecureStoragePlugin } =
+        await import("capacitor-secure-storage-plugin");
       const result = await SecureStoragePlugin.set({ key, value });
       return result;
     }
@@ -140,9 +140,8 @@ export class WebSecureStorage {
 
   static async remove({ key }) {
     if (Capacitor.isNativePlatform()) {
-      const { SecureStoragePlugin } = await import(
-        "capacitor-secure-storage-plugin"
-      );
+      const { SecureStoragePlugin } =
+        await import("capacitor-secure-storage-plugin");
       const result = await SecureStoragePlugin.remove({ key });
       return result;
     }
@@ -166,9 +165,8 @@ export class WebSecureStorage {
 
   static async clear() {
     if (Capacitor.isNativePlatform()) {
-      const { SecureStoragePlugin } = await import(
-        "capacitor-secure-storage-plugin"
-      );
+      const { SecureStoragePlugin } =
+        await import("capacitor-secure-storage-plugin");
       const result = await SecureStoragePlugin.clear();
       return result;
     }

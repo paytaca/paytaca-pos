@@ -71,10 +71,11 @@ module.exports = configure(function (ctx) {
             "PURELYPEER_HEADER_VALUE",
             "COINGECKO_API_KEY",
             "PINATA_GATEWAY_TOKEN",
+            "SECURE_STORAGE_KEY",
           ]
             .filter((key) => process.env[key])
-            .map((key) => [key, process.env[key]])
-        )
+            .map((key) => [key, process.env[key]]),
+        ),
       ),
 
       // transpile: false,

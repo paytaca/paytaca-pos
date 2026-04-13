@@ -21,7 +21,11 @@ def get_connection(network):
     return Connection(
         host,
         user=USER,
-        connect_kwargs={"key_filename": os.path.expanduser("~/.ssh/id_rsa")},
+        connect_kwargs={
+            "key_filename": os.getenv(
+                "SSH_KEY_PATH", os.path.expanduser("~/.ssh/id_rsa")
+            )
+        },
     )
 
 
