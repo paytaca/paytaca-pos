@@ -28,7 +28,8 @@ class WebPushManager {
   async registerServiceWorker() {
     if (!this.isSupported) return null;
     try {
-      this.swRegistration = await navigator.serviceWorker.register("/sw.js");
+      this.swRegistration =
+        await navigator.serviceWorker.register("/service-worker.js");
       return this.swRegistration;
     } catch (error) {
       console.error("Service worker registration failed:", error);
@@ -76,7 +77,7 @@ class WebPushManager {
         const r = (Math.random() * 16) | 0;
         const v = c === "x" ? r : (r & 0x3) | 0x8;
         return v.toString(16);
-      }
+      },
     );
   }
 
@@ -239,8 +240,8 @@ class NativePushNotificationsManager {
 
     if (this._openSettingsPromise) return this._openSettingsPromise;
     this._openSettingsPromise =
-      PushNotificationSettings.openNotificationSettingsPrompt(opts);
-    return PushNotificationSettings.openNotificationSettings()
+      PushNotificationSettings.openNotificationSettings();
+    return this._openSettingsPromise
       .catch((error) => {
         if (error.code === "UNIMPLEMENTED") return { isEnabled: null };
         return Promise.reject(error);
@@ -317,26 +318,29 @@ class NativePushNotificationsManager {
       const removeListeners = () => {
         this.events.removeEventListener(
           "registration",
-          registrationSuccessHandler
+          registrationSuccessHandler,
         );
         this.events.removeEventListener(
           "registrationError",
-          registrationErrorHandler
+          registrationErrorHandler,
         );
       };
 
       this.events.addEventListener("registration", registrationSuccessHandler);
       this.events.addEventListener(
         "registrationError",
-        registrationErrorHandler
+        registrationErrorHandler,
       );
 
-      setTimeout(() => {
-        const error = new Error("Timeout exceeded");
-        error.name = "RegistrationTokenTimeout";
-        reject(error);
-        removeListeners();
-      }, opts?.timeout || 30 * 1000);
+      setTimeout(
+        () => {
+          const error = new Error("Timeout exceeded");
+          error.name = "RegistrationTokenTimeout";
+          reject(error);
+          removeListeners();
+        },
+        opts?.timeout || 30 * 1000,
+      );
 
       PushNotifications.register();
     });
@@ -524,14 +528,14 @@ export default boot(({ app }) => {
         (notificationAction) => {
           console.log(
             "Notification action:",
-            JSON.stringify(notificationAction, null, 2)
+            JSON.stringify(notificationAction, null, 2),
           );
           const notificationStore = useNotificationsStore();
           notificationStore.setOpenedNotification(
-            notificationAction?.notification
+            notificationAction?.notification,
           );
           notificationStore.handleOpenedNotification();
-        }
+        },
       );
     }
   } else {

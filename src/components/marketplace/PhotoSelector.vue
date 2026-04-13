@@ -40,7 +40,7 @@ export default defineComponent({
     const innerVal = ref(props?.modelValue);
     watch(
       () => props.modelValue,
-      () => (innerVal.value = props.modelValue)
+      () => (innerVal.value = props.modelValue),
     );
     watch(innerVal, (newVal, oldVal) => {
       $emit("update:modelValue", innerVal.value);
@@ -90,7 +90,7 @@ export default defineComponent({
           title: t("SelectPhoto"),
           message: t("PermissionDenied"),
           color: "brandblue",
-          class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
+          class: "br-15 pt-card text-bow",
         });
         return Promise.reject(new Error(t("PermissionDenied")));
       }
@@ -122,7 +122,7 @@ export default defineComponent({
           title: t("SelectPhoto"),
           message: errorMsg || t("UnknownErrorOccurred"),
           color: "brandblue",
-          class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`,
+          class: "br-15 pt-card text-bow",
         });
       });
     }
