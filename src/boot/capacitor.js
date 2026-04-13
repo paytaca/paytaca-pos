@@ -1,6 +1,12 @@
-import { boot } from 'quasar/wrappers'
-import { defineCustomElements } from '@ionic/pwa-elements/loader'
+import { boot } from "quasar/wrappers";
+import { Capacitor } from "@capacitor/core";
 
 export default boot(() => {
-  defineCustomElements(window)
-})
+  if (Capacitor.isNativePlatform()) {
+    import("@ionic/pwa-elements/loader")
+      .then(({ defineCustomElements }) => {
+        defineCustomElements(window);
+      })
+      .catch(console.warn);
+  }
+});

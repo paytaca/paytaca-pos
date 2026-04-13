@@ -309,6 +309,7 @@ export default defineComponent({
     const isInitialLoading = ref(true);
     function fetchTransactions(page = 1) {
       if (!walletStore.walletHash) return Promise.resolve();
+      if (!walletStore.walletObj) return Promise.resolve();
       const opts = {
         page: Number.isInteger(page) ? page : 1,
         type: "incoming",
@@ -403,7 +404,7 @@ export default defineComponent({
     });
 
     watch(
-      () => walletStore.deviceInfo.linkedDevice.unlinkRequest.id,
+      () => walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.id,
       () => promptUnlinkRequest()
     );
     onMounted(() => promptUnlinkRequest());
