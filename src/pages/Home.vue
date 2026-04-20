@@ -148,14 +148,22 @@
                   <SalesReportCard
                     :title="$t('SalesToday')"
                     :sales-report="walletStore.salesReportSummary.today"
-                  />
+                  >
+                    <q-btn
+                      class="full-width q-mt-sm"
+                      flat
+                      dense
+                      :label="showTransactions ? $t('HideTransactions') : $t('ShowTransactions')"
+                      @click="showTransactions = !showTransactions"
+                    />
+                  </SalesReportCard>
                 </div>
               </template>
             </template>
           </div>
         </div>
 
-        <div class="q-px-md">
+        <div v-if="showTransactions" class="q-px-md">
           <q-card
             class="transactions-card"
             :class="{ 'bg-dark': $q.dark.isActive }"
@@ -336,6 +344,7 @@ export default defineComponent({
     const fetchingTransactions = ref(false);
     const isRefreshing = ref(false);
     const isInitialLoading = ref(true);
+    const showTransactions = ref(false);
     function fetchTransactions(page = 1) {
       if (!walletStore.walletHash) return Promise.resolve();
       if (!walletStore.walletObj) return Promise.resolve();

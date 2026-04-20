@@ -613,6 +613,8 @@ export default {
   SalesOrderNumber: "販売注文番号",
   SalesReport: "売上報告書",
   SalesToday: "本日の売上",
+  ShowTransactions: "取引を表示",
+  HideTransactions: "取引を非表示",
   Save: "保存",
   SaveDraft: "下書きの保存",
   Scan: "スキャン",

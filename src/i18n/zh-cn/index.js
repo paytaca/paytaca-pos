@@ -599,6 +599,8 @@ export default {
   SalesOrderNumber: "销售订单号",
   SalesReport: "销售报告",
   SalesToday: "今日销售",
+  ShowTransactions: "显示交易",
+  HideTransactions: "隐藏交易",
   Save: "保存",
   SaveDraft: "保存草稿",
   Scan: "扫描",

@@ -45,6 +45,9 @@
         </div>
       </div>
     </q-menu>
+    <div class="q-mt-auto">
+      <slot />
+    </div>
   </q-card>
 </template>
 

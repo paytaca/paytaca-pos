@@ -634,6 +634,8 @@ export default {
   SalesOrderNumber: "Número de orden de venta",
   SalesReport: "Informe de ventas",
   SalesToday: "Ventas de hoy",
+  ShowTransactions: "Mostrar transacciones",
+  HideTransactions: "Ocultar transacciones",
   Save: "Guardar",
   SaveDraft: "Guardar borrador",
   Scan: "Escanear",
