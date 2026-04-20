@@ -60,6 +60,32 @@
         </div>
 
         <div class="q-px-md q-mb-md">
+          <template v-if="isRefreshing || isInitialLoading">
+            <q-card
+              class="marketplace-card"
+              :class="{ 'bg-dark': $q.dark.isActive }"
+            >
+              <q-card-section class="q-py-sm">
+                <div class="row items-center">
+                  <div class="text-h6 q-space">
+                    <q-skeleton type="text" width="100px" />
+                  </div>
+                  <q-skeleton type="rect" width="100px" height="30px" />
+                </div>
+                <div class="row items-start q-r-mx-md q-mt-sm">
+                  <div v-for="n in 2" :key="n" class="col-6 col-sm-3 q-pa-sm">
+                    <q-skeleton type="rect" width="100%" height="80px" />
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </template>
+          <template v-else>
+            <MarketplaceWidget />
+          </template>
+        </div>
+
+        <div class="q-px-md q-mb-md">
           <template v-if="hasFullSalesReportAccess">
             <div class="section-title text-overline text-uppercase q-mb-sm">
               {{ $t("SalesReport") }}
@@ -127,32 +153,6 @@
               </template>
             </template>
           </div>
-        </div>
-
-        <div class="q-px-md q-mb-md">
-          <template v-if="isRefreshing || isInitialLoading">
-            <q-card
-              class="marketplace-card"
-              :class="{ 'bg-dark': $q.dark.isActive }"
-            >
-              <q-card-section class="q-py-sm">
-                <div class="row items-center">
-                  <div class="text-h6 q-space">
-                    <q-skeleton type="text" width="100px" />
-                  </div>
-                  <q-skeleton type="rect" width="100px" height="30px" />
-                </div>
-                <div class="row items-start q-r-mx-md q-mt-sm">
-                  <div v-for="n in 2" :key="n" class="col-6 col-sm-3 q-pa-sm">
-                    <q-skeleton type="rect" width="100%" height="80px" />
-                  </div>
-                </div>
-              </q-card-section>
-            </q-card>
-          </template>
-          <template v-else>
-            <MarketplaceWidget />
-          </template>
         </div>
 
         <div class="q-px-md">
