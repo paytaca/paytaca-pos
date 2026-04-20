@@ -530,6 +530,7 @@ export default defineComponent({
       isRefreshing,
       isInitialLoading,
       hasFullSalesReportAccess,
+      showTransactions,
     };
   },
 });
