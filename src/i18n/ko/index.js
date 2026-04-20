@@ -607,6 +607,7 @@ export default {
   SalesOrder: "판매 주문",
   SalesOrderNumber: "판매 주문 번호",
   SalesReport: "판매 보고서",
+  SalesToday: "오늘의 판매",
   Save: "저장",
   SaveDraft: "초안 저장",
   Scan: "스캔",

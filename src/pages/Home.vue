@@ -60,46 +60,71 @@
         </div>
 
         <div class="q-px-md q-mb-md">
-          <div class="section-title text-overline text-uppercase q-mb-sm">
-            {{ $t("SalesReport") }}
-          </div>
+          <template v-if="hasFullSalesReportAccess">
+            <div class="section-title text-overline text-uppercase q-mb-sm">
+              {{ $t("SalesReport") }}
+            </div>
+          </template>
           <div class="row q-col-gutter-sm">
             <template v-if="isRefreshing || isInitialLoading">
-              <div v-for="n in 4" :key="n" class="col-6">
-                <q-card class="sales-card q-pa-md column full-height">
-                  <q-skeleton type="text" width="60px" />
-                  <div class="column justify-center q-space q-mt-sm">
-                    <q-skeleton type="text" width="80px" />
-                    <q-skeleton type="text" width="100px" class="q-mt-xs" />
-                  </div>
-                </q-card>
-              </div>
+              <template v-if="hasFullSalesReportAccess">
+                <div v-for="n in 4" :key="n" class="col-6">
+                  <q-card class="sales-card q-pa-md column full-height">
+                    <q-skeleton type="text" width="60px" />
+                    <div class="column justify-center q-space q-mt-sm">
+                      <q-skeleton type="text" width="80px" />
+                      <q-skeleton type="text" width="100px" class="q-mt-xs" />
+                    </div>
+                  </q-card>
+                </div>
+              </template>
+              <template v-else>
+                <div class="col-12">
+                  <q-card class="sales-card q-pa-md column full-height">
+                    <q-skeleton type="text" width="60px" />
+                    <div class="column justify-center q-space q-mt-sm">
+                      <q-skeleton type="text" width="80px" />
+                      <q-skeleton type="text" width="100px" class="q-mt-xs" />
+                    </div>
+                  </q-card>
+                </div>
+              </template>
             </template>
             <template v-else>
-              <div class="col-6">
-                <SalesReportCard
-                  :title="$t('Today')"
-                  :sales-report="walletStore.salesReportSummary.today"
-                />
-              </div>
-              <div class="col-6">
-                <SalesReportCard
-                  :title="$t('Yesterday')"
-                  :sales-report="walletStore.salesReportSummary.yesterday"
-                />
-              </div>
-              <div class="col-6">
-                <SalesReportCard
-                  :title="$t('LastSevenDays')"
-                  :sales-report="walletStore.salesReportSummary.last7Days"
-                />
-              </div>
-              <div class="col-6">
-                <SalesReportCard
-                  :title="$t('ThisMonth')"
-                  :sales-report="walletStore.salesReportSummary.lastMonth"
-                />
-              </div>
+              <template v-if="hasFullSalesReportAccess">
+                <div class="col-6">
+                  <SalesReportCard
+                    :title="$t('Today')"
+                    :sales-report="walletStore.salesReportSummary.today"
+                  />
+                </div>
+                <div class="col-6">
+                  <SalesReportCard
+                    :title="$t('Yesterday')"
+                    :sales-report="walletStore.salesReportSummary.yesterday"
+                  />
+                </div>
+                <div class="col-6">
+                  <SalesReportCard
+                    :title="$t('LastSevenDays')"
+                    :sales-report="walletStore.salesReportSummary.last7Days"
+                  />
+                </div>
+                <div class="col-6">
+                  <SalesReportCard
+                    :title="$t('ThisMonth')"
+                    :sales-report="walletStore.salesReportSummary.lastMonth"
+                  />
+                </div>
+              </template>
+              <template v-else>
+                <div class="col-12">
+                  <SalesReportCard
+                    :title="$t('SalesToday')"
+                    :sales-report="walletStore.salesReportSummary.today"
+                  />
+                </div>
+              </template>
             </template>
           </div>
         </div>
@@ -274,6 +299,10 @@ export default defineComponent({
     const txCacheStore = useTxCacheStore();
     const cashtokenStore = useCashtokenStore();
     const { t } = useI18n();
+
+    const hasFullSalesReportAccess = computed(() => {
+      return marketplaceStore.hasRole && marketplaceStore.userPermissions?.admin;
+    });
 
     onMounted(async () => {
       if (!walletStore.walletHash) {
@@ -491,6 +520,7 @@ export default defineComponent({
       refreshPage,
       isRefreshing,
       isInitialLoading,
+      hasFullSalesReportAccess,
     };
   },
 });

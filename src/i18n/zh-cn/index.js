@@ -598,6 +598,7 @@ export default {
   SalesOrder: "销售订单",
   SalesOrderNumber: "销售订单号",
   SalesReport: "销售报告",
+  SalesToday: "今日销售",
   Save: "保存",
   SaveDraft: "保存草稿",
   Scan: "扫描",

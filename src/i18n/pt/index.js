@@ -628,6 +628,7 @@ export default {
   SalesOrder: "Pedido de venda",
   SalesOrderNumber: "Número do pedido de vendas",
   SalesReport: "Relatório de vendas",
+  SalesToday: "Vendas hoje",
   Save: "Salvar",
   SaveDraft: "Salvar rascunho",
   Scan: "Digitalizar",

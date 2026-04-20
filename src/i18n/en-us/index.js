@@ -613,6 +613,7 @@ export default {
   SalesOrder: "Sales Order",
   SalesOrderNumber: "Sales Order Number",
   SalesReport: "Sales Report",
+  SalesToday: "Sales Today",
   Save: "Save",
   SaveDraft: "Save draft",
   Scan: "Scan",

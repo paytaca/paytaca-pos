@@ -633,6 +633,7 @@ export default {
   SalesOrder: "Orden de venta",
   SalesOrderNumber: "Número de orden de venta",
   SalesReport: "Informe de ventas",
+  SalesToday: "Ventas de hoy",
   Save: "Guardar",
   SaveDraft: "Guardar borrador",
   Scan: "Escanear",
