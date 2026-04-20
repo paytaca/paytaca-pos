@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" no-refocus position="bottom">
+  <q-dialog ref="dialogRef" @hide="onDialogHide" no-refocus>
     <q-card class="q-dialog-plugin">
       <q-form @submit="checkAmount()">
         <q-card-section>
