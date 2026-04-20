@@ -182,7 +182,7 @@
                   icon="refresh"
                   size="sm"
                   :loading="fetchingTransactions"
-                  @click="() => fetchTransactions(transactions?.page || 1)"
+                  @click="() => fetchTransactions(filteredTransactions?.page || 1)"
                 >
                   <q-tooltip>{{ $t("Refresh") }}</q-tooltip>
                 </q-btn>
@@ -213,9 +213,9 @@
               <template v-else>
                 <div class="row items-center justify-end">
                   <q-pagination
-                    v-if="transactions?.num_pages > 1"
-                    :modelValue="transactions?.page"
-                    :max="transactions?.num_pages || 0"
+                    v-if="filteredTransactions?.num_pages > 1"
+                    :modelValue="filteredTransactions?.page"
+                    :max="filteredTransactions?.num_pages || 0"
                     :max-pages="7"
                     input
                     unelevated
@@ -231,7 +231,7 @@
                   <q-linear-progress query color="brandblue" />
                 </div>
                 <div
-                  v-else-if="!transactions?.history?.length"
+                  v-else-if="!filteredTransactions?.history?.length"
                   class="row items-center justify-center q-pa-md text-grey"
                 >
                   <q-icon name="receipt_long" size="48px" class="q-mb-sm" />
@@ -241,9 +241,9 @@
                 </div>
                 <TransactionsList
                   v-else
-                  :transactions="transactions"
+                  :transactions="filteredTransactions"
                   class="transactions-list"
-                  :class="transactions?.num_pages > 1 ? 'pagination' : ''"
+                  :class="filteredTransactions?.num_pages > 1 ? 'pagination' : ''"
                 />
               </template>
             </q-card-section>
@@ -345,6 +345,24 @@ export default defineComponent({
     const isRefreshing = ref(false);
     const isInitialLoading = ref(true);
     const showTransactions = ref(false);
+
+    const filteredTransactions = computed(() => {
+      if (hasFullSalesReportAccess.value) {
+        return transactions.value;
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split("T")[0];
+      const todayHistory = (transactions.value.history || []).filter((tx) => {
+        const txDate = new Date(tx.timestamp).toISOString().split("T")[0];
+        return txDate === todayStr;
+      });
+      return {
+        ...transactions.value,
+        history: todayHistory,
+        count: todayHistory.length,
+      };
+    });
     function fetchTransactions(page = 1) {
       if (!walletStore.walletHash) return Promise.resolve();
       if (!walletStore.walletObj) return Promise.resolve();
