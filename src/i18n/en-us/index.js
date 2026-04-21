@@ -507,6 +507,8 @@ export default {
   Profile: "Profile",
   Proceed: "Proceed",
   EnterAmountToBeReceived: "Enter the amount to be received",
+  ReceivePayment: "Receive Payment",
+  CreatePaymentRequest: "Create a payment request",
   Property1: "Property 1",
   Property2: "Property 2",
   Province: "Province",

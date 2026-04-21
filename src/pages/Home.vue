@@ -249,7 +249,35 @@
             </q-card-section>
           </q-card>
         </div>
-      </div>
+
+        <div class="q-px-md q-mb-lg">
+          <q-card
+            class="receive-payment-card"
+            :class="{ 'bg-dark': $q.dark.isActive }"
+            clickable
+            @click="showSetAmountDialog()"
+          >
+            <q-card-section class="row items-center q-pa-md">
+              <q-avatar
+                size="48px"
+                color="brandblue"
+                text-color="white"
+                icon="mdi-qrcode"
+              />
+              <div class="q-ml-md">
+                <div class="text-h6 text-weight-medium">
+                  {{ $t("ReceivePayment") }}
+                </div>
+                <div class="text-caption text-grey">
+                  {{ $t("CreatePaymentRequest") }}
+                </div>
+              </div>
+              <q-space />
+              <q-icon name="mdi-chevron-right" size="24px" color="grey" />
+            </q-card-section>
+          </q-card>
+        </div>
+
       <MainFooter />
     </q-pull-to-refresh>
   </q-page>
@@ -270,6 +298,7 @@ import {
 } from "vue";
 import MainFooter from "src/components/MainFooter.vue";
 import MarketplaceWidget from "src/components/marketplace/MarketplaceWidget.vue";
+import SetAmountFormDialog from "src/components/SetAmountFormDialog.vue";
 import {
   paymentUriHasMatch,
   findMatchingPaymentLink,
@@ -537,6 +566,16 @@ export default defineComponent({
     }
 
     window.t = walletLinkComponent;
+
+    function showSetAmountDialog() {
+      $q.dialog({
+        component: SetAmountFormDialog,
+        componentProps: {
+          currencies: ["BCH"],
+        },
+      });
+    }
+
     return {
       walletStore,
       transactions,
@@ -549,6 +588,7 @@ export default defineComponent({
       isInitialLoading,
       hasFullSalesReportAccess,
       showTransactions,
+      showSetAmountDialog,
     };
   },
 });
@@ -599,6 +639,18 @@ export default defineComponent({
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+.receive-payment-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+}
+
 .transactions-list {
   max-height: 35vh;
   min-height: 200px;
@@ -622,7 +674,8 @@ export default defineComponent({
   .profile-card,
   .sales-card,
   .marketplace-card,
-  .transactions-card {
+  .transactions-card,
+  .receive-payment-card {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 }
