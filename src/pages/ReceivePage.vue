@@ -212,7 +212,7 @@ import { usePaymentsStore } from 'stores/payments'
 import { useAddressesStore } from 'stores/addresses'
 import { useCashtokenStore } from 'src/stores/cashtoken'
 import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, inject, markRaw } from 'vue'
-import { onBeforeRouteLeave, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { Capacitor } from '@capacitor/core'
@@ -281,6 +281,7 @@ export default defineComponent({
     const $q = useQuasar()
     const { t } = useI18n()
     const $router = useRouter()
+    const $route = useRoute()
     const walletStore = useWalletStore()
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
@@ -312,6 +313,29 @@ export default defineComponent({
       
       if (props.setAmount && props.lockAmount) disableAmount.value = true
       if (props.setTokenCategory) tokenCategory.value = props.setTokenCategory
+
+      // Also read from route query if no props provided
+      const query = $route.query
+      if (query.amount && query.currency && !props.setAmount && !props.setFiatAmount) {
+        const amount = Number(query.amount)
+        const currencyVal = query.currency
+        // Check if it's a known fiat currency
+        const knownFiats = ['PHP', 'USD', 'EUR', 'GBP', 'JPY', 'KRW', 'CNY', 'BRL', 'IDR', 'INR']
+        if (knownFiats.includes(currencyVal)) {
+          // Treat as fiat
+          fiatReferenceAmount.value = amount
+          fiatReferenceCurrency.value = currencyVal
+          currency.value = currencyVal
+          receiveAmount.value = amount
+        } else {
+          // Treat as crypto
+          receiveAmount.value = amount
+          currency.value = currencyVal
+        }
+      }
+      if (query.tokenCategory && !props.setTokenCategory) {
+        tokenCategory.value = query.tokenCategory
+      }
 
       if (tokenCategory.value && !cashtokenMetadata.value) {
         cashTokenStore.fetchTokenMetadata(tokenCategory.value)
