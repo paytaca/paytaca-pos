@@ -505,6 +505,7 @@ export default {
   ProductsMatchAll: "Products matching all of the conditions",
   ProductsMatchAny: "Products matching any of the conditions",
   Profile: "Profile",
+  Proceed: "Proceed",
   Property1: "Property 1",
   Property2: "Property 2",
   Province: "Province",

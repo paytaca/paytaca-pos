@@ -179,7 +179,7 @@
             color="brandblue"
             size="1rem"
             padding="sm md"
-            :label="conversionLoading ? '' : $t('CreatePaymentQR')"
+            :label="conversionLoading ? '' : $t('Proceed')"
             class="q-space"
             :class="{
               'sparkle-button': isFormValid,
