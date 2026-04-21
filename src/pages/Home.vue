@@ -277,6 +277,7 @@
             </q-card-section>
           </q-card>
         </div>
+        </div>
 
       <MainFooter />
     </q-pull-to-refresh>
