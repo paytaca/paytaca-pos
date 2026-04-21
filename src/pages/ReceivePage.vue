@@ -1243,13 +1243,23 @@ export default defineComponent({
                 console.log('[ReceivePage] Fiat amounts posted successfully')
               })
               .catch((error) => {
-                console.error('[ReceivePage] Error posting fiat amounts:', error)
-                // Show warning but don't block navigation - payment already succeeded
-                $q.notify({ 
-                  type: 'warning', 
-                  message: t('UnableToSaveFiatBreakdown'), 
-                  timeout: 3000 
-                })
+                // Only log errors - don't notify user for benign cases like duplicates
+                const errorMessage = error?.message || ''
+                const isBenign = error?.status === 409 || 
+                                errorMessage.includes('409') || 
+                                errorMessage.toLowerCase().includes('already exists') ||
+                                errorMessage.toLowerCase().includes('already saved') ||
+                                errorMessage.toLowerCase().includes('cannot overwrite') ||
+                                errorMessage.toLowerCase().includes('conflict') ||
+                                errorMessage.toLowerCase().includes('duplicate')
+                if (!isBenign) {
+                  console.error('[ReceivePage] Error posting fiat amounts:', error)
+                  $q.notify({ 
+                    type: 'warning', 
+                    message: t('UnableToSaveFiatBreakdown'), 
+                    timeout: 3000 
+                  })
+                }
               })
               .finally(() => {
                 // Always navigate to transaction details after payment succeeds
