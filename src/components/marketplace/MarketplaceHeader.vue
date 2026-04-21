@@ -1,11 +1,18 @@
 <template>
   <div
-    class="row no-wrap q-mt-sm q-mb-md q-r-ml-lg"
+    class="row no-wrap q-mt-sm q-mb-md q-r-ml-lg items-center"
     style="
       padding-top: constant(safe-area-inset-top);
       padding-top: env(safe-area-inset-top);
     "
   >
+    <q-btn
+      flat
+      round
+      icon="arrow_back"
+      color="grey-8"
+      @click="goToHome"
+    />
     <slot name="title">
       <div class="q-space">
         <div class="text-h4">{{ title }}</div>
@@ -88,6 +95,7 @@
   </div>
 </template>
 <script>
+import { useRouter } from "vue-router";
 import { backend, setAuthToken } from "src/marketplace/backend";
 import { formatRole } from "src/marketplace/utils";
 import { useMarketplaceStore } from "src/stores/marketplace";
@@ -105,6 +113,7 @@ export default defineComponent({
   },
   setup() {
     const $q = useQuasar();
+    const router = useRouter();
     const marketplaceStore = useMarketplaceStore();
     const openUserMenu = ref(false);
 
@@ -134,11 +143,16 @@ export default defineComponent({
       }
     }
 
+    function goToHome() {
+      router.push({ name: "home" });
+    }
+
     return {
       marketplaceStore,
       openUserMenu,
       userImage,
       logOut,
+      goToHome,
 
       // utils funcs
       formatRole,
