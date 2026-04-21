@@ -316,25 +316,33 @@ export default defineComponent({
 
       // Also read from route query if no props provided
       const query = $route.query
-      if (query.amount && query.currency && !props.setAmount && !props.setFiatAmount) {
+
+      // Handle MainFooter format: setAmount, setFiatAmount, setCurrency, etc.
+      if (query.setFiatAmount && query.setFiatCurrency && !props.setAmount && !props.setFiatAmount) {
+        fiatReferenceAmount.value = Number(query.setFiatAmount)
+        fiatReferenceCurrency.value = query.setFiatCurrency
+        currency.value = query.setFiatCurrency
+        receiveAmount.value = Number(query.setFiatAmount)
+      } else if (query.setAmount && query.setCurrency && !props.setAmount && !props.setFiatAmount) {
+        receiveAmount.value = Number(query.setAmount)
+        currency.value = query.setCurrency
+      } else if (query.amount && query.currency && !props.setAmount && !props.setFiatAmount) {
+        // Home page format
         const amount = Number(query.amount)
         const currencyVal = query.currency
-        // Check if it's a known fiat currency
         const knownFiats = ['PHP', 'USD', 'EUR', 'GBP', 'JPY', 'KRW', 'CNY', 'BRL', 'IDR', 'INR']
         if (knownFiats.includes(currencyVal)) {
-          // Treat as fiat
           fiatReferenceAmount.value = amount
           fiatReferenceCurrency.value = currencyVal
           currency.value = currencyVal
           receiveAmount.value = amount
         } else {
-          // Treat as crypto
           receiveAmount.value = amount
           currency.value = currencyVal
         }
       }
-      if (query.tokenCategory && !props.setTokenCategory) {
-        tokenCategory.value = query.tokenCategory
+      if ((query.tokenCategory || query.setTokenCategory) && !props.setTokenCategory) {
+        tokenCategory.value = query.tokenCategory || query.setTokenCategory
       }
 
       if (tokenCategory.value && !cashtokenMetadata.value) {
