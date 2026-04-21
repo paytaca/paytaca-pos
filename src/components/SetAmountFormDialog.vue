@@ -472,6 +472,7 @@ export default defineComponent({
     const selectedCurrency = ref(initialParsedCurrency || null);
     const paymentCurrency = ref(bchAsset);
     const conversionLoading = ref(false);
+    const conversionCompleted = ref(false);
     let rateRefreshInterval = null;
 
     const amountFieldDecimals = computed(() => {
@@ -554,6 +555,7 @@ export default defineComponent({
       if (value === null || value === "") {
         fiatAmountDisplay.value = null;
         fiatAmountValue.value = null;
+        conversionCompleted.value = false;
         debouncedUpdateAmount(null);
         return;
       }
@@ -566,6 +568,7 @@ export default defineComponent({
 
       if (parsed !== null) {
         fiatAmountValue.value = parsed;
+        conversionCompleted.value = false;
         debouncedUpdateAmount(parsed);
       } else {
         // Invalid input, but keep the display value for user to correct
@@ -618,8 +621,10 @@ export default defineComponent({
           error
         );
         throw error; // Re-throw to let caller handle
+        conversionCompleted.value = false;
       } finally {
         conversionLoading.value = false;
+        conversionCompleted.value = true;
       }
     }
 
@@ -724,9 +729,10 @@ export default defineComponent({
       // Must have an amount entered
       if (!fiatAmountValue.value) return false;
 
-      // If fiat is selected, must have payment currency and valid conversion rate
+      // If fiat is selected, must have payment currency, valid conversion rate, and conversion completed
       if (isFiatSelected.value) {
         if (!paymentCurrency.value || !fiatToPaymentRate.value) return false;
+        if (!conversionCompleted.value) return false;
       }
 
       // For crypto currencies, just need amount value
@@ -860,6 +866,7 @@ export default defineComponent({
 
       isFiatSelected,
       conversionLoading,
+      conversionCompleted,
       selectedCurrencyFlag,
 
       allCurrencyOpts,
