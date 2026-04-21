@@ -593,7 +593,7 @@ export default defineComponent({
           query.priceId = amount.priceId;
         }
 
-        $router.push({ name: "receive", query });
+        $router.push({ name: "receive-page", query });
       });
     }
 
