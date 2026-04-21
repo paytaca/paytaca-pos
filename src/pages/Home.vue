@@ -86,6 +86,34 @@
         </div>
 
         <div class="q-px-md q-mb-md">
+          <q-card
+            class="receive-payment-card"
+            :class="{ 'bg-dark': $q.dark.isActive }"
+            clickable
+            @click="showSetAmountDialog()"
+          >
+            <q-card-section class="row items-center q-pa-md">
+              <q-avatar
+                size="48px"
+                color="brandblue"
+                text-color="white"
+                icon="mdi-qrcode"
+              />
+              <div class="q-ml-md">
+                <div class="text-h6 text-weight-medium">
+                  {{ $t("ReceivePayment") }}
+                </div>
+                <div class="text-caption text-grey">
+                  {{ $t("CreatePaymentRequest") }}
+                </div>
+              </div>
+              <q-space />
+              <q-icon name="mdi-chevron-right" size="24px" color="grey" />
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <div class="q-px-md q-mb-md">
           <template v-if="hasFullSalesReportAccess">
             <div class="section-title text-overline text-uppercase q-mb-sm">
               {{ $t("SalesReport") }}
@@ -246,34 +274,6 @@
                   :class="filteredTransactions?.num_pages > 1 ? 'pagination' : ''"
                 />
               </template>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <div class="q-px-md q-mb-lg">
-          <q-card
-            class="receive-payment-card"
-            :class="{ 'bg-dark': $q.dark.isActive }"
-            clickable
-            @click="showSetAmountDialog()"
-          >
-            <q-card-section class="row items-center q-pa-md">
-              <q-avatar
-                size="48px"
-                color="brandblue"
-                text-color="white"
-                icon="mdi-qrcode"
-              />
-              <div class="q-ml-md">
-                <div class="text-h6 text-weight-medium">
-                  {{ $t("ReceivePayment") }}
-                </div>
-                <div class="text-caption text-grey">
-                  {{ $t("CreatePaymentRequest") }}
-                </div>
-              </div>
-              <q-space />
-              <q-icon name="mdi-chevron-right" size="24px" color="grey" />
             </q-card-section>
           </q-card>
         </div>
