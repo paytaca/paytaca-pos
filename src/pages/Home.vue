@@ -574,6 +574,26 @@ export default defineComponent({
         componentProps: {
           currencies: ["BCH"],
         },
+      }).onOk((data) => {
+        const amount = data?.amount;
+        if (!amount) return;
+
+        const query = {};
+        if (amount.fiatAmount && amount.fiatCurrency) {
+          query.amount = amount.fiatAmount;
+          query.currency = amount.fiatCurrency;
+        } else {
+          query.amount = amount.value;
+          query.currency = amount.currency || "BCH";
+        }
+        if (amount.tokenCategory) {
+          query.tokenCategory = amount.tokenCategory;
+        }
+        if (amount.priceId) {
+          query.priceId = amount.priceId;
+        }
+
+        $router.push({ name: "receive", query });
       });
     }
 
