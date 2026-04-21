@@ -270,7 +270,7 @@ export default {
   German: "German",
   GoHome: "Go Home",
   GoToInventory: "Go to inventory",
-  GoToMarketPlace: "Go to marketplace",
+  GoToMarketPlace: "Manage Marketplace",
   GoToPage: "Go to page",
   GreaterThan: "Greater than",
   HasDispute: "has dispute",

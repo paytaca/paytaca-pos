@@ -59,7 +59,7 @@
           </template>
         </div>
 
-        <div class="q-px-md q-mb-md">
+        <div v-if="isMarketplaceUserLoggedIn" class="q-px-md q-mb-md">
           <template v-if="isRefreshing || isInitialLoading">
             <q-card
               class="marketplace-card"
@@ -178,6 +178,7 @@
                     :sales-report="walletStore.salesReportSummary.today"
                   >
                     <q-btn
+                      v-if="!hasFullSalesReportAccess"
                       class="full-width q-mt-sm"
                       flat
                       dense
@@ -191,7 +192,7 @@
           </div>
         </div>
 
-        <div v-if="showTransactions" class="q-px-md">
+        <div v-if="hasFullSalesReportAccess || showTransactions" class="q-px-md">
           <q-card
             class="transactions-card"
             :class="{ 'bg-dark': $q.dark.isActive }"
@@ -341,8 +342,12 @@ export default defineComponent({
     const cashtokenStore = useCashtokenStore();
     const { t } = useI18n();
 
+    const isMarketplaceUserLoggedIn = computed(() => {
+      return marketplaceStore.user?.id > 0;
+    });
+
     const hasFullSalesReportAccess = computed(() => {
-      return marketplaceStore.hasRole && marketplaceStore.userPermissions?.admin;
+      return marketplaceStore.userPermissions?.admin;
     });
 
     onMounted(async () => {
@@ -352,6 +357,7 @@ export default defineComponent({
       }
 
       const initialLoadPromises = [
+        fetchTransactions(),
         walletStore
           .refetchSalesReport()
           .then(() => walletStore.refetchSalesReportTokenMetadata()),
@@ -426,6 +432,14 @@ export default defineComponent({
     );
     watch(
       () => showTransactions.value,
+      (newVal) => {
+        if (newVal && !transactions.value.history?.length) {
+          fetchTransactions();
+        }
+      }
+    );
+    watch(
+      () => hasFullSalesReportAccess.value,
       (newVal) => {
         if (newVal && !transactions.value.history?.length) {
           fetchTransactions();
@@ -618,6 +632,7 @@ export default defineComponent({
       isRefreshing,
       isInitialLoading,
       hasFullSalesReportAccess,
+      isMarketplaceUserLoggedIn,
       showTransactions,
       showSetAmountDialog,
       filteredTransactions,
