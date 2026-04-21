@@ -2,12 +2,13 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide" no-refocus>
     <q-card class="q-dialog-plugin">
       <q-form @submit="checkAmount()">
-        <q-card-section>
-          <div class="q-mb-md">
-            <div class="text-h5">{{ $t("SetAmount") }}</div>
-            <div class="text-caption text-grey-7">
-              {{ $t("SelectPaymentCurrency") }}
-            </div>
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h5 q-space">{{ $t("SetAmount") }}</div>
+          <q-btn icon="mdi-close" flat round dense @click="onDialogHide" />
+        </q-card-section>
+        <q-card-section class="q-pt-md">
+          <div class="text-caption text-grey-7 q-mb-md">
+            {{ $t("SelectPaymentCurrency") }}
           </div>
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
