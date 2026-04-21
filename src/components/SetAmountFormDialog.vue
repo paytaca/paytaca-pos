@@ -174,21 +174,26 @@
         </q-card-section>
 
         <q-card-actions class="row items-center justify-around q-gutter-x-md">
-          <q-btn
-            no-caps
-            color="brandblue"
-            size="1rem"
-            padding="sm md"
-            :label="$t('Proceed')"
-            class="q-space"
-            :class="{
-              'sparkle-button': isFormValid,
-              'disabled-button': !isFormValid,
-            }"
-            type="submit"
-            icon="mdi-qrcode"
-            :disable="!isFormValid"
-          />
+          <div class="q-space" style="width: 100%">
+            <q-tooltip v-if="!isFormValid" anchor="top middle" self="bottom middle">
+              {{ $t("EnterAmountToBeReceived") }}
+            </q-tooltip>
+            <q-btn
+              no-caps
+              color="brandblue"
+              size="1rem"
+              padding="sm md"
+              :label="$t('Proceed')"
+              class="full-width"
+              :class="{
+                'sparkle-button': isFormValid,
+                'disabled-button': !isFormValid,
+              }"
+              type="submit"
+              icon="mdi-qrcode"
+              :disable="!isFormValid"
+            />
+          </div>
         </q-card-actions>
       </q-form>
     </q-card>

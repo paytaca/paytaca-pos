@@ -506,6 +506,7 @@ export default {
   ProductsMatchAny: "Products matching any of the conditions",
   Profile: "Profile",
   Proceed: "Proceed",
+  EnterAmountToBeReceived: "Enter the amount to be received",
   Property1: "Property 1",
   Property2: "Property 2",
   Province: "Province",
