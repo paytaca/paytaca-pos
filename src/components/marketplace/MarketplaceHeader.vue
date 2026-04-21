@@ -7,6 +7,7 @@
     "
   >
     <q-btn
+      v-if="showBackButton"
       flat
       round
       icon="arrow_back"
@@ -110,6 +111,7 @@ export default defineComponent({
   name: "MarketplaceHeader",
   props: {
     title: { type: String, default: t("Marketplace") },
+    showBackButton: { type: Boolean, default: false },
   },
   setup() {
     const $q = useQuasar();
