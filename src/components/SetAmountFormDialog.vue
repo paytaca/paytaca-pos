@@ -179,18 +179,16 @@
             color="brandblue"
             size="1rem"
             padding="sm md"
-            :label="conversionLoading ? '' : $t('Proceed')"
+            :label="$t('Proceed')"
             class="q-space"
             :class="{
               'sparkle-button': isFormValid,
               'disabled-button': !isFormValid,
             }"
             type="submit"
-            :icon="conversionLoading ? undefined : 'mdi-qrcode'"
+            icon="mdi-qrcode"
             :disable="!isFormValid"
-          >
-            <q-spinner-dots v-if="conversionLoading" size="20px" />
-          </q-btn>
+          />
         </q-card-actions>
       </q-form>
     </q-card>
