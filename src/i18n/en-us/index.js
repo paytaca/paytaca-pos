@@ -509,6 +509,7 @@ export default {
   EnterAmountToBeReceived: "Enter the amount to be received",
   ReceivePayment: "Receive Payment",
   CreatePaymentRequest: "Create a payment request",
+  Last24Hours: "last 24 hours",
   Property1: "Property 1",
   Property2: "Property 2",
   Province: "Province",

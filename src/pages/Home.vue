@@ -200,6 +200,9 @@
               <div class="row items-center">
                 <div class="text-h6 text-weight-medium">
                   {{ $t("Transactions") }}
+                  <span v-if="!hasFullSalesReportAccess" class="text-caption text-grey">
+                    ({{ $t("Last24Hours") }})
+                  </span>
                 </div>
                 <q-space />
                 <q-btn
@@ -349,7 +352,6 @@ export default defineComponent({
       }
 
       const initialLoadPromises = [
-        fetchTransactions(),
         walletStore
           .refetchSalesReport()
           .then(() => walletStore.refetchSalesReportTokenMetadata()),
@@ -380,12 +382,12 @@ export default defineComponent({
       if (hasFullSalesReportAccess.value) {
         return transactions.value;
       }
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStr = today.toISOString().split("T")[0];
+      const now = Date.now();
+      const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
       const todayHistory = (transactions.value.history || []).filter((tx) => {
-        const txDate = new Date(tx.timestamp).toISOString().split("T")[0];
-        return txDate === todayStr;
+        if (!tx?.tx_timestamp) return false;
+        const txTime = new Date(tx.tx_timestamp).getTime();
+        return txTime >= twentyFourHoursAgo;
       });
       return {
         ...transactions.value,
@@ -421,6 +423,14 @@ export default defineComponent({
     watch(
       () => [walletStore.walletHash, walletStore.posId],
       () => fetchTransactions()
+    );
+    watch(
+      () => showTransactions.value,
+      (newVal) => {
+        if (newVal && !transactions.value.history?.length) {
+          fetchTransactions();
+        }
+      }
     );
 
     async function searchUnconfirmedPaymentsTransaction() {
@@ -610,6 +620,7 @@ export default defineComponent({
       hasFullSalesReportAccess,
       showTransactions,
       showSetAmountDialog,
+      filteredTransactions,
     };
   },
 });
