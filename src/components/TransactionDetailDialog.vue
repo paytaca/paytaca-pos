@@ -45,7 +45,7 @@
               :fallback-src="convertIpfsUrl(tokenMetadata?.imageUrl, 1)"
               @error="onImgErrorIpfsSrc"
             />
-            <img v-else src="~assets/bch-logo.webp" height="30" />
+            <img v-else src="/bch-logo.png" height="30" />
           </q-item-section>
           <q-item-section v-if="!transaction?._offline || transaction?.amount">
             <q-item-label class="text-h5">

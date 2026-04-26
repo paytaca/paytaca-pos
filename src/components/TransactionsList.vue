@@ -195,7 +195,8 @@ export default defineComponent({
         router.push({
           name: "transaction-detail",
           params: { txid: tx.txid },
-          state: { tx },
+          // Router state goes through history.pushState, so keep it clone-safe.
+          state: { tx: JSON.parse(JSON.stringify(tx)) },
         });
       } else {
         transactionDetailDialog.value.transaction = tx;

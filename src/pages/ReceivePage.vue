@@ -220,7 +220,7 @@ import QRCode from 'vue-qrcode-component'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
-import bchLogo from 'src/assets/bch-logo.webp'
+const bchLogo = '/bch-logo.png'
 import { convertIpfsUrl } from 'src/utils/ipfs'
 import { formatNumberAutoDecimals, formatNumberWithDecimals } from 'src/utils/number-format'
 import { postOutputFiatAmounts } from 'src/utils/watchtower'
@@ -1212,7 +1212,8 @@ export default defineComponent({
           name: 'transaction-detail',
           params: { txid: data?.txid },
           query: { new: 'true' },
-          state: { tx: txObject }
+          // Router state goes through history.pushState, so keep it clone-safe.
+          state: { tx: JSON.parse(JSON.stringify(txObject)) }
         }).then(() => {
           paymentDialogOpen.value = false
         }).catch(() => {

@@ -42,7 +42,7 @@
                   />
                   <img
                     v-else-if="selectedCurrency?.id === 'bch'"
-                    src="~assets/bch-logo.webp"
+                    src="/bch-logo.png"
                     height="24"
                     class="q-mr-xs"
                   />
@@ -83,7 +83,7 @@
                       />
                       <img
                         v-else-if="ctx?.opt?.id === 'bch'"
-                        src="~assets/bch-logo.webp"
+                        src="/bch-logo.png"
                         height="30"
                       />
                       <span
@@ -143,7 +143,7 @@
                     />
                     <img
                       v-else-if="ctx?.opt?.id === 'bch'"
-                      src="~assets/bch-logo.webp"
+                       src="/bch-logo.png"
                       height="30"
                     />
                     <img
@@ -171,7 +171,7 @@
                   />
                   <img
                     v-else-if="paymentCurrency?.id === 'bch'"
-                    src="~assets/bch-logo.webp"
+                     src="/bch-logo.png"
                     height="24"
                   />
                   <img

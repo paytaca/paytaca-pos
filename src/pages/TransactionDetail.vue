@@ -79,7 +79,7 @@
             />
             <img
               v-else-if="displayLogo === 'bch-logo.png'"
-              src="~assets/bch-logo.webp"
+              src="/bch-logo.png"
             />
           </q-avatar>
           <div class="text-h5 text-weight-medium">
@@ -214,6 +214,9 @@ export default defineComponent({
 
     // Check if transaction was preloaded in history state
     const preloadedTransaction = computed(() => {
+      const routeStateTx = route?.state?.tx;
+      if (routeStateTx) return routeStateTx;
+
       return (
         (window &&
           window.history &&
@@ -569,9 +572,9 @@ export default defineComponent({
         );
       }
 
-      // Launch confetti from center of page
+// Launch confetti from center of page
       try {
-        confetti({
+        await confetti({
           particleCount: 100,
           spread: 70,
           origin: { x: 0.5, y: 0.4 },
@@ -580,19 +583,19 @@ export default defineComponent({
           decay: 0.9,
           scalar: 0.8,
           colors: [
-            "#ff6b6b",
-            "#4ecdc4",
-            "#45b7d1",
-            "#f9ca24",
-            "#6c5ce7",
-            "#a29bfe",
-            "#fd79a8",
-            "#fdcb6e",
+            '#ff6b6b',
+            '#4ecdc4',
+            '#45b7d1',
+            '#f9ca24',
+            '#6c5ce7',
+            '#a29bfe',
+            '#fd79a8',
+            '#fdcb6e',
           ],
         });
-        console.log("[TransactionDetail] Confetti launched successfully");
+        console.log('[TransactionDetail] Confetti launched successfully');
       } catch (error) {
-        console.error("[TransactionDetail] Error launching confetti:", error);
+        console.error('[TransactionDetail] Error launching confetti:', error);
       }
     }
 
@@ -796,6 +799,10 @@ export default defineComponent({
     }
 
     onMounted(async () => {
+      try {
+      // Start in loading state so the page never renders blank while initializing.
+      isLoading.value = true;
+
       // Preload HTML5 audio for Safari compatibility (web platforms)
       if (!$q.platform.is.capacitor) {
         try {
@@ -804,32 +811,19 @@ export default defineComponent({
           // Load the audio (required for Safari)
           audioElement.value.load();
 
-          // For Safari, ensure audio is ready by waiting for canplay event
-          await new Promise((resolve, reject) => {
-            if (audioElement.value.readyState >= 2) {
-              resolve();
-              return;
-            }
-            audioElement.value.addEventListener("canplay", resolve, {
-              once: true,
-            });
-            audioElement.value.addEventListener("error", reject, {
-              once: true,
-            });
-            // Timeout after 3 seconds
-            setTimeout(() => {
-              if (audioElement.value.readyState >= 2) {
-                resolve();
-              } else {
-                console.warn("Audio preload timeout, but continuing anyway");
-                resolve(); // Resolve anyway to not block
-              }
-            }, 3000);
-          });
-          console.log(
-            "[TransactionDetail] HTML5 audio preloaded, readyState:",
-            audioElement.value.readyState
-          );
+          // Do not block page rendering on audio preload.
+          if (audioElement.value.readyState < 2) {
+            audioElement.value.addEventListener(
+              "canplay",
+              () => {
+                console.log(
+                  "[TransactionDetail] HTML5 audio preloaded, readyState:",
+                  audioElement.value?.readyState
+                );
+              },
+              { once: true }
+            );
+          }
         } catch (error) {
           console.warn("Failed to preload HTML5 audio:", error);
         }
@@ -850,17 +844,20 @@ export default defineComponent({
             isUrl = true;
           }
 
-          const preloaded = await preloadNativeAudio("send-success", path, {
-            isUrl,
-          });
-          if (preloaded) {
-            console.log(
-              "[TransactionDetail] NativeAudio preloaded successfully for",
-              $q.platform.is.android ? "Android" : "iOS",
-              "with path:",
-              path
-            );
-          }
+          preloadNativeAudio("send-success", path, { isUrl })
+            .then((preloaded) => {
+              if (preloaded) {
+                console.log(
+                  "[TransactionDetail] NativeAudio preloaded successfully for",
+                  $q.platform.is.android ? "Android" : "iOS",
+                  "with path:",
+                  path
+                );
+              }
+            })
+            .catch((error) => {
+              console.warn("Failed to preload audio:", error);
+            });
         } catch (error) {
           console.warn("Failed to preload audio:", error);
         }
@@ -895,6 +892,13 @@ export default defineComponent({
         // Wait for next animation frame to ensure content is painted
         await new Promise((resolve) => requestAnimationFrame(resolve));
         await launchConfetti();
+      }
+      } catch (error) {
+        console.error("[TransactionDetail] Error in onMounted:", error);
+        isLoading.value = false;
+        if (!loadError.value) {
+          loadError.value = t("Failed to load transaction");
+        }
       }
     });
 

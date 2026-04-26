@@ -385,7 +385,12 @@ if (Capacitor.isNativePlatform()) {
 
     setupEventHandlers() {
       Object.getOwnPropertyNames(this.eventHandlers).forEach((eventName) => {
-        PushNotifications.addListener(eventName, this.eventHandlers[eventName]);
+        PushNotifications.addListener(eventName, this.eventHandlers[eventName])
+          .catch((error) => {
+            if (error?.code !== 'UNIMPLEMENTED') {
+              console.warn('PushNotifications.addListener failed:', eventName, error);
+            }
+          });
       });
     }
 

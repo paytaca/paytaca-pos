@@ -31,7 +31,7 @@
               :src="displayLogo"
               @error="onImgErrorIpfsSrc"
             />
-            <img v-else-if="displayLogo === 'bch-logo.png'" src="~assets/bch-logo.webp" height="30"/>
+            <img v-else-if="displayLogo === 'bch-logo.png'" src="/bch-logo.png" height="30"/>
           </q-item-section>
           <q-item-section>
             <q-item-label class="text-h5">
@@ -244,16 +244,20 @@ export default defineComponent({
     function launchConfetti() {
       // Launch confetti from center of dialog
       // Origin: center horizontally (0.5), slightly above center vertically (0.4)
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { x: 0.5, y: 0.4 },
-        startVelocity: 55,
-        gravity: 0.8,
-        decay: 0.9,
-        scalar: 0.8,
-        colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e']
-      })
+      try {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { x: 0.5, y: 0.4 },
+          startVelocity: 55,
+          gravity: 0.8,
+          decay: 0.9,
+          scalar: 0.8,
+          colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e']
+        })
+      } catch (error) {
+        console.warn('Error launching confetti:', error)
+      }
     }
     
     onMounted(() => {

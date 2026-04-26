@@ -388,6 +388,7 @@ export default defineComponent({
       if (hasFullSalesReportAccess.value) {
         return transactions.value;
       }
+
       const now = Date.now();
       const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
       const todayHistory = (transactions.value.history || []).filter((tx) => {
@@ -395,10 +396,16 @@ export default defineComponent({
         const txTime = new Date(tx.tx_timestamp).getTime();
         return txTime >= twentyFourHoursAgo;
       });
+
+      const hasTransactions = todayHistory.length > 0;
+
       return {
         ...transactions.value,
         history: todayHistory,
         count: todayHistory.length,
+        page: hasTransactions ? 1 : 0,
+        num_pages: hasTransactions ? 1 : 0,
+        has_next: false,
       };
     });
     function fetchTransactions(page = 1) {
