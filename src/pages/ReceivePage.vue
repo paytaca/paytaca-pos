@@ -1238,55 +1238,24 @@ export default defineComponent({
               fiat_currency: `${originalFiatCurrency}`,
               recipient: data?.address,
             }
-            
+
             if (isTokenPayment) {
               entry.token_amount = receivedCryptoAmount.toFixed(tokenDecimals)
               entry.token_category = tokenCategory.value
             }
-            
-            // Use the output index from the transaction data, or default to 0
+
             const outputIndex = String(data?.index ?? 0)
             map[outputIndex] = entry
-            
-            // Post API call, but always navigate regardless of result
-            // Payment succeeded, so customer should see their transaction
+
+            navigateToTransactionDetails()
             postOutputFiatAmounts({ txid: data.txid, outputFiatAmounts: map })
-              .then(() => {
-                console.log('[ReceivePage] Fiat amounts posted successfully')
-              })
-              .catch((error) => {
-                // Only log errors - don't notify user for benign cases like duplicates
-                const errorMessage = error?.message || ''
-                const isBenign = error?.status === 409 || 
-                                errorMessage.includes('409') || 
-                                errorMessage.toLowerCase().includes('already exists') ||
-                                errorMessage.toLowerCase().includes('already saved') ||
-                                errorMessage.toLowerCase().includes('cannot overwrite') ||
-                                errorMessage.toLowerCase().includes('conflict') ||
-                                errorMessage.toLowerCase().includes('duplicate')
-                if (!isBenign) {
-                  console.error('[ReceivePage] Error posting fiat amounts:', error)
-                  $q.notify({ 
-                    type: 'warning', 
-                    message: t('UnableToSaveFiatBreakdown'), 
-                    timeout: 3000 
-                  })
-                }
-              })
-              .finally(() => {
-                // Always navigate to transaction details after payment succeeds
-                navigateToTransactionDetails()
-              })
           } else {
-            // No crypto amount, navigate immediately without API call
             navigateToTransactionDetails()
           }
         } catch (e) {
           console.error('[ReceivePage] Error in fiat amount posting', e)
-          // On error, don't navigate
         }
       } else {
-        // No fiat amount - navigate immediately without API call
         navigateToTransactionDetails()
       }
     }

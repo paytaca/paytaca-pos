@@ -167,7 +167,6 @@ export class Wallet {
   }
 
   /**
-   *
    * @param {Object} opts
    * @param {Number} opts.page
    * @param {Number} opts.cacheAge
@@ -228,5 +227,42 @@ export class Wallet {
       response.transactions = cachedPageData;
     }
     return response;
+  }
+
+  /**
+   * Fetch a single transaction by its txid using the wallet-history endpoint with txids filter.
+   * Returns the full wallet-formatted transaction in a single API call (no pagination scan).
+   * @param {String} txid
+   * @returns {Object|null} The transaction details, or null if not found.
+   */
+  async getTransactionById(txid) {
+    try {
+      const request = await this.watchtower.BCH._api
+        .get(`paytacapos/wallet-history/${this.walletHash}/`, {
+          params: { txids: txid, posid: this.posId, include_attrs: true },
+        })
+        .catch((error) => {
+          if (error?.response?.status === 404) {
+            return this.watchtower.BCH._api.get(
+              `history/wallet/${this.walletHash}/`,
+              { params: { txids: txid, posid: this.posId, include_attrs: true } }
+            );
+          }
+          throw error;
+        });
+      if (request?.data) {
+        const history = request.data.history;
+        if (Array.isArray(history) && history.length > 0) {
+          return history[0];
+        }
+        if (Array.isArray(request.data) && request.data.length > 0) {
+          return request.data[0];
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("[Wallet] getTransactionById error:", error);
+      return null;
+    }
   }
 }

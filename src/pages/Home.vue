@@ -86,34 +86,6 @@
         </div>
 
         <div class="q-px-md q-mb-md">
-          <q-card
-            class="receive-payment-card"
-            :class="{ 'bg-dark': $q.dark.isActive }"
-            clickable
-            @click="showSetAmountDialog()"
-          >
-            <q-card-section class="row items-center q-pa-md">
-              <q-avatar
-                size="48px"
-                color="brandblue"
-                text-color="white"
-                icon="mdi-qrcode"
-              />
-              <div class="q-ml-md">
-                <div class="text-h6 text-weight-medium">
-                  {{ $t("ReceivePayment") }}
-                </div>
-                <div class="text-caption text-grey">
-                  {{ $t("CreatePaymentRequest") }}
-                </div>
-              </div>
-              <q-space />
-              <q-icon name="mdi-chevron-right" size="24px" color="grey" />
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <div class="q-px-md q-mb-md">
           <template v-if="hasFullSalesReportAccess">
             <div class="section-title text-overline text-uppercase q-mb-sm">
               {{ $t("SalesReport") }}
@@ -174,25 +146,44 @@
               <template v-else>
                 <div class="col-12">
                   <SalesReportCard
+                    featured
                     :title="$t('SalesToday')"
                     :sales-report="walletStore.salesReportSummary.today"
-                  >
-                    <q-btn
-                      v-if="!hasFullSalesReportAccess"
-                      class="full-width q-mt-sm"
-                      flat
-                      dense
-                      :label="showTransactions ? $t('HideTransactions') : $t('ShowTransactions')"
-                      @click="showTransactions = !showTransactions"
-                    />
-                  </SalesReportCard>
+                  />
                 </div>
               </template>
             </template>
           </div>
         </div>
 
-        <div v-if="hasFullSalesReportAccess || showTransactions" class="q-px-md">
+        <div class="q-px-md q-mb-md">
+          <q-btn
+            unelevated
+            no-caps
+            class="receive-payment-btn full-width"
+            :class="{ 'receive-payment-btn--dark': $q.dark.isActive }"
+            @click="showSetAmountDialog()"
+          >
+            <div class="receive-payment-btn__icon">
+              <q-icon name="mdi-qrcode" size="28px" />
+            </div>
+            <div class="receive-payment-btn__content">
+              <div class="receive-payment-btn__title">
+                {{ $t("ReceivePayment") }}
+              </div>
+              <div class="receive-payment-btn__subtitle">
+                {{ $t("CreatePaymentRequest") }}
+              </div>
+            </div>
+            <q-icon
+              name="mdi-arrow-right"
+              size="22px"
+              class="receive-payment-btn__arrow"
+            />
+          </q-btn>
+        </div>
+
+        <div class="q-px-md">
           <q-card
             class="transactions-card"
             :class="{ 'bg-dark': $q.dark.isActive }"
@@ -382,7 +373,6 @@ export default defineComponent({
     const fetchingTransactions = ref(false);
     const isRefreshing = ref(false);
     const isInitialLoading = ref(true);
-    const showTransactions = ref(false);
 
     const filteredTransactions = computed(() => {
       if (hasFullSalesReportAccess.value) {
@@ -436,14 +426,6 @@ export default defineComponent({
     watch(
       () => [walletStore.walletHash, walletStore.posId],
       () => fetchTransactions()
-    );
-    watch(
-      () => showTransactions.value,
-      (newVal) => {
-        if (newVal && !transactions.value.history?.length) {
-          fetchTransactions();
-        }
-      }
     );
     watch(
       () => hasFullSalesReportAccess.value,
@@ -640,7 +622,6 @@ export default defineComponent({
       isInitialLoading,
       hasFullSalesReportAccess,
       isMarketplaceUserLoggedIn,
-      showTransactions,
       showSetAmountDialog,
       filteredTransactions,
     };
@@ -693,16 +674,70 @@ export default defineComponent({
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.receive-payment-card {
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.receive-payment-btn {
+  min-height: 72px;
+  border-radius: 999px;
+  background: $brandblue;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  box-shadow: 0 8px 18px rgba(2, 123, 227, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 12px 24px rgba(2, 123, 227, 0.24);
+    filter: brightness(1.02);
   }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.receive-payment-btn :deep(.q-btn__content) {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0.9rem;
+  padding: 0 0.6rem;
+}
+
+.receive-payment-btn__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.receive-payment-btn__content {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.receive-payment-btn__title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.receive-payment-btn__subtitle {
+  margin-top: 0.12rem;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.receive-payment-btn__arrow {
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.receive-payment-btn--dark {
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
 }
 
 .transactions-list {
@@ -728,8 +763,7 @@ export default defineComponent({
   .profile-card,
   .sales-card,
   .marketplace-card,
-  .transactions-card,
-  .receive-payment-card {
+  .transactions-card {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 }

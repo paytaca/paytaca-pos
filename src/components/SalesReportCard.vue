@@ -1,5 +1,8 @@
 <template>
-  <q-card class="sales-card q-pa-md column full-height">
+  <q-card
+    class="sales-card q-pa-md column full-height"
+    :class="{ 'sales-card--featured': featured }"
+  >
     <div class="row items-center">
       <div class="text-body2">{{ title }}</div>
       <q-space />
@@ -62,6 +65,7 @@ export default defineComponent({
   name: "SalesReportCard",
   props: {
     title: String,
+    featured: Boolean,
     salesReport: {
       type: Object,
       default: () => ({
@@ -143,6 +147,16 @@ export default defineComponent({
 
   .text-caption {
     font-size: 0.7rem;
+  }
+
+  &.sales-card--featured {
+    .text-body1 {
+      font-size: 1.2rem;
+    }
+
+    .text-caption {
+      font-size: 0.85rem;
+    }
   }
 }
 

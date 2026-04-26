@@ -552,6 +552,13 @@ export default defineComponent({
       await playHtml5Audio(webPath);
     }
 
+    function launchConfettiIfNew() {
+      if (!isNewTransaction.value) return;
+      nextTick(() => {
+        requestAnimationFrame(() => launchConfetti());
+      });
+    }
+
     async function launchConfetti() {
       console.log(
         "[TransactionDetail] launchConfetti called, platform is iOS:",
@@ -606,50 +613,7 @@ export default defineComponent({
 
     // Core function to search for transaction
     async function searchTransaction(txid) {
-      // Search for transaction in wallet history
-      const response = await walletStore.walletObj.getTransactions({
-        page: 1,
-        type: "incoming",
-      });
-
-      if (response.success && Array.isArray(response.transactions?.history)) {
-        const foundTx = response.transactions.history.find(
-          (tx) => tx.txid === txid
-        );
-        if (foundTx) {
-          return foundTx;
-        }
-      }
-
-      // If not found in first page, search through all pages
-      let page = 1;
-      let hasMore = true;
-
-      while (hasMore) {
-        const pageResponse = await walletStore.walletObj.getTransactions({
-          page: page,
-          type: "incoming",
-        });
-
-        if (
-          pageResponse.success &&
-          Array.isArray(pageResponse.transactions?.history)
-        ) {
-          const foundTx = pageResponse.transactions.history.find(
-            (tx) => tx.txid === txid
-          );
-          if (foundTx) {
-            return foundTx;
-          }
-
-          hasMore = page < pageResponse.transactions.num_pages;
-          page++;
-        } else {
-          hasMore = false;
-        }
-      }
-
-      return null;
+      return walletStore.walletObj.getTransactionById(txid);
     }
 
     async function fetchTransaction(forceServerFetch = false) {
@@ -676,9 +640,10 @@ export default defineComponent({
       // Check for preloaded transaction from websocket first
       const websocketTx = preloadedTransaction.value;
       if (websocketTx && websocketTx.txid === txid && !forceServerFetch) {
-        // Use websocket data immediately if available (unless forcing server fetch)
         transaction.value = websocketTx;
         isLoading.value = false;
+        launchConfettiIfNew();
+        fetchTransaction(true).catch(() => {});
         return;
       }
 
@@ -800,9 +765,6 @@ export default defineComponent({
 
     onMounted(async () => {
       try {
-      // Start in loading state so the page never renders blank while initializing.
-      isLoading.value = true;
-
       // Preload HTML5 audio for Safari compatibility (web platforms)
       if (!$q.platform.is.capacitor) {
         try {
@@ -866,41 +828,24 @@ export default defineComponent({
       // Check for preloaded transaction first (from websocket)
       if (preloadedTransaction.value) {
         transaction.value = preloadedTransaction.value;
-        // Play sound and launch confetti if this is a new transaction
-        // Wait for DOM to be fully rendered before triggering
-        if (isNewTransaction.value) {
-          await nextTick();
-          // Wait for next animation frame to ensure content is painted
-          await new Promise((resolve) => requestAnimationFrame(resolve));
-          await launchConfetti();
-        }
-        // Still try to fetch from server in background to get latest data
-        // but don't wait for it - we already have websocket data
-        fetchTransaction(true).catch(() => {
-          // Silently fail - we already have websocket data
-        });
+        isLoading.value = false;
+        launchConfettiIfNew();
+        fetchTransaction(true).catch(() => {});
         return;
       }
 
-      // Otherwise fetch the transaction with retries
-      await fetchTransaction();
-
-      // Play sound and launch confetti if this is a new transaction (after fetch completes)
-      // Wait for DOM to be fully rendered before triggering
-      if (isNewTransaction.value && transaction.value) {
-        await nextTick();
-        // Wait for next animation frame to ensure content is painted
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-        await launchConfetti();
+// Otherwise fetch the transaction with retries — fire and forget.
+      // Confetti fires immediately from route state; API update resolves in background.
+      launchConfettiIfNew();
+      fetchTransaction().catch(() => {});
+    } catch (error) {
+      console.error("[TransactionDetail] Error in onMounted:", error);
+      isLoading.value = false;
+      if (!loadError.value) {
+        loadError.value = t("Failed to load transaction");
       }
-      } catch (error) {
-        console.error("[TransactionDetail] Error in onMounted:", error);
-        isLoading.value = false;
-        if (!loadError.value) {
-          loadError.value = t("Failed to load transaction");
-        }
-      }
-    });
+    }
+  });
 
     onUnmounted(async () => {
       if ($q.platform.is.capacitor) {
