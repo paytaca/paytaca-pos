@@ -180,7 +180,10 @@ import {
 
 export default defineComponent({
   name: "TransactionDetail",
-  setup() {
+  props: {
+    txid: String,
+  },
+  setup(props) {
     const $q = useQuasar();
     const { t } = useI18n();
     const router = useRouter();
@@ -647,7 +650,7 @@ export default defineComponent({
     }
 
     async function fetchTransaction(forceServerFetch = false) {
-      const txid = route.params.txid;
+      const txid = route.params.txid || props.txid;
       if (!txid) {
         loadError.value = t("Transaction ID is required");
         return;

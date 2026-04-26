@@ -446,6 +446,11 @@ export default defineComponent({
       if (isCashtoken.value) return NaN
       if (isNotFiatMode.value) return receiveAmount.value
 
+      // Guard: only proceed if we have a valid receive amount
+      if (!receiveAmount.value || receiveAmount.value <= 0) {
+        return NaN
+      }
+
       const rateValue = currencyBchRate.value?.rate
       if (!rateValue || rateValue === 0 || isNaN(rateValue)) {
         console.error('[ReceivePage] Invalid BCH rate value', {
@@ -515,6 +520,12 @@ export default defineComponent({
       // Ensure metadata is loaded before conversion
       if (!cashtokenMetadata.value) {
         console.log('[ReceivePage] tokenAmount: No metadata available, returning NaN')
+        return NaN
+      }
+
+      // Guard: only proceed if we have a valid receive amount
+      if (!receiveAmount.value || receiveAmount.value <= 0) {
+        console.log('[ReceivePage] tokenAmount: Invalid receive amount, returning NaN')
         return NaN
       }
 
