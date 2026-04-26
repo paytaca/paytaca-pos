@@ -651,13 +651,22 @@ export default defineComponent({
 
     async function fetchTransaction(forceServerFetch = false) {
       const txid = route.params.txid || props.txid;
+      console.log('[TransactionDetail] fetchTransaction called', {
+        txid,
+        routeParamsTxid: route.params.txid,
+        propsTxid: props.txid,
+        walletHash: walletStore.walletHash ? 'present' : 'missing',
+        walletObj: walletStore.walletObj ? 'present' : 'missing'
+      });
       if (!txid) {
         loadError.value = t("Transaction ID is required");
+        console.log('[TransactionDetail] No txid, setting loadError');
         return;
       }
 
       if (!walletStore.walletHash || !walletStore.walletObj) {
         loadError.value = t("Wallet not initialized");
+        console.log('[TransactionDetail] Wallet not initialized, setting loadError');
         return;
       }
 
@@ -979,9 +988,24 @@ export default defineComponent({
 .error-container {
   text-align: center;
   padding: 2rem;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 
   .error-text {
     margin-bottom: 1rem;
+    color: $brandblue;
+    font-size: 1.1rem;
+  }
+}
+
+.body--dark .error-container {
+  background-color: $dark-page;
+
+  .error-text {
+    color: white;
   }
 }
 
