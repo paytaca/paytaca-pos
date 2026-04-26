@@ -114,61 +114,82 @@
             <div class="text-subtitle2 q-mb-xs">
               {{ $t("PaymentCurrency") }}
             </div>
-            <div class="payment-currency-grid">
-              <div
-                v-for="currency in filteredCurrencyOpts"
-                :key="currency.id"
-                class="payment-currency-card"
-                :class="{ selected: paymentCurrency?.id === currency.id }"
-                :style="
-                  paymentCurrency?.id === currency.id
-                    ? { borderColor: $q.dark.isActive ? 'white' : 'black' }
-                    : {}
-                "
-                @click="paymentCurrency = currency"
-              >
-                <div
-                  class="flex row items-center justify-start q-pa-sm full-width"
+            <q-select
+              outlined
+              v-model="paymentCurrency"
+              :options="filteredCurrencyOpts"
+              :option-label="resolveAssetSymbol"
+              emit-value
+              map-options
+              style="min-width: 200px"
+              class="payment-currency-select"
+            >
+              <template v-slot:option="ctx">
+                <q-item
+                  :active="ctx?.selected"
+                  clickable
+                  @click="() => ctx.toggleOption(ctx.opt)"
                 >
+                  <q-item-section
+                    v-if="ctx?.opt?.imageUrl || ctx?.opt?.id === 'bch' || ctx?.opt?.id?.startsWith('ct/')"
+                    avatar
+                  >
+                    <img
+                      v-if="ctx?.opt?.imageUrl"
+                      height="30"
+                      :src="convertIpfsUrl(ctx?.opt?.imageUrl)"
+                      :fallback-src="convertIpfsUrl(ctx?.opt?.imageUrl, 1)"
+                      @error="onImgErrorIpfsSrc"
+                    />
+                    <img
+                      v-else-if="ctx?.opt?.id === 'bch'"
+                      src="~assets/bch-logo.webp"
+                      height="30"
+                    />
+                    <img
+                      v-else-if="ctx?.opt?.id?.startsWith('ct/')"
+                      height="30"
+                      :src="convertIpfsUrl(ctx?.opt?.iconUrl)"
+                      :fallback-src="convertIpfsUrl(ctx?.opt?.iconUrl, 1)"
+                      @error="onImgErrorIpfsSrc"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ ctx.label }}</q-item-label>
+                    <q-item-label v-if="ctx.opt?.name" caption>{{ ctx?.opt?.name }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+              <template v-slot:selected-item>
+                <div class="flex row items-center no-wrap q-gutter-x-xs">
                   <img
-                    v-if="currency.imageUrl"
-                    height="32"
-                    :src="convertIpfsUrl(currency.imageUrl)"
-                    :fallback-src="convertIpfsUrl(currency.imageUrl, 1)"
+                    v-if="paymentCurrency?.imageUrl"
+                    height="24"
+                    :src="convertIpfsUrl(paymentCurrency?.imageUrl)"
+                    :fallback-src="convertIpfsUrl(paymentCurrency?.imageUrl, 1)"
                     @error="onImgErrorIpfsSrc"
-                    class="q-mr-sm"
                   />
                   <img
-                    v-else-if="currency.id === 'bch'"
+                    v-else-if="paymentCurrency?.id === 'bch'"
                     src="~assets/bch-logo.webp"
-                    height="32"
-                    class="q-mr-sm"
+                    height="24"
                   />
-                  <div class="flex column">
-                    <div class="text-weight-medium">
-                      {{ resolveAssetSymbol(currency) }}
-                    </div>
-                    <div
-                      v-if="!fiatAmountValue && currency.name"
-                      class="text-caption text-grey-6 ellipsis"
-                      style="max-width: 100px"
-                    >
-                      {{ currency.name }}
-                    </div>
-                    <div
-                      v-else-if="
-                        fiatAmountValue &&
-                        paymentCurrency?.id === currency.id &&
-                        isFiatSelected
-                      "
-                      class="text-caption"
-                    >
-                      <q-spinner-dots v-if="conversionLoading" size="12px" />
-                      <span v-else>≈ {{ formatPaymentAmount }}</span>
-                    </div>
-                  </div>
+                  <img
+                    v-else-if="paymentCurrency?.id?.startsWith('ct/')"
+                    height="24"
+                    :src="convertIpfsUrl(paymentCurrency?.iconUrl)"
+                    :fallback-src="convertIpfsUrl(paymentCurrency?.iconUrl, 1)"
+                    @error="onImgErrorIpfsSrc"
+                  />
+                  <span class="q-ml-xs">{{ resolveAssetSymbol(paymentCurrency) }}</span>
                 </div>
-              </div>
+              </template>
+            </q-select>
+            <div v-if="fiatAmountValue && !conversionLoading" class="text-caption q-mt-xs">
+              ≈ {{ formatPaymentAmount }}
+            </div>
+            <div v-else-if="fiatAmountValue && conversionLoading" class="text-caption q-mt-xs">
+              <q-spinner-dots size="12px" />
             </div>
           </div>
         </q-card-section>
@@ -934,36 +955,9 @@ export default defineComponent({
   }
 }
 
-/* Payment currency grid - 2 columns with fixed widths */
-.payment-currency-grid {
-  display: grid;
-  grid-template-columns: repeat(2, calc(50% - 4px));
-  gap: 8px;
-}
-
-/* Payment currency cards */
-.payment-currency-card {
-  width: 100%;
-  max-width: 100%;
-  cursor: pointer;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  background-color: rgba(255, 255, 255, 0.05);
-  overflow: hidden;
-}
-
-.payment-currency-card:hover:not(.selected) {
-  border-color: rgba(37, 57, 51, 0.3);
-  background-color: rgba(255, 255, 255, 0.08);
-  transform: translateY(-2px);
-}
-
-.payment-currency-card.selected {
-  border-width: 1px;
-  background-color: rgba(37, 57, 51, 0.2);
-  box-shadow: 0 4px 12px rgba(37, 57, 51, 0.4);
-  transform: scale(1.05);
+.payment-currency-select :deep(.q-field__native) {
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 .disabled-button {
