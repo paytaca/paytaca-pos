@@ -169,7 +169,6 @@ import { useWalletStore } from "src/stores/wallet";
 import confetti from "canvas-confetti";
 import { Capacitor } from "@capacitor/core";
 import { NativeAudio } from "@capacitor-community/native-audio";
-import AudioMode from "src/utils/audio-mode";
 import {
   formatNumberAutoDecimals,
   formatNumberWithDecimals,
@@ -197,7 +196,6 @@ export default defineComponent({
 
     // Audio state for native platforms
     const audioPreloaded = ref(false);
-    const successfulAudioPath = ref(null);
 
     // Check if this is a new transaction from query params
     const isNewTransaction = computed(() => {
@@ -438,51 +436,18 @@ export default defineComponent({
 
     async function preloadAudio() {
       console.log("[NativeAudio] preloadAudio started");
-      // Configure NativeAudio to not take audio focus, allowing other apps
-      // (e.g. Spotify) to continue playing in the background
-      try {
-        console.log("[NativeAudio] calling configure...");
-        await NativeAudio.configure({ focus: false, fade: false });
-        console.log("[NativeAudio] configure success");
-      } catch (e) {
-        console.warn("[NativeAudio] configure error:", e);
-      }
-
-      // Try different path formats for iOS
-      let paths = ["send-success.mp3"];
-      if ($q.platform.is.ios) {
-        // Try multiple iOS path formats - iOS Native Audio looks for files in the bundle
-        // The file is at public/assets/sounds/send-success.mp3 which becomes www/assets/sounds/send-success.mp3
-        paths = [
-          "assets/sounds/send-success.mp3", // Relative to www
-          "send-success.mp3", // Just filename (if in root)
-          "/assets/sounds/send-success.mp3", // Absolute from www root
-          Capacitor.convertFileSrc("assets/sounds/send-success.mp3"), // Capacitor URL conversion
-          Capacitor.convertFileSrc("/assets/sounds/send-success.mp3"), // Capacitor URL with leading slash
-        ];
-      }
-
-      for (const path of paths) {
-        try {
-          console.log("[NativeAudio] trying preload path:", path);
-          await NativeAudio.preload({
-            assetId: "send-success",
-            assetPath: path,
-            audioChannelNum: 1,
-            volume: 1.0,
-            isUrl:
-              $q.platform.is.ios &&
-              (path.startsWith("http") || path.startsWith("capacitor")),
-          });
-          // Store the successful path for later use
-          successfulAudioPath.value = path;
-          console.log("[NativeAudio] preload success with path:", path);
-          return; // Success, exit
-        } catch (error) {
-          console.warn("[NativeAudio] preload failed for path:", path, error);
-        }
-      }
-      throw new Error("All audio preload attempts failed");
+      // Note: we intentionally do NOT call NativeAudio.configure({ focus: false }).
+      // That would set AVAudioSession category to .ambient, which respects the
+      // iPhone silent/ringer switch and would mute payment sounds.
+      // The plugin default is .playback (ignores silent switch).
+      await NativeAudio.preload({
+        assetId: "send-success",
+        assetPath: "send-success.mp3",
+        audioChannelNum: 1,
+        volume: 1.0,
+        isUrl: false,
+      });
+      console.log("[NativeAudio] preload success");
     }
 
     async function playSound(success) {
@@ -490,49 +455,26 @@ export default defineComponent({
       if (!success) return;
 
       // Only allow audio for new-transaction views.
-      // Prevents preloading/playing from interrupting background audio on iOS
-      // when viewing older transactions.
       if (!wasNewTransaction.value) return;
 
-      // Respect DND/silent mode on native platforms
-      if (Capacitor.isNativePlatform()) {
-        try {
-          const { isSilentOrDnd } = await AudioMode.isSilentOrDnd();
-          if (isSilentOrDnd) {
-            console.log(
-              "[NativeAudio] skipping sound - device is in silent/DND mode"
-            );
-            return;
-          }
-        } catch (e) {
-          console.warn("[NativeAudio] could not check audio mode:", e);
-        }
-      }
-
       try {
-        // Ensure audio is preloaded before playing
         if (!audioPreloaded.value) {
           console.log("[NativeAudio] audio not preloaded, preloading...");
           await preloadAudio();
           audioPreloaded.value = true;
         }
-
         console.log("[NativeAudio] calling play()");
-        await NativeAudio.play({
-          assetId: "send-success",
-        });
+        await NativeAudio.play({ assetId: "send-success" });
         console.log("[NativeAudio] play() completed");
       } catch (error) {
         console.error("[NativeAudio] play error:", error);
-        // Try to preload and play again (non-blocking)
+        // Retry once (non-blocking)
         preloadAudio()
           .then(() => {
             audioPreloaded.value = true;
             return NativeAudio.play({ assetId: "send-success" });
           })
-          .catch(() => {
-            // Ignore retry errors
-          });
+          .catch(() => {});
       }
     }
 
