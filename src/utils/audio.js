@@ -22,13 +22,22 @@ export async function playNativeAudio(assetId, assetPath = null, options = {}) {
 
   try {
     if (assetPath) {
-      await audio.preload({
-        assetId,
-        assetPath,
-        audioChannelNum: options.audioChannelNum || 1,
-        volume: options.volume || 1.0,
-        isUrl: options.isUrl || false,
-      });
+      try {
+        await audio.preload({
+          assetId,
+          assetPath,
+          audioChannelNum: options.audioChannelNum || 1,
+          volume: options.volume || 1.0,
+          isUrl: options.isUrl || false,
+        });
+      } catch (preloadError) {
+        // Asset may already be loaded from an earlier preload call.
+        // Log and continue so we can still try to play it.
+        console.warn(
+          "NativeAudio preload warning (may already exist):",
+          preloadError?.message || preloadError
+        );
+      }
     }
     await audio.play({ assetId });
     return true;
@@ -71,15 +80,28 @@ export async function unloadNativeAudio(assetId) {
 export function playHtml5Audio(src) {
   return new Promise((resolve, reject) => {
     const audio = new Audio(src);
-    audio.addEventListener("canplay", async () => {
+
+    const tryPlay = async () => {
       try {
         await audio.play();
         resolve();
       } catch (e) {
         reject(e);
       }
-    });
-    audio.addEventListener("error", reject);
+    };
+
+    // If already playable (cached), fire immediately.
+    if (audio.readyState >= 2) {
+      tryPlay();
+      return;
+    }
+
+    audio.addEventListener("canplay", tryPlay, { once: true });
+    audio.addEventListener(
+      "error",
+      (e) => reject(new Error("Audio load error")),
+      { once: true }
+    );
     setTimeout(() => reject(new Error("Audio timeout")), 5000);
     audio.load();
   });

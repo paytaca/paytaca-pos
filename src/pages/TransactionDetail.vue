@@ -155,6 +155,7 @@ import {
   ref,
   onMounted,
   onUnmounted,
+  onUpdated,
   computed,
   watch,
   inject,
@@ -442,85 +443,57 @@ export default defineComponent({
       try {
         // For Safari, reuse preloaded audio element
         if (audioElement.value) {
-          // Reset to beginning
           audioElement.value.currentTime = 0;
 
-          // Check if audio is ready (Safari requirement)
-          if (audioElement.value.readyState >= 2) {
-            // HAVE_CURRENT_DATA or higher
-            try {
-              await audioElement.value.play();
-            } catch (error) {
-              console.error("Error playing preloaded audio:", error);
-              // If play fails, try loading and playing again
-              audioElement.value.load();
-              await new Promise((resolve) => {
-                audioElement.value.addEventListener("canplay", resolve, {
-                  once: true,
-                });
-                // Timeout after 2 seconds
-                setTimeout(resolve, 2000);
-              });
-              try {
-                await audioElement.value.play();
-              } catch (retryError) {
-                console.error("Error retrying audio play:", retryError);
-              }
-            }
-          } else {
-            // Wait for audio to be ready, then play
-            await new Promise((resolve) => {
-              const playWhenReady = async () => {
-                try {
-                  await audioElement.value.play();
-                } catch (error) {
-                  console.error("Error playing audio when ready:", error);
-                }
-                resolve();
-              };
-              audioElement.value.addEventListener("canplay", playWhenReady, {
-                once: true,
-              });
-              // Trigger load if not already loading
-              if (audioElement.value.readyState === 0) {
-                audioElement.value.load();
-              }
-              // Timeout after 2 seconds
-              setTimeout(resolve, 2000);
-            });
+          // Try playing immediately if ready (or even if not – some browsers
+          // will queue the play command and execute when ready).
+          try {
+            await audioElement.value.play();
+            return;
+          } catch (error) {
+            // If play was rejected (e.g. NotAllowedError or not ready),
+            // attempt one reload + retry.
+            console.warn("[TransactionDetail] Initial audio play failed:", error);
           }
-        } else {
-          // Fallback: create new audio if preload didn't work
-          const audio = new Audio("/send-success.mp3");
-          audio.preload = "auto";
+
+          // Retry after forcing a reload.
+          audioElement.value.load();
+          await new Promise((resolve) => {
+            const onReady = () => resolve();
+            audioElement.value.addEventListener("canplay", onReady, {
+              once: true,
+            });
+            setTimeout(resolve, 2000);
+          });
+
+          try {
+            await audioElement.value.play();
+          } catch (retryError) {
+            console.error("[TransactionDetail] Retry audio play failed:", retryError);
+          }
+          return;
+        }
+
+        // Fallback: create new audio if preload didn't work
+        const audio = new Audio("/send-success.mp3");
+        audio.preload = "auto";
+        try {
+          await audio.play();
+        } catch (error) {
+          console.warn("[TransactionDetail] Fallback audio play failed:", error);
+          audio.load();
+          await new Promise((resolve) => {
+            audio.addEventListener("canplay", () => resolve(), { once: true });
+            setTimeout(resolve, 2000);
+          });
           try {
             await audio.play();
-          } catch (error) {
-            console.error("Error playing fallback audio:", error);
-            // Try loading and playing again
-            audio.load();
-            await new Promise((resolve) => {
-              audio.addEventListener(
-                "canplay",
-                async () => {
-                  try {
-                    await audio.play();
-                  } catch (e) {
-                    console.error(
-                      "Error playing fallback audio after load:",
-                      e
-                    );
-                  }
-                  resolve();
-                },
-                { once: true }
-              );
-              setTimeout(resolve, 2000);
-            });
+          } catch (e) {
+            console.error("[TransactionDetail] Fallback retry failed:", e);
           }
         }
       } catch (error) {
-        console.error("Error in playHtml5Audio:", error);
+        console.error("[TransactionDetail] Error in playHtml5Audio:", error);
       }
     }
 
@@ -552,34 +525,79 @@ export default defineComponent({
       await playHtml5Audio(webPath);
     }
 
+    const confettiTriggered = ref(false);
+    // Capture new-transaction flag at mount time so query-param changes
+    // (e.g. router.replace that strips ?new=true) cannot suppress it.
+    const wasNewTransaction = ref(false);
+
     function launchConfettiIfNew() {
-      if (!isNewTransaction.value) return;
+      if (!wasNewTransaction.value || confettiTriggered.value) return;
+      confettiTriggered.value = true;
+
+      // Play sound immediately – the sooner we call audio.play() after the
+      // page becomes visible, the better the chance of bypassing browser
+      // autoplay restrictions.
+      playSound(true).catch((err) => {
+        console.warn("[TransactionDetail] Sound playback failed:", err);
+      });
+
+      // Wait for Vue DOM flush, then two paint cycles to guarantee
+      // the transaction details are actually visible on screen before
+      // drawing confetti over them.
       nextTick(() => {
-        requestAnimationFrame(() => launchConfetti());
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => launchConfettiVisuals());
+        });
       });
     }
 
-    async function launchConfetti() {
+    watch(
+      () => !!transaction.value && !isLoading.value,
+      (ready) => {
+        if (ready) {
+          launchConfettiIfNew();
+        }
+      },
+      { immediate: true }
+    );
+
+    // Fallback: if the watch somehow misses the state transition,
+    // try again after every DOM update.
+    onUpdated(() => {
+      if (!!transaction.value && !isLoading.value) {
+        launchConfettiIfNew();
+      }
+    });
+
+    // Reset the one-shot flag when the txid changes so the component
+    // can trigger confetti again if Vue Router re-uses this instance.
+    watch(
+      () => route.params.txid || props.txid,
+      (newTxid, oldTxid) => {
+        if (newTxid !== oldTxid) {
+          confettiTriggered.value = false;
+          const query = route.query || {};
+          wasNewTransaction.value = (
+            query.new === "true" ||
+            (typeof query.category === "string" &&
+              query.category.includes("?new=true")) ||
+            (window.location.search &&
+              window.location.search.includes("new=true"))
+          );
+        }
+      }
+    );
+
+    async function launchConfettiVisuals() {
       console.log(
-        "[TransactionDetail] launchConfetti called, platform is iOS:",
+        "[TransactionDetail] launchConfettiVisuals called, platform is iOS:",
         $q.platform.is.ios
       );
 
-      // Play sound for new transaction
-      // Ensure audio is ready by waiting for next frame (allows preload to complete)
+      // One more RAF to be absolutely sure the browser has painted
+      // the transaction details before we draw over them.
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
-      try {
-        await playSound(true);
-        console.log("[TransactionDetail] Sound played successfully");
-      } catch (error) {
-        console.error(
-          "[TransactionDetail] Error playing sound in launchConfetti:",
-          error
-        );
-      }
-
-// Launch confetti from center of page
       try {
         await confetti({
           particleCount: 100,
@@ -642,7 +660,6 @@ export default defineComponent({
       if (websocketTx && websocketTx.txid === txid && !forceServerFetch) {
         transaction.value = websocketTx;
         isLoading.value = false;
-        launchConfettiIfNew();
         fetchTransaction(true).catch(() => {});
         return;
       }
@@ -765,6 +782,19 @@ export default defineComponent({
 
     onMounted(async () => {
       try {
+      // Capture the new-transaction flag once at mount time.
+      // Query params may be stripped later (e.g. by router.replace),
+      // but we still want confetti/audio for this initial view.
+      const query = route.query || {};
+      wasNewTransaction.value = (
+        query.new === "true" ||
+        (typeof query.category === "string" &&
+          query.category.includes("?new=true")) ||
+        (window.location.search &&
+          window.location.search.includes("new=true"))
+      );
+      console.log('[TransactionDetail] wasNewTransaction:', wasNewTransaction.value);
+
       // Preload HTML5 audio for Safari compatibility (web platforms)
       if (!$q.platform.is.capacitor) {
         try {
@@ -829,14 +859,11 @@ export default defineComponent({
       if (preloadedTransaction.value) {
         transaction.value = preloadedTransaction.value;
         isLoading.value = false;
-        launchConfettiIfNew();
         fetchTransaction(true).catch(() => {});
         return;
       }
 
-// Otherwise fetch the transaction with retries — fire and forget.
-      // Confetti fires immediately from route state; API update resolves in background.
-      launchConfettiIfNew();
+      // Otherwise fetch the transaction with retries
       fetchTransaction().catch(() => {});
     } catch (error) {
       console.error("[TransactionDetail] Error in onMounted:", error);
