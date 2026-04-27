@@ -26,6 +26,7 @@ module.exports = configure(function (ctx) {
     boot: [
       "error-handler",
       "capacitor",
+      "native-audio",
       "clipboard",
       "leaflet",
       "network-detect",

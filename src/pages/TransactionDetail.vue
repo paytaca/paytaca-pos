@@ -168,12 +168,8 @@ import { useCashtokenStore } from "src/stores/cashtoken";
 import { useWalletStore } from "src/stores/wallet";
 import confetti from "canvas-confetti";
 import { Capacitor } from "@capacitor/core";
-import {
-  playNativeAudio,
-  preloadNativeAudio,
-  unloadNativeAudio,
-  playHtml5Audio,
-} from "src/utils/audio";
+import { NativeAudio } from "@capacitor-community/native-audio";
+import AudioMode from "src/utils/audio-mode";
 import {
   formatNumberAutoDecimals,
   formatNumberWithDecimals,
@@ -199,8 +195,9 @@ export default defineComponent({
     const loadError = ref(null);
     const isLoading = ref(false);
 
-    // Audio element for Safari compatibility (preload and reuse)
-    const audioElement = ref(null);
+    // Audio state for native platforms
+    const audioPreloaded = ref(false);
+    const successfulAudioPath = ref(null);
 
     // Check if this is a new transaction from query params
     const isNewTransaction = computed(() => {
@@ -439,90 +436,104 @@ export default defineComponent({
         .catch(() => {});
     }
 
-    async function playHtml5Audio() {
+    async function preloadAudio() {
+      console.log("[NativeAudio] preloadAudio started");
+      // Configure NativeAudio to not take audio focus, allowing other apps
+      // (e.g. Spotify) to continue playing in the background
       try {
-        // For Safari, reuse preloaded audio element
-        if (audioElement.value) {
-          audioElement.value.currentTime = 0;
-
-          // Try playing immediately if ready (or even if not – some browsers
-          // will queue the play command and execute when ready).
-          try {
-            await audioElement.value.play();
-            return;
-          } catch (error) {
-            // If play was rejected (e.g. NotAllowedError or not ready),
-            // attempt one reload + retry.
-            console.warn("[TransactionDetail] Initial audio play failed:", error);
-          }
-
-          // Retry after forcing a reload.
-          audioElement.value.load();
-          await new Promise((resolve) => {
-            const onReady = () => resolve();
-            audioElement.value.addEventListener("canplay", onReady, {
-              once: true,
-            });
-            setTimeout(resolve, 2000);
-          });
-
-          try {
-            await audioElement.value.play();
-          } catch (retryError) {
-            console.error("[TransactionDetail] Retry audio play failed:", retryError);
-          }
-          return;
-        }
-
-        // Fallback: create new audio if preload didn't work
-        const audio = new Audio("/send-success.mp3");
-        audio.preload = "auto";
-        try {
-          await audio.play();
-        } catch (error) {
-          console.warn("[TransactionDetail] Fallback audio play failed:", error);
-          audio.load();
-          await new Promise((resolve) => {
-            audio.addEventListener("canplay", () => resolve(), { once: true });
-            setTimeout(resolve, 2000);
-          });
-          try {
-            await audio.play();
-          } catch (e) {
-            console.error("[TransactionDetail] Fallback retry failed:", e);
-          }
-        }
-      } catch (error) {
-        console.error("[TransactionDetail] Error in playHtml5Audio:", error);
+        console.log("[NativeAudio] calling configure...");
+        await NativeAudio.configure({ focus: false, fade: false });
+        console.log("[NativeAudio] configure success");
+      } catch (e) {
+        console.warn("[NativeAudio] configure error:", e);
       }
+
+      // Try different path formats for iOS
+      let paths = ["send-success.mp3"];
+      if ($q.platform.is.ios) {
+        // Try multiple iOS path formats - iOS Native Audio looks for files in the bundle
+        // The file is at public/assets/sounds/send-success.mp3 which becomes www/assets/sounds/send-success.mp3
+        paths = [
+          "assets/sounds/send-success.mp3", // Relative to www
+          "send-success.mp3", // Just filename (if in root)
+          "/assets/sounds/send-success.mp3", // Absolute from www root
+          Capacitor.convertFileSrc("assets/sounds/send-success.mp3"), // Capacitor URL conversion
+          Capacitor.convertFileSrc("/assets/sounds/send-success.mp3"), // Capacitor URL with leading slash
+        ];
+      }
+
+      for (const path of paths) {
+        try {
+          console.log("[NativeAudio] trying preload path:", path);
+          await NativeAudio.preload({
+            assetId: "send-success",
+            assetPath: path,
+            audioChannelNum: 1,
+            volume: 1.0,
+            isUrl:
+              $q.platform.is.ios &&
+              (path.startsWith("http") || path.startsWith("capacitor")),
+          });
+          // Store the successful path for later use
+          successfulAudioPath.value = path;
+          console.log("[NativeAudio] preload success with path:", path);
+          return; // Success, exit
+        } catch (error) {
+          console.warn("[NativeAudio] preload failed for path:", path, error);
+        }
+      }
+      throw new Error("All audio preload attempts failed");
     }
 
     async function playSound(success) {
+      console.log("[NativeAudio] playSound called, success:", success);
       if (!success) return;
 
-      const webPath = "/send-success.mp3";
-      const baseUrl = window.location.origin;
+      // Only allow audio for new-transaction views.
+      // Prevents preloading/playing from interrupting background audio on iOS
+      // when viewing older transactions.
+      if (!wasNewTransaction.value) return;
 
-      if ($q.platform.is.ios) {
-        const path = "public/assets/sounds/send-success.mp3";
-        const played = await playNativeAudio("send-success", path, {
-          isUrl: false,
-        });
-        if (played) return;
-      } else if ($q.platform.is.android) {
-        const path = `${baseUrl}/send-success.mp3`;
-        const played = await playNativeAudio("send-success", path, {
-          isUrl: true,
-        });
-        if (played) return;
-      } else {
-        const played = await playNativeAudio("send-success", webPath, {
-          isUrl: true,
-        });
-        if (played) return;
+      // Respect DND/silent mode on native platforms
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { isSilentOrDnd } = await AudioMode.isSilentOrDnd();
+          if (isSilentOrDnd) {
+            console.log(
+              "[NativeAudio] skipping sound - device is in silent/DND mode"
+            );
+            return;
+          }
+        } catch (e) {
+          console.warn("[NativeAudio] could not check audio mode:", e);
+        }
       }
 
-      await playHtml5Audio(webPath);
+      try {
+        // Ensure audio is preloaded before playing
+        if (!audioPreloaded.value) {
+          console.log("[NativeAudio] audio not preloaded, preloading...");
+          await preloadAudio();
+          audioPreloaded.value = true;
+        }
+
+        console.log("[NativeAudio] calling play()");
+        await NativeAudio.play({
+          assetId: "send-success",
+        });
+        console.log("[NativeAudio] play() completed");
+      } catch (error) {
+        console.error("[NativeAudio] play error:", error);
+        // Try to preload and play again (non-blocking)
+        preloadAudio()
+          .then(() => {
+            audioPreloaded.value = true;
+            return NativeAudio.play({ assetId: "send-success" });
+          })
+          .catch(() => {
+            // Ignore retry errors
+          });
+      }
     }
 
     const confettiTriggered = ref(false);
@@ -533,13 +544,6 @@ export default defineComponent({
     function launchConfettiIfNew() {
       if (!wasNewTransaction.value || confettiTriggered.value) return;
       confettiTriggered.value = true;
-
-      // Play sound immediately – the sooner we call audio.play() after the
-      // page becomes visible, the better the chance of bypassing browser
-      // autoplay restrictions.
-      playSound(true).catch((err) => {
-        console.warn("[TransactionDetail] Sound playback failed:", err);
-      });
 
       // Wait for Vue DOM flush, then two paint cycles to guarantee
       // the transaction details are actually visible on screen before
@@ -593,6 +597,14 @@ export default defineComponent({
         "[TransactionDetail] launchConfettiVisuals called, platform is iOS:",
         $q.platform.is.ios
       );
+
+      // Play sound for new transaction (non-blocking - don't wait for it)
+      // Ensure audio is ready by waiting for next frame (allows preload to complete)
+      requestAnimationFrame(() => {
+        playSound(true).catch(() => {
+          // Ignore sound errors
+        });
+      });
 
       // One more RAF to be absolutely sure the browser has painted
       // the transaction details before we draw over them.
@@ -795,64 +807,17 @@ export default defineComponent({
       );
       console.log('[TransactionDetail] wasNewTransaction:', wasNewTransaction.value);
 
-      // Preload HTML5 audio for Safari compatibility (web platforms)
-      if (!$q.platform.is.capacitor) {
-        try {
-          audioElement.value = new Audio("/send-success.mp3");
-          audioElement.value.preload = "auto";
-          // Load the audio (required for Safari)
-          audioElement.value.load();
-
-          // Do not block page rendering on audio preload.
-          if (audioElement.value.readyState < 2) {
-            audioElement.value.addEventListener(
-              "canplay",
-              () => {
-                console.log(
-                  "[TransactionDetail] HTML5 audio preloaded, readyState:",
-                  audioElement.value?.readyState
-                );
-              },
-              { once: true }
-            );
-          }
-        } catch (error) {
-          console.warn("Failed to preload HTML5 audio:", error);
-        }
-      }
-
-      // Preload sound for native platforms
-      if ($q.platform.is.capacitor) {
-        try {
-          let path = "/send-success.mp3";
-          let isUrl = true;
-
-          if ($q.platform.is.ios) {
-            path = "public/assets/sounds/send-success.mp3";
-            isUrl = false;
-          } else if ($q.platform.is.android) {
-            const baseUrl = window.location.origin;
-            path = `${baseUrl}/send-success.mp3`;
-            isUrl = true;
-          }
-
-          preloadNativeAudio("send-success", path, { isUrl })
-            .then((preloaded) => {
-              if (preloaded) {
-                console.log(
-                  "[TransactionDetail] NativeAudio preloaded successfully for",
-                  $q.platform.is.android ? "Android" : "iOS",
-                  "with path:",
-                  path
-                );
-              }
-            })
-            .catch((error) => {
-              console.warn("Failed to preload audio:", error);
-            });
-        } catch (error) {
-          console.warn("Failed to preload audio:", error);
-        }
+      // Only preload audio for new transactions.
+      // iOS audio preload can interrupt other apps' background audio.
+      // Don't block on audio errors - confetti should still work.
+      if (wasNewTransaction.value && Capacitor.isNativePlatform()) {
+        preloadAudio()
+          .then(() => {
+            audioPreloaded.value = true;
+          })
+          .catch(() => {
+            audioPreloaded.value = false;
+          });
       }
 
       // Check for preloaded transaction first (from websocket)
@@ -875,8 +840,15 @@ export default defineComponent({
   });
 
     onUnmounted(async () => {
-      if ($q.platform.is.capacitor) {
-        await unloadNativeAudio("send-success");
+      // Unload sound (only if we preloaded/used it)
+      if (audioPreloaded.value) {
+        try {
+          await NativeAudio.unload({
+            assetId: "send-success",
+          });
+        } catch (error) {
+          // Silently fail if unload doesn't work
+        }
       }
     });
 
