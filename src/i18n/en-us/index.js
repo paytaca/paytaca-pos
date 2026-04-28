@@ -619,6 +619,7 @@ export default {
   SalesOrderNumber: "Sales Order Number",
   SalesReport: "Sales Report",
   SalesToday: "Sales Today",
+  SalesLast24h: "Sales (Last 24h)",
   ShowTransactions: "Show Transactions",
   HideTransactions: "Hide Transactions",
   Save: "Save",
