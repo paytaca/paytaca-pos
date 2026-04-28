@@ -107,7 +107,7 @@
               <div class="col-12">
                 <SalesReportCard
                   :featured="!hasFullSalesReportAccess"
-                  :title="hasFullSalesReportAccess ? $t('SalesLast24h') : $t('SalesToday')"
+                  :title="$t('SalesLast24h')"
                   :sales-report="salesToday24h"
                 />
               </div>
