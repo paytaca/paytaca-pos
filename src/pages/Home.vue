@@ -88,12 +88,40 @@
         <div class="q-px-md q-mb-md">
           <template v-if="hasFullSalesReportAccess">
             <div class="section-title text-overline text-uppercase q-mb-sm">
-              {{ $t("SalesReport") }}
+              {{ $t("SalesLast24h") }}
             </div>
           </template>
           <div class="row q-col-gutter-sm">
             <template v-if="isRefreshing || isInitialLoading">
-              <template v-if="hasFullSalesReportAccess">
+              <div class="col-12">
+                <q-card class="sales-card q-pa-md column full-height">
+                  <q-skeleton type="text" width="60px" />
+                  <div class="column justify-center q-space q-mt-sm">
+                    <q-skeleton type="text" width="80px" />
+                    <q-skeleton type="text" width="100px" class="q-mt-xs" />
+                  </div>
+                </q-card>
+              </div>
+            </template>
+            <template v-else>
+              <div class="col-12">
+                <SalesReportCard
+                  :featured="!hasFullSalesReportAccess"
+                  :title="$t('SalesLast24h')"
+                  :sales-report="salesToday24h"
+                />
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <template v-if="hasFullSalesReportAccess">
+          <div class="q-px-md q-mb-md">
+            <div class="section-title text-overline text-uppercase q-mb-sm">
+              {{ $t("SalesReport") }}
+            </div>
+            <div class="row q-col-gutter-sm">
+              <template v-if="isRefreshing || isInitialLoading">
                 <div v-for="n in 4" :key="n" class="col-6">
                   <q-card class="sales-card q-pa-md column full-height">
                     <q-skeleton type="text" width="60px" />
@@ -105,19 +133,6 @@
                 </div>
               </template>
               <template v-else>
-                <div class="col-12">
-                  <q-card class="sales-card q-pa-md column full-height">
-                    <q-skeleton type="text" width="60px" />
-                    <div class="column justify-center q-space q-mt-sm">
-                      <q-skeleton type="text" width="80px" />
-                      <q-skeleton type="text" width="100px" class="q-mt-xs" />
-                    </div>
-                  </q-card>
-                </div>
-              </template>
-            </template>
-            <template v-else>
-              <template v-if="hasFullSalesReportAccess">
                 <div class="col-6">
                   <SalesReportCard
                     :title="$t('Today')"
@@ -143,18 +158,9 @@
                   />
                 </div>
               </template>
-              <template v-else>
-                <div class="col-12">
-                  <SalesReportCard
-                    featured
-                    :title="$t('SalesToday')"
-                    :sales-report="walletStore.salesReportSummary.today"
-                  />
-                </div>
-              </template>
-            </template>
+            </div>
           </div>
-        </div>
+        </template>
 
         <div class="q-px-md q-mb-md">
           <q-btn
@@ -305,6 +311,7 @@ import { useCashtokenStore } from "src/stores/cashtoken";
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import { useTransactionHelpers } from "src/composables/transaction";
 
 export default defineComponent({
   name: "HomePage",
@@ -332,6 +339,9 @@ export default defineComponent({
     const txCacheStore = useTxCacheStore();
     const cashtokenStore = useCashtokenStore();
     const { t } = useI18n();
+    const { getTxDisplayFiat } = useTransactionHelpers();
+
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
     const isMarketplaceUserLoggedIn = computed(() => {
       return marketplaceStore.user?.id > 0;
@@ -380,7 +390,7 @@ export default defineComponent({
       }
 
       const now = Date.now();
-      const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+      const twentyFourHoursAgo = now - TWENTY_FOUR_HOURS_MS;
       const todayHistory = (transactions.value.history || []).filter((tx) => {
         if (!tx?.tx_timestamp) return false;
         const txTime = new Date(tx.tx_timestamp).getTime();
@@ -396,6 +406,57 @@ export default defineComponent({
         page: hasTransactions ? 1 : 0,
         num_pages: hasTransactions ? 1 : 0,
         has_next: false,
+      };
+    });
+
+    const salesToday24h = computed(() => {
+      const now = Date.now();
+      const twentyFourHoursAgo = now - TWENTY_FOUR_HOURS_MS;
+      const txList = transactions.value?.history || [];
+
+      const recentTxs = txList.filter((tx) => {
+        if (tx.record_type !== 'incoming') return false;
+        const txTime = new Date(tx.tx_timestamp || tx.date_created).getTime();
+        return txTime >= twentyFourHoursAgo && txTime <= now;
+      });
+
+      if (!recentTxs.length) {
+        return { total: 0, count: 0, tokenAmounts: [], totalMarketValue: null, currency: null };
+      }
+
+      let total = 0;
+      const tokenAmountsMap = new Map();
+      let totalMarketValue = 0;
+      let currency = null;
+
+      recentTxs.forEach((tx) => {
+        if (tx.ft_category) {
+          tokenAmountsMap.set(
+            tx.ft_category,
+            (tokenAmountsMap.get(tx.ft_category) || 0) + Number(tx.amount || 0)
+          );
+        } else if (!tx.nft_category) {
+          total += Number(tx.amount || 0);
+        }
+
+        const fiat = getTxDisplayFiat(tx);
+        if (fiat.value && !Number.isNaN(fiat.value)) {
+          totalMarketValue += fiat.value;
+          if (!currency) currency = fiat.currency;
+        }
+      });
+
+      const tokenAmounts = [];
+      for (const [category, amount] of tokenAmountsMap.entries()) {
+        tokenAmounts.push({ category, amount });
+      }
+
+      return {
+        total: Number(total.toFixed(8)),
+        count: recentTxs.length,
+        tokenAmounts,
+        totalMarketValue: Number.isFinite(totalMarketValue) ? Number(totalMarketValue.toFixed(5)) : null,
+        currency,
       };
     });
     function fetchTransactions(page = 1) {
@@ -624,6 +685,7 @@ export default defineComponent({
       isMarketplaceUserLoggedIn,
       showSetAmountDialog,
       filteredTransactions,
+      salesToday24h,
     };
   },
 });
