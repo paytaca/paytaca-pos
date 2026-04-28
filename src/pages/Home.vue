@@ -311,6 +311,7 @@ import { useCashtokenStore } from "src/stores/cashtoken";
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import { useTransactionHelpers } from "src/composables/transaction";
 
 export default defineComponent({
   name: "HomePage",
@@ -338,6 +339,7 @@ export default defineComponent({
     const txCacheStore = useTxCacheStore();
     const cashtokenStore = useCashtokenStore();
     const { t } = useI18n();
+    const { getTxDisplayFiat } = useTransactionHelpers();
 
     const isMarketplaceUserLoggedIn = computed(() => {
       return marketplaceStore.user?.id > 0;
@@ -422,6 +424,8 @@ export default defineComponent({
 
       let total = 0;
       const tokenAmountsMap = new Map();
+      let totalMarketValue = 0;
+      let currency = null;
 
       recentTxs.forEach((tx) => {
         if (tx.ft_category) {
@@ -431,6 +435,12 @@ export default defineComponent({
           );
         } else if (!tx.nft_category) {
           total += Number(tx.amount || 0);
+        }
+
+        const fiat = getTxDisplayFiat(tx);
+        if (fiat.value && !Number.isNaN(fiat.value)) {
+          totalMarketValue += fiat.value;
+          if (!currency) currency = fiat.currency;
         }
       });
 
@@ -443,8 +453,8 @@ export default defineComponent({
         total: Number(total.toFixed(8)),
         count: recentTxs.length,
         tokenAmounts,
-        totalMarketValue: null,
-        currency: null,
+        totalMarketValue: Number.isFinite(totalMarketValue) ? Number(totalMarketValue.toFixed(5)) : null,
+        currency,
       };
     });
     function fetchTransactions(page = 1) {
