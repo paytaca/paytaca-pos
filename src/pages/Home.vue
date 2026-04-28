@@ -341,6 +341,8 @@ export default defineComponent({
     const { t } = useI18n();
     const { getTxDisplayFiat } = useTransactionHelpers();
 
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
     const isMarketplaceUserLoggedIn = computed(() => {
       return marketplaceStore.user?.id > 0;
     });
@@ -388,7 +390,7 @@ export default defineComponent({
       }
 
       const now = Date.now();
-      const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+      const twentyFourHoursAgo = now - TWENTY_FOUR_HOURS_MS;
       const todayHistory = (transactions.value.history || []).filter((tx) => {
         if (!tx?.tx_timestamp) return false;
         const txTime = new Date(tx.tx_timestamp).getTime();
@@ -409,7 +411,7 @@ export default defineComponent({
 
     const salesToday24h = computed(() => {
       const now = Date.now();
-      const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+      const twentyFourHoursAgo = now - TWENTY_FOUR_HOURS_MS;
       const txList = transactions.value?.history || [];
 
       const recentTxs = txList.filter((tx) => {

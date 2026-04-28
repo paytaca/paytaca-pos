@@ -620,6 +620,7 @@ export default {
   SalesReport: "Sales Report",
   SalesToday: "Sales Today",
   SalesLast24h: "Sales (last 24 hours)",
+  Last24Hours: "last 24 hours",
   ShowTransactions: "Show Transactions",
   HideTransactions: "Hide Transactions",
   Save: "Save",
