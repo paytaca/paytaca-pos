@@ -1,10 +1,10 @@
 <template>
   <q-page class="q-pa-md" style="padding-bottom: 4.5rem;">
     <q-pull-to-refresh @refresh="refreshPage" class="q-pb-xl">
-      <MarketplaceHeader class="q-pl-md" :showBackButton="true">
+      <MarketplaceHeader class="q-pl-sm" :showBackButton="true">
         <template v-slot:title>
           <div class="q-space">
-            <div class="text-h5 ellipsis" style="max-width:calc(100vw - 6rem);">
+            <div class="text-h5 ellipsis" style="max-width:calc(100vw - 7rem);">
               {{ marketplaceStore.shop?.name || $t('Marketplace') }}
             </div>
             <div v-if="marketplaceStore.shop?.name" class="text-subtitle2 text-grey">
