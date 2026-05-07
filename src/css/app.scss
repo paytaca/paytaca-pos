@@ -10,8 +10,16 @@ body,
 .q-layout,
 .q-page-container,
 .q-page {
+  background-color: $brandlight;
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+body.body--dark,
+.body--dark .q-layout,
+.body--dark .q-page-container,
+.body--dark .q-page {
+  background-color: $dark-page;
 }
 
 body.transparent-body {
@@ -22,6 +30,7 @@ html:has(body.transparent-body)
 body.transparent-body .q-layout,
 body.transparent-body .q-page-container,
 body.transparent-body .q-page {
+  background-color: unset !important;
   background: transparent !important;
 }
 
