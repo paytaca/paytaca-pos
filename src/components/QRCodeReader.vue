@@ -7,10 +7,6 @@
       size="25px"
       flat
       class="scanner-close-btn"
-      :style="{
-        'margin-top':
-          'calc(20px + constant(safe-area-inset-top)); margin-top: calc(20px + env(safe-area-inset-top))',
-      }"
       @click="stopScan"
     />
     <div class="scanner-box">
@@ -235,9 +231,8 @@ export default {
 }
 .scanner-close-btn {
   position: absolute;
-  top: 0;
-  right: 0;
-  margin-right: 15px;
+  top: calc(20px + env(safe-area-inset-top));
+  right: 15px;
   color: #ef4f84;
   z-index: 2022;
 }
@@ -264,6 +259,7 @@ export default {
   display: none !important;
 }
 .transparent-body {
+  /* also implemented in app.scss */
   background: transparent !important;
 }
 .visibility-hide {
