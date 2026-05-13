@@ -28,7 +28,7 @@
         />
       </div>
     </div>
-    <q-dialog v-model="openUserMenu" position="bottom">
+    <q-dialog v-model="openUserMenu" position="right" full-height>
       <q-card>
         <q-card-section>
           <div class="row items-start">
@@ -49,7 +49,7 @@
               </div>
             </div>
             <q-space />
-            <div>
+            <!-- <div>
               <q-btn
                 outline
                 rounded
@@ -59,7 +59,7 @@
                 size="sm"
                 @click="$router.push({ name: 'marketplace-user' })"
               />
-            </div>
+            </div> -->
           </div>
           <div
             v-if="marketplaceStore?.userRoles?.length"
@@ -78,18 +78,63 @@
             clickable
             v-ripple
             v-close-popup
-            :to="{ name: 'marketplace-user' }"
+            :to="{ name: 'marketplace' }"
           >
             <q-item-section>
-              <q-item-label>{{ $t("ChangePassword") }}</q-item-label>
+              <q-item-label class="text-weight-medium">{{ $t("Home") }}</q-item-label>
             </q-item-section>
           </q-item>
+          <q-expansion-item
+            :header-inset-level="0"
+            :content-inset-level="0.5"
+            :label="$t('Shop')"
+            header-class="text-grey"
+          >
+            <q-item
+              clickable
+              v-ripple
+              v-close-popup
+              :to="{ name: 'marketplace-settings' }"
+            >
+              <q-item-section>
+                <q-item-label class="text-weight-medium">{{ $t("ShopInfo") }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              v-close-popup
+              :to="{ name: 'marketplace-storefront-settings' }"
+            >
+              <q-item-section>
+                <q-item-label class="text-weight-medium">{{ $t("StorefrontSettings") }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-expansion-item>
           <q-separator />
-          <q-item clickable v-ripple v-close-popup @click="() => logOut()">
-            <q-item-section>
-              <q-item-label>{{ $t("Logout") }}</q-item-label>
-            </q-item-section>
-          </q-item>
+          <q-expansion-item
+            :header-inset-level="0"
+            :content-inset-level="0.5"
+            default-opened
+            :label="$t('User')"
+            header-class="text-grey"
+          >
+            <q-item
+              clickable
+              v-ripple
+              v-close-popup
+              :to="{ name: 'marketplace-user' }"
+            >
+              <q-item-section>
+                <q-item-label class="text-weight-medium">{{ $t("ChangePassword") }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-ripple v-close-popup @click="() => logOut()">
+              <q-item-section>
+                <q-item-label class="text-weight-medium">{{ $t("Logout") }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-expansion-item>
         </q-list>
       </q-card>
     </q-dialog>
