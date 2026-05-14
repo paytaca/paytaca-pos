@@ -48,18 +48,6 @@
                 {{ marketplaceStore.user.username }}
               </div>
             </div>
-            <q-space />
-            <!-- <div>
-              <q-btn
-                outline
-                rounded
-                icon="chevron_right"
-                color="brandblue"
-                padding="sm"
-                size="sm"
-                @click="$router.push({ name: 'marketplace-user' })"
-              />
-            </div> -->
           </div>
           <div
             v-if="marketplaceStore?.userRoles?.length"
@@ -95,6 +83,7 @@
               clickable
               v-ripple
               v-close-popup
+              exact
               :to="{ name: 'marketplace-settings' }"
             >
               <q-item-section>
