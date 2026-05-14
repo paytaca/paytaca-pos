@@ -28,8 +28,8 @@
         />
       </div>
     </div>
-    <q-dialog v-model="openUserMenu" position="right" full-height>
-      <q-card>
+    <q-drawer v-model="openUserMenu" side="right" full-height>
+      <q-card flat>
         <q-card-section>
           <div class="row items-start">
             <img
@@ -78,17 +78,18 @@
             clickable
             v-ripple
             v-close-popup
+            exact
             :to="{ name: 'marketplace' }"
           >
             <q-item-section>
               <q-item-label class="text-weight-medium">{{ $t("Home") }}</q-item-label>
             </q-item-section>
           </q-item>
+          <q-separator />
           <q-expansion-item
             :header-inset-level="0"
             :content-inset-level="0.5"
             :label="$t('Shop')"
-            header-class="text-grey"
           >
             <q-item
               clickable
@@ -104,6 +105,7 @@
               clickable
               v-ripple
               v-close-popup
+              exact
               :to="{ name: 'marketplace-storefront-settings' }"
             >
               <q-item-section>
@@ -117,16 +119,16 @@
             :content-inset-level="0.5"
             default-opened
             :label="$t('User')"
-            header-class="text-grey"
           >
             <q-item
               clickable
               v-ripple
               v-close-popup
+              exact
               :to="{ name: 'marketplace-user' }"
             >
               <q-item-section>
-                <q-item-label class="text-weight-medium">{{ $t("ChangePassword") }}</q-item-label>
+                <q-item-label class="text-weight-medium">{{ $t("User") }} {{ $t('Settings') }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item clickable v-ripple v-close-popup @click="() => logOut()">
@@ -137,7 +139,7 @@
           </q-expansion-item>
         </q-list>
       </q-card>
-    </q-dialog>
+    </q-drawer>
   </div>
 </template>
 <script>
