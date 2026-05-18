@@ -643,9 +643,13 @@ export class Product {
   }
 
   get markupPriceRangeText() {
-    let text = `${this.minMarkupPrice}`;
-    if (this.minMarkupPrice != this.maxMarkupPrice)
-      text += ` - ${this.maxMarkupPrice}`;
+    const _minMarkupPrice = this.minPriceData?.finalMarkupPrice ?? this.minMarkupPrice;
+    const _maxMarkupPrice = this.maxPriceData?.finalMarkupPrice ?? this.minMarkupPrice;
+    const minMarkupPrice = Number.isFinite(_minMarkupPrice) ? _minMarkupPrice.toFixed(2) : '';
+    const maxMarkupPrice = Number.isFinite(_maxMarkupPrice) ? _maxMarkupPrice.toFixed(2) : '';
+    let text = `${minMarkupPrice}`;
+    if (minMarkupPrice != maxMarkupPrice)
+      text += ` - ${maxMarkupPrice}`;
     return text;
   }
 
