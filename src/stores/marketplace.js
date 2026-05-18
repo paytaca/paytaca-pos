@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { backend } from 'src/marketplace/backend'
-import { Shop, ROLES, User, Storefront, FungibleCashToken } from 'src/marketplace/objects';
+import { Shop, ROLES, User, Storefront, FungibleCashToken, TaxType } from 'src/marketplace/objects';
 import { time } from 'src/marketplace/utils';
 import { useWalletStore } from './wallet';
 
@@ -46,6 +46,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
         markupSaleRate: 1,
         startingPurchaseOrderNumber: 0,
         startingSalesOrderNumber: 0,
+        defaultTaxType: { id: 0, code: '', name: '', value: '' },
       },
       storefrontData: {
         id: 0,
@@ -97,6 +98,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
     shopSettings() {
       const data = Object.assign({}, this.shopSettingsData)
       data.defaultPurchaseOrderReviewer = User.parse(data.defaultPurchaseOrderReviewer)
+      data.defaultTaxType = TaxType.parse(data.defaultTaxType)
       return data
     },
     shopUserRole() {
@@ -193,6 +195,12 @@ export const useMarketplaceStore = defineStore('marketplace', {
         markupSaleRate: data?.markup_sale_rate,
         startingPurchaseOrderNumber: data?.starting_purchase_order_number,
         startingSalesOrderNumber: data?.starting_sales_order_number,
+        defaultTaxType: !data?.default_tax_type ? null : {
+          id: data.default_tax_type?.id,
+          name: data.default_tax_type?.name,
+          code: data.default_tax_type?.code,
+          value: data.default_tax_type?.value,
+        },
       }
     },
     /**

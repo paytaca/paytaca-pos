@@ -390,6 +390,75 @@ export class Stock {
   }
 }
 
+export class TaxType {
+  static parse(data) {
+    return new TaxType(data)
+  }
+
+  constructor(data) {
+    this.raw = data;
+  }
+
+  get raw() {
+    this.$raw;
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.code
+   * @param {String} data.name
+   * @param {String} data.value
+   */
+  set raw(data) {
+    this.id = data?.id;
+    this.code = data?.code;
+    this.name = data?.name;
+    this.value = parseFloat(data?.value);
+  }
+}
+
+export class PricingData {
+  static parseOptional(data) {
+    if (!data) return
+    return new PricingData(data);
+  }
+
+  static parse(data) {
+    return new PricingData(data)
+  }
+
+   /**
+   * @param {any} data
+   */
+  constructor(data) {
+    this.raw = data;
+  }
+
+  get raw() {
+    return this.$raw;
+  }
+
+  /**
+   * @param {Object} data
+   * @param {String} data.base_price
+   * @param {String} data.tax_amount
+   * @param {String} data.discount_amount
+   * @param {String} data.markup_amount
+   * @param {String} data.final_price
+   * @param {String} data.final_markup_price
+   */
+  set raw(data) {
+    this.$raw = data;
+    this.basePrice = parseFloat(data?.base_price);
+    this.taxAmount = parseFloat(data?.tax_amount);
+    this.discountAmount = parseFloat(data?.discount_amount);
+    this.markupAmount = parseFloat(data?.markup_amount);
+    this.finalPrice = parseFloat(data?.final_price);
+    this.finalMarkupPrice = parseFloat(data?.final_markup_price);
+  }
+}
+
 export class Variant {
   static parse(data) {
     return new Variant(data);
@@ -419,8 +488,7 @@ export class Variant {
    * @param {String} data.code
    * @param {String} data.image_url
    * @param {String} data.name
-   * @param {Number} data.price
-   * @param {Number} data.markup_price
+   * @param {Object} data.price_data
    * @param {Number} data.cutlery_cost
    * @param {Number} data.total_stocks
    * @param {Number} data.expired_stocks
@@ -438,8 +506,7 @@ export class Variant {
     this.code = data?.code;
     this.imageUrl = data?.image_url;
     this.name = data?.name;
-    this.price = data?.price;
-    this.markupPrice = data?.markup_price;
+    this.priceData = PricingData.parseOptional(data?.price_data);
     this.cutleryCost = data?.cutlery_cost;
     this.totalStocks = data?.total_stocks;
     this.expiredStocks = data?.expired_stocks;
@@ -512,8 +579,11 @@ export class Product {
    * @param {Number} data.variants_count
    * @param {Number} data.min_markup_price
    * @param {Number} data.max_markup_price
+   * @param {Object} data.min_price_data
+   * @param {Object} data.max_price_data
    * @param {Number} data.min_cutlery_cost
    * @param {Number} data.max_cutlery_cost
+   * @param {Object} data.tax_type
    * @param {String} [data.created_at]
    * @param {Number[]} data.shop_ids
    * @param {Object[]} [data.variants]
@@ -546,6 +616,9 @@ export class Product {
     this.minCutleryCost = data?.min_cutlery_cost;
     this.maxCutleryCost = data?.max_cutlery_cost;
     this.shopIds = data?.shop_ids;
+    this.minPriceData = PricingData.parseOptional(data?.min_price_data);
+    this.maxPriceData = PricingData.parseOptional(data?.max_price_data);
+    this.taxType = TaxType.parse(data?.tax_type);
     if (data?.created_at) this.createdAt = new Date(data?.created_at);
 
     this.updateVariants(data?.variants);
@@ -1017,6 +1090,10 @@ export class SalesOrderItem {
    * @param {Number} data.price
    * @param {Number} data.quantity
    * @param {String} data.item_name
+   * @param {Number} data.tax_code
+   * @param {Number} data.taxable_amount
+   * @param {Number} data.tax_amount
+   * @param {Number} data.final_amount
    */
   set raw(data) {
     Object.defineProperty(this, "$raw", {
@@ -1029,13 +1106,24 @@ export class SalesOrderItem {
     this.price = data?.price;
     this.quantity = data?.quantity;
     this.itemName = data?.item_name;
+    this.taxCode = data?.tax_code;
+    this.taxableAmount = data?.taxable_amount;
+    this.taxAmount = data?.tax_amount;
+    this.finalAmount = data?.final_amount;
   }
 
   get subtotal() {
+    if (Number.isFinite(this.finalAmount)) return this.finalAmount
+
     const price = parseFloat(this.price);
     const quantity = parseInt(this.quantity);
     const subtotal = price * quantity;
     return Number(subtotal.toFixed(3));
+  }
+
+  get unitPrice() {
+    if (Number.isFinite(this.finalAmount)) return this.finalAmount / this.quantity;
+    return this.price;
   }
 }
 
