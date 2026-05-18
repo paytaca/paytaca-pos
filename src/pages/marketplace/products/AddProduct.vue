@@ -64,6 +64,29 @@
       </q-card>
       <q-card>
         <q-card-section>
+          <div>{{ $t('TaxType') }}</div>
+          <q-select
+            dense
+            outlined
+            :loading="loading"
+            :disable="loading"
+            v-model="formData.taxType"
+            :options="taxTypeOptions"
+            option-value="id"
+            option-label="name"
+            clearable
+            :error="Boolean(formErrors?.taxType)"
+            :error-message="formErrors?.taxType"
+          >
+            <template v-slot:option="ctx">
+              <q-item v-bind="ctx.itemProps">
+                <q-item-section>
+                  <q-item-label>{{ ctx.opt.name }}</q-item-label>
+                  <q-item-label caption> {{ ctx.opt.code }} | {{ ctx.opt.value }}% </q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
           <div class="row items-center">
             <div class="text-subtitle1">{{ $t('CartOptions') }}</div>
             <q-space/>
@@ -298,7 +321,7 @@
 import { backend } from 'src/marketplace/backend'
 import { parseProductAddon } from 'src/marketplace/product-addons'
 import { errorParser } from 'src/marketplace/utils'
-import { defineComponent, ref } from 'vue'
+import { defineComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
@@ -310,6 +333,7 @@ import JSONFormPreview from 'src/components/marketplace/jsonform/JSONFormPreview
 import CategoriesField from 'src/components/marketplace/inventory/CategoriesField.vue'
 import AddonsFormDialog from 'src/components/marketplace/cartoptions/AddonsFormDialog.vue'
 import AddonsInfoPanel from 'src/components/marketplace/cartoptions/AddonsInfoPanel.vue'
+import { TaxType } from 'src/marketplace/objects'
 
 
 export default defineComponent({
@@ -326,6 +350,20 @@ export default defineComponent({
     const $q = useQuasar()
     const { t } = useI18n()
     const $router = useRouter()
+
+    onMounted(() => fetchTaxTypes())
+    const taxTypeOptions = ref([].map(TaxType.parse));
+    async function fetchTaxTypes() {
+      const params = {
+        shop_id: marketplaceStore.shopData?.id,
+      }
+      return backend.get(`tax-types/`, { params })
+        .then(response => {
+          if (!Array.isArray(response.data?.results)) return Promise.reject({ response });
+          taxTypeOptions.value = response.data?.results.map(TaxType.parse);
+          return response;
+        })
+    }
 
     let variantRowGenCounter = 0
     function createEmptyVariant() {
@@ -346,6 +384,7 @@ export default defineComponent({
       name: '',
       description: '',
       categories: [],
+      taxType: marketplaceStore.shopSettings?.defaultTaxType?.id ? marketplaceStore.shopSettings?.defaultTaxType : null,
       cartOptions: undefined,
       addons: [].map(parseProductAddon),
       variants: [createEmptyVariant()],
@@ -356,6 +395,7 @@ export default defineComponent({
       name: '',
       description: '',
       categories: '',
+      taxType: '',
       variants: [{
         detail: [],
         code: '',
@@ -373,6 +413,7 @@ export default defineComponent({
       formErrors.value.detail = []
       formErrors.value.name = ''
       formErrors.value.description = ''
+      formErrors.value.taxType = ''
       formErrors.value.imageUrl = ''
       formErrors.value.variants = []
     }
@@ -413,6 +454,7 @@ export default defineComponent({
         image_url: formData.value?.imageUrl || undefined,
         name: formData.value.name,
         description: formData.value.description,
+        tax_type_id: formData.value?.taxType?.id,
         categories: [],
         cart_options: formData.value.cartOptions?.map?.(data => Object.assign({}, data, { _index: undefined })),
         addons: formData.value.addons.map(addon => {
@@ -467,6 +509,7 @@ export default defineComponent({
             formErrors.value.detail = errorParser.toArray(data?.non_field_errors)
             formErrors.value.name = errorParser.firstElementOrValue(data?.name)
             formErrors.value.description = errorParser.firstElementOrValue(data?.description)
+            formErrors.value.taxType = errorParser.firstElementOrValue(data?.tax_type)
             formErrors.value.categories = errorParser.firstElementOrValue(data?.categories)
             if (Array.isArray(data?.variants)) {
               data?.variants.forEach((variantError, index) => {
@@ -497,6 +540,7 @@ export default defineComponent({
 
     return {
       marketplaceStore,
+      taxTypeOptions,
       form,
       loading,
       formData,

@@ -9,7 +9,7 @@
         </div>
       </template>
     </MarketplaceHeader>
-    <div v-if="fetchingProduct" class="row justify-center items-center q-py-lg">
+    <div v-if="!formReady" class="row justify-center items-center q-py-lg">
       <q-spinner size="5em"/>
     </div>
     <div v-else-if="fetchProductSuccess === false" class="text-center">
@@ -78,6 +78,29 @@
 
       <q-card class="q-mt-md">
         <q-card-section>
+          <div>{{ $t('TaxType') }}</div>
+          <q-select
+            dense
+            outlined
+            :loading="loading"
+            :disable="loading"
+            v-model="formData.taxType"
+            :options="taxTypeOptions"
+            option-value="id"
+            option-label="name"
+            clearable
+            :error="Boolean(formErrors?.taxType)"
+            :error-message="formErrors?.taxType"
+          >
+            <template v-slot:option="ctx">
+              <q-item v-bind="ctx.itemProps">
+                <q-item-section>
+                  <q-item-label>{{ ctx.opt.name }}</q-item-label>
+                  <q-item-label caption> {{ ctx.opt.code }} | {{ ctx.opt.value }}% </q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
           <div class="row items-center">
             <div class="text-subtitle1">{{ $t('CartOptions') }}</div>
             <q-space/>
@@ -384,7 +407,7 @@
 </template>
 <script>
 import { backend } from 'src/marketplace/backend'
-import { Product, Variant } from 'src/marketplace/objects'
+import { Product, TaxType, Variant } from 'src/marketplace/objects'
 import { parseProductAddon } from 'src/marketplace/product-addons'
 import { errorParser } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
@@ -425,12 +448,17 @@ export default defineComponent({
     const { t } = useI18n()
     const $router = useRouter()
 
+    const formReady = ref(false);
     const product = ref(Product.parse())
     const fetchingProduct = ref(false)
     const fetchProductSuccess = ref(null) // null | false | true
     onMounted(() => {
-      fetchProduct().then(() => resetFormData())
+      Promise.all([
+        fetchProduct().then(() => resetFormData()),
+        fetchTaxTypes(),
+      ]).then(() => formReady.value = true)
     })
+
     function fetchProduct() {
       fetchingProduct.value = true
       return backend.get(`products/${props.productId}/`)
@@ -445,6 +473,19 @@ export default defineComponent({
         })
         .finally(() => {
           fetchingProduct.value = false
+        })
+    }
+
+    const taxTypeOptions = ref([].map(TaxType.parse));
+    async function fetchTaxTypes() {
+      const params = {
+        shop_id: marketplaceStore.shopData?.id,
+      }
+      return backend.get(`tax-types/`, { params })
+        .then(response => {
+          if (!Array.isArray(response.data?.results)) return Promise.reject({ response });
+          taxTypeOptions.value = response.data?.results.map(TaxType.parse);
+          return response;
         })
     }
 
@@ -466,6 +507,7 @@ export default defineComponent({
       imageUrl: '',
       name: '',
       description: '',
+      taxType: null,
       categories: [],
       cartOptions: undefined,
       addons: [].map(parseProductAddon),
@@ -530,10 +572,12 @@ export default defineComponent({
       formData.value.imageUrl = product.value.imageUrl
       formData.value.name = product.value.name
       formData.value.description = product.value.description
+      formData.value.taxType = product.value.taxType?.id ? product.value.taxType : null;
       formData.value.cartOptions = product.value?.cartOptions
       if (!Array.isArray(product.value.categories)) formData.value.categories = []
       else formData.value.categories = [...product.value.categories]
       formData.value.variants = product.value.variants.map(variant => {
+        console.log(variant);
         return {
           obj: variant,
           remove: false,
@@ -541,7 +585,7 @@ export default defineComponent({
           code: variant.code,
           imageUrl: variant.imageUrl,
           name: variant.name,
-          price: variant.price,
+          price: variant?.price ?? variant.priceData?.basePrice,
         }
       })
       if (!Array.isArray(product.value.addons)) {
@@ -558,6 +602,7 @@ export default defineComponent({
       detail: [],
       name: '',
       description: '',
+      taxType: '',
       categories: '',
       variants: [{
         detail: [],
@@ -585,6 +630,7 @@ export default defineComponent({
     function resetFormErrors() {
       formErrors.value.name = ''
       formErrors.value.description = ''
+      formErrors.value.taxType = ''
       formErrors.value.variants = []
       formErrors.value.newVariants = []
     }
@@ -623,6 +669,7 @@ export default defineComponent({
       const data = {
         name: undefinedOrUpdated(formData.value.name, product.value.name),
         description: undefinedOrUpdated(formData.value.description, product.value.description),
+        tax_type_id: undefinedOrUpdated(formData.value?.taxType?.id, product.value.taxType?.id),
         categories: formData.value.categories,
         cart_options: formData.value.cartOptions?.map?.(data => Object.assign({}, data, { _index: undefined })),
         image_url: undefinedOrUpdated(formData.value.imageUrl || "", product.value.imageUrl),
@@ -668,6 +715,7 @@ export default defineComponent({
             formErrors.value.detail = errorParser.toArray(data?.non_field_errors)
             formErrors.value.name = errorParser.firstElementOrValue(data?.name)
             formErrors.value.description = errorParser.firstElementOrValue(data?.description)
+            formErrors.value.taxType = errorParser.firstElementOrValue(data?.tax_type)
             formErrors.value.categories = errorParser.firstElementOrValue(data?.categories)
 
             if (Array.isArray(data?.update_variants)) {
@@ -761,9 +809,12 @@ export default defineComponent({
 
     return {
       marketplaceStore,
+      formReady,
       product,
       fetchingProduct,
       fetchProductSuccess,
+
+      taxTypeOptions,
 
       loading,
       formData,
