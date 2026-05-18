@@ -59,7 +59,7 @@
             </q-item-section>
             <q-item-section side>
               <q-item-label>{{ $t('Stocks') }}: {{opt?.totalStocks }}</q-item-label>
-              <q-item-label>{{opt?.price }} {{ marketplaceStore?.currency }}</q-item-label>
+              <q-item-label>{{opt?.priceData?.finalPrice ?? opt?.price }} {{ marketplaceStore?.currency }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>

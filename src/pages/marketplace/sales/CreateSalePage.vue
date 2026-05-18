@@ -151,7 +151,7 @@
                         </div>
                       </td>
                       <td style="min-width: 5em" class="text-center">
-                        {{ item.price || item?.variant?.price }}
+                        {{ item?.variant?.priceData?.finalPrice ?? item.price }}
                         {{ marketplaceStore?.currency }}
                       </td>
                       <td style="min-width: 3em" class="text-right">
@@ -937,7 +937,7 @@ export default defineComponent({
       };
       if (formData.value?.items?.length) {
         data.subtotal = formData.value?.items.reduce((subtotal, item) => {
-          const price = item?.price || item?.variant?.price;
+          const price = item?.variant?.priceData?.finalPrice ?? item?.price;
           if (isNaN(price)) return subtotal;
           if (isNaN(item?.quantity)) return subtotal;
           return subtotal + price * item?.quantity;

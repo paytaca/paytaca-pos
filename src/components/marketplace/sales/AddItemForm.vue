@@ -94,10 +94,10 @@
       :suffix="marketplaceStore?.currency"
       type="number"
       step="0.001"
-      :placeholder="formData?.variant?.price ? $t(
+      :placeholder="formData?.variant?.priceData?.finalPrice ? $t(
         'PriceValue',
-        { price: formData?.variant?.price },
-        `Price: ${formData?.variant?.price}`
+        { price: formData?.variant?.priceData?.finalPrice },
+        `Price: ${formData?.variant?.priceData?.finalPrice}`
       ): ''"
       v-model.number="formData.costPrice"
       bottom-slots

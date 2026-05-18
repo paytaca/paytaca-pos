@@ -133,7 +133,7 @@
               </div>
             </td>
             <td>
-              {{ item?.price }} {{ salesOrder?.currency?.symbol }}
+              {{ item?.unitPrice }} {{ salesOrder?.currency?.symbol }}
             </td>
             <td>
               <div class="row no-wrap items-center">

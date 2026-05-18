@@ -53,7 +53,7 @@
             outlined
             :label="$t('Price')"
             :disable="!formData?.customItem"
-            :model-value="formData?.price || formData?.variant?.price"
+            :model-value="formData?.variant?.priceData?.finalPrice ?? formData?.price"
             :suffix="marketplaceStore?.currency"
             bottom-slots
             @update:modelValue="val => formData.price = Number(val)"
