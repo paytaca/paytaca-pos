@@ -1,7 +1,7 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
     <q-card style="width: max(90vw, 500px)">
-      <q-card-section class="row no-wrap items-start q-pb-sm">
+      <q-card-section class="row no-wrap items-start q-pb-sm header-sticky">
         <div class="q-space">
           <div class="text-h5">{{ product?.name }}</div>
           <div class="text-caption text-grey" style="margin-top:-0.5em;">
@@ -16,6 +16,13 @@
         </div>
         <slot name="menu" v-bind="{ product }"></slot>
       </q-card-section>
+      <q-card-section v-if="product?.imageUrl" class="row items-center justify-center q-pt-none">
+        <img
+          :src="product?.imageUrl"
+          class="rounded-borders"
+          style="max-height:200px; max-width:max(80vw, 300px)"
+        />
+      </q-card-section>
       <q-card-section v-if="product?.categories?.length" class="q-pt-none q-pb-sm">
         <div class="text-grey">{{ $t('Categories') }}</div>
         <q-badge v-for="category in product?.categories" :key="category" class="q-mr-sm">
@@ -26,12 +33,10 @@
         <div class="text-grey">{{ $t('Code') }}</div>
         {{ product?.code }}
       </q-card-section>
-      <q-card-section v-if="product?.imageUrl" class="row items-center justify-center q-pt-none">
-        <img
-          :src="product?.imageUrl"
-          class="rounded-borders"
-          style="max-height:200px; max-width:max(80vw, 300px)"
-        />
+      <q-card-section v-if="product?.taxType?.id" class="q-pt-none q-pb-sm">
+        <div class="text-grey">{{ $t('TaxType') }}</div>
+        <div>{{ product?.taxType?.name }}</div>
+        <div class="text-caption bottom">{{ product?.taxType?.code }}</div>
       </q-card-section>
       <q-card-section v-if="product?.description" class="q-pt-none">
         <div class="text-grey">{{ $t('Description') }}</div>
@@ -71,7 +76,7 @@
               <div>{{ variant.name }}</div>
               <div v-if="variant?.code" class="text-caption ellipsis">{{  variant.code  }}</div>
             </td>
-            <td class="text-center">{{ variant.price }} {{ marketplaceStore?.currency }}</td>
+            <td class="text-center">{{ variant?.priceData?.finalPrice ?? variant.price }} {{ marketplaceStore?.currency }}</td>
             <td class="text-center">
               <span v-if="variant.totalStocks == 0" class="text-grey">{{ $t('NoStocks') }}</span>
               <span v-else-if="!variant.totalStocks" class="text-grey">{{ $t('NoInventory') }}</span>
@@ -188,5 +193,12 @@ export default defineComponent({
 <style scoped>
 th.image-col ,td.image-col {
   width: 10px;
+}
+
+.header-sticky {
+  position:sticky;
+  top:0;
+  background:inherit;
+  z-index:10;
 }
 </style>
