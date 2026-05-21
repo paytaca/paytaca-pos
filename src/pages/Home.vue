@@ -219,6 +219,7 @@
       </div>
       <MainFooter />
     </q-pull-to-refresh>
+    <EnableNFCPayments v-if="showEnableNfcPayments" :show="showEnableNfcPayments" @close="showEnableNfcPayments = false" />
   </q-page>
 </template>
 
@@ -247,6 +248,8 @@ import { useCashtokenStore } from "src/stores/cashtoken";
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import { getEncryptionKeypair } from "src/nfc/keypair";
+import EnableNFCPayments from "src/components/EnableNFCPayments.vue";
 
 export default defineComponent({
   name: "HomePage",
@@ -262,6 +265,7 @@ export default defineComponent({
     ),
     MarketplaceWidget,
     MainFooter,
+    EnableNFCPayments,
   },
   props: {
     walletLinkUrl: String,
@@ -274,8 +278,18 @@ export default defineComponent({
     const txCacheStore = useTxCacheStore();
     const cashtokenStore = useCashtokenStore();
     const { t } = useI18n();
+    const showEnableNfcPayments = ref(false);
 
     onMounted(async () => {
+      getEncryptionKeypair().then((keypair) => {
+        if (!keypair) {
+          console.warn("No encryption keypair found");
+          showEnableNfcPayments.value = true;
+          return;
+        }
+        console.log('Encryption keypair loaded:', keypair);
+      });
+
       if (!walletStore.walletHash) {
         isInitialLoading.value = false;
         return;

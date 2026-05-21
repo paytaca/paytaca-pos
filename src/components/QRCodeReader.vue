@@ -65,7 +65,7 @@ export default {
     },
     toggle: Function,
   },
-  emits: ["decode", "error", "update:modelValue"],
+  emits: ["decode", "error", "update:modelValue", "close"],
   setup(props, { emit: $emit }) {
     const $q = useQuasar();
     const errorMessage = ref(null);
@@ -218,6 +218,7 @@ export default {
 
       innerVal.value = false;
       // if (this.$route?.name === 'transaction-send') this.$router.push({ path: '/send/select-asset' })
+      $emit('close');
     }
 
     const scannerContainerRef = ref();
