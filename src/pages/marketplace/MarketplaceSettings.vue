@@ -140,6 +140,23 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+
+        <q-item
+          clickable
+          :to="{ name: 'marketplace-taxes' }"
+        >
+          <q-item-section class="text-grey" top>
+            <q-item-label> {{ $t('Taxes') }} </q-item-label>
+          </q-item-section>
+          <q-item-section top>
+            <q-btn
+              no-caps
+              padding="none"
+              unelevated
+              :label="$t('ManageTaxes', {}, 'Manage Taxes')"
+            />
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-card>
     <q-dialog

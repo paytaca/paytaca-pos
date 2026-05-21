@@ -42,6 +42,7 @@ const routes = [
           { path: 'sales/reports', component: () => import('src/pages/marketplace/sales/SalesReportPage.vue'), name: 'marketplace-sales-reports', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'sales/create', component: () => import('src/pages/marketplace/sales/CreateSalePage.vue'), name: 'marketplace-sale', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'user', component: () => import('src/pages/marketplace/UserPage.vue'), name: 'marketplace-user', props: route => Object.assign({}, route?.query, route?.params)},
+          { path: 'taxes', component: () => import('src/pages/marketplace/shop/TaxesListPage.vue'), name: 'marketplace-taxes', props: route => Object.assign({}, route?.query, route?.params)},
         ]
       },
       {
