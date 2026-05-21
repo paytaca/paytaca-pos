@@ -184,7 +184,7 @@
                   color="brandblue"
                   no-caps
                   :to="page.route"
-                  class="full-width"
+                  class="full-width br-12"
                   style="min-height: 120px;"
                 >
   
@@ -580,5 +580,9 @@ export default defineComponent({
 }
 .dashboard-card {
   transition: 0.1s width;
+}
+
+.br-12 {
+  border-radius: 12px;
 }
 </style>

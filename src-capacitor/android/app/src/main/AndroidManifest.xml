@@ -50,8 +50,8 @@
     <!-- Permissions -->
 
     <!-- Ensure media read permissions are not merged from libraries -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove"/>
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
 
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Camera, Photos, input file -->
