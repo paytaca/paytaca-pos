@@ -99,6 +99,7 @@ import { useQuasar, copyToClipboard as qCopyToClipboard } from "quasar";
 import { getEncryptionKeypair, getOrGenerateEncryptionKeypair } from "src/nfc/keypair";
 import { decryptWithPrivateKey } from "src/utils/ecies";
 import { savePrivateKeyWif } from "src/nfc/user";
+import { getPubkeyAt } from "src/wallet/utils";
 
 import QRCodeReader from "./QRCodeReader.vue";
 import QRCode from 'vue-qrcode-component'
@@ -241,14 +242,14 @@ export default {
 
     function generateVerifyingPubkey(xpubkey, nonce) {
       try {
-        dialog.update({ message: t("GeneratingVerifyingXpubkey") });
+        // dialog.update({ message: t("GeneratingVerifyingXpubkey") });
         const verifyingPubkey = getPubkeyAt(xpubkey, nonce);
         return verifyingPubkey
       } catch(error) {
-        dialog.update({
-          title: t("LinkDeviceError"),
-          message: "Unable to generate verifying pubkey",
-        });
+        // dialog.update({
+        //   title: t("LinkDeviceError"),
+        //   message: "Unable to generate verifying pubkey",
+        // });
         console.error(error);
         throw new Error(error);
       }
@@ -327,6 +328,7 @@ export default {
             walletStoreState.nfcCode = data.nfc_code;
           }
         });
+        return { success: true, ...response.data };
       } catch(error) {
         console.error(error.response || error);
         throw new Error(error);
