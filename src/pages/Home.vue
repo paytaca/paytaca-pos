@@ -11,6 +11,11 @@
         @device-linked="() => (forceDisplayWalletLink = false)"
       />
       <div v-else class="home-main-content q-py-md full-width">
+        <EnableNFCPayments 
+          v-if="showEnableNfcPayments" 
+          :show="showEnableNfcPayments" 
+          @close="showEnableNfcPayments = false" 
+        />
         <div class="q-px-md q-mb-md">
           <template v-if="isRefreshing || isInitialLoading">
             <q-card
@@ -219,7 +224,6 @@
       </div>
       <MainFooter />
     </q-pull-to-refresh>
-    <EnableNFCPayments v-if="showEnableNfcPayments" :show="showEnableNfcPayments" @close="showEnableNfcPayments = false" />
   </q-page>
 </template>
 
@@ -350,6 +354,22 @@ export default defineComponent({
       () => fetchTransactions()
     );
 
+    watch(() => walletStore.walletHash, () => {
+      console.log('Wallet hash changed, checking for encryption keypair...');
+      checkShowEnableNfcPayments();
+    });
+
+    async function checkShowEnableNfcPayments() {
+      const keypair = await getEncryptionKeypair();
+      if (!keypair) {
+        console.warn("No encryption keypair found");
+        showEnableNfcPayments.value = true;
+      } else {
+        console.log('Encryption keypair loaded:', keypair);
+        showEnableNfcPayments.value = false;
+      }
+    }
+
     async function searchUnconfirmedPaymentsTransaction() {
       txCacheStore.unconfirmedTxsFromQrData.forEach(async (qrData) => {
         let hasMatch = false;
@@ -398,6 +418,13 @@ export default defineComponent({
     }
 
     const forceDisplayWalletLink = ref(false);
+    watch(() => forceDisplayWalletLink.value, (newVal) => {
+      if (newVal) {
+        console.log('Force display wallet link enabled, checking for encryption keypair...');
+        checkShowEnableNfcPayments();
+      }
+    });
+
     onMounted(() => {
       if (walletStore.isLinked && !walletStore.isDeviceValid)
         $q.dialog({
@@ -504,6 +531,7 @@ export default defineComponent({
       refreshPage,
       isRefreshing,
       isInitialLoading,
+      showEnableNfcPayments
     };
   },
 });

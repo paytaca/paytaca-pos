@@ -228,7 +228,7 @@ export default {
         console.log('Decryption private key:', decryptKey);
         const result = JSON.parse(decryptWithPrivateKey(encryptedData, encryptKey, decryptKey));
         console.log('Decryption result:', result);
-        return { authPrivateKey: result.privateKey };
+        return { xpubkey: result.xpubkey, authPrivateKey: result.privateKey };
       } catch(error) {
         // dialog.update({
         //   title: t("LinkDeviceError"),
@@ -262,9 +262,15 @@ export default {
 
         if (!skipDecryption) {
           const encryptedData = await retrieveRequestCodeData(qrCodeData);
-          const { authPrivateKey } = await decryptData(qrCodeData.encryptKey, encryptedData);
+          const { xpubkey, authPrivateKey } = await decryptData(qrCodeData.encryptKey, encryptedData);
+          console.log('Decrypted xpubkey:', xpubkey);
+          console.log('Decrypted auth private key:', authPrivateKey);
           await savePrivateKeyWif(authPrivateKey);
-          const result = await redeemRequestCode(walletStore.posId)
+          const verifyingPubkey = generateVerifyingPubkey(xpubkey, qrCodeData.nonce);
+          console.log('Generated verifying pubkey:', verifyingPubkey);
+          // const deviceInfo = await retrieveDeviceInfo();
+          const result = await redeemRequestCode({ qrCodeData, xpubkey, verifyingPubkey });
+          // const result = await redeemRequestCode(walletStore.posId)
           console.log('Redeem request code result:', result);
           if (result?.success) {
             $q.notify({
@@ -295,20 +301,33 @@ export default {
       }
     };
 
-    const redeemRequestCode = async (posid) => {
+    async function redeemRequestCode({
+      qrCodeData,
+      xpubkey,
+      verifyingPubkey,
+    }) {
+      console.log('Redeeming request code with data:', { qrCodeData, xpubkey, verifyingPubkey });
       try {
-        // dialog.update({ message: t("LinkingDevice") });
+        // dialog.update({ message: t("UpdatingServer") });
+        const data = {
+          nfc_code: qrCodeData.code,
+          verifying_pubkey: verifyingPubkey,
+        };
+        console.log('Data for redeeming request code:', data);
         const response = await watchtower.BCH._api.post(
-          `paytacapos/devices/${posid}/enable-nfc-payments/`,
+          "paytacapos/devices/redeem_nfc_request_code/",
+          data
         );
         console.log('Redeem request code response:', response.data);
-        return {
-          success: true,
-          ...response.data
-        };
-        // dialog.update({ title: t("DeviceLinked"), message: t("DeviceLinkedSuccess") });
-      } catch (error) {
-        // dialog.update({ title: t("LinkDeviceError"), message: t("FailedToLinkDevice") });
+        walletStore.$patch((walletStoreState) => {
+          if (response?.data?.wallet_hash) {
+            walletStoreState.walletHash = response?.data?.wallet_hash;
+            walletStoreState.xPubKey = xpubkey;
+            walletStoreState.posId = Number(response?.data?.posid);
+            walletStoreState.nfcCode = data.nfc_code;
+          }
+        });
+      } catch(error) {
         console.error(error.response || error);
         throw new Error(error);
       }
