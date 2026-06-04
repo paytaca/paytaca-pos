@@ -583,7 +583,7 @@ export default defineComponent({
         return props.initialValue?.assetId === opt.id
       })
       const settingsDefaultAssetData = cryptoCurrencyOpts.value.find(opt => settingsStore.defaultAssetSelected === opt.id)
-      paymentCurrency.value = initialValueAssetData || assetData || bchAsset;
+      paymentCurrency.value = initialValueAssetData || settingsDefaultAssetData || bchAsset;
     }
 
     // Handle amount input - accepts both . and , as decimal separators
