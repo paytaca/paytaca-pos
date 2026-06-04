@@ -246,7 +246,7 @@ import {
 export default defineComponent({
   name: "SetAmountFormDialog",
   props: {
-    initialValue: Object,
+    initialValue: Object, // { currency: 'USD', assetId: 'ct/.....' }
     currencies: Array,
     title: String,
     message: String,
@@ -579,9 +579,11 @@ export default defineComponent({
     });
 
     function setInitialPaymentCurrency() {
-      const assetData = cryptoCurrencyOpts.value.find(opt => settingsStore.defaultAssetSelected === opt.id)
-      console.log({ assetData, opts: cryptoCurrencyOpts.value });
-      paymentCurrency.value = assetData || bchAsset;
+      const initialValueAssetData = cryptoCurrencyOpts.value.find(opt => {
+        return props.initialValue?.assetId === opt.id
+      })
+      const settingsDefaultAssetData = cryptoCurrencyOpts.value.find(opt => settingsStore.defaultAssetSelected === opt.id)
+      paymentCurrency.value = initialValueAssetData || assetData || bchAsset;
     }
 
     // Handle amount input - accepts both . and , as decimal separators
