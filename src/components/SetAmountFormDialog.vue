@@ -235,6 +235,7 @@ import { useDialogPluginComponent, useQuasar, debounce } from "quasar";
 import { useCashtokenStore } from "src/stores/cashtoken.js";
 import { useMarketStore } from "src/stores/market.js";
 import { useMarketplaceStore } from "src/stores/marketplace.js";
+import { useSettingsStore } from "src/stores/settings.js";
 import { useWalletStore } from "src/stores/wallet.js";
 import fiatCurrencies from "../assets/currencies.json";
 import {
@@ -260,6 +261,7 @@ export default defineComponent({
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } =
       useDialogPluginComponent();
     const $q = useQuasar();
+    const settingsStore = useSettingsStore();
     const cashtokenStore = useCashtokenStore();
     const marketStore = useMarketStore();
     const marketplaceStore = useMarketplaceStore();
@@ -576,6 +578,12 @@ export default defineComponent({
       return fiatPerBch / tokenPerBch; // fiat per token
     });
 
+    function setInitialPaymentCurrency() {
+      const assetData = cryptoCurrencyOpts.value.find(opt => settingsStore.defaultAssetSelected === opt.id)
+      console.log({ assetData, opts: cryptoCurrencyOpts.value });
+      paymentCurrency.value = assetData || bchAsset;
+    }
+
     // Handle amount input - accepts both . and , as decimal separators
     function handleAmountInput(value) {
       if (value === null || value === "") {
@@ -771,7 +779,7 @@ export default defineComponent({
       if (allCurrencyOpts.value.length > 0 && !selectedCurrency.value) {
         selectedCurrency.value = allCurrencyOpts.value[0]; // First is the preferred fiat
       }
-      paymentCurrency.value = bchAsset;
+      setInitialPaymentCurrency()
 
       // Initialize display value if initial value exists
       if (props.initialValue?.amount && isFiatSelected.value) {
@@ -802,7 +810,7 @@ export default defineComponent({
     watch(selectedCurrency, (newCurrency) => {
       // If fiat is selected, default payment currency to BCH
       if (isFiatSelected.value && paymentCurrency.value?.id !== "bch") {
-        paymentCurrency.value = bchAsset;
+        setInitialPaymentCurrency()
       } else if (!isFiatSelected.value) {
         // Crypto selected: use it directly, no conversion
         paymentCurrency.value = newCurrency;
