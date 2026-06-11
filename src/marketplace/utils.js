@@ -202,6 +202,55 @@ export const errorParser = {
     if (data?.detail) return data?.detail
     return data
   },
+  errorsToQTreeNodes(errors) {
+    let id = 0;
+
+    function walk(value, key) {
+      if (!value) return null;
+
+      // Case 1: string → leaf error
+      if (typeof value === "string") {
+        return { key: `${key}-${id++}`, label: value };
+      }
+
+      // Case 2: array
+      if (Array.isArray(value)) {
+        const children = value
+          .map((item, index) => walk(item, `${capitalize(key)} ${index+1}`))
+          .filter(Boolean);
+
+        if (children.length === 0) return null;
+
+        return {
+          key: `${key}-${id++}`,
+          label: capitalize(key),
+          children
+        };
+      }
+
+      // Case 3: object
+      if (typeof value === "object") {
+        const children = Object.entries(value)
+          .map(([childKey, childVal]) => walk(childVal, childKey))
+          .filter(Boolean);
+
+        if (children.length === 0) return null;
+
+        return {
+          key: `${key}-${id++}`,
+          label: capitalize(key),
+          children
+        };
+      }
+
+      return null;
+    }
+
+    // root level
+    return Object.entries(errors)
+      .map(([key, value]) => walk(value, key))
+      .filter(Boolean);
+  }
 }
 
 /**

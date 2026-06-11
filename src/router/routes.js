@@ -46,6 +46,14 @@ const routes = [
         ]
       },
       {
+        path: 'discounts',
+        meta: { requireAuth: true },
+        children: [
+          { path: 'create', component: () => import('src/pages/marketplace/discounts/DiscountFormPage.vue'), name: 'marketplace-discount-create', props: route => Object.assign({}, route?.query, route?.params) },
+          { path: 'edit/:discountId', component: () => import('src/pages/marketplace/discounts/DiscountFormPage.vue'), name: 'marketplace-discount-edit', props: route => Object.assign({}, route?.query, route?.params) },
+        ],
+      },
+      {
         path: 'storefront',
         meta: { requireAuth: true },
         children: [
