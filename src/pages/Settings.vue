@@ -250,13 +250,19 @@
               </q-avatar>
             </q-item-section>
             <q-item-section>
-              <q-item-label class="text-weight-medium">Enable NFC Payments</q-item-label>
+              <q-item-label class="text-weight-medium">{{!nfcPaymentsEnabled ? 'Enable ' : ''}}NFC Payments</q-item-label>
             </q-item-section>
             <q-item-section side>
               <div class="row items-center q-gutter-xs">
                 <span class="text-subtitle2">{{
                   nfcPaymentsEnabled ? "Enabled" : "Disabled"
                 }}</span>
+                <q-icon
+                  v-if="nfcPaymentsEnabled"
+                  name="check_circle"
+                  size="18px"
+                  color="green"
+                />
               </div>
             </q-item-section>
           </q-item>

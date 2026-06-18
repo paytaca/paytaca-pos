@@ -316,9 +316,13 @@ export function usePaymentTracking({
       return
     }
 
+    console.log('Auth token retrieved for NFC listener setup:', token)
+
     const privateKey = await getPrivateKeyWif()
     const publicKey = getPublicKeyFromPrivate(privateKey)
     const nfcListenerUrl = `${process.env.NFC_LISTENER_URL}/?public_key=${publicKey}&token=${token}`
+
+    console.log('NFC listener websocket URL:', nfcListenerUrl)
 
     nfcListenerWebsocket.value = new WebSocket(nfcListenerUrl)
     

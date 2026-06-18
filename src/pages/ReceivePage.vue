@@ -45,6 +45,7 @@
           />
         </template>
       </div>
+      <NFCScanner v-if="Capacitor.isNativePlatform()" />
     </div>
 
     <div v-if="!isNotFiatMode" class="flex flex-center">
@@ -228,6 +229,7 @@ import { useQrCodeGenerator } from 'src/composables/useQrCodeGenerator'
 import { useFiatRateManager } from 'src/composables/useFiatRateManager'
 import { usePaymentTracking } from 'src/composables/usePaymentTracking'
 import { validateBchRate, validateTokenRate, validateConversionResult } from 'src/utils/rate-validation'
+import NFCScanner from 'src/components/NFCScanner.vue'
 
 
 export default defineComponent({

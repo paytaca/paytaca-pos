@@ -1,5 +1,5 @@
 <template>
-    <q-dialog v-model="showDialog" persistent>
+    <q-dialog v-model="showDialog" @hide="() => $emit('close')">
         <q-card class="q-pb-md">
             <div v-if="step == 'notice'">
                 <q-card-section class="row items-center q-gutter-md q-pa-lg">
@@ -220,21 +220,11 @@ export default {
 
     const decryptData = async (encryptKey, encryptedData) => {
       try {
-        // dialog.update({ message: t("DecryptingXpubkey") });
-        console.log('Encrypt key for decryption:', encryptKey);
-        console.log('Encrypted data for decryption:', encryptedData);
         const encryptionKeypair = await getEncryptionKeypair()
-        console.log('Encryption keypair for decryption:', encryptionKeypair);
         const decryptKey = encryptionKeypair?.privkey
-        console.log('Decryption private key:', decryptKey);
         const result = JSON.parse(decryptWithPrivateKey(encryptedData, encryptKey, decryptKey));
-        console.log('Decryption result:', result);
         return { xpubkey: result.xpubkey, authPrivateKey: result.privateKey };
       } catch(error) {
-        // dialog.update({
-        //   title: t("LinkDeviceError"),
-        //   message: t("UnableToDecryptXpubkey"),
-        // });
         console.error(error);
         throw new Error(error);
       }
@@ -242,14 +232,9 @@ export default {
 
     function generateVerifyingPubkey(xpubkey, nonce) {
       try {
-        // dialog.update({ message: t("GeneratingVerifyingXpubkey") });
         const verifyingPubkey = getPubkeyAt(xpubkey, nonce);
         return verifyingPubkey
       } catch(error) {
-        // dialog.update({
-        //   title: t("LinkDeviceError"),
-        //   message: "Unable to generate verifying pubkey",
-        // });
         console.error(error);
         throw new Error(error);
       }
@@ -264,15 +249,9 @@ export default {
         if (!skipDecryption) {
           const encryptedData = await retrieveRequestCodeData(qrCodeData);
           const { xpubkey, authPrivateKey } = await decryptData(qrCodeData.encryptKey, encryptedData);
-          console.log('Decrypted xpubkey:', xpubkey);
-          console.log('Decrypted auth private key:', authPrivateKey);
           await savePrivateKeyWif(authPrivateKey);
           const verifyingPubkey = generateVerifyingPubkey(xpubkey, qrCodeData.nonce);
-          console.log('Generated verifying pubkey:', verifyingPubkey);
-          // const deviceInfo = await retrieveDeviceInfo();
           const result = await redeemRequestCode({ qrCodeData, xpubkey, verifyingPubkey });
-          // const result = await redeemRequestCode(walletStore.posId)
-          console.log('Redeem request code result:', result);
           if (result?.success) {
             $q.notify({
               message: "NFC payments enabled successfully!",
@@ -307,19 +286,15 @@ export default {
       xpubkey,
       verifyingPubkey,
     }) {
-      console.log('Redeeming request code with data:', { qrCodeData, xpubkey, verifyingPubkey });
       try {
-        // dialog.update({ message: t("UpdatingServer") });
         const data = {
           nfc_code: qrCodeData.code,
           verifying_pubkey: verifyingPubkey,
         };
-        console.log('Data for redeeming request code:', data);
         const response = await watchtower.BCH._api.post(
           "paytacapos/devices/redeem_nfc_request_code/",
           data
         );
-        console.log('Redeem request code response:', response.data);
         walletStore.$patch((walletStoreState) => {
           if (response?.data?.wallet_hash) {
             walletStoreState.walletHash = response?.data?.wallet_hash;
@@ -355,17 +330,12 @@ export default {
 
     const decodeLinkContent = (content) =>   {
       try {
-        // dialog.update({ message: t("DecodingContent") });
         const decodedContent = JSON.parse(content);
         const code = decodedContent.code;
         const encryptKey = decodedContent.encryptKey;
         const nonce = decodedContent.nonce;
         return { code, encryptKey, nonce };
       } catch (error) {
-        // dialog.update({
-        //   title: t("LinkDeviceError"),
-        //   message: t("UnableToDecodeQrData"),
-        // });
         console.error(error);
         throw new Error(error);
       }
@@ -373,17 +343,12 @@ export default {
 
     const retrieveRequestCodeData = async (qrCodeData) => {
       try {
-        // dialog.update({ message: t("RetrievingRequestCodeData") });
         const response = await watchtower.BCH._api.get(
-          `paytacapos/devices/nfc_code_data/`,
+          `paytacapos/devices/nfc_request_code_data/`,
           { params: { code: qrCodeData.code } }
         );
         return response?.data;
       } catch(error) {
-        // let message = t("RequestCodeDataInvalid");
-        // if (error?.response?.status === 400)
-        //   message = t("RequestCodeDataNotFound");
-        // dialog.update({ title: t("LinkDeviceError"), message: message });
         console.error(error.response || error);
         throw new Error(error);
       }
