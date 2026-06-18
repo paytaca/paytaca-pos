@@ -1,13 +1,14 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" no-refocus position="bottom">
+  <q-dialog ref="dialogRef" @hide="onDialogHide" no-refocus>
     <q-card class="q-dialog-plugin">
       <q-form @submit="checkAmount()">
-        <q-card-section>
-          <div class="q-mb-md">
-            <div class="text-h5">{{ $t("SetAmount") }}</div>
-            <div class="text-caption text-grey-7">
-              {{ $t("SelectPaymentCurrency") }}
-            </div>
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h5 q-space">{{ $t("SetAmount") }}</div>
+          <q-btn icon="mdi-close" flat round dense @click="onDialogHide" />
+        </q-card-section>
+        <q-card-section class="q-pt-md">
+          <div class="text-caption text-grey-7 q-mb-md">
+            {{ $t("SelectPaymentCurrency") }}
           </div>
           <div v-if="message" class="text-subtitle1 q-mb-sm">
             {{ message }}
@@ -41,7 +42,7 @@
                   />
                   <img
                     v-else-if="selectedCurrency?.id === 'bch'"
-                    src="~assets/bch-logo.webp"
+                    src="/bch-logo.png"
                     height="24"
                     class="q-mr-xs"
                   />
@@ -82,7 +83,7 @@
                       />
                       <img
                         v-else-if="ctx?.opt?.id === 'bch'"
-                        src="~assets/bch-logo.webp"
+                        src="/bch-logo.png"
                         height="30"
                       />
                       <span
@@ -113,83 +114,107 @@
             <div class="text-subtitle2 q-mb-xs">
               {{ $t("PaymentCurrency") }}
             </div>
-            <div class="payment-currency-grid">
-              <div
-                v-for="currency in filteredCurrencyOpts"
-                :key="currency.id"
-                class="payment-currency-card"
-                :class="{ selected: paymentCurrency?.id === currency.id }"
-                :style="
-                  paymentCurrency?.id === currency.id
-                    ? { borderColor: $q.dark.isActive ? 'white' : 'black' }
-                    : {}
-                "
-                @click="paymentCurrency = currency"
-              >
-                <div
-                  class="flex row items-center justify-start q-pa-sm full-width"
+            <q-select
+              outlined
+              v-model="paymentCurrency"
+              :options="filteredCurrencyOpts"
+              :option-label="resolveAssetSymbol"
+              emit-value
+              map-options
+              style="min-width: 200px"
+              class="payment-currency-select"
+            >
+              <template v-slot:option="ctx">
+                <q-item
+                  :active="ctx?.selected"
+                  clickable
+                  @click="() => ctx.toggleOption(ctx.opt)"
                 >
+                  <q-item-section
+                    v-if="ctx?.opt?.imageUrl || ctx?.opt?.id === 'bch' || ctx?.opt?.id?.startsWith('ct/')"
+                    avatar
+                  >
+                    <img
+                      v-if="ctx?.opt?.imageUrl"
+                      height="30"
+                      :src="convertIpfsUrl(ctx?.opt?.imageUrl)"
+                      :fallback-src="convertIpfsUrl(ctx?.opt?.imageUrl, 1)"
+                      @error="onImgErrorIpfsSrc"
+                    />
+                    <img
+                      v-else-if="ctx?.opt?.id === 'bch'"
+                       src="/bch-logo.png"
+                      height="30"
+                    />
+                    <img
+                      v-else-if="ctx?.opt?.id?.startsWith('ct/')"
+                      height="30"
+                      :src="convertIpfsUrl(ctx?.opt?.iconUrl)"
+                      :fallback-src="convertIpfsUrl(ctx?.opt?.iconUrl, 1)"
+                      @error="onImgErrorIpfsSrc"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ ctx.label }}</q-item-label>
+                    <q-item-label v-if="ctx.opt?.name" caption>{{ ctx?.opt?.name }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+              <template v-slot:selected-item>
+                <div class="flex row items-center no-wrap q-gutter-x-xs">
                   <img
-                    v-if="currency.imageUrl"
-                    height="32"
-                    :src="convertIpfsUrl(currency.imageUrl)"
-                    :fallback-src="convertIpfsUrl(currency.imageUrl, 1)"
+                    v-if="paymentCurrency?.imageUrl"
+                    height="24"
+                    :src="convertIpfsUrl(paymentCurrency?.imageUrl)"
+                    :fallback-src="convertIpfsUrl(paymentCurrency?.imageUrl, 1)"
                     @error="onImgErrorIpfsSrc"
-                    class="q-mr-sm"
                   />
                   <img
-                    v-else-if="currency.id === 'bch'"
-                    src="~assets/bch-logo.webp"
-                    height="32"
-                    class="q-mr-sm"
+                    v-else-if="paymentCurrency?.id === 'bch'"
+                     src="/bch-logo.png"
+                    height="24"
                   />
-                  <div class="flex column">
-                    <div class="text-weight-medium">
-                      {{ resolveAssetSymbol(currency) }}
-                    </div>
-                    <div
-                      v-if="!fiatAmountValue && currency.name"
-                      class="text-caption text-grey-6 ellipsis"
-                      style="max-width: 100px"
-                    >
-                      {{ currency.name }}
-                    </div>
-                    <div
-                      v-else-if="
-                        fiatAmountValue &&
-                        paymentCurrency?.id === currency.id &&
-                        isFiatSelected
-                      "
-                      class="text-caption"
-                    >
-                      <q-spinner-dots v-if="conversionLoading" size="12px" />
-                      <span v-else>≈ {{ formatPaymentAmount }}</span>
-                    </div>
-                  </div>
+                  <img
+                    v-else-if="paymentCurrency?.id?.startsWith('ct/')"
+                    height="24"
+                    :src="convertIpfsUrl(paymentCurrency?.iconUrl)"
+                    :fallback-src="convertIpfsUrl(paymentCurrency?.iconUrl, 1)"
+                    @error="onImgErrorIpfsSrc"
+                  />
+                  <span class="q-ml-xs">{{ resolveAssetSymbol(paymentCurrency) }}</span>
                 </div>
-              </div>
+              </template>
+            </q-select>
+            <div v-if="fiatAmountValue && !conversionLoading" class="text-caption q-mt-xs">
+              ≈ {{ formatPaymentAmount }}
+            </div>
+            <div v-else-if="fiatAmountValue && conversionLoading" class="text-caption q-mt-xs">
+              <q-spinner-dots size="12px" />
             </div>
           </div>
         </q-card-section>
 
         <q-card-actions class="row items-center justify-around q-gutter-x-md">
-          <q-btn
-            no-caps
-            color="brandblue"
-            size="1rem"
-            padding="sm md"
-            :label="conversionLoading ? '' : $t('CreatePaymentQR')"
-            class="q-space"
-            :class="{
-              'sparkle-button': isFormValid,
-              'disabled-button': !isFormValid,
-            }"
-            type="submit"
-            :icon="conversionLoading ? undefined : 'mdi-qrcode'"
-            :disable="!isFormValid"
-          >
-            <q-spinner-dots v-if="conversionLoading" size="20px" />
-          </q-btn>
+          <div class="q-space" style="width: 100%">
+            <q-tooltip v-if="!isFormValid" anchor="top middle" self="bottom middle">
+              {{ $t("EnterAmountToBeReceived") }}
+            </q-tooltip>
+            <q-btn
+              no-caps
+              color="brandblue"
+              size="1rem"
+              padding="sm md"
+              :label="$t('Proceed')"
+              class="full-width"
+              :class="{
+                'sparkle-button': isFormValid,
+                'disabled-button': !isFormValid,
+              }"
+              type="submit"
+              icon="mdi-qrcode"
+              :disable="!isFormValid"
+            />
+          </div>
         </q-card-actions>
       </q-form>
     </q-card>
@@ -473,6 +498,7 @@ export default defineComponent({
     const selectedCurrency = ref(initialParsedCurrency || null);
     const paymentCurrency = ref(bchAsset);
     const conversionLoading = ref(false);
+    const conversionCompleted = ref(false);
     let rateRefreshInterval = null;
 
     const amountFieldDecimals = computed(() => {
@@ -555,6 +581,7 @@ export default defineComponent({
       if (value === null || value === "") {
         fiatAmountDisplay.value = null;
         fiatAmountValue.value = null;
+        conversionCompleted.value = false;
         debouncedUpdateAmount(null);
         return;
       }
@@ -567,6 +594,7 @@ export default defineComponent({
 
       if (parsed !== null) {
         fiatAmountValue.value = parsed;
+        conversionCompleted.value = false;
         debouncedUpdateAmount(parsed);
       } else {
         // Invalid input, but keep the display value for user to correct
@@ -619,8 +647,10 @@ export default defineComponent({
           error
         );
         throw error; // Re-throw to let caller handle
+        conversionCompleted.value = false;
       } finally {
         conversionLoading.value = false;
+        conversionCompleted.value = true;
       }
     }
 
@@ -725,9 +755,10 @@ export default defineComponent({
       // Must have an amount entered
       if (!fiatAmountValue.value) return false;
 
-      // If fiat is selected, must have payment currency and valid conversion rate
+      // If fiat is selected, must have payment currency, valid conversion rate, and conversion completed
       if (isFiatSelected.value) {
         if (!paymentCurrency.value || !fiatToPaymentRate.value) return false;
+        if (!conversionCompleted.value) return false;
       }
 
       // For crypto currencies, just need amount value
@@ -861,6 +892,7 @@ export default defineComponent({
 
       isFiatSelected,
       conversionLoading,
+      conversionCompleted,
       selectedCurrencyFlag,
 
       allCurrencyOpts,
@@ -923,36 +955,9 @@ export default defineComponent({
   }
 }
 
-/* Payment currency grid - 2 columns with fixed widths */
-.payment-currency-grid {
-  display: grid;
-  grid-template-columns: repeat(2, calc(50% - 4px));
-  gap: 8px;
-}
-
-/* Payment currency cards */
-.payment-currency-card {
-  width: 100%;
-  max-width: 100%;
-  cursor: pointer;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  background-color: rgba(255, 255, 255, 0.05);
-  overflow: hidden;
-}
-
-.payment-currency-card:hover:not(.selected) {
-  border-color: rgba(37, 57, 51, 0.3);
-  background-color: rgba(255, 255, 255, 0.08);
-  transform: translateY(-2px);
-}
-
-.payment-currency-card.selected {
-  border-width: 1px;
-  background-color: rgba(37, 57, 51, 0.2);
-  box-shadow: 0 4px 12px rgba(37, 57, 51, 0.4);
-  transform: scale(1.05);
+.payment-currency-select :deep(.q-field__native) {
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 .disabled-button {

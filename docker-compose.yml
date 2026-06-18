@@ -1,0 +1,6 @@
+services:
+  paytaca-pos:
+    build: .
+    platform: linux/amd64
+    ports:
+      - "8080:8080"

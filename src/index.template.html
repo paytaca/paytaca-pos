@@ -37,10 +37,125 @@
       body.body--dark {
         background-color: #1c2833;
       }
+      #q-app {
+        height: 100%;
+      }
+      .app-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        color: #333;
+      }
+      .app-loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e0e0e0;
+        border-top-color: #027be3;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .app-loading-text {
+        margin-top: 16px;
+        color: #666;
+      }
+      body.body--dark .app-loading {
+        color: #fff;
+      }
+      body.body--dark .app-loading-spinner {
+        border-color: #333;
+        border-top-color: #027be3;
+      }
+      body.body--dark .app-loading-text {
+        color: #aaa;
+      }
     </style>
   </head>
   <body>
     <!-- DO NOT touch the following DIV -->
-    <div id="q-app"></div>
+    <div id="q-app">
+      <div class="app-loading" id="app-loading">
+        <div class="app-loading-spinner"></div>
+        <div class="app-loading-text" id="app-loading-text">Loading...</div>
+      </div>
+    </div>
+    <script>
+      // Inline fallback: catches JS bundle parse/load failures
+      // Uses ES5 syntax only to guarantee execution on all browsers
+      (function () {
+        var loadingErrors = [];
+        var appStarted = false;
+
+        // Mark app as started when Vue mounts (App.vue removes #app-loading)
+        var observer = new MutationObserver(function (mutations) {
+          if (!document.getElementById("app-loading")) {
+            appStarted = true;
+            observer.disconnect();
+          }
+        });
+        observer.observe(document.getElementById("q-app"), {
+          childList: true,
+          subtree: true,
+        });
+
+        // Catch script errors (including parse errors from bundle)
+        window.addEventListener(
+          "error",
+          function (event) {
+            var msg = "";
+            if (event.message) {
+              msg = event.message;
+            }
+            if (event.filename) {
+              msg += " in " + event.filename + ":" + event.lineno;
+            }
+            if (msg) {
+              loadingErrors.push(msg);
+            }
+          },
+          true
+        );
+
+        // Fallback timeout: if app hasn't started after 10s, show error info
+        setTimeout(function () {
+          if (appStarted) return;
+          var loadingEl = document.getElementById("app-loading");
+          if (!loadingEl) return;
+
+          var spinner = loadingEl.querySelector(".app-loading-spinner");
+          if (spinner) spinner.style.display = "none";
+
+          var textEl = document.getElementById("app-loading-text");
+          if (textEl) {
+            if (loadingErrors.length > 0) {
+              textEl.innerHTML =
+                'Failed to load app.<br><small style="font-size:12px;color:#999;word-break:break-all;">' +
+                loadingErrors.slice(0, 5).join("<br>") +
+                "</small>";
+            } else {
+              textEl.textContent =
+                "App is taking too long to load. Please refresh.";
+            }
+          }
+        }, 10000);
+
+        // More aggressive fallback: remove loading screen after 15s no matter what
+        setTimeout(function () {
+          var loadingEl = document.getElementById("app-loading");
+          if (loadingEl) {
+            console.warn("Force-removing loading screen after 15s");
+            loadingEl.remove();
+          }
+        }, 15000);
+      })();
+    </script>
   </body>
 </html>

@@ -432,7 +432,7 @@
                 </div>
                 <template v-else>
                   <img
-                    src="~assets/bch-logo.webp"
+                    src="/bch-logo.png"
                     height="50"
                     class="qr-code-icon"
                   />

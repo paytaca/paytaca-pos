@@ -64,52 +64,7 @@
           </template>
         </div>
 
-        <div class="q-px-md q-mb-md">
-          <div class="section-title text-overline text-uppercase q-mb-sm">
-            {{ $t("SalesReport") }}
-          </div>
-          <div class="row q-col-gutter-sm">
-            <template v-if="isRefreshing || isInitialLoading">
-              <div v-for="n in 4" :key="n" class="col-6">
-                <q-card class="sales-card q-pa-md column full-height">
-                  <q-skeleton type="text" width="60px" />
-                  <div class="column justify-center q-space q-mt-sm">
-                    <q-skeleton type="text" width="80px" />
-                    <q-skeleton type="text" width="100px" class="q-mt-xs" />
-                  </div>
-                </q-card>
-              </div>
-            </template>
-            <template v-else>
-              <div class="col-6">
-                <SalesReportCard
-                  :title="$t('Today')"
-                  :sales-report="walletStore.salesReportSummary.today"
-                />
-              </div>
-              <div class="col-6">
-                <SalesReportCard
-                  :title="$t('Yesterday')"
-                  :sales-report="walletStore.salesReportSummary.yesterday"
-                />
-              </div>
-              <div class="col-6">
-                <SalesReportCard
-                  :title="$t('LastSevenDays')"
-                  :sales-report="walletStore.salesReportSummary.last7Days"
-                />
-              </div>
-              <div class="col-6">
-                <SalesReportCard
-                  :title="$t('ThisMonth')"
-                  :sales-report="walletStore.salesReportSummary.lastMonth"
-                />
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <div class="q-px-md q-mb-md">
+        <div v-if="isMarketplaceUserLoggedIn" class="q-px-md q-mb-md">
           <template v-if="isRefreshing || isInitialLoading">
             <q-card
               class="marketplace-card"
@@ -135,6 +90,110 @@
           </template>
         </div>
 
+        <div class="q-px-md q-mb-md">
+          <template v-if="hasFullSalesReportAccess">
+            <div class="section-title text-overline text-uppercase q-mb-sm">
+              {{ $t("SalesLast24h") }}
+            </div>
+          </template>
+          <div class="row q-col-gutter-sm">
+            <template v-if="isRefreshing || isInitialLoading">
+              <div class="col-12">
+                <q-card class="sales-card q-pa-md column full-height">
+                  <q-skeleton type="text" width="60px" />
+                  <div class="column justify-center q-space q-mt-sm">
+                    <q-skeleton type="text" width="80px" />
+                    <q-skeleton type="text" width="100px" class="q-mt-xs" />
+                  </div>
+                </q-card>
+              </div>
+            </template>
+            <template v-else>
+              <div class="col-12">
+                <SalesReportCard
+                  :featured="!hasFullSalesReportAccess"
+                  :title="$t('SalesLast24h')"
+                  :sales-report="salesToday24h"
+                />
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <template v-if="hasFullSalesReportAccess">
+          <div class="q-px-md q-mb-md">
+            <div class="section-title text-overline text-uppercase q-mb-sm">
+              {{ $t("SalesReport") }}
+            </div>
+            <div class="row q-col-gutter-sm">
+              <template v-if="isRefreshing || isInitialLoading">
+                <div v-for="n in 4" :key="n" class="col-6">
+                  <q-card class="sales-card q-pa-md column full-height">
+                    <q-skeleton type="text" width="60px" />
+                    <div class="column justify-center q-space q-mt-sm">
+                      <q-skeleton type="text" width="80px" />
+                      <q-skeleton type="text" width="100px" class="q-mt-xs" />
+                    </div>
+                  </q-card>
+                </div>
+              </template>
+              <template v-else>
+                <div class="col-6">
+                  <SalesReportCard
+                    :title="$t('Today')"
+                    :sales-report="walletStore.salesReportSummary.today"
+                  />
+                </div>
+                <div class="col-6">
+                  <SalesReportCard
+                    :title="$t('Yesterday')"
+                    :sales-report="walletStore.salesReportSummary.yesterday"
+                  />
+                </div>
+                <div class="col-6">
+                  <SalesReportCard
+                    :title="$t('LastSevenDays')"
+                    :sales-report="walletStore.salesReportSummary.last7Days"
+                  />
+                </div>
+                <div class="col-6">
+                  <SalesReportCard
+                    :title="$t('ThisMonth')"
+                    :sales-report="walletStore.salesReportSummary.lastMonth"
+                  />
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <div class="q-px-md q-mb-md">
+          <q-btn
+            unelevated
+            no-caps
+            class="receive-payment-btn full-width"
+            :class="{ 'receive-payment-btn--dark': $q.dark.isActive }"
+            @click="showSetAmountDialog()"
+          >
+            <div class="receive-payment-btn__icon">
+              <q-icon name="mdi-qrcode" size="28px" />
+            </div>
+            <div class="receive-payment-btn__content">
+              <div class="receive-payment-btn__title">
+                {{ $t("ReceivePayment") }}
+              </div>
+              <div class="receive-payment-btn__subtitle">
+                {{ $t("CreatePaymentRequest") }}
+              </div>
+            </div>
+            <q-icon
+              name="mdi-arrow-right"
+              size="22px"
+              class="receive-payment-btn__arrow"
+            />
+          </q-btn>
+        </div>
+
         <div class="q-px-md">
           <q-card
             class="transactions-card"
@@ -144,6 +203,9 @@
               <div class="row items-center">
                 <div class="text-h6 text-weight-medium">
                   {{ $t("Transactions") }}
+                  <span v-if="!hasFullSalesReportAccess" class="text-caption text-grey">
+                    ({{ $t("Last24Hours") }})
+                  </span>
                 </div>
                 <q-space />
                 <q-btn
@@ -154,7 +216,7 @@
                   icon="refresh"
                   size="sm"
                   :loading="fetchingTransactions"
-                  @click="() => fetchTransactions(transactions?.page || 1)"
+                  @click="() => fetchTransactions(filteredTransactions?.page || 1)"
                 >
                   <q-tooltip>{{ $t("Refresh") }}</q-tooltip>
                 </q-btn>
@@ -185,9 +247,9 @@
               <template v-else>
                 <div class="row items-center justify-end">
                   <q-pagination
-                    v-if="transactions?.num_pages > 1"
-                    :modelValue="transactions?.page"
-                    :max="transactions?.num_pages || 0"
+                    v-if="filteredTransactions?.num_pages > 1"
+                    :modelValue="filteredTransactions?.page"
+                    :max="filteredTransactions?.num_pages || 0"
                     :max-pages="7"
                     input
                     unelevated
@@ -203,7 +265,7 @@
                   <q-linear-progress query color="brandblue" />
                 </div>
                 <div
-                  v-else-if="!transactions?.history?.length"
+                  v-else-if="!filteredTransactions?.history?.length"
                   class="row items-center justify-center q-pa-md text-grey"
                 >
                   <q-icon name="receipt_long" size="48px" class="q-mb-sm" />
@@ -213,15 +275,16 @@
                 </div>
                 <TransactionsList
                   v-else
-                  :transactions="transactions"
+                  :transactions="filteredTransactions"
                   class="transactions-list"
-                  :class="transactions?.num_pages > 1 ? 'pagination' : ''"
+                  :class="filteredTransactions?.num_pages > 1 ? 'pagination' : ''"
                 />
               </template>
             </q-card-section>
           </q-card>
         </div>
-      </div>
+        </div>
+
       <MainFooter />
     </q-pull-to-refresh>
   </q-page>
@@ -242,6 +305,7 @@ import {
 } from "vue";
 import MainFooter from "src/components/MainFooter.vue";
 import MarketplaceWidget from "src/components/marketplace/MarketplaceWidget.vue";
+import SetAmountFormDialog from "src/components/SetAmountFormDialog.vue";
 import {
   paymentUriHasMatch,
   findMatchingPaymentLink,
@@ -254,6 +318,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { getEncryptionKeypair } from "src/nfc/keypair";
 import EnableNFCPayments from "src/components/EnableNFCPayments.vue";
+import { useTransactionHelpers } from "src/composables/transaction";
 
 export default defineComponent({
   name: "HomePage",
@@ -283,6 +348,17 @@ export default defineComponent({
     const cashtokenStore = useCashtokenStore();
     const { t } = useI18n();
     const showEnableNfcPayments = ref(false);
+    const { getTxDisplayFiat } = useTransactionHelpers();
+
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+    const isMarketplaceUserLoggedIn = computed(() => {
+      return marketplaceStore.user?.id > 0;
+    });
+
+    const hasFullSalesReportAccess = computed(() => {
+      return marketplaceStore.userPermissions?.admin;
+    });
 
     onMounted(async () => {
       getEncryptionKeypair().then((keypair) => {
@@ -325,8 +401,85 @@ export default defineComponent({
     const fetchingTransactions = ref(false);
     const isRefreshing = ref(false);
     const isInitialLoading = ref(true);
+
+    const filteredTransactions = computed(() => {
+      if (hasFullSalesReportAccess.value) {
+        return transactions.value;
+      }
+
+      const now = Date.now();
+      const twentyFourHoursAgo = now - TWENTY_FOUR_HOURS_MS;
+      const todayHistory = (transactions.value.history || []).filter((tx) => {
+        if (!tx?.tx_timestamp) return false;
+        const txTime = new Date(tx.tx_timestamp).getTime();
+        return txTime >= twentyFourHoursAgo;
+      });
+
+      const hasTransactions = todayHistory.length > 0;
+
+      return {
+        ...transactions.value,
+        history: todayHistory,
+        count: todayHistory.length,
+        page: hasTransactions ? 1 : 0,
+        num_pages: hasTransactions ? 1 : 0,
+        has_next: false,
+      };
+    });
+
+    const salesToday24h = computed(() => {
+      const now = Date.now();
+      const twentyFourHoursAgo = now - TWENTY_FOUR_HOURS_MS;
+      const txList = transactions.value?.history || [];
+
+      const recentTxs = txList.filter((tx) => {
+        if (tx.record_type !== 'incoming') return false;
+        const txTime = new Date(tx.tx_timestamp || tx.date_created).getTime();
+        return txTime >= twentyFourHoursAgo && txTime <= now;
+      });
+
+      if (!recentTxs.length) {
+        return { total: 0, count: 0, tokenAmounts: [], totalMarketValue: null, currency: null };
+      }
+
+      let total = 0;
+      const tokenAmountsMap = new Map();
+      let totalMarketValue = 0;
+      let currency = null;
+
+      recentTxs.forEach((tx) => {
+        if (tx.ft_category) {
+          tokenAmountsMap.set(
+            tx.ft_category,
+            (tokenAmountsMap.get(tx.ft_category) || 0) + Number(tx.amount || 0)
+          );
+        } else if (!tx.nft_category) {
+          total += Number(tx.amount || 0);
+        }
+
+        const fiat = getTxDisplayFiat(tx);
+        if (fiat.value && !Number.isNaN(fiat.value)) {
+          totalMarketValue += fiat.value;
+          if (!currency) currency = fiat.currency;
+        }
+      });
+
+      const tokenAmounts = [];
+      for (const [category, amount] of tokenAmountsMap.entries()) {
+        tokenAmounts.push({ category, amount });
+      }
+
+      return {
+        total: Number(total.toFixed(8)),
+        count: recentTxs.length,
+        tokenAmounts,
+        totalMarketValue: Number.isFinite(totalMarketValue) ? Number(totalMarketValue.toFixed(5)) : null,
+        currency,
+      };
+    });
     function fetchTransactions(page = 1) {
       if (!walletStore.walletHash) return Promise.resolve();
+      if (!walletStore.walletObj) return Promise.resolve();
       const opts = {
         page: Number.isInteger(page) ? page : 1,
         type: "incoming",
@@ -369,6 +522,14 @@ export default defineComponent({
         showEnableNfcPayments.value = false;
       }
     }
+    watch(
+      () => hasFullSalesReportAccess.value,
+      (newVal) => {
+        if (newVal && !transactions.value.history?.length) {
+          fetchTransactions();
+        }
+      }
+    );
 
     async function searchUnconfirmedPaymentsTransaction() {
       txCacheStore.unconfirmedTxsFromQrData.forEach(async (qrData) => {
@@ -444,7 +605,7 @@ export default defineComponent({
     });
 
     watch(
-      () => walletStore.deviceInfo.linkedDevice.unlinkRequest.id,
+      () => walletStore.deviceInfo?.linkedDevice?.unlinkRequest?.id,
       () => promptUnlinkRequest()
     );
     onMounted(() => promptUnlinkRequest());
@@ -521,6 +682,36 @@ export default defineComponent({
     }
 
     window.t = walletLinkComponent;
+
+    function showSetAmountDialog() {
+      $q.dialog({
+        component: SetAmountFormDialog,
+        componentProps: {
+          currencies: ["BCH"],
+        },
+      }).onOk((data) => {
+        const amount = data?.amount;
+        if (!amount) return;
+
+        const query = {};
+        if (amount.fiatAmount && amount.fiatCurrency) {
+          query.amount = amount.fiatAmount;
+          query.currency = amount.fiatCurrency;
+        } else {
+          query.amount = amount.value;
+          query.currency = amount.currency || "BCH";
+        }
+        if (amount.tokenCategory) {
+          query.tokenCategory = amount.tokenCategory;
+        }
+        if (amount.priceId) {
+          query.priceId = amount.priceId;
+        }
+
+        $router.push({ name: "receive-page", query });
+      });
+    }
+
     return {
       walletStore,
       transactions,
@@ -532,6 +723,11 @@ export default defineComponent({
       isRefreshing,
       isInitialLoading,
       showEnableNfcPayments
+      hasFullSalesReportAccess,
+      isMarketplaceUserLoggedIn,
+      showSetAmountDialog,
+      filteredTransactions,
+      salesToday24h,
     };
   },
 });
@@ -580,6 +776,72 @@ export default defineComponent({
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.receive-payment-btn {
+  min-height: 72px;
+  border-radius: 999px;
+  background: $brandblue;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  box-shadow: 0 8px 18px rgba(2, 123, 227, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(2, 123, 227, 0.24);
+    filter: brightness(1.02);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.receive-payment-btn :deep(.q-btn__content) {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0.9rem;
+  padding: 0 0.6rem;
+}
+
+.receive-payment-btn__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.receive-payment-btn__content {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.receive-payment-btn__title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.receive-payment-btn__subtitle {
+  margin-top: 0.12rem;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.receive-payment-btn__arrow {
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.receive-payment-btn--dark {
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
 }
 
 .transactions-list {

@@ -1,11 +1,19 @@
 <template>
   <div
-    class="row no-wrap q-mt-sm q-mb-md q-r-ml-lg"
+    class="row no-wrap q-mt-sm q-mb-md q-r-ml-lg items-center"
     style="
       padding-top: constant(safe-area-inset-top);
       padding-top: env(safe-area-inset-top);
     "
   >
+    <q-btn
+      v-if="showBackButton"
+      flat
+      round
+      icon="arrow_back"
+      color="grey-8"
+      @click="goToHome"
+    />
     <slot name="title">
       <div class="q-space">
         <div class="text-h4">{{ title }}</div>
@@ -20,8 +28,8 @@
         />
       </div>
     </div>
-    <q-dialog v-model="openUserMenu" position="bottom">
-      <q-card>
+    <q-drawer v-model="openUserMenu" side="right" full-height>
+      <q-card flat>
         <q-card-section>
           <div class="row items-start">
             <img
@@ -39,18 +47,6 @@
               <div class="text-grey">
                 {{ marketplaceStore.user.username }}
               </div>
-            </div>
-            <q-space />
-            <div>
-              <q-btn
-                outline
-                rounded
-                icon="chevron_right"
-                color="brandblue"
-                padding="sm"
-                size="sm"
-                @click="$router.push({ name: 'marketplace-user' })"
-              />
             </div>
           </div>
           <div
@@ -70,24 +66,73 @@
             clickable
             v-ripple
             v-close-popup
-            :to="{ name: 'marketplace-user' }"
+            exact
+            :to="{ name: 'marketplace' }"
           >
             <q-item-section>
-              <q-item-label>{{ $t("ChangePassword") }}</q-item-label>
+              <q-item-label class="text-weight-medium">{{ $t("Home") }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-separator />
-          <q-item clickable v-ripple v-close-popup @click="() => logOut()">
-            <q-item-section>
-              <q-item-label>{{ $t("Logout") }}</q-item-label>
-            </q-item-section>
-          </q-item>
+          <q-expansion-item
+            :header-inset-level="0"
+            :content-inset-level="0.5"
+            :label="$t('Shop')"
+          >
+            <q-item
+              clickable
+              v-ripple
+              v-close-popup
+              exact
+              :to="{ name: 'marketplace-settings' }"
+            >
+              <q-item-section>
+                <q-item-label class="text-weight-medium">{{ $t("ShopInfo") }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-ripple
+              v-close-popup
+              exact
+              :to="{ name: 'marketplace-storefront-settings' }"
+            >
+              <q-item-section>
+                <q-item-label class="text-weight-medium">{{ $t("StorefrontSettings") }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-expansion-item>
+          <q-separator />
+          <q-expansion-item
+            :header-inset-level="0"
+            :content-inset-level="0.5"
+            default-opened
+            :label="$t('User')"
+          >
+            <q-item
+              clickable
+              v-ripple
+              v-close-popup
+              exact
+              :to="{ name: 'marketplace-user' }"
+            >
+              <q-item-section>
+                <q-item-label class="text-weight-medium">{{ $t("User") }} {{ $t('Settings') }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-ripple v-close-popup @click="() => logOut()">
+              <q-item-section>
+                <q-item-label class="text-weight-medium">{{ $t("Logout") }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-expansion-item>
         </q-list>
       </q-card>
-    </q-dialog>
+    </q-drawer>
   </div>
 </template>
 <script>
+import { useRouter } from "vue-router";
 import { backend, setAuthToken } from "src/marketplace/backend";
 import { formatRole } from "src/marketplace/utils";
 import { useMarketplaceStore } from "src/stores/marketplace";
@@ -102,9 +147,11 @@ export default defineComponent({
   name: "MarketplaceHeader",
   props: {
     title: { type: String, default: t("Marketplace") },
+    showBackButton: { type: Boolean, default: false },
   },
   setup() {
     const $q = useQuasar();
+    const router = useRouter();
     const marketplaceStore = useMarketplaceStore();
     const openUserMenu = ref(false);
 
@@ -134,11 +181,16 @@ export default defineComponent({
       }
     }
 
+    function goToHome() {
+      router.push({ name: "home" });
+    }
+
     return {
       marketplaceStore,
       openUserMenu,
       userImage,
       logOut,
+      goToHome,
 
       // utils funcs
       formatRole,

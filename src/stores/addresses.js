@@ -1,88 +1,104 @@
-import { defineStore } from 'pinia';
-import { Wallet } from 'src/wallet';
-import { hmacSha256Hex } from 'src/wallet/utils';
-import { useWalletStore } from './wallet';
+import { defineStore } from "pinia";
+import { Wallet } from "src/wallet";
+import { hmacSha256Hex } from "src/wallet/utils";
+import { useWalletStore } from "./wallet";
 
 /**
- * 
- * @param {Object} addressSet 
- * @param {String} addressSet.receiving 
- * @param {String} addressSet.change 
- * @param {Number} addressSet.index 
- * @param {Number} addressSet.paymentIndex 
- * @param {Object} [addressSet.hmac] 
- * @param {String} [addressSet.hmac.receiving] 
- * @param {String} [addressSet.hmac.change] 
+ *
+ * @param {Object} addressSet
+ * @param {String} addressSet.receiving
+ * @param {String} addressSet.change
+ * @param {Number} addressSet.index
+ * @param {Number} addressSet.paymentIndex
+ * @param {Object} [addressSet.hmac]
+ * @param {String} [addressSet.hmac.receiving]
+ * @param {String} [addressSet.hmac.change]
  * @param {Wallet} wallet
  */
 export function isValidAddressSet(addressSet, wallet) {
-  if (!Number.isInteger(addressSet.index)) return false
-  if (!addressSet?.receiving || !addressSet?.change) return false
-  if (addressSet.index % 10 ** Wallet.paymentIndexValidator.POS_DEVICE_ID_DIGITS !== wallet.posId) return false
+  if (!wallet?.xPubKey) return false;
+  if (!Number.isInteger(addressSet.index)) return false;
+  if (!addressSet?.receiving || !addressSet?.change) return false;
+  if (
+    addressSet.index %
+      10 ** Wallet.paymentIndexValidator.POS_DEVICE_ID_DIGITS !==
+    wallet.posId
+  )
+    return false;
 
-  const receivingAddrHmac = hmacSha256Hex(wallet.xPubKey, addressSet?.receiving)
-  const changeAddrHmac = hmacSha256Hex(wallet.xPubKey, addressSet?.change)
+  const receivingAddrHmac = hmacSha256Hex(
+    wallet.xPubKey,
+    addressSet?.receiving
+  );
+  const changeAddrHmac = hmacSha256Hex(wallet.xPubKey, addressSet?.change);
   if (addressSet?.hmac?.receiving && addressSet?.hmac?.change) {
-    if (addressSet?.hmac?.receiving !== receivingAddrHmac) return false
-    if (addressSet?.hmac?.change !== changeAddrHmac) return false
-    return true
+    if (addressSet?.hmac?.receiving !== receivingAddrHmac) return false;
+    if (addressSet?.hmac?.change !== changeAddrHmac) return false;
+    return true;
   }
 
-  const { receiving, change } = wallet.getAddressSetAt(addressSet.index)
-  if (receiving !== addressSet?.receiving) return false
-  if (change !== addressSet?.change) return false
+  const addressSetAt = wallet.getAddressSetAt(addressSet.index);
+  if (!addressSetAt) return false;
+  const { receiving, change } = addressSetAt;
+  if (receiving !== addressSet?.receiving) return false;
+  if (change !== addressSet?.change) return false;
 
-  addressSet.hmac = { receiving: receivingAddrHmac, change: changeAddrHmac }
-  return true
+  addressSet.hmac = { receiving: receivingAddrHmac, change: changeAddrHmac };
+  return true;
 }
 
-export const useAddressesStore = defineStore('addresses', {
+export const useAddressesStore = defineStore("addresses", {
   state: () => ({
     maxPresavedAddresses: 10,
     addressSets: [
       {
-        receiving: '',
-        change: '',
+        receiving: "",
+        change: "",
         index: 0,
         paymentIndex: 0,
         // hmacSha256Hex(secret: <xPubKey>, message:<receiving|change>)
         // used for verifying address and xpubkey instead of
         // generating new address from xPubKey as it seems slow and costly
         hmac: {
-          receiving: '',
-          change: '',
-        }
-      }
-    ]
+          receiving: "",
+          change: "",
+        },
+      },
+    ],
   }),
 
   getters: {
     currentAddressSet() {
-      return this.addressSets?.[0]
-    }
+      return this.addressSets?.[0];
+    },
   },
 
   actions: {
     cleanAddressSets() {
-      this.removeDuplicateIndices()
-      this.removeInvalidAddressSets()
+      this.removeDuplicateIndices();
+      this.removeInvalidAddressSets();
     },
     removeInvalidAddressSets() {
-      const wallet = useWalletStore().walletObj
-      this.addressSets = this.addressSets
-        .filter(addressSet => isValidAddressSet(addressSet, wallet))
+      const wallet = useWalletStore().walletObj;
+      if (!wallet) return;
+      this.addressSets = this.addressSets.filter((addressSet) =>
+        isValidAddressSet(addressSet, wallet)
+      );
     },
     removeDuplicateIndices() {
-      this.addressSets = this.addressSets
-        .filter((addressSet, index, array) => 
-          array.findIndex(addressSet1 => addressSet.index === addressSet1.index) === index
-        )
+      this.addressSets = this.addressSets.filter(
+        (addressSet, index, array) =>
+          array.findIndex(
+            (addressSet1) => addressSet.index === addressSet1.index
+          ) === index
+      );
     },
     async fillAddressSets() {
-      this.cleanAddressSets()
-      if (this.addressSets.length >= this.maxPresavedAddresses) return
+      this.cleanAddressSets();
+      if (this.addressSets.length >= this.maxPresavedAddresses) return;
 
-      const wallet = useWalletStore().walletObj
+      const wallet = useWalletStore().walletObj;
+      if (!wallet) return;
 
       // String concat of String(MAX_PAYMENT_INDEX) + String(MAX_POSID_ON_MAX_PAYMENT_INDEX)
       // is equal to the max unhardened address (= 2^32-1)
@@ -90,62 +106,73 @@ export const useAddressesStore = defineStore('addresses', {
       // if posId > MAX_POSID_ON_MAX_PAYMENT_INDEX, the combined string will be;
       // greater than 2^32-1 and cant generated by xPubKey
       // hence we simply subtract MAX_PAYMENT_INDEX by 1 for posId > MAX_POSID_ON_MAX_PAYMENT_INDEX
-      const MAX_PAYMENT_INDEX = wallet.posId > Wallet.paymentIndexValidator.MAX_POSID_ON_MAX_PAYMENT_INDEX
-        ? Wallet.paymentIndexValidator.MAX_PAYMENT_INDEX
-        : Wallet.paymentIndexValidator.MAX_PAYMENT_INDEX - 1
+      const MAX_PAYMENT_INDEX =
+        wallet.posId >
+        Wallet.paymentIndexValidator.MAX_POSID_ON_MAX_PAYMENT_INDEX
+          ? Wallet.paymentIndexValidator.MAX_PAYMENT_INDEX
+          : Wallet.paymentIndexValidator.MAX_PAYMENT_INDEX - 1;
 
-      const paymentIndices = this.addressSets
-        .map(addressSet => addressSet?.paymentIndex)
-        // .filter(index => Number.isInteger(index))
+      const paymentIndices = this.addressSets.map(
+        (addressSet) => addressSet?.paymentIndex
+      );
+      // .filter(index => Number.isInteger(index))
 
-      let lastPaymentIndex = Math.max(0, ...paymentIndices)
+      let lastPaymentIndex = Math.max(0, ...paymentIndices);
 
       if (!lastPaymentIndex) {
-        const { paymentIndex } = await wallet.getLastPaymentIndex()
-        lastPaymentIndex = await paymentIndex || 0
+        const { paymentIndex } = await wallet.getLastPaymentIndex();
+        lastPaymentIndex = (await paymentIndex) || 0;
       }
 
       // setup hard limit on filling address
-      let loopsLeft = 20
-      while(this.addressSets.length < this.maxPresavedAddresses && loopsLeft > 0) {
-        let nextIndex = (lastPaymentIndex+1) % MAX_PAYMENT_INDEX
-        if (nextIndex === 0) nextIndex++
+      let loopsLeft = 20;
+      while (
+        this.addressSets.length < this.maxPresavedAddresses &&
+        loopsLeft > 0
+      ) {
+        let nextIndex = (lastPaymentIndex + 1) % MAX_PAYMENT_INDEX;
+        if (nextIndex === 0) nextIndex++;
 
         if (paymentIndices.indexOf(nextIndex) < 0) {
           try {
             const addressSet = await wallet.generateReceivingAddress(
-              nextIndex, { skipSubscription: false },
-            )
-            addressSet.paymentIndex = nextIndex
-            addressSet.hmac = {
-              receiving: hmacSha256Hex(wallet.xPubKey, addressSet.receiving),
-              change: hmacSha256Hex(wallet.xPubKey, addressSet.change),
+              nextIndex,
+              { skipSubscription: false }
+            );
+            if (addressSet) {
+              addressSet.paymentIndex = nextIndex;
+              addressSet.hmac = {
+                receiving: hmacSha256Hex(wallet.xPubKey, addressSet.receiving),
+                change: hmacSha256Hex(wallet.xPubKey, addressSet.change),
+              };
+              this.enqueueAddress(addressSet);
             }
-            this.enqueueAddress(addressSet)
-          } catch(error) {
-            console.error(error)
+          } catch (error) {
+            console.error(error);
           }
         }
-        lastPaymentIndex = nextIndex
-        loopsLeft--
+        lastPaymentIndex = nextIndex;
+        loopsLeft--;
       }
     },
     removeAddressSet(address) {
-      this.addressSets = this.addressSets
-        .filter(addressSet => addressSet?.receiving != address && addressSet?.change != address)
+      this.addressSets = this.addressSets.filter(
+        (addressSet) =>
+          addressSet?.receiving != address && addressSet?.change != address
+      );
     },
-    enqueueAddress(addressSet, verify=true) {
+    enqueueAddress(addressSet, verify = true) {
       if (verify) {
-        const wallet = useWalletStore().walletObj
-        if (!isValidAddressSet(addressSet, wallet)) return
+        const wallet = useWalletStore().walletObj;
+        if (!isValidAddressSet(addressSet, wallet)) return;
       }
 
       // this.addressSets = [...this.addressSets, addressSet]
-      this.addressSets.push(addressSet)
+      this.addressSets.push(addressSet);
     },
     dequeueAddress() {
       // this.addressSets = this.addressSets.slice(1)
-      this.addressSets.splice(0, 1) // remove 1 element/s starting from index 0
-    }
-  }
-})
+      this.addressSets.splice(0, 1); // remove 1 element/s starting from index 0
+    },
+  },
+});

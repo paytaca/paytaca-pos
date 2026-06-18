@@ -212,7 +212,7 @@ import { usePaymentsStore } from 'stores/payments'
 import { useAddressesStore } from 'stores/addresses'
 import { useCashtokenStore } from 'src/stores/cashtoken'
 import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, inject, markRaw, onBeforeUnmount } from 'vue'
-import { onBeforeRouteLeave, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { Capacitor } from '@capacitor/core'
@@ -220,7 +220,7 @@ import QRCode from 'vue-qrcode-component'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
 import { sha256 } from 'src/wallet/utils'
-import bchLogo from 'src/assets/bch-logo.webp'
+const bchLogo = '/bch-logo.png'
 import { convertIpfsUrl } from 'src/utils/ipfs'
 import { formatNumberAutoDecimals, formatNumberWithDecimals } from 'src/utils/number-format'
 import { postOutputFiatAmounts } from 'src/utils/watchtower'
@@ -281,6 +281,7 @@ export default defineComponent({
     const $q = useQuasar()
     const { t } = useI18n()
     const $router = useRouter()
+    const $route = useRoute()
     const walletStore = useWalletStore()
     const addressesStore = useAddressesStore()
     const paymentsStore = usePaymentsStore()
@@ -312,6 +313,37 @@ export default defineComponent({
       
       if (props.setAmount && props.lockAmount) disableAmount.value = true
       if (props.setTokenCategory) tokenCategory.value = props.setTokenCategory
+
+      // Also read from route query if no props provided
+      const query = $route.query
+
+      // Handle MainFooter format: setAmount, setFiatAmount, setCurrency, etc.
+      if (query.setFiatAmount && query.setFiatCurrency && !props.setAmount && !props.setFiatAmount) {
+        fiatReferenceAmount.value = Number(query.setFiatAmount)
+        fiatReferenceCurrency.value = query.setFiatCurrency
+        currency.value = query.setFiatCurrency
+        receiveAmount.value = Number(query.setFiatAmount)
+      } else if (query.setAmount && query.setCurrency && !props.setAmount && !props.setFiatAmount) {
+        receiveAmount.value = Number(query.setAmount)
+        currency.value = query.setCurrency
+      } else if (query.amount && query.currency && !props.setAmount && !props.setFiatAmount) {
+        // Home page format
+        const amount = Number(query.amount)
+        const currencyVal = query.currency
+        const knownFiats = ['PHP', 'USD', 'EUR', 'GBP', 'JPY', 'KRW', 'CNY', 'BRL', 'IDR', 'INR']
+        if (knownFiats.includes(currencyVal)) {
+          fiatReferenceAmount.value = amount
+          fiatReferenceCurrency.value = currencyVal
+          currency.value = currencyVal
+          receiveAmount.value = amount
+        } else {
+          receiveAmount.value = amount
+          currency.value = currencyVal
+        }
+      }
+      if ((query.tokenCategory || query.setTokenCategory) && !props.setTokenCategory) {
+        tokenCategory.value = query.tokenCategory || query.setTokenCategory
+      }
 
       if (tokenCategory.value && !cashtokenMetadata.value) {
         cashTokenStore.fetchTokenMetadata(tokenCategory.value)
@@ -427,6 +459,11 @@ export default defineComponent({
       if (isCashtoken.value) return NaN
       if (isNotFiatMode.value) return receiveAmount.value
 
+      // Guard: only proceed if we have a valid receive amount
+      if (!receiveAmount.value || receiveAmount.value <= 0) {
+        return NaN
+      }
+
       const rateValue = currencyBchRate.value?.rate
       if (!rateValue || rateValue === 0 || isNaN(rateValue)) {
         console.error('[ReceivePage] Invalid BCH rate value', {
@@ -496,6 +533,12 @@ export default defineComponent({
       // Ensure metadata is loaded before conversion
       if (!cashtokenMetadata.value) {
         console.log('[ReceivePage] tokenAmount: No metadata available, returning NaN')
+        return NaN
+      }
+
+      // Guard: only proceed if we have a valid receive amount
+      if (!receiveAmount.value || receiveAmount.value <= 0) {
+        console.log('[ReceivePage] tokenAmount: Invalid receive amount, returning NaN')
         return NaN
       }
 
@@ -1182,7 +1225,8 @@ export default defineComponent({
           name: 'transaction-detail',
           params: { txid: data?.txid },
           query: { new: 'true' },
-          state: { tx: txObject }
+          // Router state goes through history.pushState, so keep it clone-safe.
+          state: { tx: JSON.parse(JSON.stringify(txObject)) }
         }).then(() => {
           paymentDialogOpen.value = false
         }).catch(() => {
@@ -1207,84 +1251,24 @@ export default defineComponent({
               fiat_currency: `${originalFiatCurrency}`,
               recipient: data?.address,
             }
-            
+
             if (isTokenPayment) {
               entry.token_amount = receivedCryptoAmount.toFixed(tokenDecimals)
               entry.token_category = tokenCategory.value
             }
-            
-            // Use the output index from the transaction data, or default to 0
+
             const outputIndex = String(data?.index ?? 0)
             map[outputIndex] = entry
-            
-            // Post API call and ONLY navigate on success
+
+            navigateToTransactionDetails()
             postOutputFiatAmounts({ txid: data.txid, outputFiatAmounts: map })
-              .then(() => {
-                console.log('[ReceivePage] Fiat amounts posted successfully, navigating to transaction details')
-                navigateToTransactionDetails()
-              })
-              .catch((error) => {
-                console.error('[ReceivePage] Error posting fiat amounts, NOT navigating:', error)
-                
-                // Check if error is due to duplicate submission
-                const errorMessage = error?.message || ''
-                const isConflict = error?.status === 409 || 
-                                    errorMessage.includes('409') || 
-                                    errorMessage.toLowerCase().includes('conflict') ||
-                                    errorMessage.toLowerCase().includes('already exists') ||
-                                    errorMessage.toLowerCase().includes('duplicate')
-                
-                if (isConflict) {
-                  // If it's a conflict, check if the existing data matches
-                  const existingData = error?.existingData
-                  if (existingData) {
-                    const existingAmount = Number(Object.values(existingData)[0]?.fiat_amount || 0)
-                    const existingCurrency = Object.values(existingData)[0]?.fiat_currency || ''
-                    const expectedAmount = Number(originalFiatAmount)
-                    
-                    // If amounts match, treat as success and navigate
-                    if (Math.abs(existingAmount - expectedAmount) <= 0.01 && 
-                        existingCurrency === originalFiatCurrency) {
-                      console.log('[ReceivePage] Duplicate with matching data, proceeding with navigation')
-                      navigateToTransactionDetails()
-                    } else {
-                      // Amounts don't match - show error but don't navigate
-                      $q.notify({ 
-                        type: 'warning', 
-                        message: t('FiatAmountMismatch', 
-                          { 
-                            existing: `${existingAmount} ${existingCurrency}`,
-                            current: `${originalFiatAmount} ${originalFiatCurrency}`
-                          },
-                          `Fiat amount mismatch: ${existingAmount} ${existingCurrency} already saved, but current amount is ${originalFiatAmount} ${originalFiatCurrency}`
-                        ), 
-                        timeout: 5000 
-                      })
-                    }
-                  } else {
-                    // No existing data to compare, but it's a conflict - likely duplicate, navigate anyway
-                    console.log('[ReceivePage] Conflict error but no existing data, proceeding with navigation')
-                    navigateToTransactionDetails()
-                  }
-                } else {
-                  // Non-conflict error - show error and don't navigate
-                  $q.notify({ 
-                    type: 'warning', 
-                    message: t('UnableToSaveFiatBreakdown'), 
-                    timeout: 3000 
-                  })
-                }
-              })
           } else {
-            // No crypto amount, navigate immediately without API call
             navigateToTransactionDetails()
           }
         } catch (e) {
           console.error('[ReceivePage] Error in fiat amount posting', e)
-          // On error, don't navigate
         }
       } else {
-        // No fiat amount - navigate immediately without API call
         navigateToTransactionDetails()
       }
     }
@@ -1479,83 +1463,13 @@ export default defineComponent({
           map[String(o?.index)] = entry
         })
         // Fire and forget with basic retry handled in helper
+        // Don't show any notifications - payment already succeeded
         postOutputFiatAmounts({ txid, outputFiatAmounts: map })
           .then(() => { 
             postedFiatMapTxIds.add(txid) 
           })
           .catch((error) => {
-            // Non-blocking notify
-            console.error('[ReceivePage] Error posting fiat amounts', error)
-            
-            // Check if error is due to duplicate submission
-            const errorMessage = error?.message || ''
-            const isConflict = error?.status === 409 || 
-                                errorMessage.includes('409') || 
-                                errorMessage.toLowerCase().includes('conflict') ||
-                                errorMessage.toLowerCase().includes('already exists') ||
-                                errorMessage.toLowerCase().includes('duplicate')
-            
-            if (isConflict) {
-              // Check if existing data matches what we're trying to save
-              const existingData = error?.existingData
-              if (existingData && fiatReferenceAmount.value && fiatReferenceCurrency.value) {
-                // Compare existing data with what we're trying to save
-                let amountsMatch = true
-                const expectedAmount = Number(fiatReferenceAmount.value)
-                
-                // Check all outputs in existing data
-                for (const outputIndex in existingData) {
-                  const existing = existingData[outputIndex]
-                  const existingAmount = Number(existing.fiat_amount || 0)
-                  const existingCurrency = existing.fiat_currency
-                  
-                  // For single output, compare directly
-                  // For multiple outputs, we'd need to sum them, but typically it's one output
-                  if (Object.keys(existingData).length === 1) {
-                    // Allow small floating point differences (0.01)
-                    if (Math.abs(existingAmount - expectedAmount) > 0.01 || 
-                        existingCurrency !== fiatReferenceCurrency.value) {
-                      amountsMatch = false
-                      break
-                    }
-                  } else {
-                    // Multiple outputs - sum them up and compare
-                    const totalExisting = Object.values(existingData).reduce((sum, entry) => {
-                      return sum + Number(entry.fiat_amount || 0)
-                    }, 0)
-                    if (Math.abs(totalExisting - expectedAmount) > 0.01 ||
-                        existingCurrency !== fiatReferenceCurrency.value) {
-                      amountsMatch = false
-                      break
-                    }
-                  }
-                }
-                
-                if (!amountsMatch) {
-                  // Amounts don't match - show helpful error
-                  const existingAmount = Object.values(existingData)[0]?.fiat_amount || 'unknown'
-                  const existingCurrency = Object.values(existingData)[0]?.fiat_currency || ''
-                  $q.notify({ 
-                    type: 'warning', 
-                    message: t('FiatAmountMismatch', 
-                      { 
-                        existing: `${existingAmount} ${existingCurrency}`,
-                        current: `${fiatReferenceAmount.value} ${fiatReferenceCurrency.value}`
-                      },
-                      `Fiat amount mismatch: ${existingAmount} ${existingCurrency} already saved, but current amount is ${fiatReferenceAmount.value} ${fiatReferenceCurrency.value}`
-                    ), 
-                    timeout: 5000 
-                  })
-                }
-                // If amounts match, silently ignore (duplicate with same data)
-              } else {
-                // No existing data to compare, but it's a conflict - likely duplicate
-                // Silently ignore
-              }
-            } else {
-              // Not a conflict error - show generic error
-              $q.notify({ type: 'warning', message: t('UnableToSaveFiatBreakdown'), timeout: 3000 })
-            }
+            console.error('[ReceivePage] Background fiat amounts post failed:', error)
           })
       } catch (e) { 
         console.error('[ReceivePage] Error in maybePostOutputFiatAmounts', e)

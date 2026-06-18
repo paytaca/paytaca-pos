@@ -82,6 +82,9 @@ const phrases = {
     },
     {
       SalesReport: "Sales Report",
+      SalesToday: "Sales Today",
+      ShowTransactions: "Show Transactions",
+      HideTransactions: "Hide Transactions",
       PurchaseOrders: "Purchase Orders",
       PurchaseOrder: "Purchase Order",
       ShopInfo: "Shop info",

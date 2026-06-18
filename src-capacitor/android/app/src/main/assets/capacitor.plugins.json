@@ -24,6 +24,10 @@
 		"classpath": "com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin"
 	},
 	{
+		"pkg": "@capacitor-community/native-audio",
+		"classpath": "com.getcapacitor.community.audio.NativeAudio"
+	},
+	{
 		"pkg": "capacitor-secure-storage-plugin",
 		"classpath": "com.whitestein.securestorage.SecureStoragePluginPlugin"
 	}

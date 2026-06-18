@@ -11,14 +11,13 @@ export async function postOutputFiatAmounts({ txid, outputFiatAmounts, endpoint 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
-    
+
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       console.error('[watchtower] Request failed', { status: res.status, statusText: res.statusText, responseText: text })
       const error = new Error(text || `HTTP ${res.status}`)
-      error.status = res.status  // Attach status code to error object for better error handling
-      
-      // Try to parse JSON response to extract existing_data for comparison
+      error.status = res.status
+
       try {
         const jsonResponse = JSON.parse(text)
         if (jsonResponse.existing_data) {
@@ -28,19 +27,18 @@ export async function postOutputFiatAmounts({ txid, outputFiatAmounts, endpoint 
           error.apiError = jsonResponse.error
         }
       } catch (e) {
-        // Not JSON, ignore
       }
-      
+
       throw error
     }
-    
+
     return res.json().catch(() => ({}))
   }
 
   try {
     return await attempt()
   } catch (e) {
-    if (retries > 0) {
+    if (retries > 0 && e.status !== 409) {
       await new Promise(r => setTimeout(r, 1000))
       return attempt()
     }

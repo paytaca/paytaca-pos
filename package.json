@@ -1,6 +1,6 @@
 {
   "name": "paytaca-pos",
-  "version": "0.5.6",
+  "version": "0.5.10",
   "description": "Point-of-Sale system with inventory for Bitcoin Cash-accepting merchants",
   "productName": "Paytaca POS",
   "author": "joemar@paytaca.com",
@@ -72,7 +72,8 @@
     "eslint-plugin-vue": "^9.0.0",
     "eslint-webpack-plugin": "^3.1.1",
     "node-polyfill-webpack-plugin": "^2.0.1",
-    "prettier": "^2.5.1"
+    "prettier": "^2.5.1",
+    "workbox-webpack-plugin": "^6.6.0"
   },
   "browserslist": [
     "last 10 Chrome versions",

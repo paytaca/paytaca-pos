@@ -3,162 +3,194 @@
 </template>
 
 <script>
-import { useQuasar } from 'quasar'
-import { useI18n } from 'vue-i18n'
-import { defineComponent, inject, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useWalletStore } from './stores/wallet'
-import { useNotificationsStore } from './stores/notifications'
-import { pushNotificationsManager } from './boot/push-notifications'
-import { useDebugLogger } from './composables/useDebugLogger'
+import { useQuasar } from "quasar";
+import { useI18n } from "vue-i18n";
+import {
+  defineComponent,
+  inject,
+  onMounted,
+  onUnmounted,
+  ref,
+  watch,
+} from "vue";
+import { useWalletStore } from "./stores/wallet";
+import { useNotificationsStore } from "./stores/notifications";
+import { pushNotificationsManager } from "./boot/push-notifications";
+import { useDebugLogger } from "./composables/useDebugLogger";
 
 export default defineComponent({
-  name: 'App',
+  name: "App",
   created() {
-    const theme = localStorage.getItem('app_theme')
-    let darkMode = 'auto'
-    switch(theme) {
-      case 'true':
-        darkMode = true
-        break
-      case 'false':
-        darkMode = false
-        break
+    const theme = localStorage.getItem("app_theme");
+    let darkMode = "auto";
+    switch (theme) {
+      case "true":
+        darkMode = true;
+        break;
+      case "false":
+        darkMode = false;
+        break;
       default:
-        darkMode = 'auto'
+        darkMode = "auto";
     }
-    this.$q.dark.set(darkMode)
+    this.$q.dark.set(darkMode);
   },
   watch: {
-    '$q.dark.isActive': function () {
-      localStorage.setItem('app_theme', this.$q.dark.isActive)
-    }
+    "$q.dark.isActive": function () {
+      localStorage.setItem("app_theme", this.$q.dark.isActive);
+    },
   },
   setup() {
-    const $q = useQuasar()
-    window.toggleDark = () => $q.dark.toggle()
-    const { t } = useI18n()
-    const walletStore = useWalletStore()
-    const notificationsStore = useNotificationsStore()
-    const $rpc = inject('$rpc')
-    window.dark = $q.dark
+    const $q = useQuasar();
+    window.toggleDark = () => $q.dark.toggle();
+    const { t } = useI18n();
+    const walletStore = useWalletStore();
+    const notificationsStore = useNotificationsStore();
+    const $rpc = inject("$rpc");
+    window.dark = $q.dark;
 
-    // Initialize debug logger based on localStorage flag
-    const { startInterception, stopInterception } = useDebugLogger()
+    // Safety: remove loading screen after timeout
+    setTimeout(() => {
+      const loadingEl = document.getElementById("app-loading");
+      if (loadingEl) {
+        console.warn("Removing loading screen via safety timeout");
+        loadingEl.remove();
+      }
+    }, 5000);
 
-    const pingIntervalId = ref(null)
+    const { startInterception, stopInterception } = useDebugLogger();
+
+    const pingIntervalId = ref(null);
     onMounted(() => {
+      const loadingEl = document.getElementById("app-loading");
+      if (loadingEl) loadingEl.remove();
+
       // Initialize debug logger
-      const debugIconVisible = localStorage.getItem('debugIconVisible') === 'true'
+      const debugIconVisible =
+        localStorage.getItem("debugIconVisible") === "true";
       if (debugIconVisible) {
-        startInterception()
+        startInterception();
       }
 
       // Setup ping interval
-      clearInterval(pingIntervalId.value)
+      clearInterval(pingIntervalId.value);
       pingIntervalId.value = setInterval(() => {
-        if ($rpc?.client?.ws?.readyState !== WebSocket.OPEN) return
-        $rpc?.client?.call('ping')
-      }, 30 * 1000)
-      $rpc?.client?.onOpen(() => $rpc.client.call('ping'))
-    })
-    onUnmounted(() => clearInterval(pingIntervalId.value))
+        if ($rpc?.client?.ws?.readyState !== WebSocket.OPEN) return;
+        $rpc?.client?.call("ping");
+      }, 30 * 1000);
+      $rpc?.client?.onOpen(() => $rpc.client.call("ping"));
+    });
+    onUnmounted(() => clearInterval(pingIntervalId.value));
 
     /**
-     * @param {Object} rpcResult 
+     * @param {Object} rpcResult
      * @param {Object} rpcResult.result
      * @param {Object} rpcResult.result.update
      * @param {String} rpcResult.result.update.resource
      * @param {String} rpcResult.result.update.action
      * @param {Object} [rpcResult.result.update.object]
      * @param {Object} [rpcResult.result.update.data]
-    */
+     */
     const rpcUpdateHandler = (rpcResult) => {
-      console.debug(rpcResult)
-      const updateData = rpcResult?.result?.update
-      if (!updateData) return
-      if (updateData?.resource === 'pos_device' && updateData?.object?.wallet_hash == walletStore.walletHash && updateData?.object?.posid === walletStore.posId) {
-        switch(updateData?.action) {
-          case 'update':
-          case 'link':
-          case 'unlink':
-          case 'unlink_request':
-          case 'suspend':
-          case 'unsuspend':
-            walletStore.refetchDeviceInfo()
+      console.debug(rpcResult);
+      const updateData = rpcResult?.result?.update;
+      if (!updateData) return;
+      if (
+        updateData?.resource === "pos_device" &&
+        updateData?.object?.wallet_hash == walletStore.walletHash &&
+        updateData?.object?.posid === walletStore.posId
+      ) {
+        switch (updateData?.action) {
+          case "update":
+          case "link":
+          case "unlink":
+          case "unlink_request":
+          case "suspend":
+          case "unsuspend":
+            walletStore.refetchDeviceInfo();
         }
       }
+    };
+
+    if (
+      $rpc?.client?.onNotification &&
+      $rpc.client.onNotification.indexOf(rpcUpdateHandler) < 0
+    ) {
+      $rpc.client.onNotification.push(rpcUpdateHandler);
     }
 
-    if ($rpc.client.onNotification.indexOf(rpcUpdateHandler) < 0) {
-      $rpc.client.onNotification.push(rpcUpdateHandler)
-    }
-
-    const deviceSuspensionDialog = ref(null)
-    watch(() => walletStore.deviceInfo.linkedDevice.isSuspended, () => checkSuspended())
-    onMounted(() => checkSuspended())
+    const deviceSuspensionDialog = ref(null);
+    watch(
+      () => walletStore.deviceInfo?.linkedDevice?.isSuspended,
+      () => checkSuspended()
+    );
+    onMounted(() => checkSuspended());
     function checkSuspended() {
-      if (walletStore.deviceInfo.linkedDevice.isSuspended) {
+      if (walletStore.deviceInfo?.linkedDevice?.isSuspended) {
         deviceSuspensionDialog.value = $q.dialog({
-          title: t('Suspended'),
-          message: t('PosDeviceSuspensionMsg'),
+          title: t("Suspended"),
+          message: t("PosDeviceSuspensionMsg"),
           persistent: true,
           ok: false,
           cancel: false,
-        })
+        });
       } else {
-        deviceSuspensionDialog.value?.hide?.() 
-        deviceSuspensionDialog.value = null
+        deviceSuspensionDialog.value?.hide?.();
+        deviceSuspensionDialog.value = null;
       }
     }
 
-    
     onMounted(() => {
-      if (!pushNotificationsManager.isMobile) return
+      if (!pushNotificationsManager.events) return;
       pushNotificationsManager.events.addEventListener(
-        'pushNotificationReceived', onPushNotification,
-      )
-    })
+        "pushNotificationReceived",
+        onPushNotification
+      );
+    });
     onUnmounted(() => {
+      if (!pushNotificationsManager.events) return;
       pushNotificationsManager.events.removeEventListener(
-        'pushNotificationReceived', onPushNotification,
-      )
-    })
+        "pushNotificationReceived",
+        onPushNotification
+      );
+    });
     const onPushNotification = (notification) => {
-      console.log('Notification:', notification)
+      console.log("Notification:", notification);
       if (notification?.title || notification?.body) {
         let actions = [
-          { icon: 'close', 'aria-label': t('Dismiss'), color: 'white' }
-        ]
-        const route = notificationsStore.resolvePushNotificationRoute(notification)
+          { icon: "close", "aria-label": t("Dismiss"), color: "white" },
+        ];
+        const route =
+          notificationsStore.resolvePushNotificationRoute(notification);
         if (route) {
           actions = [
             {
               noCaps: true,
-              label: t('Open'),
-              textColor: 'white',
+              label: t("Open"),
+              textColor: "white",
               handler: () => {
-                notificationsStore.setOpenedNotification(notification)
-                notificationsStore.handleOpenedNotification()
-              }
+                notificationsStore.setOpenedNotification(notification);
+                notificationsStore.handleOpenedNotification();
+              },
             },
             {
               noCaps: true,
-              label: t('Close'),
-              textColor: 'white',
+              label: t("Close"),
+              textColor: "white",
             },
-          ]
+          ];
         }
 
         $q.notify({
-          color: 'brandblue',
+          color: "brandblue",
           message: notification?.title,
           caption: notification?.body,
           multiLine: true,
-          attrs: { style: 'word-break:break-all;' },
+          attrs: { style: "word-break:break-all;" },
           actions: actions,
-        })
+        });
       }
-    }
-  }
-})
+    };
+  },
+});
 </script>

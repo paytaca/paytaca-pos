@@ -9,11 +9,7 @@ const routes = [
         path: 'receive',
         name: 'receive-page',
         component: () => import('src/pages/ReceivePage.vue'),
-        props: route => Object.assign(route.query, {
-          setAmount: Number(route.query?.setAmount) || route.query?.setAmount,
-          setFiatAmount: Number(route.query?.setFiatAmount) || route.query?.setFiatAmount,
-          lockAmount: String(route.query?.lockAmount).toLowerCase() === 'false' ? false : Boolean(route.query?.lockAmount),
-        }),
+        props: false,
       },
       { path: 'settings', component: () => import('pages/Settings.vue'), name: 'settings'},
       { path: 'debug', component: () => import('src/pages/Debug.vue'), name: 'debug'},

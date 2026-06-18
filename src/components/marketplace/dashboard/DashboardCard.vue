@@ -33,3 +33,8 @@ export default defineComponent({
   },
 })
 </script>
+<style scoped>
+.br-15 {
+  border-radius: 15px;
+}
+</style>

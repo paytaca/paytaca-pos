@@ -20,5 +20,8 @@ project(':capacitor-keyboard').projectDir = new File('../node_modules/@capacitor
 include ':capacitor-push-notifications'
 project(':capacitor-push-notifications').projectDir = new File('../node_modules/@capacitor/push-notifications/android')
 
+include ':capacitor-community-native-audio'
+project(':capacitor-community-native-audio').projectDir = new File('../node_modules/@capacitor-community/native-audio/android')
+
 include ':capacitor-secure-storage-plugin'
 project(':capacitor-secure-storage-plugin').projectDir = new File('../node_modules/capacitor-secure-storage-plugin/android')
