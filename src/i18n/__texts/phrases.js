@@ -471,6 +471,7 @@ const phrases = {
       ChineseTraditional: "Chinese (Traditional)",
       PortugueseBrazil: "Portuguese (Brazil)",
       SpanishArgentina: "Spanish (Argentina)",
+      DefaultAsset: "Default Asset",
       FrequentActionErrMsg1: "You are making frequent actions",
       FrequentActionErrMsg3: ". Try again later",
       SalesOrder: "Sales Order",
