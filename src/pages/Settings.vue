@@ -137,7 +137,7 @@
             </q-item-section>
           </q-item>
 
-          <q-separator :dark="$q.dark.isActive" inset="item" />
+          <q-separator :dark="$q.dark.isActive" inset />
 
           <q-item class="q-py-md">
             <q-item-section avatar>
@@ -152,6 +152,24 @@
             </q-item-section>
             <q-item-section side class="language-selector">
               <LanguageSelector />
+            </q-item-section>
+          </q-item>
+
+          <q-separator :dark="$q.dark.isActive" inset />
+
+          <q-item class="q-py-md">
+            <q-item-section avatar>
+              <q-avatar color="green-6" text-color="white" size="40px">
+                <q-icon name="currency_bitcoin" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-medium">{{
+                $t("DefaultAsset", {}, "Default Asset")
+              }}</q-item-label>
+            </q-item-section>
+            <q-item-section side class="language-selector">
+              <DefaultAssetSelector class="full-width"/>
             </q-item-section>
           </q-item>
         </q-list>
@@ -196,7 +214,6 @@
               walletStore.walletHash && walletStore.preferences.selectedCurrency
             "
             :dark="$q.dark.isActive"
-            inset="item"
           />
 
           <q-item
@@ -268,7 +285,7 @@
             </q-item-section>
           </q-item>
 
-          <q-separator :dark="$q.dark.isActive" inset="item" />
+          <q-separator :dark="$q.dark.isActive" />
 
           <q-item
             clickable
@@ -309,6 +326,7 @@ import { useWalletStore } from "src/stores/wallet";
 import { padPosId } from "src/wallet/utils";
 import packageInfo from "../../package.json";
 import LanguageSelector from "src/components/LanguageSelector.vue";
+import DefaultAssetSelector from "src/components/settings/DefaultAssetSelector.vue";
 import { useDebugLogger } from "src/composables/useDebugLogger";
 
 export default defineComponent({
@@ -316,6 +334,7 @@ export default defineComponent({
   components: {
     MainHeader,
     LanguageSelector,
+    DefaultAssetSelector,
   },
   setup() {
     const router = useRouter();
