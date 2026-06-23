@@ -719,12 +719,16 @@ export default defineComponent({
     function showSetAmountDialog(opts={force:false}) {
       if (disableAmount.value && !opts?.force) return
 
-      const currencies = ['BCH']
+      const currencies = [tokenCategory.value || 'BCH']
       $q.dialog({
         component: SetAmountFormDialog,
         componentProps: {
           currencies,
-          initialValue: { amount: receiveAmount.value, currency: currency.value }
+          initialValue: {
+            amount: receiveAmount.value,
+            currency: currency.value,
+            assetId: tokenCategory.value ? `ct/${tokenCategory.value}` : undefined,
+          }
         }
       }).onOk(data => {
         console.log('[ReceivePage] Set Amount Dialog returned data:', JSON.stringify(data, null, 2))

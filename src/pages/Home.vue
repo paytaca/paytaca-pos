@@ -684,10 +684,27 @@ export default defineComponent({
     window.t = walletLinkComponent;
 
     function showSetAmountDialog() {
+      const tokenCategories = [];
+      const acceptedTokensData = walletStore.acceptedTokensData?.accepted_tokens;
+      if (Array.isArray(acceptedTokensData)) {
+        tokenCategories.push(
+          ...acceptedTokensData.map((tokenData) => tokenData?.category)
+        );
+      }
+
+      const musdTokenCategory = "b38a33f750f84c5c169a6f23cb873e6e79605021585d4f3408789689ed87f366";
+      if (!tokenCategories.includes(musdTokenCategory)) {
+        tokenCategories.unshift(musdTokenCategory);
+      }
+      const pusdTokenCategory = "2469acc5afa4b10cb5b5c04afb89c3a3ffd61c5da9c01e26d00951cae2a02544";
+      if (!tokenCategories.includes(pusdTokenCategory)) {
+        tokenCategories.unshift(pusdTokenCategory);
+      }
+
       $q.dialog({
         component: SetAmountFormDialog,
         componentProps: {
-          currencies: ["BCH"],
+          currencies: ["BCH", ...tokenCategories],
         },
       }).onOk((data) => {
         const amount = data?.amount;

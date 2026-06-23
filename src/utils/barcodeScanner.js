@@ -1,17 +1,17 @@
 import { Capacitor } from "@capacitor/core";
 
 let BarcodeScanner = null;
-let SupportedFormat = null;
+let BarcodeFormat = null;
 
 async function getBarcodeScanner() {
   if (!Capacitor.isNativePlatform()) return null;
-  if (BarcodeScanner) return { BarcodeScanner, SupportedFormat };
+  if (BarcodeScanner) return { BarcodeScanner, BarcodeFormat };
 
   try {
-    const module = await import("@capacitor-community/barcode-scanner");
+    const module = await import("@capacitor-mlkit/barcode-scanning");
     BarcodeScanner = module.BarcodeScanner;
-    SupportedFormat = module.SupportedFormat;
-    return { BarcodeScanner, SupportedFormat };
+    BarcodeFormat = module.BarcodeFormat;
+    return { BarcodeScanner, BarcodeFormat };
   } catch (error) {
     console.warn("BarcodeScanner not available:", error);
     return null;
@@ -21,29 +21,22 @@ async function getBarcodeScanner() {
 export async function checkPermission() {
   const scanner = await getBarcodeScanner();
   if (!scanner)
-    return {
-      granted: false,
-      denied: true,
-      asked: false,
-      neverAsked: true,
-      restricted: false,
-      unknown: false,
-    };
+    return { granted: false, denied: true, asked: false, neverAsked: true, restricted: false, unknown: false };
 
   const { BarcodeScanner } = scanner;
   try {
-    const status = await BarcodeScanner.checkPermission({ force: true });
-    return status;
+    const { camera } = await BarcodeScanner.checkPermissions();
+    return {
+      granted: camera === "granted",
+      denied: camera === "denied",
+      asked: camera !== "prompt",
+      neverAsked: camera === "prompt",
+      restricted: camera === "restricted",
+      unknown: camera === "prompt-with-rationale",
+    };
   } catch (error) {
     console.warn("BarcodeScanner checkPermission error:", error);
-    return {
-      granted: false,
-      denied: true,
-      asked: false,
-      neverAsked: true,
-      restricted: false,
-      unknown: false,
-    };
+    return { granted: false, denied: true, asked: false, neverAsked: true, restricted: false, unknown: false };
   }
 }
 
@@ -51,12 +44,10 @@ export async function prepareScanner() {
   const scanner = await getBarcodeScanner();
   if (!scanner) return false;
 
-  const { BarcodeScanner, SupportedFormat } = scanner;
+  const { BarcodeScanner } = scanner;
   try {
-    await BarcodeScanner.prepare({
-      targetedFormats: [SupportedFormat.QR_CODE],
-    });
-    return true;
+    const { supported } = await BarcodeScanner.isSupported();
+    return supported;
   } catch (error) {
     console.warn("BarcodeScanner prepare error:", error);
     return false;
@@ -67,30 +58,25 @@ export async function startScan() {
   const scanner = await getBarcodeScanner();
   if (!scanner) return { hasContent: false };
 
-  const { BarcodeScanner } = scanner;
+  const { BarcodeScanner, BarcodeFormat } = scanner;
   try {
-    await BarcodeScanner.hideBackground();
-    const res = await BarcodeScanner.startScan({
-      targetedFormats: [SupportedFormat.QR_CODE],
+    const { barcodes } = await BarcodeScanner.scan({
+      formats: [BarcodeFormat.QrCode],
     });
-    return res;
+    if (barcodes && barcodes.length > 0) {
+      return { hasContent: true, content: barcodes[0].rawValue };
+    }
+    return { hasContent: false };
   } catch (error) {
     console.warn("BarcodeScanner startScan error:", error);
     return { hasContent: false };
   }
 }
 
+// The new plugin uses a modal model — scan() resolves when done.
+// stopScan is kept for API compatibility but is a no-op.
 export async function stopScan() {
-  const scanner = await getBarcodeScanner();
-  if (!scanner) return;
-
-  const { BarcodeScanner } = scanner;
-  try {
-    BarcodeScanner.showBackground();
-    BarcodeScanner.stopScan();
-  } catch (error) {
-    console.warn("BarcodeScanner stopScan error:", error);
-  }
+  // No-op: @capacitor-mlkit/barcode-scanning scan() is modal and self-closing.
 }
 
 export async function openAppSettings() {
@@ -99,7 +85,7 @@ export async function openAppSettings() {
 
   const { BarcodeScanner } = scanner;
   try {
-    await BarcodeScanner.openAppSettings();
+    await BarcodeScanner.openSettings();
   } catch (error) {
     console.warn("BarcodeScanner openAppSettings error:", error);
   }

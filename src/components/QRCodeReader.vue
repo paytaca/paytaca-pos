@@ -28,7 +28,7 @@
     </div>
 
     <qrcode-stream
-      v-if="!isMobile && innerVal"
+      v-if="!isNativePlatform && innerVal"
       @decode="onScannerDecode"
       @init="onScannerInit"
       :style="{
@@ -49,8 +49,9 @@ import {
   openAppSettings,
 } from "src/utils/barcodeScanner";
 import { QrcodeStream } from "vue3-qrcode-reader";
+import { Capacitor } from "@capacitor/core";
 import { useQuasar } from "quasar";
-import { ref, computed, onBeforeUnmount, watch } from "vue";
+import { ref, computed, onBeforeUnmount, watch, onMounted } from "vue";
 
 const { t: $t } = i18n.global;
 
@@ -75,22 +76,22 @@ export default {
     );
     watch(innerVal, () => $emit("update:modelValue", innerVal.value));
 
-    const isMobile = computed(() => {
-      return (
-        $q.platform.is.mobile || $q.platform.is.android || $q.platform.is.ios
-      );
-    });
+    const isNativePlatform = computed(() => Capacitor.isNativePlatform());
 
     watch(innerVal, () => {
-      if (innerVal.value && isMobile.value) {
+      if (innerVal.value && isNativePlatform.value) {
         prepareScanner();
       } else if (!innerVal.value) {
         stopScan();
       }
     });
+    onMounted(() => {
+      console.log("onMounted", innerVal.value, isMobile.value);
+    });
     onBeforeUnmount(() => stopScan());
 
     function onScannerDecode(content) {
+      console.log("onScannerDecode", content);
       $emit("decode", content);
     }
 
@@ -127,7 +128,9 @@ export default {
     }
 
     async function prepareScanner() {
+      console.log("prepareScanner", innerVal.value, isMobile.value);
       const status = await checkPermissionUtil();
+      console.log("prepareScanner status", status);
       if (status?.granted) {
         const prepared = await prepareScannerUtil();
         if (prepared) {
@@ -204,7 +207,7 @@ export default {
 
     return {
       innerVal,
-      isMobile,
+      isNativePlatform,
       onScannerDecode,
       onScannerInit,
       stopScan,
