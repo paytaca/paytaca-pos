@@ -50,7 +50,7 @@ import {
 } from "src/utils/barcodeScanner";
 import { QrcodeStream } from "vue3-qrcode-reader";
 import { useQuasar } from "quasar";
-import { ref, computed, onBeforeUnmount, watch } from "vue";
+import { ref, computed, onBeforeUnmount, watch, onMounted } from "vue";
 
 const { t: $t } = i18n.global;
 
@@ -82,15 +82,20 @@ export default {
     });
 
     watch(innerVal, () => {
+      console.log("watch innerVal", innerVal.value, isMobile.value);
       if (innerVal.value && isMobile.value) {
         prepareScanner();
       } else if (!innerVal.value) {
         stopScan();
       }
     });
+    onMounted(() => {
+      console.log("onMounted", innerVal.value, isMobile.value);
+    });
     onBeforeUnmount(() => stopScan());
 
     function onScannerDecode(content) {
+      console.log("onScannerDecode", content);
       $emit("decode", content);
     }
 
@@ -127,7 +132,9 @@ export default {
     }
 
     async function prepareScanner() {
+      console.log("prepareScanner", innerVal.value, isMobile.value);
       const status = await checkPermissionUtil();
+      console.log("prepareScanner status", status);
       if (status?.granted) {
         const prepared = await prepareScannerUtil();
         if (prepared) {
