@@ -216,7 +216,6 @@ import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted
 import { onBeforeRouteLeave, useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
-import { Capacitor } from '@capacitor/core'
 import QRCode from 'vue-qrcode-component'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
@@ -229,8 +228,7 @@ import { useQrCodeGenerator } from 'src/composables/useQrCodeGenerator'
 import { useFiatRateManager } from 'src/composables/useFiatRateManager'
 import { usePaymentTracking } from 'src/composables/usePaymentTracking'
 import { validateBchRate, validateTokenRate, validateConversionResult } from 'src/utils/rate-validation'
-import NFCScanner from 'src/components/NFCScanner.vue'
-
+import { Capacitor } from '@capacitor/core'
 
 export default defineComponent({
   name: "ReceivePage",
@@ -296,6 +294,7 @@ export default defineComponent({
 
     /* <-- Core details */
     onMounted(() => {
+
       paymentsStore.resetPayment()
 
       // Initialize fiat reference from props first
@@ -354,15 +353,13 @@ export default defineComponent({
 
     onMounted (() => {
       console.log('[ReceivePage] Setting up NFC listener...')
-      closeNfcListener()
-      setupNFCListener()
+      setupNFCScanner()
     })
 
-    onBeforeUnmount(() => {
-      console.log('[ReceivePage] onBeforeUnmount - cleaning up resources')
-      closeNfcListener()
-      closeStatusNotification()
-    })
+    // onBeforeUnmount(() => {
+    //   console.log('[ReceivePage] onBeforeUnmount - cleaning up resources')
+    //   closeStatusNotification()
+    // })
 
     const receiveAmount = ref(0)
     // Initialize currency from props, but prefer fiat currency if provided
@@ -1292,10 +1289,7 @@ export default defineComponent({
       startNewSession,
       clearPendingApiCalls,
       resetSessionData,
-      setupNFCListener,
-      closeNfcListener,
-      nfcListenerActive,
-      closeStatusNotification
+      setupNFCScanner
     } = usePaymentTracking({
       addressSet,
       isCashtoken,
@@ -1309,10 +1303,6 @@ export default defineComponent({
       onRefreshQrCountdown: refreshQrCountdown,
       onStopQrExpirationCountdown: stopQrExpirationCountdown,
       onDisplayReceivedTransaction: displayReceivedTransaction,
-    })
-
-    watch(() => nfcListenerActive.value, (active) => {
-      console.log('[ReceivePage] NFC listener active state changed:', active)
     })
 
     // Sync qrScanned ref with composable's qrScanned
@@ -1746,6 +1736,7 @@ export default defineComponent({
       formatNumberWithDecimals,
       isDebugModeEnabled,
       goToDebugConsole,
+      Capacitor
     }
   },
 })
