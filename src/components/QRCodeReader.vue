@@ -51,7 +51,8 @@ import {
 import { QrcodeStream } from "vue3-qrcode-reader";
 import { Capacitor } from "@capacitor/core";
 import { useQuasar } from "quasar";
-import { ref, computed, onBeforeUnmount, watch, onMounted } from "vue";
+import { ref, computed, onBeforeUnmount, watch } from "vue";
+import { nextTick } from "vue";
 
 const { t: $t } = i18n.global;
 
@@ -74,7 +75,9 @@ export default {
       () => [props.modelValue],
       () => (innerVal.value = props.modelValue)
     );
-    watch(innerVal, () => $emit("update:modelValue", innerVal.value));
+    watch(innerVal, () => {
+      $emit("update:modelValue", innerVal.value)
+    });
 
     const isNativePlatform = computed(() => Capacitor.isNativePlatform());
 
@@ -85,13 +88,10 @@ export default {
         stopScan();
       }
     });
-    onMounted(() => {
-      console.log("onMounted", innerVal.value, isMobile.value);
-    });
+
     onBeforeUnmount(() => stopScan());
 
     function onScannerDecode(content) {
-      console.log("onScannerDecode", content);
       $emit("decode", content);
     }
 
@@ -128,13 +128,11 @@ export default {
     }
 
     async function prepareScanner() {
-      console.log("prepareScanner", innerVal.value, isMobile.value);
       const status = await checkPermissionUtil();
-      console.log("prepareScanner status", status);
       if (status?.granted) {
         const prepared = await prepareScannerUtil();
         if (prepared) {
-          scanBarcode();
+          await scanBarcode();
         } else {
           $emit("error", "Failed to prepare scanner");
         }
@@ -167,9 +165,10 @@ export default {
 
     async function scanBarcode() {
       adjustComponentsClasslist(true);
-
       const res = await startScan();
-      if (res.hasContent) $emit("decode", res.content);
+      if (res.hasContent) {
+        $emit("decode", res.content);
+      }
       stopScan();
     }
 
@@ -181,7 +180,9 @@ export default {
     }
 
     const scannerContainerRef = ref();
-    function adjustComponentsClasslist(isScanning) {
+    async function adjustComponentsClasslist(isScanning) {
+      await nextTick(); // wait the DOM to update
+
       const appContainer = document.getElementById("q-app");
       const scannerUI = scannerContainerRef.value;
       const transparent = "transparent-body";

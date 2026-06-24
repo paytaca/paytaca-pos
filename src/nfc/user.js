@@ -163,12 +163,9 @@ export async function loadCardMerchantUser() {
 
         const signer = loadSignerFromWIF(privateKeyWif);
         const publicKey = signer.keypair().publicKey;
-        console.log('publicKey:', publicKey);
-
         const user = await fetchCardMerchantUser(publicKey);
         
-        console.log('Card Merchant User loaded:', user);
-        if (!user.is_authenticated) {
+        if (!user || !user.is_authenticated) {
             await user.login();
         }
         

@@ -39,15 +39,24 @@
                             />
                         </div>
                         <div class="row justify-center q-gutter-md q-mt-md">
-                        <q-input
-                            v-model="encryptionPublicKey"
-                            label="Encryption Public Key"
-                            readonly
-                            outlined
-                            class="q-mt-md"
-                            style="min-width: 50%;">
-                        </q-input>
-                        <q-btn color="primary" @click="copyToClipboard(encryptionPublicKey, $t('EncryptionKeyCopied', 'Encryption key copied to clipboard'));updateStep('code-parse')">Copy & Proceed</q-btn>
+                          <q-input
+                              v-model="encryptionPublicKey"
+                              label="Encryption Public Key"
+                              readonly
+                              outlined
+                              class="q-mt-md"
+                              style="min-width: 50%;">
+                              <template #append>
+                                <q-btn
+                                    flat
+                                    dense
+                                    color="primary"
+                                    icon="content_copy"
+                                    @click="copyToClipboard(encryptionPublicKey, $t('EncryptionKeyCopied', 'Encryption key copied to clipboard'))"
+                                />
+                              </template>
+                          </q-input>
+                          <q-btn color="primary" @click="updateStep('code-parse')">Next</q-btn>
                         </div>
                     </div>
                     <div v-else class="row justify-center q-mt-md">
@@ -62,38 +71,55 @@
                         Input or scan the NFC setup code displayed in the Paytaca app to complete the setup process. 
                     </div>
                     <div class="row justify-center q-mt-md">
-                        <div class="row justify-center q-gutter-md q-mt-md">
+                      <div class="row justify-center q-gutter-md q-mt-md">
                         <q-input
                             v-model="requestCode"
                             label="NFC Setup Code"
                             outlined
-                            class="q-mt-md">
+                            class="q-mt-md"
+                            :rules="[value => !!value || 'NFC setup code is required']"
+                            hide-bottom-space
+                            style="min-width: 50%;">
                             <template #append>
-                                <q-btn
-                                    flat
-                                    dense
-                                    color="primary"
-                                    icon="qr_code_scanner"
-                                    @click="showDialog= false; showQRScanner = true"
-                                />
+                              <q-btn
+                                  flat
+                                  dense
+                                  color="primary"
+                                  icon="qr_code_scanner"
+                                  @click="showQRScanner = true"
+                              />
                             </template>
                         </q-input>
-                        <q-btn color="primary" @click="decodeData">Setup</q-btn>
-                        </div>
+                        <q-btn 
+                          color="primary" 
+                          label="Setup"
+                          :disabled="!requestCode"
+                          @click="decodeData"
+                          />
+                      </div>
                     </div>
                 </q-card-section>
             </div>
+            <div v-if="step == 'decoding'">
+              <q-card-section class="row items-center q-pa-lg">
+                <div class="row justify-center">
+                  <div class="text-h6">Decoding NFC Setup Code</div>
+                  <div class="text-subtitle2 q-mt-sm">
+                      Please wait while we decode the NFC setup code and enable NFC payments for this POS device.
+                  </div>
+                  <div class="row justify-center q-mt-md">
+                    <q-spinner class="col" color="primary" size="50px" />
+                  </div>
+                </div>
+              </q-card-section>
+            </div>
         </q-card>
     </q-dialog>
-    <QRCodeReader 
-      v-model="showQRScanner" 
-      @close="onCloseQrScanner" 
-      @decode="onQrDecode"
-      @error="onQrError" />
+  <QRCodeReader v-model="showQRScanner" @decode="onQrDecode"  @error="onQrError" />
 </template>
 
 <script>
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useWalletStore } from "src/stores/wallet";
 import { useQuasar, copyToClipboard as qCopyToClipboard } from "quasar";
 import { getEncryptionKeypair, getOrGenerateEncryptionKeypair } from "src/nfc/keypair";
@@ -137,6 +163,13 @@ export default {
       console.log('[EnableNFCPayments] Encryption public key:', encryptionPublicKey.value);
       console.log('posid:', walletStore.posId);
     });
+
+    watch(
+      showQRScanner,
+      (newVal) => {
+        console.log('showQRScanner changed:', newVal);
+      }
+    )
 
     function closeDialog() {
       showDialog.value = false;
@@ -198,22 +231,25 @@ export default {
       onCopyError();
     }
 
-    const onQrDecode = async () => {
+    const onQrDecode = async (data) => {
+      console.log("QR code decoded:", data);
       showQRScanner.value = false;
-      showDialog.value = true;
+      decodeData(JSON.parse(data));
     };
 
     const onQrError = (error) => {
       console.error("QR code scanning error:", error);
       $q.notify({
         message: "Failed to scan QR code. Please try again.",
-        timeout: 1200,
+        position: "top",
+        timeout: 3000,
         icon: "error",
         color: "negative",
       });
     };
 
     const onCloseQrScanner = () => {
+      console.log('Closing QR scanner');
       showQRScanner.value = false;
       showDialog.value = true;
     };
@@ -223,6 +259,7 @@ export default {
         const encryptionKeypair = await getEncryptionKeypair()
         const decryptKey = encryptionKeypair?.privkey
         const result = JSON.parse(decryptWithPrivateKey(encryptedData, encryptKey, decryptKey));
+        console.log('Decrypted data:', result);
         return { xpubkey: result.xpubkey, authPrivateKey: result.privateKey };
       } catch(error) {
         console.error(error);
@@ -240,10 +277,19 @@ export default {
       }
     }
 
-    const decodeData = async () => {
+    const decodeData = async (preDecodedLinkCode) => {
+      console.log('decodeData called with requestCode:', requestCode.value);
+      step.value = 'decoding';
       try {
-        const parsedLinkCode = parseLinkCode(requestCode.value);
-        const qrCodeData = decodeLinkContent(parsedLinkCode);
+
+        let qrCodeData = preDecodedLinkCode
+        if (!qrCodeData) {
+          const parsedLinkCode = parseLinkCode(requestCode.value);
+          qrCodeData = decodeLinkContent(parsedLinkCode);
+        }
+
+        console.log('____:', qrCodeData);
+
         const skipDecryption = qrCodeData?.skip || false;
 
         if (!skipDecryption) {
@@ -255,15 +301,18 @@ export default {
           if (result?.success) {
             $q.notify({
               message: "NFC payments enabled successfully!",
-              timeout: 1200,
+              position: "top",
+              timeout: 3000,
               icon: "check",
               color: "positive",
             });
             emit("close");
           } else {
+            step.value = 'code-parse';
             $q.notify({
+              position: "top",
               message: "Failed to enable NFC payments. Please try again.",
-              timeout: 1200,
+              timeout: 3000,
               icon: "error",
               color: "negative",
             });
@@ -271,9 +320,11 @@ export default {
         }
       } catch (error) {
         console.error(error);
+        step.value = 'code-parse';
         $q.notify({
+          position: "top",
           message: "An error occurred while enabling NFC payments. Please try again.",
-          timeout: 1200,
+          timeout: 3000,
           icon: "error",
           color: "negative",
         });
@@ -342,11 +393,15 @@ export default {
     }
 
     const retrieveRequestCodeData = async (qrCodeData) => {
+      console.log('qrCodeData:', qrCodeData);
+      const params = { code: qrCodeData.code }
+      console.log('retrieveRequestCodeData called with params:', params);
       try {
         const response = await watchtower.BCH._api.get(
-          `paytacapos/devices/nfc_request_code_data/`,
-          { params: { code: qrCodeData.code } }
+          'paytacapos/devices/nfc_request_code_data/', 
+          { params }
         );
+        console.log('retrieveRequestCodeData response:', response?.data);
         return response?.data;
       } catch(error) {
         console.error(error.response || error);

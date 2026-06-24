@@ -13,8 +13,8 @@
       <div v-else class="home-main-content q-py-md full-width">
         <EnableNFCPayments 
           v-if="showEnableNfcPayments" 
-          :show="showEnableNfcPayments" 
-          @close="showEnableNfcPayments = false" 
+          :show="showEnableNfcPayments"
+          @close="showEnableNfcPayments = false"
         />
         <div class="q-px-md q-mb-md">
           <template v-if="isRefreshing || isInitialLoading">
@@ -306,6 +306,7 @@ import {
 import MainFooter from "src/components/MainFooter.vue";
 import MarketplaceWidget from "src/components/marketplace/MarketplaceWidget.vue";
 import SetAmountFormDialog from "src/components/SetAmountFormDialog.vue";
+import EnableNFCPayments from "src/components/EnableNFCPayments.vue";
 import {
   paymentUriHasMatch,
   findMatchingPaymentLink,
@@ -317,7 +318,6 @@ import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { getEncryptionKeypair } from "src/nfc/keypair";
-import EnableNFCPayments from "src/components/EnableNFCPayments.vue";
 import { useTransactionHelpers } from "src/composables/transaction";
 
 export default defineComponent({
@@ -739,7 +739,7 @@ export default defineComponent({
       refreshPage,
       isRefreshing,
       isInitialLoading,
-      showEnableNfcPayments
+      showEnableNfcPayments,
       hasFullSalesReportAccess,
       isMarketplaceUserLoggedIn,
       showSetAmountDialog,
