@@ -308,10 +308,17 @@ export function usePaymentTracking({
   }
 
   async function handleNFCData(data) {
+
+    $q.loading.show({
+      message: t('ProcessingCardPayment', 'Processing card payment...'),
+      boxClass: 'bg-grey-2 text-grey-9',
+      spinnerColor: 'primary'
+    })
+
     console.log('NFC listener status received:', data)
     if (data?.records?.length != 2) {
-      // throw
       console.error('Invalid NFC data received:', data)
+      $q.loading.hide()
       return
     }
 
@@ -321,6 +328,7 @@ export function usePaymentTracking({
 
     if (!urlRecord || !textRecord) {
       console.error('NFC data missing required URI or text records:', data)
+      $q.loading.hide()
       return
     }
 
@@ -332,6 +340,7 @@ export function usePaymentTracking({
     try {
       merchant = await loadCardMerchantUser()    
     } catch (error) {
+      $q.loading.hide()
       console.error('Error loading merchant user from NFC data:', error)
       if (error.message === 'No private key WIF found for current wallet') {
         nfcStatusNotification.value = $q.notify({
@@ -348,20 +357,9 @@ export function usePaymentTracking({
         return
       }
     }
-
-    console.log('NFC URL received:', url)
+    
     await onNFCUrlReceived({ merchant, uid, url, contractParams })
   } 
-
-  function closeStatusNotification() {
-    console.log('Called closeStatusNotification')
-    if (nfcStatusNotification.value) {
-      nfcStatusNotification.value?.()
-      nfcStatusNotification.value = null
-    }
-
-    console.log('Status notification closed:', nfcStatusNotification.value)
-  }
 
   async function onNFCUrlReceived({ merchant, uid, url, contractParams }) {
     console.log('Processing NFC URL received:', { merchant, uid, url, contractParams })
@@ -388,24 +386,26 @@ export function usePaymentTracking({
       const result = await payWithCard(params)
       console.log('Payment result:', result)
       if (result?.success) {
-        closeStatusNotification()
-        nfcStatusNotification.value = $q.notify({
-          position: 'top',
-          timeout: 3000,
-          icon: 'mdi-check-circle',
-          color: 'positive',
-          message: t('NFCPaymentSuccess', 'NFC payment successful'),
+        $q.loading.hide()
+        nfcStatusNotification.value = $q.dialog({
+          title: t('CardPaymentSuccess', 'Card Payment Successful'),
+          message: t('CardPaymentSuccessMessage', 'Your card payment was processed successfully. Please wait for confirmation.'),
+          ok: {
+            label: t('OK', 'OK'),
+            color: 'green'
+          },
         })
       }
     } catch (error) {
       console.error('Error processing NFC payment', error)
-      closeStatusNotification()
-      nfcStatusNotification.value = $q.notify({
-        position: 'top',
-        timeout: 3000,
-        icon: 'mdi-close-circle',
-        color: 'negative',
-        message: t('NFCPaymentError', `Error processing NFC payment: ${error.message}`),
+      $q.loading.hide()
+      nfcStatusNotification.value = $q.dialog({
+        title: t('CardPaymentError', 'Card Payment Error'),
+        message: t('CardPaymentErrorMessage', `Error processing card payment: ${error.message}`),
+        ok: {
+          label: t('OK', 'OK'),
+          color: 'red'
+        }
       })
     }
     
