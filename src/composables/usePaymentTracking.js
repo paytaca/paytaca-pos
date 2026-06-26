@@ -448,6 +448,7 @@ export function usePaymentTracking({
 
   // Cleanup on unmount
   onUnmounted(() => {
+    $q.loading.hide()
     enableReconnect.value = false
     closeWebsocket()
     clearTimeout(reconnectTimeout.value)
