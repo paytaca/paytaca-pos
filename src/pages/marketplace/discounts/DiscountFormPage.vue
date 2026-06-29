@@ -378,6 +378,7 @@ export default defineComponent({
     }
 
     function submit() {
+      const discountTypeId = discountType.value.id;
       const data = {
         name: formData.value.name,
         activation_code: formData.value.activationCode,
@@ -392,10 +393,10 @@ export default defineComponent({
         root_condition_group: formData.value.rootConditionGroup
           ? normalizeGroup(formData.value.rootConditionGroup)
           : undefined,
-        shop_id: marketplaceStore.shopData?.id,
+        shop_id: discountTypeId ? undefined : marketplaceStore.shopData?.id,
       };
-      const request = discountType.value?.id
-        ? backend.patch(`discount-types/${discountType.value.id}/`, data)
+      const request = discountTypeId
+        ? backend.patch(`discount-types/${discountTypeId}/`, data)
         : backend.post("discount-types/", data);
 
       loading.value = true;

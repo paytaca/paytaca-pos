@@ -108,13 +108,9 @@
           >
             <q-td key="name" :props="props">
               <div class="text-weight-medium">{{ props.row.name }}</div>
-              <q-chip
-                v-if="props.row.activationCode"
-                dense
-                class="text-caption text-grey"
-              >
+              <div v-if="props.row.activationCode" dense class="text-caption text-grey">
                 {{ props.row.activationCode }}
-              </q-chip>
+              </div>
             </q-td>
             <q-td key="code" :props="props">
               {{ getCodeLabel(props.row.code) }}
@@ -126,11 +122,7 @@
               <q-chip
                 dense
                 size="sm"
-                :color="
-                  props.row.type === DiscountType.TYPES.PCTG
-                    ? 'purple-1'
-                    : 'green-1'
-                "
+                :color="props.row.type === DiscountType.TYPES.PCTG ? 'purple-1' : 'green-1'"
                 text-color="dark"
               >
                 {{ getTypeLabel(props.row.type) }}
@@ -148,9 +140,7 @@
                 {{ props.row?.currency?.symbol }}
               </template>
               <div
-                v-if="
-                  Number.isFinite(props.row.maxValue) && props.row.maxValue > 0
-                "
+                v-if="Number.isFinite(props.row.maxValue) && props.row.maxValue > 0"
                 class="text-caption text-grey"
               >
                 {{ $t("Max", "max") }}
