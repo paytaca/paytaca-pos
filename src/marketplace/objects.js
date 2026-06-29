@@ -392,7 +392,7 @@ export class Stock {
 
 export class TaxType {
   static parse(data) {
-    return new TaxType(data)
+    return new TaxType(data);
   }
 
   constructor(data) {
@@ -420,10 +420,10 @@ export class TaxType {
 
 export class DiscountCondition {
   static parse(data) {
-    return new DiscountCondition(data)
+    return new DiscountCondition(data);
   }
 
-   /**
+  /**
    * @param {any} data
    */
   constructor(data) {
@@ -450,10 +450,10 @@ export class DiscountCondition {
 
 export class DiscountConditionGroup {
   static parse(data) {
-    return new DiscountConditionGroup(data)
+    return new DiscountConditionGroup(data);
   }
 
-   /**
+  /**
    * @param {any} data
    */
   constructor(data) {
@@ -476,18 +476,20 @@ export class DiscountConditionGroup {
     this.id = data?.id;
     this.logic = data?.logic;
     this.parentId = data?.parent_id;
-    this.conditions = Array.isArray(data?.conditions) ? data?.conditions?.map(DiscountCondition.parse) : undefined; 
+    this.conditions = Array.isArray(data?.conditions)
+      ? data?.conditions?.map(DiscountCondition.parse)
+      : undefined;
   }
 }
 
 export class DiscountType {
-  static TYPES = Object.freeze({ FIXED: 'fixed', PCTG: 'percentage' });
+  static TYPES = Object.freeze({ FIXED: "fixed", PCTG: "percentage" });
 
   static parse(data) {
-    return new DiscountType(data)
+    return new DiscountType(data);
   }
 
-   /**
+  /**
    * @param {any} data
    */
   constructor(data) {
@@ -502,6 +504,7 @@ export class DiscountType {
    * @param {Object} data
    * @param {Number} data.id
    * @param {String} data.name
+   * @param {String} data.activation_code
    * @param {String} data.code
    * @param {String} data.scope
    * @param {String} data.type
@@ -514,30 +517,33 @@ export class DiscountType {
     this.$raw = data;
     this.id = data?.id;
     this.name = data?.name;
+    this.activationCode = data?.activation_code;
     this.code = data?.code;
     this.scope = data?.scope;
-    this.type = data?.type,
+    this.type = data?.type;
     this.value = parseFloat(data?.value);
     this.maxValue = data?.maxValue && parseFloat(data?.maxValue);
     this.currency = {
       code: data?.currency?.code,
       symbol: data?.currency?.symbol,
     };
-    this.conditionGroups = Array.isArray(this.conditionGroups) ? this.conditionGroups.map(DiscountConditionGroup.parse) : undefined;
+    this.conditionGroups = Array.isArray(data?.condition_groups)
+      ? data?.condition_groups.map(DiscountConditionGroup.parse)
+      : undefined;
   }
 }
 
 export class PricingData {
   static parseOptional(data) {
-    if (!data) return
+    if (!data) return;
     return new PricingData(data);
   }
 
   static parse(data) {
-    return new PricingData(data)
+    return new PricingData(data);
   }
 
-   /**
+  /**
    * @param {any} data
    */
   constructor(data) {
@@ -752,13 +758,18 @@ export class Product {
   }
 
   get markupPriceRangeText() {
-    const _minMarkupPrice = this.minPriceData?.finalMarkupPrice ?? this.minMarkupPrice;
-    const _maxMarkupPrice = this.maxPriceData?.finalMarkupPrice ?? this.minMarkupPrice;
-    const minMarkupPrice = Number.isFinite(_minMarkupPrice) ? _minMarkupPrice.toFixed(2) : '';
-    const maxMarkupPrice = Number.isFinite(_maxMarkupPrice) ? _maxMarkupPrice.toFixed(2) : '';
+    const _minMarkupPrice =
+      this.minPriceData?.finalMarkupPrice ?? this.minMarkupPrice;
+    const _maxMarkupPrice =
+      this.maxPriceData?.finalMarkupPrice ?? this.minMarkupPrice;
+    const minMarkupPrice = Number.isFinite(_minMarkupPrice)
+      ? _minMarkupPrice.toFixed(2)
+      : "";
+    const maxMarkupPrice = Number.isFinite(_maxMarkupPrice)
+      ? _maxMarkupPrice.toFixed(2)
+      : "";
     let text = `${minMarkupPrice}`;
-    if (minMarkupPrice != maxMarkupPrice)
-      text += ` - ${maxMarkupPrice}`;
+    if (minMarkupPrice != maxMarkupPrice) text += ` - ${maxMarkupPrice}`;
     return text;
   }
 
@@ -1226,7 +1237,7 @@ export class SalesOrderItem {
   }
 
   get subtotal() {
-    if (Number.isFinite(this.finalAmount)) return this.finalAmount
+    if (Number.isFinite(this.finalAmount)) return this.finalAmount;
 
     const price = parseFloat(this.price);
     const quantity = parseInt(this.quantity);
@@ -1235,7 +1246,8 @@ export class SalesOrderItem {
   }
 
   get unitPrice() {
-    if (Number.isFinite(this.finalAmount)) return this.finalAmount / this.quantity;
+    if (Number.isFinite(this.finalAmount))
+      return this.finalAmount / this.quantity;
     return this.price;
   }
 }

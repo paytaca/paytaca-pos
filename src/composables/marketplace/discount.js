@@ -29,10 +29,10 @@ export function useDiscountFormHelpers() {
       value: "order",
       label: $t("Order"),
     },
-    {
-      value: "delivery_fee",
-      label: $t("DeliveryFee", {}, "DeliveryFee"),
-    },
+    // {
+    //   value: "delivery_fee",
+    //   label: $t("DeliveryFee", {}, "DeliveryFee"),
+    // },
   ];
 
   const discountCalculationTypeOptions = [
@@ -46,10 +46,63 @@ export function useDiscountFormHelpers() {
     },
   ];
 
+
+  function convertFlatConditionGroupsToFormData(conditionGroups) {
+    if (!Array.isArray(conditionGroups) || conditionGroups.length === 0) {
+      return null;
+    }
+
+    const groupMap = new Map();
+    conditionGroups.forEach((group) => {
+      groupMap.set(group.id, group);
+    });
+
+    const childrenMap = new Map();
+    const rootGroups = [];
+
+    conditionGroups.forEach((group) => {
+      if (!group.parentId || !groupMap.has(group.parentId)) {
+        rootGroups.push(group);
+      } else {
+        if (!childrenMap.has(group.parentId)) {
+          childrenMap.set(group.parentId, []);
+        }
+        childrenMap.get(group.parentId).push(group);
+      }
+    });
+
+    function buildTree(group) {
+      const children = childrenMap.get(group.id) || [];
+      return {
+        logic: group.logic || "AND",
+        conditions: Array.isArray(group.conditions)
+          ? group.conditions.map((condition) => ({
+              ruleType: condition.ruleType,
+              operator: condition.operator,
+              value: condition.value,
+            }))
+          : [],
+        children: children.map(buildTree),
+      };
+    }
+
+    if (rootGroups.length === 1) {
+      return buildTree(rootGroups[0]);
+    }
+
+    return {
+      logic: "AND",
+      conditions: [],
+      children: rootGroups.map(buildTree),
+    };
+  }
+
+
   return {
     discountCodeOptions,
     discountScopeOptions,
     discountCalculationTypeOptions,
+    convertFlatConditionGroupsToFormData,
   };
 }
 
