@@ -418,6 +418,115 @@ export class TaxType {
   }
 }
 
+export class DiscountCondition {
+  static parse(data) {
+    return new DiscountCondition(data)
+  }
+
+   /**
+   * @param {any} data
+   */
+  constructor(data) {
+    this.raw = data;
+  }
+
+  get raw() {
+    return this.$raw;
+  }
+
+  /**
+   * @param {Object} data
+   * @param {String} data.rule_type
+   * @param {String} data.operator
+   * @param {any} data.value
+   */
+  set raw(data) {
+    this.$raw = data;
+    this.ruleType = data?.rule_type;
+    this.operator = data?.operator;
+    this.value = data?.value;
+  }
+}
+
+export class DiscountConditionGroup {
+  static parse(data) {
+    return new DiscountConditionGroup(data)
+  }
+
+   /**
+   * @param {any} data
+   */
+  constructor(data) {
+    this.raw = data;
+  }
+
+  get raw() {
+    return this.$raw;
+  }
+
+  /**
+   * @param {Object} data
+   * @param {String} data.id
+   * @param {String} data.logic
+   * @param {String} data.parent_id
+   * @param {Object[]} data.conditions
+   */
+  set raw(data) {
+    this.$raw = data;
+    this.id = data?.id;
+    this.logic = data?.logic;
+    this.parentId = data?.parent_id;
+    this.conditions = Array.isArray(data?.conditions) ? data?.conditions?.map(DiscountCondition.parse) : undefined; 
+  }
+}
+
+export class DiscountType {
+  static TYPES = Object.freeze({ FIXED: 'fixed', PCTG: 'percentage' });
+
+  static parse(data) {
+    return new DiscountType(data)
+  }
+
+   /**
+   * @param {any} data
+   */
+  constructor(data) {
+    this.raw = data;
+  }
+
+  get raw() {
+    return this.$raw;
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.name
+   * @param {String} data.code
+   * @param {String} data.scope
+   * @param {String} data.type
+   * @param {Number} data.value
+   * @param {Number} data.maxValue
+   * @param {Object} data.currency
+   * @param {Object[]} data.condition_groups
+   */
+  set raw(data) {
+    this.$raw = data;
+    this.id = data?.id;
+    this.name = data?.name;
+    this.code = data?.code;
+    this.scope = data?.scope;
+    this.type = data?.type,
+    this.value = parseFloat(data?.value);
+    this.maxValue = data?.maxValue && parseFloat(data?.maxValue);
+    this.currency = {
+      code: data?.currency?.code,
+      symbol: data?.currency?.symbol,
+    };
+    this.conditionGroups = Array.isArray(this.conditionGroups) ? this.conditionGroups.map(DiscountConditionGroup.parse) : undefined;
+  }
+}
+
 export class PricingData {
   static parseOptional(data) {
     if (!data) return
