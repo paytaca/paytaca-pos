@@ -2,7 +2,7 @@
   <div class="condition-group" :class="`depth-${currentDepth}`">
     <!-- Header -->
     <div class="group-header row items-center q-mb-sm">
-      <div class="text-body2">
+      <div class="text-body2 q-pl-xs">
         <span class="text-grey-7">{{
           currentDepth === 1
             ? $t("DiscountAppliesWhen", "Discount applies when")
@@ -402,12 +402,12 @@ export default defineComponent({
 
 /* give nested groups a subtle background so they read as a single unit */
 .condition-group.depth-2 {
-  background: rgba(38, 166, 154, 0.04);
+  background: rgba(38, 166, 154, 0.1);
   border-radius: 4px;
   padding: 0.25rem 0.5rem 0.25rem 0;
 }
 .condition-group.depth-3 {
-  background: rgba(156, 39, 176, 0.04);
+  background: rgba(156, 39, 176, 0.1);
   border-radius: 4px;
   padding: 0.25rem 0.5rem 0.25rem 0;
 }
