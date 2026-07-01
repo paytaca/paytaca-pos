@@ -159,12 +159,77 @@
             :loading="loading"
             :disable="loading"
             :placeholder="$t('Optional')"
-            v-model.number="formData.maxValue"
-            :error="Boolean(formErrors?.maxValue)"
-            :error-message="formErrors?.maxValue"
+            v-model.number="formData.maxAmount"
+            :error="Boolean(formErrors?.maxAmount)"
+            :error-message="formErrors?.maxAmount"
             :suffix="marketplaceStore?.currency"
             :rules="[(val) => !val || val > 0 || $t('Invalid')]"
           />
+          <q-separator spaced />
+          <div class="text-caption text-grey">
+            {{ $t("DatesSavedAsUTC", {}, "Dates are saved as UTC") }}
+          </div>
+          <div class="row no-wrap items-start q-gutter-xs">
+            <div class="col-6">
+              <div>{{ $t("StartsAt", {}, "Starts at") }}</div>
+              <div>
+                <q-input
+                  dense
+                  outlined
+                  :loading="loading"
+                  :disable="loading"
+                  :placeholder="$t('Optional')"
+                  mask="####-##-##"
+                  v-model="formData.startsAt"
+                  :error="Boolean(formErrors?.startsAt)"
+                  :error-message="formErrors?.startsAt"
+                  clearable
+                >
+                  <template v-slot:append>
+                    <q-icon
+                      name="calendar_today"
+                      @click.stop="startsAtMenuOpen = !startsAtMenuOpen"
+                    />
+                  </template>
+                </q-input>
+                <q-menu
+                  v-model="startsAtMenuOpen"
+                  no-parent-event
+                  auto-close
+                  fit
+                >
+                  <q-date v-model="formData.startsAt" mask="YYYY-MM-DD" />
+                </q-menu>
+              </div>
+            </div>
+            <div class="col-6">
+              <div>{{ $t("EndsAt", {}, "Ends at") }}</div>
+              <div>
+                <q-input
+                  dense
+                  outlined
+                  :loading="loading"
+                  :disable="loading"
+                  :placeholder="$t('Optional')"
+                  mask="####-##-##"
+                  v-model="formData.endsAt"
+                  :error="Boolean(formErrors?.endsAt)"
+                  :error-message="formErrors?.endsAt"
+                  clearable
+                >
+                  <template v-slot:append>
+                    <q-icon
+                      name="calendar_today"
+                      @click.stop="endsAtMenuOpen = !endsAtMenuOpen"
+                    />
+                  </template>
+                </q-input>
+                <q-menu v-model="endsAtMenuOpen" no-parent-event auto-close fit>
+                  <q-date v-model="formData.endsAt" mask="YYYY-MM-DD" />
+                </q-menu>
+              </div>
+            </div>
+          </div>
         </q-card-section>
       </q-card>
 
@@ -230,7 +295,7 @@
 import { backend } from "src/marketplace/backend";
 import { useDiscountFormHelpers } from "src/composables/marketplace/discount";
 import { useMarketplaceStore } from "src/stores/marketplace";
-import { useQuasar } from "quasar";
+import { useQuasar, date } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { defineComponent, onMounted, ref } from "vue";
@@ -290,6 +355,8 @@ export default defineComponent({
 
     const loading = ref(false);
     const formReady = ref(false);
+    const startsAtMenuOpen = ref(false);
+    const endsAtMenuOpen = ref(false);
     const formData = ref({
       name: "",
       activationCode: "",
@@ -297,7 +364,9 @@ export default defineComponent({
       scope: "",
       type: "",
       value: 10,
-      maxValue: null,
+      maxAmount: null,
+      startsAt: "",
+      endsAt: "",
       rootConditionGroup: null,
     });
     function resetFormData() {
@@ -306,10 +375,17 @@ export default defineComponent({
       formData.value.code = discountType.value?.code;
       formData.value.scope = discountType.value?.scope;
       formData.value.type = discountType.value?.type;
-      formData.value.value = discountType.value?.type === DiscountType.TYPES.PCTG
-        ? (discountType.value?.value * 100 || 0)
-        : (discountType.value?.value || 0);
-      formData.value.maxValue = discountType.value?.maxValue ?? null;
+      formData.value.value =
+        discountType.value?.type === DiscountType.TYPES.PCTG
+          ? discountType.value?.value * 100 || 0
+          : discountType.value?.value || 0;
+      formData.value.maxAmount = discountType.value?.maxAmount ?? null;
+      formData.value.startsAt = discountType.value?.startsAt
+        ? date.formatDate(discountType.value.startsAt, "YYYY-MM-DD")
+        : "";
+      formData.value.endsAt = discountType.value?.endsAt
+        ? date.formatDate(discountType.value.endsAt, "YYYY-MM-DD")
+        : "";
       formData.value.rootConditionGroup = convertFlatConditionGroupsToFormData(
         discountType.value.conditionGroups
       );
@@ -322,7 +398,9 @@ export default defineComponent({
       scope: "",
       type: "",
       value: "",
-      maxValue: "",
+      maxAmount: "",
+      startsAt: "",
+      endsAt: "",
       rootConditionGroup: null,
     });
     function resetFormErrors() {
@@ -333,7 +411,9 @@ export default defineComponent({
         scope: "",
         type: "",
         value: "",
-        maxValue: "",
+        maxAmount: "",
+        startsAt: "",
+        endsAt: "",
         rootConditionGroup: null,
       };
     }
@@ -348,9 +428,13 @@ export default defineComponent({
       formErrors.value.scope = errorParser.firstElementOrValue(data?.scope);
       formErrors.value.type = errorParser.firstElementOrValue(data?.type);
       formErrors.value.value = errorParser.firstElementOrValue(data?.value);
-      formErrors.value.maxValue = errorParser.firstElementOrValue(
-        data?.max_value
+      formErrors.value.maxAmount = errorParser.firstElementOrValue(
+        data?.max_amount
       );
+      formErrors.value.startsAt = errorParser.firstElementOrValue(
+        data?.starts_at
+      );
+      formErrors.value.endsAt = errorParser.firstElementOrValue(data?.ends_at);
       formErrors.value.rootConditionGroup = errorParser.errorsToQTreeNodes(
         data?.root_condition_group
       );
@@ -379,6 +463,16 @@ export default defineComponent({
 
     function submit() {
       const discountTypeId = discountType.value.id;
+
+      const startsAt = formData.value.startsAt
+        ? new Date(formData.value.startsAt)
+        : undefined;
+      if (startsAt) startsAt.setUTCHours(0, 0, 0, 0);
+      const endsAt = formData.value.endsAt
+        ? new Date(formData.value.endsAt)
+        : undefined;
+      if (endsAt) endsAt.setUTCHours(0, 0, 0, 0);
+
       const data = {
         name: formData.value.name,
         activation_code: formData.value.activationCode,
@@ -389,7 +483,9 @@ export default defineComponent({
           formData.value.type === "percentage"
             ? formData.value.value / 100
             : formData.value.value,
-        max_value: formData.value.maxValue,
+        max_amount: formData.value.maxAmount,
+        starts_at: startsAt,
+        ends_at: endsAt,
         root_condition_group: formData.value.rootConditionGroup
           ? normalizeGroup(formData.value.rootConditionGroup)
           : undefined,
@@ -429,6 +525,8 @@ export default defineComponent({
 
       loading,
       formReady,
+      startsAtMenuOpen,
+      endsAtMenuOpen,
       formData,
       formErrors,
       submit,

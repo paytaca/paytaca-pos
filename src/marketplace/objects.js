@@ -485,6 +485,11 @@ export class DiscountConditionGroup {
 export class DiscountType {
   static TYPES = Object.freeze({ FIXED: "fixed", PCTG: "percentage" });
 
+  static parseList(data) {
+    if (!Array.isArray(data)) return
+    return data.map(DiscountType.parse)
+  }
+
   static parse(data) {
     return new DiscountType(data);
   }
@@ -505,24 +510,29 @@ export class DiscountType {
    * @param {Number} data.id
    * @param {String} data.name
    * @param {String} data.activation_code
+   * @param {String} data.starts_at
+   * @param {String} data.ends_at
    * @param {String} data.code
    * @param {String} data.scope
    * @param {String} data.type
    * @param {Number} data.value
-   * @param {Number} data.maxValue
+   * @param {Number} data.max_amount
    * @param {Object} data.currency
    * @param {Object[]} data.condition_groups
+   * @param {Number} data.applied_amount
    */
   set raw(data) {
     this.$raw = data;
     this.id = data?.id;
     this.name = data?.name;
     this.activationCode = data?.activation_code;
+    this.startsAt = data?.starts_at ? new Date(data?.starts_at) : null;
+    this.endsAt = data?.ends_at ? new Date(data?.ends_at) : null;
     this.code = data?.code;
     this.scope = data?.scope;
     this.type = data?.type;
     this.value = parseFloat(data?.value);
-    this.maxValue = data?.maxValue && parseFloat(data?.maxValue);
+    this.maxAmount = data?.max_amount && parseFloat(data?.max_amount);
     this.currency = {
       code: data?.currency?.code,
       symbol: data?.currency?.symbol,
@@ -530,6 +540,8 @@ export class DiscountType {
     this.conditionGroups = Array.isArray(data?.condition_groups)
       ? data?.condition_groups.map(DiscountConditionGroup.parse)
       : undefined;
+
+    this.appliedAmount = data?.applied_amount
   }
 }
 
