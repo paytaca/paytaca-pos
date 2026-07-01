@@ -11,7 +11,7 @@
         </template>
       </MarketplaceHeader>
       <div class="full-width q-px-sm q-mb-sm">
-        <div class="row items-end q-mb-md no-wrap q-gutter-x-sm">
+        <div class="row items-end q-mb-sm no-wrap q-gutter-x-sm">
           <q-input
             dense
             outlined
@@ -19,7 +19,6 @@
             v-model="filterOpts.search"
             :placeholder="$t('SearchByName', 'Search by name')"
             debounce="500"
-            @update:model-value="fetchDiscounts"
           >
             <template v-slot:prepend><q-icon name="search" /></template>
             <template v-slot:append>
@@ -42,7 +41,7 @@
               {{ activeFilterCount }}
             </q-badge>
             <q-menu anchor="bottom right" self="top right" :offset="[0, 8]">
-              <q-card style="min-width: 260px">
+              <q-card style="min-width: 300px">
                 <q-card-section class="q-py-sm">
                   <div class="text-subtitle2">
                     {{ $t("Filters", "Filters") }}
@@ -50,15 +49,66 @@
                 </q-card-section>
                 <q-separator />
                 <q-card-section class="q-gutter-y-md">
-                  <q-select
-                    dense
-                    outlined
-                    emit-value
-                    map-options
-                    v-model="filterOpts.isActive"
-                    :options="activeFilterOptions"
-                    :label="$t('Status')"
-                  />
+                  <div>
+                    <div class="text-caption text-grey q-mb-xs">
+                      {{ $t("Status") }}
+                    </div>
+                    <q-btn-toggle
+                      v-model="filterOpts.isActive"
+                      spread
+                      no-caps
+                      dense
+                      toggle-color="brandblue"
+                      color="white"
+                      text-color="grey-8"
+                      :options="activeFilterOptions"
+                    />
+                  </div>
+                  <div>
+                    <div class="text-caption text-grey q-mb-xs">
+                      {{ $t("Code") }}
+                    </div>
+                    <q-btn-toggle
+                      v-model="filterOpts.code"
+                      spread
+                      no-caps
+                      dense
+                      toggle-color="brandblue"
+                      color="white"
+                      text-color="grey-8"
+                      :options="codeFilterOptions"
+                    />
+                  </div>
+                  <div>
+                    <div class="text-caption text-grey q-mb-xs">
+                      {{ $t("Scope") }}
+                    </div>
+                    <q-btn-toggle
+                      v-model="filterOpts.scope"
+                      spread
+                      no-caps
+                      dense
+                      toggle-color="brandblue"
+                      color="white"
+                      text-color="grey-8"
+                      :options="scopeFilterOptions"
+                    />
+                  </div>
+                  <div>
+                    <div class="text-caption text-grey q-mb-xs">
+                      {{ $t("Type") }}
+                    </div>
+                    <q-btn-toggle
+                      v-model="filterOpts.type"
+                      spread
+                      no-caps
+                      dense
+                      toggle-color="brandblue"
+                      color="white"
+                      text-color="grey-8"
+                      :options="typeFilterOptions"
+                    />
+                  </div>
                 </q-card-section>
                 <q-separator />
                 <q-card-actions align="between" class="q-px-md q-py-sm">
@@ -74,7 +124,6 @@
                     no-caps
                     color="brandblue"
                     :label="$t('Apply', 'Apply')"
-                    @click="applyFilters"
                   />
                 </q-card-actions>
               </q-card>
@@ -88,10 +137,37 @@
             :to="{ name: 'marketplace-discount-create' }"
           />
         </div>
+        <div
+          v-if="activeFilterChips.length"
+          class="row items-center q-gutter-x-xs q-mb-sm"
+        >
+          <q-chip
+            v-for="chip in activeFilterChips"
+            :key="chip.key"
+            dense
+            removable
+            size="sm"
+            color="blue-1"
+            text-color="dark"
+            @remove="removeFilter(chip.key)"
+          >
+            {{ chip.label }}
+          </q-chip>
+          <q-btn
+            dense
+            flat
+            no-caps
+            size="sm"
+            color="grey-7"
+            :label="$t('ClearAll', 'Clear all')"
+            @click="resetFilters"
+          />
+        </div>
       </div>
       <q-table
         ref="table"
         row-key="id"
+        binary-state-sort
         :loading="fetchingDiscounts"
         :columns="discountsTableColumns"
         :rows="discounts"
@@ -99,6 +175,7 @@
         hide-pagination
         :no-data-label="$t('NoDiscountsYet', 'No discounts yet')"
         :no-results-label="$t('NoDiscountsFound', 'No discounts found')"
+        :sort-method="sortMethod"
       >
         <template v-slot:body="props">
           <q-tr
@@ -108,7 +185,11 @@
           >
             <q-td key="name" :props="props">
               <div class="text-weight-medium">{{ props.row.name }}</div>
-              <div v-if="props.row.activationCode" dense class="text-caption text-grey">
+              <div
+                v-if="props.row.activationCode"
+                dense
+                class="text-caption text-grey"
+              >
                 {{ props.row.activationCode }}
               </div>
             </q-td>
@@ -122,7 +203,11 @@
               <q-chip
                 dense
                 size="sm"
-                :color="props.row.type === DiscountType.TYPES.PCTG ? 'purple-1' : 'green-1'"
+                :color="
+                  props.row.type === DiscountType.TYPES.PCTG
+                    ? 'purple-1'
+                    : 'green-1'
+                "
                 text-color="dark"
               >
                 {{ getTypeLabel(props.row.type) }}
@@ -140,7 +225,9 @@
                 {{ props.row?.currency?.symbol }}
               </template>
               <div
-                v-if="Number.isFinite(props.row.maxValue) && props.row.maxValue > 0"
+                v-if="
+                  Number.isFinite(props.row.maxValue) && props.row.maxValue > 0
+                "
                 class="text-caption text-grey"
               >
                 {{ $t("Max", "max") }}
@@ -205,7 +292,7 @@ import { useDiscountFormHelpers } from "src/composables/marketplace/discount";
 import { useMarketplaceStore } from "src/stores/marketplace";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { defineComponent, onMounted, ref, computed } from "vue";
+import { defineComponent, onMounted, ref, computed, watch } from "vue";
 import MarketplaceHeader from "src/components/marketplace/MarketplaceHeader.vue";
 import LimitOffsetPagination from "src/components/LimitOffsetPagination.vue";
 
@@ -228,6 +315,10 @@ export default defineComponent({
     const filterOpts = ref({
       search: "",
       isActive: undefined,
+      code: undefined,
+      scope: undefined,
+      type: undefined,
+      sort: undefined,
     });
 
     const activeFilterOptions = [
@@ -235,6 +326,19 @@ export default defineComponent({
       { label: $t("Active"), value: true },
       { label: $t("Inactive"), value: false },
     ];
+
+    const codeFilterOptions = computed(() => [
+      { label: $t("All"), value: undefined },
+      ...discountCodeOptions,
+    ]);
+    const scopeFilterOptions = computed(() => [
+      { label: $t("All"), value: undefined },
+      ...discountScopeOptions,
+    ]);
+    const typeFilterOptions = computed(() => [
+      { label: $t("All"), value: undefined },
+      ...discountCalculationTypeOptions,
+    ]);
 
     const codeLabelMap = computed(() => {
       const map = {};
@@ -272,7 +376,6 @@ export default defineComponent({
     }
     function clearSearch() {
       filterOpts.value.search = "";
-      fetchDiscounts();
     }
     function navigateToEdit(discountId) {
       $router.push({
@@ -285,17 +388,52 @@ export default defineComponent({
       let count = 0;
       if (filterOpts.value.search) count++;
       if (filterOpts.value.isActive !== undefined) count++;
+      if (filterOpts.value.code !== undefined) count++;
+      if (filterOpts.value.scope !== undefined) count++;
+      if (filterOpts.value.type !== undefined) count++;
       return count;
     });
+
+    const activeFilterChips = computed(() => {
+      const chips = [];
+      if (filterOpts.value.isActive !== undefined) {
+        const label = activeFilterOptions.find(
+          (opt) => opt.value === filterOpts.value.isActive
+        )?.label;
+        chips.push({ key: "isActive", label: `${$t("Status")}: ${label}` });
+      }
+      if (filterOpts.value.code !== undefined) {
+        const label = codeFilterOptions.value.find(
+          (opt) => opt.value === filterOpts.value.code
+        )?.label;
+        chips.push({ key: "code", label: `${$t("Code")}: ${label}` });
+      }
+      if (filterOpts.value.scope !== undefined) {
+        const label = scopeFilterOptions.value.find(
+          (opt) => opt.value === filterOpts.value.scope
+        )?.label;
+        chips.push({ key: "scope", label: `${$t("Scope")}: ${label}` });
+      }
+      if (filterOpts.value.type !== undefined) {
+        const label = typeFilterOptions.value.find(
+          (opt) => opt.value === filterOpts.value.type
+        )?.label;
+        chips.push({ key: "type", label: `${$t("Type")}: ${label}` });
+      }
+      return chips;
+    });
+
+    function removeFilter(key) {
+      filterOpts.value[key] = undefined;
+    }
 
     function resetFilters() {
       filterOpts.value.search = "";
       filterOpts.value.isActive = undefined;
-      fetchDiscounts();
-    }
-
-    function applyFilters() {
-      fetchDiscounts();
+      filterOpts.value.code = undefined;
+      filterOpts.value.scope = undefined;
+      filterOpts.value.type = undefined;
+      filterOpts.value.sort = undefined;
     }
 
     const discounts = ref([].map(DiscountType.parse));
@@ -308,6 +446,10 @@ export default defineComponent({
         limit: opts?.limit || 10,
         offset: opts?.offset || 0,
         is_active: filterOpts.value.isActive,
+        code: filterOpts.value.code,
+        scope: filterOpts.value.scope,
+        type: filterOpts.value.type,
+        ordering: filterOpts.value.sort || undefined,
       };
 
       fetchingDiscounts.value = true;
@@ -328,13 +470,20 @@ export default defineComponent({
     }
 
     const discountsTableColumns = [
-      { name: "name", align: "left", label: $t("Name"), field: "name" },
+      {
+        name: "name",
+        align: "left",
+        label: $t("Name"),
+        field: "name",
+        sortable: true,
+      },
       {
         name: "code",
         align: "left",
         label: $t("Code"),
         field: "code",
         classes: "hidden-xs",
+        sortable: true,
       },
       {
         name: "scope",
@@ -342,8 +491,15 @@ export default defineComponent({
         label: $t("Scope"),
         field: "scope",
         classes: "hidden-xs",
+        sortable: true,
       },
-      { name: "type", align: "left", label: $t("Type"), field: "type" },
+      {
+        name: "type",
+        align: "left",
+        label: $t("Type"),
+        field: "type",
+        sortable: true,
+      },
       { name: "value", align: "left", label: $t("Amount"), field: "value" },
       {
         name: "conditions",
@@ -354,6 +510,15 @@ export default defineComponent({
       },
       { name: "actions", align: "center", label: "", field: "id" },
     ];
+
+    watch(filterOpts, () => fetchDiscounts(), { deep: true });
+
+    const sortFieldNameMap = {};
+    function sortMethod(rows, sortBy, descending) {
+      const fieldName = sortFieldNameMap[sortBy] || sortBy;
+      filterOpts.value.sort = (descending ? "-" : "") + fieldName;
+      return rows;
+    }
 
     async function refreshPage(done = () => {}) {
       try {
@@ -368,6 +533,10 @@ export default defineComponent({
       filterOpts,
       activeFilterOptions,
       activeFilterCount,
+      activeFilterChips,
+      codeFilterOptions,
+      scopeFilterOptions,
+      typeFilterOptions,
       discounts,
       discountsPagination,
       fetchingDiscounts,
@@ -381,8 +550,9 @@ export default defineComponent({
       getTotalConditions,
       clearSearch,
       navigateToEdit,
+      removeFilter,
       resetFilters,
-      applyFilters,
+      sortMethod,
 
       DiscountType,
     };
