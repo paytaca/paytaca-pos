@@ -324,6 +324,7 @@ export default defineComponent({
       if (marketplaceStore.userPermissions.admin) {
         data.shop.pages.push(
           { name: t('Staff'), icon: 'supervisor_account', route: { name: 'marketplace-staff' } },
+          { name: t('Discounts'), icon: 'discount', route: { name: 'marketplace-discounts' } },
         )
       }
       data.shop.pages.push({ name: t('ShopInfo'), icon: 'store', route: { name: 'marketplace-settings' } })
