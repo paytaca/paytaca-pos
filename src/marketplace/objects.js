@@ -1300,6 +1300,7 @@ export class SalesOrder {
    * @param {{ id:Number, name:String }} data.shop
    * @param {Object[]} [data.items]
    * @param {Number} [data.items_count]
+   * @param {Object[]} data.discounts
    */
   set raw(data) {
     Object.defineProperty(this, "$raw", {
@@ -1332,6 +1333,8 @@ export class SalesOrder {
     this.itemsCount = data?.items_count;
     if (Array.isArray(data?.items))
       this.items = data?.items.map(SalesOrderItem.parse);
+
+    this.discounts = DiscountType.parseList(data?.discounts);
   }
 
   get isVoid() {

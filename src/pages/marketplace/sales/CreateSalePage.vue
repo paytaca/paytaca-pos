@@ -151,7 +151,7 @@
                         </div>
                       </td>
                       <td style="min-width: 5em" class="text-center">
-                        {{ item?.variant?.priceData?.finalPrice ?? item.price }}
+                        {{ formatCurrencyAmount(item?.variant?.priceData?.finalPrice ?? item.price) }}
                         {{ marketplaceStore?.currency }}
                       </td>
                       <td style="min-width: 3em" class="text-right">
@@ -207,10 +207,34 @@
             <div class="row">
               <div class="q-space">{{ $t("Subtotal") }}</div>
               <div>
-                {{ formComputedData.subtotal }}
+                {{ formatCurrencyAmount(formComputedData.subtotal) }}
                 {{ marketplaceStore?.currency }}
               </div>
             </div>
+            <template v-if="formData?.salesOrder?.discounts?.length">
+              <div class="q-pl-md">
+                <div
+                  v-for="discount in formData?.salesOrder?.discounts"
+                  :key="discount?.id"
+                  class="row items-center q-gutter-x-sm"
+                >
+                  <div class="q-space">{{ discount?.name }}</div>
+                  <div>
+                    -{{ formatCurrencyAmount(discount?.appliedAmount) }}
+                    {{ marketplaceStore?.currency }}
+                  </div>
+                </div>
+              </div>
+              <div class="row items-center">
+                <div class="q-space">
+                  {{ $t("DiscountedSubtotal", "Discounted Subtotal") }}
+                </div>
+                <div>
+                  {{ formatCurrencyAmount(formData?.salesOrder?.total) }}
+                  {{ marketplaceStore?.currency }}
+                </div>
+              </div>
+            </template>
           </q-card-section>
         </q-card>
 
@@ -431,11 +455,7 @@
                   <q-skeleton height="200px" width="200px" />
                 </div>
                 <template v-else>
-                  <img
-                    src="/bch-logo.png"
-                    height="50"
-                    class="qr-code-icon"
-                  />
+                  <img src="/bch-logo.png" height="50" class="qr-code-icon" />
                   <QRCode
                     :text="bchPaymentUrl"
                     color="#253933"
@@ -454,7 +474,7 @@
             >
               <div class="text-h5">{{ formComputedData.bchSubtotal }} BCH</div>
               <div class="text-caption bottom">
-                {{ formComputedData.subtotal }}
+                {{ formatCurrencyAmount(formComputedData.discountedSubtotal) }}
                 {{ marketplaceStore?.merchant?.currency?.symbol }}
               </div>
               <div class="text-subtitle1 q-mt-sm" style="word-break: break-all">
@@ -481,6 +501,32 @@
             v-model.number="formData.receivedAmount"
             :suffix="marketplaceStore?.currency"
           />
+        </div>
+
+        <q-separator class="q-my-md" />
+        <div class="q-px-md">
+          <div class="text-subtitle1 q-mb-sm">
+            {{ $t("Discount", {}, "Discount") }}
+          </div>
+          <div class="row q-gutter-sm">
+            <q-input
+              dense
+              outlined
+              class="col"
+              :label="$t('DiscountCode', {}, 'Discount code')"
+              v-model="formData.discountCode"
+              :disable="loading"
+              @keyup.enter="applyDiscount"
+            />
+            <q-btn
+              outline
+              no-caps
+              :loading="loading"
+              :disable="!formData.discountCode"
+              :label="$t('Apply', {}, 'Apply')"
+              @click="applyDiscount"
+            />
+          </div>
         </div>
 
         <div v-if="formComputedData.subtotal > 0" class="q-mt-md">
@@ -519,7 +565,7 @@
                   <div>{{ item?.variant?.itemName }}</div>
                 </div>
                 <div class="col-3">
-                  {{ item?.price || item?.variant?.price }}
+                  {{ item?.variant?.priceData?.finalPrice ?? item?.price }}
                   {{ marketplaceStore.currency }}
                 </div>
                 <div class="col-2">x{{ item?.quantity }}</div>
@@ -600,7 +646,7 @@
               <div v-if="formData.paymentMode == 'BCH'" class="text-right">
                 <div>{{ formComputedData.bchSubtotal }} BCH</div>
                 <div class="text-grey text-caption bottom">
-                  {{ formComputedData.subtotal }}
+                  {{ formatCurrencyAmount(formComputedData.discountedSubtotal) }}
                   {{ marketplaceStore.currency }}
                 </div>
               </div>
@@ -719,6 +765,7 @@ import {
   formatTimestampToText,
 } from "src/marketplace/utils";
 import { useMarketplaceStore } from "src/stores/marketplace";
+import { formatCurrencyAmount } from "src/utils/denomination-utils";
 import { debounce, useQuasar } from "quasar";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -926,11 +973,13 @@ export default defineComponent({
         price: { timestamp: Date.now(), value: 16378.05 }, // for BCH
         txid: "",
       },
+      discountCode: "",
     });
 
     const formComputedData = computed(() => {
       const data = {
         subtotal: 0,
+        discountedSubtotal: 0,
         bchSubtotal: 0,
         bchTxidUrl: "",
         changeAmount: 0,
@@ -943,9 +992,23 @@ export default defineComponent({
           return subtotal + price * item?.quantity;
         }, 0);
       }
+
+      data.discountedSubtotal = data.subtotal;
+      const salesOrder = formData.value?.salesOrder;
+      if (salesOrder?.discounts?.length) {
+        const totalDiscounts = salesOrder.discounts.reduce(
+          (total, discount) => total + Number(discount?.appliedAmount || 0),
+          0
+        );
+        const expectedSubtotal = Number(salesOrder?.total || 0) + totalDiscounts;
+        if (Math.abs(data.subtotal - expectedSubtotal) < 0.001) {
+          data.discountedSubtotal = Math.max(0, data.subtotal - totalDiscounts);
+        }
+      }
+
       if (formData.value.bchPayment?.price?.value) {
         data.bchSubtotal =
-          data.subtotal / formData.value.bchPayment.price.value;
+          data.discountedSubtotal / formData.value.bchPayment.price.value;
         data.bchSubtotal = Math.floor(data.bchSubtotal * 10 ** 8) / 10 ** 8;
       }
 
@@ -1024,6 +1087,7 @@ export default defineComponent({
       } else {
         formData.value.items.push(itemData);
       }
+      saveSale(); // should save a draft if currently editing a draft
       setTimeout(() => {
         const element = itemsTabListItems.value?.[refIndex];
         console.log(element);
@@ -1036,6 +1100,7 @@ export default defineComponent({
       formData.value.items = formData.value.items.filter(
         (_item) => _item !== item
       );
+      saveSale(); // should save a draft if currently editing a draft
     }
 
     function selectStocks(item) {
@@ -1238,6 +1303,46 @@ export default defineComponent({
       true
     );
 
+    function applyDiscount() {
+      if (!formData.value.discountCode) return Promise.resolve();
+
+      return createSale({ draft: true, silent: true })
+        .then(() => {
+          const salesOrderId = formData.value?.salesOrder?.id;
+          if (!salesOrderId) return Promise.reject(t("NoSalesOrderId"));
+
+          loading.value = true;
+          return backend.post("sales-orders/discount_application/", {
+            sales_order_id: salesOrderId,
+            discount_codes: [formData.value.discountCode],
+          });
+        })
+        .then((response) => {
+          formData.value.discountCode = "";
+          $q.notify({
+            message: t("DiscountApplied", {}, "Discount applied"),
+            type: "positive",
+            timeout: 5000,
+            closeBtn: true,
+          });
+          return response;
+        })
+        .catch((error) => {
+          let errorMsg = error?.response?.data?.detail || error;
+          $q.notify({
+            message: t("FailedToApplyDiscount", {}, "Failed to apply discount"),
+            caption: errorMsg || t("EncounteredError"),
+            type: "negative",
+            timeout: 5000,
+            closeBtn: true,
+          });
+          return Promise.reject(error);
+        })
+        .finally(() => {
+          loading.value = false;
+        });
+    }
+
     function createSale(opts = { draft: undefined, silent: false }) {
       const salesOrderId = formData.value?.salesOrder?.id;
       const data = serializedFormData.value;
@@ -1361,6 +1466,7 @@ export default defineComponent({
     }
     function syncEditItemDialog(data) {
       Object.assign(editItemDialog.value.item, data);
+      saveSale(); // should save a draft if currently editing a draft
     }
 
     function copyToClipboard(value, message = "") {
@@ -1408,6 +1514,7 @@ export default defineComponent({
       transactionsReceived,
       displayReceivedTransaction,
 
+      applyDiscount,
       createSale,
       deleteDraftSalesOrderConfirm,
 
@@ -1428,6 +1535,7 @@ export default defineComponent({
 
       formatTimestampToText,
       formatDateRelative,
+      formatCurrencyAmount,
     };
   },
 });
