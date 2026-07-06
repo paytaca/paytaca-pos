@@ -82,7 +82,7 @@
               </td>
               <td style="text-wrap:nowrap;">x{{ item?.quantity }}</td>
               <td class="text-right" style="text-wrap:nowrap;">
-                {{ item?.subtotal }} {{ salesOrder?.currency?.symbol }}
+                {{ formatCurrencyAmount(item?.subtotal) }} {{ salesOrder?.currency?.symbol }}
               </td>
             </tr>
           </table>
@@ -107,11 +107,11 @@
                   </q-icon>
                 </div>
                 <div class="text-grey text-caption bottom">
-                  {{ salesOrder?.total }} {{ salesOrder?.currency?.symbol }}
+                  {{ formatCurrencyAmount(salesOrder?.total) }} {{ salesOrder?.currency?.symbol }}
                 </div>
               </div>
               <template v-else>
-                {{ salesOrder?.total || 0 }} {{ salesOrder?.currency?.symbol }}
+                {{ formatCurrencyAmount(salesOrder?.total || 0) }} {{ salesOrder?.currency?.symbol }}
               </template>
             </div>
           </div>
@@ -245,6 +245,7 @@ import axios from 'axios'
 import { SalesOrder } from 'src/marketplace/objects'
 import { errorParser, formatTimestampToText } from 'src/marketplace/utils'
 import { TransactionListener } from 'src/wallet/utils'
+import { formatCurrencyAmount } from 'src/utils/denomination-utils'
 import { toTokenAddress } from 'src/utils/crypto'
 import { postOutputFiatAmounts } from 'src/utils/watchtower'
 import { useAddressesStore } from 'src/stores/addresses'
@@ -626,6 +627,7 @@ export default defineComponent({
 
       // utils funcs
       formatTimestampToText,
+      formatCurrencyAmount,
     }
   },
 })

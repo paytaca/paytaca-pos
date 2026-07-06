@@ -23,7 +23,7 @@
               </div>
               <template v-if="summary.data?.length">
                 <div v-for="(report, index) in summary.data" :key="index">
-                  {{ report?.total }} {{ report?.currency }}
+                  {{ formatCurrencyAmount(report?.total) }} {{ report?.currency }}
                 </div>
               </template>
               <div v-else class="text-grey">
@@ -93,6 +93,7 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { formatCurrencyAmount } from 'src/utils/denomination-utils';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
@@ -302,7 +303,9 @@ export default defineComponent({
       data.series = currencies.map(currency => {
         return {
           name: currency,
-          data: groupedSalesGraphData.value.map(group =>  group.summaries.find(summary => summary?.currency === currency)?.total || null)
+          data: groupedSalesGraphData.value.map(group =>  {
+            return formatCurrencyAmount(group.summaries.find(summary => summary?.currency === currency)?.total || null)
+          })
         }
       })
 
@@ -351,6 +354,7 @@ export default defineComponent({
 
       // utils funcs
       formatDate,
+      formatCurrencyAmount,
     }
   },
 })

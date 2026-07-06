@@ -199,6 +199,7 @@ import { backend } from 'src/marketplace/backend'
 import { Order, SalesOrder } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils'
 import { useMarketplaceStore } from 'src/stores/marketplace'
+import { formatCurrencyAmount } from 'src/utils/denomination-utils'
 import { date, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
@@ -297,7 +298,7 @@ export default defineComponent({
     const salesOrdersTableColumns = [
       { name: 'number', align: 'center', label: t('Number'), field: 'number', format: val => `SO#${val}`, sortable: true },
       { name: 'status', align: 'center', label: t('Status'), field: 'parsedStatus', sortable: true },
-      { name: 'total', align: 'center', label: t('Total'), field: obj => obj?.total ? `${obj?.total} ${obj?.currency?.symbol}` : '', sortable: true },
+      { name: 'total', align: 'center', label: t('Total'), field: obj => obj?.total ? `${formatCurrencyAmount(obj?.total)} ${obj?.currency?.symbol}` : '', sortable: true },
       { name: 'items', align: 'center', label: t('Items'), field: obj => obj?.items?.length || obj?.itemsCount, format: val => val === 1 ? `${val} item` : `${val} items`, sortable: true },
       { name: 'order', align: 'center', label: t('Orders') },
       { name: 'payment-mode', align: 'center', label: t('PaymentMode'), field: obj => obj?.parsedPaymentMode || obj?.paymentMode, sortable: true },

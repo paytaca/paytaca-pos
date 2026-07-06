@@ -133,7 +133,7 @@
               </div>
             </td>
             <td>
-              {{ item?.unitPrice }} {{ salesOrder?.currency?.symbol }}
+              {{ formatCurrencyAmount(item?.unitPrice) }} {{ salesOrder?.currency?.symbol }}
             </td>
             <td>
               <div class="row no-wrap items-center">
@@ -161,11 +161,11 @@
                 </q-icon>
               </div>
               <div class="text-grey text-caption bottom">
-                {{ salesOrder?.total }} {{ salesOrder?.currency?.symbol }}
+                {{ formatCurrencyAmount(salesOrder?.total) }} {{ salesOrder?.currency?.symbol }}
               </div>
             </div>
             <template v-else>
-              {{ salesOrder?.total }} {{ salesOrder?.currency?.symbol }}
+              {{ formatCurrencyAmount(salesOrder?.total) }} {{ salesOrder?.currency?.symbol }}
             </template>
           </div>
         </div>
@@ -177,6 +177,7 @@
 </template>
 <script>
 import { SalesOrder } from 'src/marketplace/objects'
+import { formatCurrencyAmount } from 'src/utils/denomination-utils'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { defineComponent, ref, watch } from 'vue'
 import { formatTimestampToText } from 'src/marketplace/utils'
@@ -226,6 +227,7 @@ export default defineComponent({
 
       // utils funcs
       formatTimestampToText,
+      formatCurrencyAmount,
     }
   },
 })
