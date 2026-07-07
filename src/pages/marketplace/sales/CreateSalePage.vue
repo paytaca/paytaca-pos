@@ -88,7 +88,7 @@
         />
       </div>
     </div>
-    <q-tabs v-model="tab">
+    <q-tabs v-model="tab" mobile-arrows outside-arrows>
       <q-tab v-for="(tabOpt, index) in tabs" :key="index" v-bind="tabOpt" />
     </q-tabs>
     <q-tab-panels
@@ -151,7 +151,11 @@
                         </div>
                       </td>
                       <td style="min-width: 5em" class="text-center">
-                        {{ formatCurrencyAmount(item?.variant?.priceData?.finalPrice ?? item.price) }}
+                        {{
+                          formatCurrencyAmount(
+                            item?.variant?.priceData?.finalPrice ?? item.price
+                          )
+                        }}
                         {{ marketplaceStore?.currency }}
                       </td>
                       <td style="min-width: 3em" class="text-right">
@@ -365,6 +369,193 @@
           />
         </div>
       </q-tab-panel>
+      <q-tab-panel name="adjustments" class="q-pa-none">
+        <q-card class="q-mb-md">
+          <q-card-section>
+            <div class="text-subtitle1 q-mb-sm">
+              {{ $t("Discount", {}, "Discount") }}
+            </div>
+            <div class="row q-gutter-sm">
+              <q-input
+                dense
+                outlined
+                class="col"
+                :label="$t('DiscountCode', {}, 'Discount code')"
+                v-model="formData.discountCode"
+                :disable="loading"
+                @keyup.enter="applyDiscount"
+              />
+              <q-btn
+                outline
+                no-caps
+                :loading="loading"
+                :disable="!formData.discountCode"
+                :label="$t('Apply', {}, 'Apply')"
+                @click="applyDiscount"
+              />
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <q-card v-if="benefitPrograms?.length" class="q-mb-md">
+          <q-card-section class="q-pa-none">
+            <q-list separator>
+              <q-item
+                v-for="program in benefitPrograms"
+                :key="program?.id"
+                clickable
+                @click="() => openBenefitProgramForm(program)"
+              >
+                <q-item-section>
+                  <q-item-label class="row items-center q-gutter-x-sm">
+                    <span>{{ program?.name }}</span>
+                    <q-icon
+                      v-if="getBenefitProgramApplication(program?.id)"
+                      :name="
+                        getBenefitProgramApplication(program?.id).verifiedAt
+                          ? 'check_circle'
+                          : 'pending'
+                      "
+                      :color="
+                        getBenefitProgramApplication(program?.id).verifiedAt
+                          ? 'green'
+                          : 'orange'
+                      "
+                      size="1.25em"
+                    />
+                  </q-item-label>
+                  <q-item-label caption class="row items-center q-gutter-x-xs">
+                    <span v-if="program?.taxType?.value">
+                      {{ program.taxType.name }}
+                      {{ program.taxType.value }}%
+                    </span>
+                    <span
+                      v-for="(discount, dIndex) in program?.discounts"
+                      :key="dIndex"
+                    >
+                      <q-separator
+                        v-if="dIndex > 0 || program?.taxType?.value"
+                        vertical
+                        inset
+                      />
+                      {{ discount?.name }}
+                      <span v-if="discount?.type === 'percentage'">
+                        {{ discount?.value }}%
+                      </span>
+                      <span v-else-if="discount?.type === 'fixed'">
+                        {{ discount?.value }}
+                        {{ discount?.currency?.symbol }}
+                      </span>
+                      <span v-if="discount?.maxAmount">
+                        ({{ $t("Max", {}, "max") }} {{ discount?.maxAmount }})
+                      </span>
+                    </span>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn
+                    v-if="getBenefitProgramApplication(program?.id)"
+                    flat
+                    round
+                    dense
+                    icon="close"
+                    color="red"
+                    size="sm"
+                    @click.stop="
+                      () => removeBenefitProgramApplication(program?.id)
+                    "
+                  />
+                  <q-icon v-else name="chevron_right" color="grey" />
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-card-section>
+        </q-card>
+
+        <q-dialog v-model="benefitProgramDialog.show" position="bottom">
+          <q-card class="full-width">
+            <BenefitProgramApplicationForm
+              :key="benefitProgramDialog.program?.id"
+              v-model="benefitProgramDialog.formData"
+              :program="benefitProgramDialog.program"
+              :loading="loading"
+              :readonly="benefitProgramDialog.readonly"
+              @submit="(data) => applyBenefitProgram(data)"
+              @cancel="() => (benefitProgramDialog.show = false)"
+            />
+          </q-card>
+        </q-dialog>
+
+        <q-card class="rounded-borders">
+          <q-card-section>
+            <div class="row">
+              <div class="q-space">{{ $t("Subtotal") }}</div>
+              <div>
+                {{ formatCurrencyAmount(formComputedData.subtotal) }}
+                {{ marketplaceStore?.currency }}
+              </div>
+            </div>
+            <template v-if="formData?.salesOrder?.discounts?.length">
+              <div class="q-pl-md">
+                <div
+                  v-for="discount in formData?.salesOrder?.discounts"
+                  :key="discount?.id"
+                  class="row items-center q-gutter-x-sm"
+                >
+                  <div class="q-space">{{ discount?.name }}</div>
+                  <div>
+                    -{{ formatCurrencyAmount(discount?.appliedAmount) }}
+                    {{ marketplaceStore?.currency }}
+                  </div>
+                </div>
+              </div>
+            </template>
+            <template v-if="benefitProgramClaims?.length">
+              <div class="q-pl-md">
+                <div
+                  v-for="claim in benefitProgramClaims"
+                  :key="claim?.id"
+                  class="row items-center q-gutter-x-sm"
+                >
+                  <div class="q-space">
+                    {{ claim?.beneficiaryName }}
+                    <span class="text-grey text-caption">
+                      ({{ getBenefitProgramName(claim?.benefitProgramId) }})
+                    </span>
+                  </div>
+                  <div>
+                    <q-icon
+                      :name="claim?.verifiedAt ? 'check_circle' : 'pending'"
+                      :color="claim?.verifiedAt ? 'green' : 'orange'"
+                      size="1em"
+                    />
+                  </div>
+                </div>
+              </div>
+            </template>
+            <div class="row items-center q-mt-sm">
+              <div class="q-space text-weight-medium">
+                {{ $t("Total", {}, "Total") }}
+              </div>
+              <div class="text-weight-medium">
+                {{ formatCurrencyAmount(formComputedData.discountedSubtotal) }}
+                {{ marketplaceStore?.currency }}
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <div class="q-mt-md">
+          <q-btn
+            color="brandblue"
+            no-caps
+            :disable="loading"
+            :label="$t('Next')"
+            class="full-width"
+            @click="() => nextTab()"
+          />
+        </div>
+      </q-tab-panel>
       <q-tab-panel name="payment" class="q-pa-none">
         <q-select
           :label="$t('PaymentMode')"
@@ -503,32 +694,6 @@
           />
         </div>
 
-        <q-separator class="q-my-md" />
-        <div class="q-px-md">
-          <div class="text-subtitle1 q-mb-sm">
-            {{ $t("Discount", {}, "Discount") }}
-          </div>
-          <div class="row q-gutter-sm">
-            <q-input
-              dense
-              outlined
-              class="col"
-              :label="$t('DiscountCode', {}, 'Discount code')"
-              v-model="formData.discountCode"
-              :disable="loading"
-              @keyup.enter="applyDiscount"
-            />
-            <q-btn
-              outline
-              no-caps
-              :loading="loading"
-              :disable="!formData.discountCode"
-              :label="$t('Apply', {}, 'Apply')"
-              @click="applyDiscount"
-            />
-          </div>
-        </div>
-
         <div v-if="formComputedData.subtotal > 0" class="q-mt-md">
           <q-btn
             color="brandblue"
@@ -646,7 +811,9 @@
               <div v-if="formData.paymentMode == 'BCH'" class="text-right">
                 <div>{{ formComputedData.bchSubtotal }} BCH</div>
                 <div class="text-grey text-caption bottom">
-                  {{ formatCurrencyAmount(formComputedData.discountedSubtotal) }}
+                  {{
+                    formatCurrencyAmount(formComputedData.discountedSubtotal)
+                  }}
                   {{ marketplaceStore.currency }}
                 </div>
               </div>
@@ -759,7 +926,13 @@
 <script>
 import { backend } from "src/marketplace/backend";
 import axios from "axios";
-import { SalesOrder, Stock, Variant } from "src/marketplace/objects";
+import {
+  BenefitClaim,
+  BenefitProgram,
+  SalesOrder,
+  Stock,
+  Variant,
+} from "src/marketplace/objects";
 import {
   formatDateRelative,
   formatTimestampToText,
@@ -786,6 +959,7 @@ import QRCode from "vue-qrcode-component";
 import SalesOrderDetailDialog from "src/components/marketplace/sales/SalesOrderDetailDialog.vue";
 import ReceiveUpdateDialog from "src/components/receive-page/ReceiveUpdateDialog.vue";
 import EditSaleItemDialog from "src/components/marketplace/sales/EditSaleItemDialog.vue";
+import BenefitProgramApplicationForm from "src/components/marketplace/sales/BenefitProgramApplicationForm.vue";
 import { useAddressesStore } from "src/stores/addresses";
 import { TransactionListener } from "src/wallet/utils";
 
@@ -799,6 +973,7 @@ export default defineComponent({
     QRCode,
     SalesOrderDetailDialog,
     EditSaleItemDialog,
+    BenefitProgramApplicationForm,
   },
   setup() {
     const $q = useQuasar();
@@ -870,6 +1045,7 @@ export default defineComponent({
         tab.value = tabs.value.at(-1).name;
         tabs.value.forEach((tab) => (tab.disable = false));
       }
+      fetchBenefitProgramClaims(salesOrder?.id);
 
       if (bchPayment?.txid) {
         const satoshis = Math.floor(
@@ -896,6 +1072,7 @@ export default defineComponent({
     const tabs = ref([
       { name: "items", label: t("Items"), disable: false },
       { name: "stocks", label: t("Stocks"), disable: true },
+      { name: "adjustments", label: t("Adjustments"), disable: true },
       { name: "payment", label: t("Payment"), disable: true },
       { name: "review", label: t("Review"), disable: true },
     ]);
@@ -904,6 +1081,11 @@ export default defineComponent({
       tabs.value.forEach((tabOpt) => {
         if (tabOpt.name === tab.value) tabOpt.disable = false;
       });
+      if (tab.value === "adjustments") {
+        fetchBenefitPrograms();
+        if (formData.value?.salesOrder?.id)
+          fetchBenefitProgramClaims(formData.value.salesOrder.id);
+      }
     });
     function nextTab() {
       const _tabs = tabs.value;
@@ -974,6 +1156,7 @@ export default defineComponent({
         txid: "",
       },
       discountCode: "",
+      benefitProgramApplications: [],
     });
 
     const formComputedData = computed(() => {
@@ -1000,7 +1183,8 @@ export default defineComponent({
           (total, discount) => total + Number(discount?.appliedAmount || 0),
           0
         );
-        const expectedSubtotal = Number(salesOrder?.total || 0) + totalDiscounts;
+        const expectedSubtotal =
+          Number(salesOrder?.total || 0) + totalDiscounts;
         if (Math.abs(data.subtotal - expectedSubtotal) < 0.001) {
           data.discountedSubtotal = Math.max(0, data.subtotal - totalDiscounts);
         }
@@ -1065,6 +1249,7 @@ export default defineComponent({
         txid: "",
       };
       formData.value.paymentMode = "BCH";
+      formData.value.benefitProgramApplications = [];
       tabs.value.forEach((tab) => (tab.disable = true));
       tabs.value[0].disable = false;
       tab.value = tabs.value[0].name;
@@ -1289,6 +1474,14 @@ export default defineComponent({
             }),
           };
         }),
+        benefit_program_applications:
+          formData.value.benefitProgramApplications.map((app) => {
+            return {
+              benefit_program_id: app.programId,
+              id_number: app.idNumber,
+              name_on_id: app.nameOnId,
+            };
+          }),
       };
       return data;
     });
@@ -1319,6 +1512,9 @@ export default defineComponent({
         })
         .then((response) => {
           formData.value.discountCode = "";
+          if (response?.data) {
+            formData.value.salesOrder = SalesOrder.parse(response.data);
+          }
           $q.notify({
             message: t("DiscountApplied", {}, "Discount applied"),
             type: "positive",
@@ -1341,6 +1537,145 @@ export default defineComponent({
         .finally(() => {
           loading.value = false;
         });
+    }
+
+    const fetchingBenefitPrograms = ref(false);
+    const benefitPrograms = ref([].map(BenefitProgram.parse));
+    function fetchBenefitPrograms() {
+      const params = { shop_ids: marketplaceStore.shopData?.id || null };
+      return backend.get("benefit-programs/", { params }).then((response) => {
+        if (!Array.isArray(response.data?.results))
+          return Promise.reject({ response });
+        benefitPrograms.value = response.data.results.map(BenefitProgram.parse);
+        return response;
+      });
+    }
+
+    const benefitProgramDialog = ref({
+      show: false,
+      program: null,
+      formData: {
+        idPhoto: null,
+        idNumber: "",
+        nameOnId: "",
+      },
+    });
+
+    function getBenefitProgramApplication(programId) {
+      return benefitProgramClaims.value.find(
+        (claim) => claim.benefitProgramId === programId
+      );
+    }
+
+    function getBenefitProgramName(programId) {
+      const program = benefitPrograms.value.find((p) => p.id === programId);
+      return program?.name || "";
+    }
+
+    function openBenefitProgramForm(program) {
+      const existing = getBenefitProgramApplication(program?.id);
+      benefitProgramDialog.value = {
+        show: true,
+        program,
+        readonly: Boolean(existing?.verifiedAt),
+        formData: existing
+          ? {
+              idPhoto: existing.beneficiaryPhotoUrl || null,
+              idNumber: existing.beneficiaryIdNumber || "",
+              nameOnId: existing.beneficiaryName || "",
+            }
+          : { idPhoto: null, idNumber: "", nameOnId: "" },
+      };
+    }
+
+    function applyBenefitProgram(data) {
+      return createSale({ draft: true, silent: true })
+        .then(() => {
+          const salesOrderId = formData.value?.salesOrder?.id;
+          if (!salesOrderId) return Promise.reject(t("NoSalesOrderId"));
+
+          const programId = benefitProgramDialog.value.program?.id;
+
+          loading.value = true;
+          const formDataPayload = new FormData();
+          formDataPayload.set("sales_order_id", salesOrderId);
+          formDataPayload.set("benefit_program_id", programId);
+          formDataPayload.set("beneficiary_name", data.nameOnId);
+          formDataPayload.set("beneficiary_id_number", data.idNumber);
+          formDataPayload.set("beneficiary_photo", data.idPhoto);
+
+          return backend.post("benefit-claims/", formDataPayload);
+        })
+        .then((response) => {
+          benefitProgramDialog.value.show = false;
+          const salesOrder = formData.value?.salesOrder;
+          return Promise.all([
+            fetchBenefitProgramClaims(salesOrder?.id),
+            salesOrder?.refetch?.(),
+          ]).then(() => response);
+        })
+        .then((response) => {
+          $q.notify({
+            message: t("BenefitClaimApplied", {}, "Benefit claim applied"),
+            type: "positive",
+            timeout: 5000,
+          });
+          return response;
+        })
+        .catch((error) => {
+          let errorMsg = error?.response?.data?.detail || error;
+          $q.notify({
+            message: t(
+              "FailedToApplyBenefitClaim",
+              {},
+              "Failed to apply benefit claim"
+            ),
+            caption: errorMsg || t("EncounteredError"),
+            type: "negative",
+            timeout: 5000,
+            closeBtn: true,
+          });
+          return Promise.reject(error);
+        })
+        .finally(() => {
+          loading.value = false;
+        });
+    }
+
+    function removeBenefitProgramApplication(programId) {
+      const salesOrderId = formData.value?.salesOrder?.id;
+      if (!salesOrderId) return;
+      const claim = getBenefitProgramApplication(programId);
+      if (!claim) return;
+
+      loading.value = true;
+      return backend
+        .delete(`benefit-claims/${claim.id}/`)
+        .catch(() => {
+          // silently ignore delete errors, just refetch
+        })
+        .finally(() => {
+          const salesOrder = formData.value?.salesOrder;
+          Promise.all([
+            fetchBenefitProgramClaims(salesOrderId),
+            salesOrder?.refetch?.(),
+          ]).finally(() => {
+            loading.value = false;
+          });
+        });
+    }
+
+    const benefitProgramClaims = ref([].map(BenefitClaim.parse));
+    function fetchBenefitProgramClaims(salesOrderId) {
+      const params = { sales_order_id: salesOrderId };
+      return backend.get("benefit-claims/", { params }).then((response) => {
+        if (!Array.isArray(response.data.results))
+          return Promise.reject({ response });
+        benefitProgramClaims.value = response.data.results.map(
+          BenefitClaim.parse
+        );
+        return response;
+      });
     }
 
     function createSale(opts = { draft: undefined, silent: false }) {
@@ -1515,6 +1850,17 @@ export default defineComponent({
       displayReceivedTransaction,
 
       applyDiscount,
+      fetchingBenefitPrograms,
+      benefitPrograms,
+      fetchBenefitPrograms,
+      benefitProgramClaims,
+      fetchBenefitProgramClaims,
+      benefitProgramDialog,
+      getBenefitProgramApplication,
+      getBenefitProgramName,
+      openBenefitProgramForm,
+      applyBenefitProgram,
+      removeBenefitProgramApplication,
       createSale,
       deleteDraftSalesOrderConfirm,
 

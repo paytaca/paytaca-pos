@@ -486,8 +486,8 @@ export class DiscountType {
   static TYPES = Object.freeze({ FIXED: "fixed", PCTG: "percentage" });
 
   static parseList(data) {
-    if (!Array.isArray(data)) return
-    return data.map(DiscountType.parse)
+    if (!Array.isArray(data)) return;
+    return data.map(DiscountType.parse);
   }
 
   static parse(data) {
@@ -541,7 +541,84 @@ export class DiscountType {
       ? data?.condition_groups.map(DiscountConditionGroup.parse)
       : undefined;
 
-    this.appliedAmount = data?.applied_amount
+    this.appliedAmount = data?.applied_amount;
+  }
+}
+
+export class BenefitProgram {
+  static parse(data) {
+    return new BenefitProgram(data);
+  }
+
+  /**
+   * @param {Object} data
+   */
+  constructor(data) {
+    this.raw = data;
+  }
+
+  get raw() {
+    return this.$raw;
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.country_code
+   * @param {String} data.name
+   * @param {String} data.description
+   * @param {Object} data.tax_type
+   * @param {Object} data.discounts
+   */
+  set raw(data) {
+    this.$raw = data;
+    this.id = data?.id;
+    this.countryCode = data?.country_code;
+    this.name = data?.name;
+    this.description = data?.description;
+    this.taxType = TaxType.parse(data?.tax_type);
+    this.discounts = DiscountType.parseList(data?.discounts);
+  }
+}
+
+export class BenefitClaim {
+  static parse(data) {
+    return new BenefitClaim(data);
+  }
+
+  constructor(data) {
+    this.raw = data;
+  }
+
+  get raw() {
+    return this.$raw;
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {Number} data.order_id
+   * @param {Number} data.cart_id
+   * @param {Number} data.sales_order_id
+   * @param {Number} data.benefit_program_id
+   * @param {String} data.beneficiary_name
+   * @param {String} data.beneficiary_id_number
+   * @param {String} data.beneficiary_photo_url
+   * @param {String} data.verified_at
+   * @param {String} data.verified_by
+   */
+  set raw(data) {
+    this.$raw = data;
+    this.id = data?.id;
+    this.orderId = data?.order_id;
+    this.cartId = data?.cart_id;
+    this.salesOrderId = data?.sales_order_id;
+    this.benefitProgramId = data?.benefit_program_id;
+    this.beneficiaryName = data?.beneficiary_name;
+    this.beneficiaryIdNumber = data?.beneficiary_id_number;
+    this.beneficiaryPhotoUrl = data?.beneficiary_photo_url;
+    this.verifiedAt = data?.verified_at ? new Date(data?.verified_at) : null;
+    this.verifiedBy = data?.verified_by ? User.parse(data?.verified_by) : null;
   }
 }
 
