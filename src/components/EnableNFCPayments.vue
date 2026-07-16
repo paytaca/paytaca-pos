@@ -122,9 +122,9 @@
 import { onMounted, ref, watch } from "vue";
 import { useWalletStore } from "src/stores/wallet";
 import { useQuasar, copyToClipboard as qCopyToClipboard } from "quasar";
-import { getEncryptionKeypair, getOrGenerateEncryptionKeypair } from "src/nfc/keypair";
+import { getEncryptionKeypair, getOrGenerateEncryptionKeypair } from "src/card/keypair";
 import { decryptWithPrivateKey } from "src/utils/ecies";
-import { savePrivateKeyWif } from "src/nfc/user";
+import { savePrivateKeyWif } from "src/card/user";
 import { getPubkeyAt } from "src/wallet/utils";
 
 import QRCodeReader from "./QRCodeReader.vue";

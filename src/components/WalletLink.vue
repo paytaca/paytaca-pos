@@ -102,10 +102,10 @@ import { getDeviceInfo, getDeviceId } from "src/utils/device";
 import { defineComponent, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useQuasar, copyToClipboard as qCopyToClipboard } from "quasar";
-import { getEncryptionKeypair, getOrGenerateEncryptionKeypair } from "src/nfc/keypair";
+import { getEncryptionKeypair, getOrGenerateEncryptionKeypair } from "src/card/keypair";
 import QRCode from "vue-qrcode-component";
 import { decryptWithPrivateKey } from "src/utils/ecies";
-import { getPrivateKeyWif, savePrivateKeyWif } from "src/nfc/user";
+import { getPrivateKeyWif, savePrivateKeyWif } from "src/card/user";
 
 export default defineComponent({
   components: {

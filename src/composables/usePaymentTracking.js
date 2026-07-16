@@ -5,8 +5,8 @@ import { useAddressesStore } from 'stores/addresses'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { startNFCScan } from 'src/utils/nfcScanner'
-import { payWithCard } from 'src/nfc/payment'
-import { loadCardMerchantUser } from 'src/nfc/user'
+import { payWithCard } from 'src/card/payment'
+import { loadCardMerchantUser } from 'src/card/user'
 
 /**
  * Composable for managing payment tracking, websocket connections, and transaction handling
@@ -373,12 +373,26 @@ export function usePaymentTracking({
     const paymentsStore = usePaymentsStore()
     const bchAmount = paymentsStore.total || 0
 
+    const splitParams = contractParams.split(':')
+    if (splitParams.length !== 2) {
+      console.error('Invalid contract parameters received from NFC URL:', contractParams)
+      showNfcPaymentError(new Error('Invalid contract parameters'))
+      $q.loading.hide()
+      return
+    }
+
+    const contractParameters = {
+      backendPkh: splitParams[0],
+      tokenId: splitParams[1]
+    }
+
     const params = {
       uid,
       merchantId: merchant.id,
       receivingAddress,
       amountSats: Math.round(bchAmount * 1e8),
-      url
+      url,
+      contractParameters
     }
 
     console.log('Spending with params:', params)
@@ -386,29 +400,37 @@ export function usePaymentTracking({
       const result = await payWithCard(params)
       console.log('Payment result:', result)
       if (result?.success) {
-        $q.loading.hide()
-        nfcStatusNotification.value = $q.dialog({
-          title: t('CardPaymentSuccess', 'Card Payment Successful'),
-          message: t('CardPaymentSuccessMessage', 'Your card payment was processed successfully. Please wait for confirmation.'),
-          ok: {
-            label: t('OK', 'OK'),
-            color: 'green'
-          },
-        })
+        showNfcPaymentSuccess()
       }
     } catch (error) {
       console.error('Error processing NFC payment', error)
+      showNfcPaymentError(error)
+    } finally {
       $q.loading.hide()
-      nfcStatusNotification.value = $q.dialog({
-        title: t('CardPaymentError', 'Card Payment Error'),
-        message: t('CardPaymentErrorMessage', `Error processing card payment: ${error.message}`),
-        ok: {
-          label: t('OK', 'OK'),
-          color: 'red'
-        }
-      })
     }
     
+  }
+
+  function showNfcPaymentSuccess () {
+    nfcStatusNotification.value = $q.dialog({
+      title: t('CardPaymentSuccess', 'Card Payment Successful'),
+      message: t('CardPaymentSuccessMessage', 'Your card payment was processed successfully. Please wait for confirmation.'),
+      ok: {
+        label: t('OK', 'OK'),
+        color: 'green'
+      },
+    })
+  }
+
+  function showNfcPaymentError(error) {
+    nfcStatusNotification.value = $q.dialog({
+      title: t('CardPaymentError', 'Card Payment Error'),
+      message: t('CardPaymentErrorMessage', `Error processing card payment: ${error.message}`),
+      ok: {
+        label: t('OK', 'OK'),
+        color: 'red'
+      }
+    })
   }
 
   function prepareForNewInvoice() {

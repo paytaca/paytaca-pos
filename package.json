@@ -38,6 +38,7 @@
     "capacitor-secure-storage-plugin": "0.10.0",
     "cashc": "^0.8.0",
     "cashscript": "^0.11.4",
+    "cashscript0.11.5": "npm:cashscript@^0.11.5",
     "core-js": "^3.6.5",
     "leaflet": "^1.9.2",
     "net": "^1.0.2",

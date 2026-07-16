@@ -317,7 +317,7 @@ import { useCashtokenStore } from "src/stores/cashtoken";
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { getEncryptionKeypair } from "src/nfc/keypair";
+import { getEncryptionKeypair } from "src/card/keypair";
 import { useTransactionHelpers } from "src/composables/transaction";
 
 export default defineComponent({
