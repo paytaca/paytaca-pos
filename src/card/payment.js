@@ -1,5 +1,5 @@
 import { getPrivateKeyWif } from "./user"
-import { signPreimages } from "./utils"
+import { signPreimages, pubkeyToPkHash } from "./utils"
 import { backend } from "./backend"
 import { getPublicKeyFromPrivate } from "./utils"
 import { TapToPayContract } from "./contract/taptopay"
@@ -27,34 +27,37 @@ async function parseUrl(url) {
 }
 
 async function validatePreimages({ preimages, contractParameters, merchant, recipient}) {
-  console.log('Validating preimages with contract parameters');
+  // time the validation process
+  console.log('Validating preimages...');
+  const startTime = performance.now();
+
   // rebuild the contract from the provided parameters
-  const constract = new TapToPayContract(
-    contractParameters.ownerPkh,
-    contractParameters.backendPkh,
-    contractParameters.tokenId
+  const contract = new TapToPayContract(
+    pubkeyToPkHash(contractParameters.backendPk),
+    contractParameters.category
   );
 
   // build the expected preimages based on the contract and provided parameters
-  const expectedPreimages = await constract.generateSpendPreimages({
-    backendPkh: contractParameters.backendPkh,
+  const { preimages: expectedPreimages } = await contract.generateSpendPreimages({
+    backendPk: contractParameters.backendPk,
     merchant: merchant,
     recipient: recipient
   });
-  console.log('expectedPreimages:', expectedPreimages);
 
   // Compare the expected preimages with the provided preimages
-  if (expectedPreimages.length !== preimages.length) {
+  if (preimages.length !== expectedPreimages.length) {
     throw new Error('Preimage validation failed: length mismatch');
   }
 
-  for (let i = 0; i < expectedPreimages.length; i++) {
-    if (expectedPreimages[i].preimage !== preimages[i].preimage) {
+  for (let i = 0; i < preimages.length; i++) {
+    if (preimages[i].preimage !== expectedPreimages[i].preimage) {
       throw new Error(`Preimage validation failed at index ${i}`);
     }
   }
 
+  const endTime = performance.now();
   console.log('Preimage validation successful');
+  console.log(`Preimage validation took ${(endTime - startTime) / 1000} seconds`);
 }
 
 /**
@@ -69,17 +72,11 @@ async function validatePreimages({ preimages, contractParameters, merchant, reci
   * @returns {Promise<object>} The response data from the spend transaction
   */
 export async function payWithCard({ uid, merchantId, receivingAddress, amountSats, url, contractParameters }) {
-  
-  const { piccData, cmac } = await parseUrl(url);
+  // time the entire payWithCard process
+  const startTime = performance.now();
+  console.log('Starting payWithCard process...');
 
-  console.log('piccData:', piccData);
-  console.log('cmac:', cmac)
-  console.log('receivingAddress:', receivingAddress);
-  console.log('merchantId:', merchantId);
-  console.log('uid:', uid);
-  console.log('amountSats:', amountSats);
-  console.log('contractParameters:', contractParameters);
-  
+  const { piccData, cmac } = await parseUrl(url);  
   const response = await backend.post(`/cards/preimage/`, {
     merchant_id: merchantId,
     to_address: receivingAddress,
@@ -99,35 +96,29 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
   }
 
   const privkey = await getPrivateKeyWif()
-  const preimages = data.preimages;
-  console.log('preimages to sign:', preimages);
-
-  // Validate if preimages are correct
   const merchant = { 
     id: merchantId,
     pubkey: getPublicKeyFromPrivate(privkey)
   }
+
   const recipient = { 
     address: receivingAddress, 
     amount: amountSats 
   }
-  console.log('contractParameters:', contractParameters);
-  console.log('merchant:', merchant);
-  console.log('recipient:', recipient);
 
-  // await validatePreimages({ 
-  //   preimages, 
-  //   contractParameters, 
-  //   merchant: merchant, 
-  //   recipient: recipient
-  // });
+  // Validate if preimages are correct
+  await validatePreimages({ 
+    preimages: data.preimages,
+    contractParameters, 
+    merchant, 
+    recipient
+  });
 
+  const preimages = data.preimages;
   const signatures = await signPreimages({
     preimages,
     wif: privkey
   });
-
-  console.log('signatures:', signatures);
 
   const spendResponse = await backend.post(`/cards/${uid}/spend/`, {
     merchant_id: merchantId,
@@ -142,5 +133,9 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
     throw new Error(errorMessage);
   });
   
+  const endTime = performance.now();
+  console.log('payWithCard process completed successfully');
+  console.log(`Total payWithCard process took ${(endTime - startTime) / 1000} seconds`);
+
   return spendResponse.data
 }

@@ -1,6 +1,7 @@
 import {
   binToHex,
   hexToBin,
+  ripemd160,
   decodePrivateKeyWif,
   hash256,
   instantiateSecp256k1,
@@ -37,14 +38,15 @@ export function getPublicKeyFromPrivate(privateKeyWif) {
  * @returns {Promise<Array<{ inputIndex: number, merchantSigHex: string, merchantPkHex: string }>>} - Array of objects containing inputIndex, merchantSigHex, and merchantPkHex.
  */
 export async function signPreimages({ preimages, wif }) {
+  // time the signing process
+  const startTime = performance.now();
   const decoded = decodePrivateKeyWif(wif);
   if (typeof decoded === 'string') throw new Error(decoded);
 
   const secp = await instantiateSecp256k1();
   const merchantPkBin = secp.derivePublicKeyCompressed(decoded.privateKey);
   const merchantPkHex = binToHex(merchantPkBin);
-
-  return preimages.map(({ inputIndex, preimage }) => {
+  const signedPreimages = preimages.map(({ inputIndex, preimage }) => {
     const preimageBin = hexToBin(preimage);
     const messageHash = hash256(preimageBin);
 
@@ -56,14 +58,17 @@ export async function signPreimages({ preimages, wif }) {
       merchantSigHex: binToHex(sigWithHashType),
       merchantPkHex
     };
-  });
+  })
+  const endTime = performance.now();
+  console.log(`Signing ${preimages.length} preimages took ${(endTime - startTime) / 1000} seconds`);
+  return signedPreimages;
 }
 
-export function convertCashAddressToTokenAddress (address, isContract = true) {
+export function toTokenAddress (address, isContract = true) {
   const decodedAddress = decodeCashAddress(address)
   const prefix = CashAddressNetworkPrefix.mainnet
   const addressType = isContract ? CashAddressType.p2shWithTokens : CashAddressType.p2pkhWithTokens
-  const { address: tokenAddress } = encodeCashAddress({ payload: decodedAddress.payload, prefix: prefix, type: addressType})// encodeCashAddress(prefix, addressType, decodedAddress.payload)
+  const tokenAddress = encodeCashAddress(prefix, addressType, decodedAddress.payload)
   return tokenAddress
 }
 
@@ -118,4 +123,35 @@ export function encodeMerchantHash({ merchantId, merchantPk }) {
     const truncatedHashBuf = fullHash.subarray(0, 31) // 31 bytes
     const truncatedHashHex = truncatedHashBuf.toString('hex')
     return { buf: truncatedHashBuf, hex: truncatedHashHex };
+}
+
+/**
+ * Decodes an NFT commitment hex into its fields.
+ * @param {string} hex
+ * @returns {{ type: string, value: string }|null}
+ */
+export function decodeOwnershipCommitment(hex) {
+    if (hex.length === 0) return null;
+    const buf = Buffer.from(hex, 'hex');
+    return {
+      type: buf[0] === 1 ? 'cat' : 'pkh',
+      value: reverseHex(buf.subarray(1, buf.length).toString('hex'))
+    };
+}
+
+export function sha256(data='', encoding='utf8') {
+  const _sha256 = createHash('sha256')
+  _sha256.update(Buffer.from(data, encoding))
+  return _sha256.digest().toString('hex')
+}
+
+export function pubkeyToPkHash(pubkey='') {
+  return binToHex(ripemd160.hash(hexToBin(sha256(pubkey, 'hex'))))
+}
+
+export function sortUtxos(utxos = []) {
+    return [...utxos].sort((a, b) => {
+        if (a.txid === b.txid) return a.vout - b.vout
+        return a.txid.localeCompare(b.txid)
+    })
 }

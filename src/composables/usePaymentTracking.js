@@ -382,8 +382,8 @@ export function usePaymentTracking({
     }
 
     const contractParameters = {
-      backendPkh: splitParams[0],
-      tokenId: splitParams[1]
+      backendPk: splitParams[0],
+      category: splitParams[1]
     }
 
     const params = {
