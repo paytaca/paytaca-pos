@@ -122,6 +122,7 @@
 import { onMounted, ref, watch } from "vue";
 import { useWalletStore } from "src/stores/wallet";
 import { useQuasar, copyToClipboard as qCopyToClipboard } from "quasar";
+import { useI18n } from "vue-i18n";
 import { getEncryptionKeypair, getOrGenerateEncryptionKeypair } from "src/card/keypair";
 import { decryptWithPrivateKey } from "src/utils/ecies";
 import { savePrivateKeyWif } from "src/card/user";
@@ -146,6 +147,7 @@ export default {
   emits: ["close"],
   setup(props, { emit }) {
     const $q = useQuasar();
+    const { t } = useI18n();
     const walletStore = useWalletStore();
     const showDialog = ref(props.show);
     const step = ref("notice");
@@ -159,7 +161,8 @@ export default {
     const watchtower = new Watchtower();
 
     onMounted(async () => {
-      encryptionPublicKey.value = await getEncryptionKeypair().publicKey;
+      const keypair = await getOrGenerateEncryptionKeypair();
+      encryptionPublicKey.value = keypair.pubkey;
       console.log('[EnableNFCPayments] Encryption public key:', encryptionPublicKey.value);
       console.log('posid:', walletStore.posId);
     });
@@ -216,25 +219,26 @@ export default {
         return;
       } catch (error) {
         console.error("Quasar clipboard copy failed", error);
+        onCopyError();
       }
-
-      if ($copyText) {
-        try {
-          await $copyText(text);
-          onCopySuccess();
-          return;
-        } catch (error) {
-          console.error("vue-clipboard2 copy failed", error);
-        }
-      }
-
-      onCopyError();
     }
 
     const onQrDecode = async (data) => {
       console.log("QR code decoded:", data);
       showQRScanner.value = false;
-      decodeData(JSON.parse(data));
+      try {
+        const parsedData = JSON.parse(data);
+        decodeData(parsedData);
+      } catch (error) {
+        console.error("Invalid QR code data:", error);
+        $q.notify({
+          message: "Invalid QR code data. Please try again.",
+          position: "top",
+          timeout: 3000,
+          icon: "error",
+          color: "negative",
+        });
+      }
     };
 
     const onQrError = (error) => {
@@ -317,6 +321,15 @@ export default {
               color: "negative",
             });
           }
+        } else {
+          step.value = 'code-parse';
+          $q.notify({
+            position: "top",
+            message: "Invalid setup code format. Please try again.",
+            timeout: 3000,
+            icon: "error",
+            color: "negative",
+          });
         }
       } catch (error) {
         console.error(error);

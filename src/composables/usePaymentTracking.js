@@ -351,9 +351,6 @@ export function usePaymentTracking({
           color: 'primary',
           message: 'Please set up a wallet first to enable NFC payments.',
         })
-        setTimeout(() => {
-          nfcListenerWebsocket.value.send("start_listening")
-        }, 5000)
         return
       }
     }

@@ -406,6 +406,10 @@ export default defineComponent({
      * Checks if this POS device is set up for NFC payments
      */
     async function checkNfcPaymentsEnabled() {
+      if (!walletStore.walletHash) {
+        nfcPaymentsEnabled.value = false;
+        return;
+      }
       const lookup_field = `${walletStore.walletHash}:${walletStore.posId}`;
       await  watchtower.BCH._api.get(
         `paytacapos/devices/${lookup_field}/`

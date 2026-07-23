@@ -45,7 +45,6 @@
           />
         </template>
       </div>
-      <NFCScanner v-if="Capacitor.isNativePlatform()" />
     </div>
 
     <div v-if="!isNotFiatMode" class="flex flex-center">
@@ -352,8 +351,10 @@ export default defineComponent({
     })
 
     onMounted (() => {
-      console.log('[ReceivePage] Setting up NFC listener...')
-      setupNFCScanner()
+      if (Capacitor.isNativePlatform() && walletStore.walletHash) {
+        console.log('[ReceivePage] Setting up NFC listener...')
+        setupNFCScanner()
+      }
     })
 
     // onBeforeUnmount(() => {

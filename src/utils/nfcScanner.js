@@ -4,6 +4,8 @@ import { NFC } from '@exxili/capacitor-nfc';
 class NFCScanner {
     constructor() {
         this.isScanning = false;
+        this.offRead = null;
+        this.offError = null;
     }
 
     async startScan() {
@@ -24,8 +26,19 @@ class NFCScanner {
 
     async onRead(callback) {
         console.log('onRead:', callback)
+
+        // Unsubscribe previous listeners to prevent leaks
+        if (this.offRead) {
+            this.offRead();
+            this.offRead = null;
+        }
+        if (this.offError) {
+            this.offError();
+            this.offError = null;
+        }
+
         // Listen for NFC tag detection
-        NFC.onRead((data) => {
+        this.offRead = NFC.onRead((data) => {
             
             console.log('NFC Tag detected:', data);
             const tag = {}
@@ -69,7 +82,7 @@ class NFCScanner {
         });
 
         // Handle NFC errors
-        NFC.onError((error) => {
+        this.offError = NFC.onError((error) => {
             console.error('NFC Error:', error);
         });
     }
@@ -77,6 +90,16 @@ class NFCScanner {
     async stopScan() {
         if (!this.isScanning) return;
         this.isScanning = false;
+
+        // Unsubscribe listeners when stopping scan
+        if (this.offRead) {
+            this.offRead();
+            this.offRead = null;
+        }
+        if (this.offError) {
+            this.offError();
+            this.offError = null;
+        }
 
         try {
             // Stop NFC scanning (iOS only, android is always scanning NFC in the background)

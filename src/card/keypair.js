@@ -1,7 +1,6 @@
 
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { decodePrivateKeyWif, binToHex, secp256k1, utf8ToBin, sha256, hexToBin } from '@bitauth/libauth'
-import crypto from 'crypto'
 import * as secp from '@noble/secp256k1'
 
 // -------------------- Signer Class -------------------
@@ -147,7 +146,12 @@ function generateEncryptionKeypair (opts = {}) {
   if (seed && typeof seed === 'string') {
     privBytes = sha256.hash(utf8ToBin(seed))
   } else {
-    privBytes = crypto.randomFillSync(new Uint8Array(32))
+    privBytes = new Uint8Array(32)
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      crypto.getRandomValues(privBytes)
+    } else {
+      throw new Error('Web Crypto API not available for secure random generation')
+    }
   }
 
   const pubBytes = secp.getPublicKey(privBytes, true)

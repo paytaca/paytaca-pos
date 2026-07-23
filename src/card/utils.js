@@ -23,11 +23,10 @@ const HASHTYPE = 0x41; // SIGHASH_ALL | SIGHASH_FORKID
  */
 export function getPublicKeyFromPrivate(privateKeyWif) {
   const privateKey = decodePrivateKeyWif(privateKeyWif)
+  if (typeof privateKey === 'string') throw new Error(privateKey)
   const compressed = secp256k1.derivePublicKeyCompressed(privateKey.privateKey)
-  if (typeof compressed !== 'string') return binToHex(compressed)
-  const uncompressed = secp256k1.derivePublicKeyUncompressed(privateKey.privateKey)
-  if (typeof uncompressed !== 'string') return binToHex(uncompressed)
-  return uncompressed
+  if (typeof compressed === 'string') throw new Error(compressed)
+  return binToHex(compressed)
 }
 
 /**

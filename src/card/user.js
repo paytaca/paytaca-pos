@@ -293,7 +293,7 @@ export async function getPrivateKeyWif() {
 export async function clearPrivateKeyWif() {
     console.log('Clearing private key WIF...');
     try {
-        SecureStoragePlugin.remove({ key: WIF_STORAGE_KEY })
+        await SecureStoragePlugin.remove({ key: WIF_STORAGE_KEY })
         console.log('Private key WIF deleted');
     } catch (error) {
         console.error('Failed to clear private key WIF:', error);
