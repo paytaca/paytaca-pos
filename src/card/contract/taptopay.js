@@ -7,7 +7,8 @@ import {
     decodeCommitment,
     encodeMerchantHash,
     decodeOwnershipCommitment,
-    sortUtxos
+    sortUtxos,
+    pubkeyToPkHash
 } from "src/card/utils";
 import { binToHex, decodeTransaction, hexToBin } from '@bitauth/libauth';
 import artifact from "src/card/contract/artifact.json";
@@ -16,16 +17,17 @@ import Watchtower from 'watchtower-cash-js0.3.1';
 const watchtower = new Watchtower()
 
 export class TapToPayContract {
-    constructor(backendPkh, category) {
+    constructor(backendPk, category) {
         this.params = {
-            backendPkh: backendPkh,
+            backendPk: backendPk,
+            backendPkh: pubkeyToPkHash(backendPk),
             category: category
         };
     }
     
     /**
      * Contract creation parameters extracted from the on-chain contract.
-     * @returns {{ ownerPkh: string, backendPkh: string, tokenId: string }}
+     * @returns {{ backendPkh: string, category: string }}
      */
     get contractCreationParams () {
         return {
@@ -35,7 +37,7 @@ export class TapToPayContract {
     }
 
     /**
-     * Builds and returns a CashScript contract instance.
+     * Builds and returns a Cashscript contract instance.
      * @returns {Contract}
      */
     getRawContract () {
@@ -49,11 +51,28 @@ export class TapToPayContract {
         return contract;
     }
 
-    async getBchUtxos (amount) {
+    /**
+     * Estimates the transaction fee based on the number of inputs and outputs.
+     * @param {{ numInputs: number, numOutputs: number, satPerByte?: number }} param0
+     * @param {number} param0.numInputs - The number of inputs in the transaction
+     * @param {number} param0.numOutputs - The number of outputs in the transaction
+     * @param {number} [param0.satPerByte=1] - The fee rate in satoshis per byte (default is 1)
+     * @returns {bigint}
+     */
+    estimateFee({ numInputs, numOutputs, satPerByte = 1 }) {
+        const txSize = 10 + (numInputs * 300) + (numOutputs * 34)
+        return BigInt(txSize * satPerByte)
+    }
+
+    /**
+     * Fetches BCH UTXOs of the contract.
+     * @returns {Promise<{ cumulativeValue: bigint, utxos: Array }>}
+     */
+    async getBchUtxos () {
         const address = this.getRawContract().address
         let result = { cumulativeValue: 0, utxos: [] }
 
-        result = await watchtower.BCH.getBchUtxos(address, Number(amount))
+        result = await watchtower.BCH.getBchUtxos(address)
         return {
             cumulativeValue: result.cumulativeValue,
             utxos: result.utxos.map(utxo => ({
@@ -66,11 +85,12 @@ export class TapToPayContract {
         }
     }
 
-    estimateFee({ numInputs, numOutputs, satPerByte = 1 }) {
-        const txSize = 10 + (numInputs * 300) + (numOutputs * 34)
-        return BigInt(txSize * satPerByte)
-    }
-
+    /**
+     * Fetches token UTXOs for a given token ID and token address.
+     * @param {string} tokenId - The tokenId or category of the token to fetch
+     * @param {string} tokenAddress - The token address that holds the token UTXOs
+     * @returns {Promise<Array>}
+     */
     async getTokenUtxos(tokenId, tokenAddress) {
         let result = []
         try {
@@ -98,11 +118,19 @@ export class TapToPayContract {
         return result
     }
 
+    /**
+     * Gets the token address of the contract.
+     * @returns {string} The token address
+     */
     getTokenAddress() {
         const contract = this.getRawContract();
         return toTokenAddress(contract.address);
     }
 
+    /**
+     * Gets the merchant authentication category and the corresponding auth ownership token.
+     * @returns {Promise<{ authOwnershipToken: Object, authCategory: string }>} The auth ownership token and its category
+     */
     async getMerchantAuthCategory () {
         // Get ownership tokens
         const ownershipCategory = this.params.category
@@ -123,7 +151,19 @@ export class TapToPayContract {
         return { authOwnershipToken, authCategory };
     }
 
-    async generateSpendPreimages({ backendPk, merchant, recipient }) {
+    /**
+     * Generates the spend preimages for a spend transaction.
+     * @param {{ merchant: Object, recipient: Object }} param0
+     * @param {Object} param0.merchant - The merchant information
+     * @param {string} param0.merchant.id - The merchant ID
+     * @param {string} param0.merchant.pubkey - The merchant public key
+     * @param {Object} param0.recipient - The recipient information
+     * @param {string} param0.recipient.address - The recipient Bitcoin address
+     * @param {bigint} param0.recipient.amount - The amount to send in satoshis
+     * @returns {Promise<{ txHex: string, preimages: Array }>} The built transaction hex and preimages
+     */
+    async generateSpendPreimages({ merchant, recipient }) {
+        const backendPk = this.params.backendPk
         const contract = this.getRawContract();
         const { utxos } = await this.getBchUtxos()
         const bchUtxos = sortUtxos(utxos.filter(utxo => utxo.token === undefined))

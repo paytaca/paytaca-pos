@@ -1,9 +1,15 @@
 import { getPrivateKeyWif } from "./user"
-import { signPreimages, pubkeyToPkHash } from "./utils"
+import { signPreimages } from "./utils"
 import { backend } from "./backend"
 import { getPublicKeyFromPrivate } from "./utils"
 import { TapToPayContract } from "./contract/taptopay"
 
+
+/**
+ * Parses the NFC URL to extract the piccData and cmac values.
+ * @param {string} url - The NFC URL containing the piccData and cmac values
+ * @returns {Promise<{ piccData: string, cmac: string }>} The parsed piccData and cmac values from the URL
+ */
 async function parseUrl(url) {  
     if (!url) {
         throw new Error('Missing NFC URL')
@@ -26,6 +32,21 @@ async function parseUrl(url) {
     return { piccData, cmac }
 }
 
+/**
+ * Validates the server provided preimages against the expected preimages generated locally.
+ * @param {{ preimages: Array, contractParameters: Object, merchant: Object, recipient: Object }} param0
+ * @param {Array} param0.preimages - The preimages to validate
+ * @param {Object} param0.contractParameters - The contract parameters for rebuilding the contract
+ * @param {string} param0.contractParameters.backendPk - The backend public key
+ * @param {string} param0.contractParameters.category - The category of the contract
+ * @param {Object} param0.merchant - The merchant information
+ * @param {string} param0.merchant.id - The merchant ID
+ * @param {string} param0.merchant.pubkey - The merchant public key
+ * @param {Object} param0.recipient - The recipient information
+ * @param {string} param0.recipient.address - The recipient Bitcoin address
+ * @param {bigint} param0.recipient.amount - The amount to send in satoshis
+ * @returns {Promise<void>} Resolves if validation is successful, otherwise throws an error
+ */
 async function validatePreimages({ preimages, contractParameters, merchant, recipient}) {
   // time the validation process
   console.log('Validating preimages...');
@@ -33,13 +54,12 @@ async function validatePreimages({ preimages, contractParameters, merchant, reci
 
   // rebuild the contract from the provided parameters
   const contract = new TapToPayContract(
-    pubkeyToPkHash(contractParameters.backendPk),
+    contractParameters.backendPk,
     contractParameters.category
   );
 
   // build the expected preimages based on the contract and provided parameters
   const { preimages: expectedPreimages } = await contract.generateSpendPreimages({
-    backendPk: contractParameters.backendPk,
     merchant: merchant,
     recipient: recipient
   });
@@ -56,8 +76,7 @@ async function validatePreimages({ preimages, contractParameters, merchant, reci
   }
 
   const endTime = performance.now();
-  console.log('Preimage validation successful');
-  console.log(`Preimage validation took ${(endTime - startTime) / 1000} seconds`);
+  console.log(`Preimage validation successful in ${(endTime - startTime) / 1000} seconds`);
 }
 
 /**
@@ -134,8 +153,7 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
   });
   
   const endTime = performance.now();
-  console.log('payWithCard process completed successfully');
-  console.log(`Total payWithCard process took ${(endTime - startTime) / 1000} seconds`);
+  console.log('payWithCard process completed successfully in', (endTime - startTime) / 1000, 'seconds');
 
   return spendResponse.data
 }
