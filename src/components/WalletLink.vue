@@ -58,7 +58,7 @@
     @error="onQrError"
   />
   <q-dialog v-model="showEncryptionKeyDialog">
-    <q-card style="min-width: 500px; max-width: 90vw">
+    <q-card style="min-width: 200px; max-width: 400px">
       <q-card-section>
         <div class="text-h6">{{ $t("EncryptionKey", "Encryption Key") }}</div>
         <div class="row justify-center">
@@ -189,6 +189,11 @@ export default defineComponent({
         }
       } catch (error) {
         console.error(error);
+        dialog.update({
+          title: t("LinkDeviceError"),
+          message: error?.message || t("UnableToDecodeQrData"),
+        });
+        dialog.update({ persistent: false, progress: false });
         return;
       }
 
@@ -203,20 +208,41 @@ export default defineComponent({
     }
 
     function parseLinkCode(value) {
-      let linkCode = "";
+      if (!value || typeof value !== 'string') {
+        throw new Error('Link code is empty');
+      }
+
+      const trimmed = value.trim();
+
+      // If it looks like JSON, return it directly
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        return trimmed;
+      }
+
+      let linkCode = '';
       try {
-        let url = new URL(value);
-        linkCode = url.searchParams.get("code") || "";
-      } catch (error) {
-        console.error(error);
-        linkCode = value;
+        const url = new URL(trimmed);
+        linkCode = url.searchParams.get('code') || '';
+      } catch (_) {
+        // Not a URL, treat the whole value as the code
+        linkCode = trimmed;
+      }
+
+      if (!linkCode) {
+        throw new Error('No code found in link URL');
       }
 
       try {
-        return atob(linkCode);
+        // Support both standard base64 and base64url (replace URL-safe chars and fix padding)
+        let normalized = linkCode.replace(/-/g, '+').replace(/_/g, '/');
+        const padding = normalized.length % 4;
+        if (padding) {
+          normalized += '='.repeat(4 - padding);
+        }
+        return atob(normalized);
       } catch (error) {
         console.error(error);
-        throw new Error(error);
+        throw new Error('Invalid link code format');
       }
     }
 
@@ -261,7 +287,10 @@ export default defineComponent({
         dialog.update({ message: t("DecryptingXpubkey") });
         const encryptionKeypair = await getEncryptionKeypair()
         const decryptKey = encryptionKeypair?.privkey
-        const result = JSON.parse(decryptWithPrivateKey(encryptedData, encryptKey, decryptKey));
+        if (!decryptKey) {
+          throw new Error("Missing device encryption private key. Generate and use this device's encryption key first.");
+        }
+        const result = JSON.parse(await decryptWithPrivateKey(encryptedData, encryptKey, decryptKey));
         return { xpubkey: result.xpubkey, authPrivateKey: result.privateKey };
       } catch(error) {
         dialog.update({
@@ -269,7 +298,7 @@ export default defineComponent({
           message: t("UnableToDecryptXpubkey"),
         });
         console.error(error);
-        throw new Error(error);
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -378,19 +407,8 @@ export default defineComponent({
         return;
       } catch (error) {
         console.error("Quasar clipboard copy failed", error);
+        onCopyError();
       }
-
-      if ($copyText) {
-        try {
-          await $copyText(text);
-          onCopySuccess();
-          return;
-        } catch (error) {
-          console.error("vue-clipboard2 copy failed", error);
-        }
-      }
-
-      onCopyError();
     }
 
     return {

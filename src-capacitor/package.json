@@ -16,7 +16,7 @@
     "@capacitor/ios": "6.2.1",
     "@capacitor/keyboard": "6.0.4",
     "@capacitor/push-notifications": "6.0.5",
-    "@exxili/capacitor-nfc": "^0.0.13",
+    "@exxili/capacitor-nfc": "0.0.13",
     "capacitor-secure-storage-plugin": "0.10.0"
   }
 }

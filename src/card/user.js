@@ -7,6 +7,11 @@ import { getPublicKeyFromPrivate } from './utils.js';
 const TOKEN_STORAGE_KEY = 'card-auth-key'
 const WIF_STORAGE_KEY = 'card-auth-wif'
 
+function isMissingSecureStorageKeyError(error) {
+    const message = String(error?.message || '')
+    return message.includes('Item with given key does not exist')
+}
+
 /**
  * Merchant user authentication and card-data utilities.
  *
@@ -174,7 +179,10 @@ export async function loadCardMerchantUser() {
         console.error('Error loading Card Merchant User:', error);
         if (error.response && error.response.status === 404) {
             console.error('Card Merchant User not found for this wallet.');
-            await clearAuthToken();
+            await clearAuthToken().catch((clearError) => {
+                // Do not mask the original 404 with storage cleanup noise.
+                console.warn('Unable to clear card auth token after 404:', clearError)
+            });
         }
         throw error;
     }
@@ -249,6 +257,10 @@ export async function clearAuthToken () {
         await SecureStoragePlugin.remove({ key: TOKEN_STORAGE_KEY });
         console.log('Card auth token deleted');
     } catch (error) {
+        if (isMissingSecureStorageKeyError(error)) {
+            console.log('Card auth token already cleared')
+            return
+        }
         console.error('Failed to clear auth token:', error);
         throw error;
     }
@@ -296,6 +308,10 @@ export async function clearPrivateKeyWif() {
         await SecureStoragePlugin.remove({ key: WIF_STORAGE_KEY })
         console.log('Private key WIF deleted');
     } catch (error) {
+        if (isMissingSecureStorageKeyError(error)) {
+            console.log('Private key WIF already cleared')
+            return
+        }
         console.error('Failed to clear private key WIF:', error);
         throw error;
     }

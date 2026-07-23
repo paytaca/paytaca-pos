@@ -260,22 +260,26 @@
             inset="item"
           />
 
-          <q-item :clickable="!nfcPaymentsEnabled" class="q-py-md" @click="showEnableNfcPayments = true">
+          <q-item
+            :clickable="!walletStore.nfcPaymentsEnabled"
+            class="q-py-md"
+            v-on="!walletStore.nfcPaymentsEnabled ? { click: onEnableNfcPaymentsClick } : {}"
+          >
             <q-item-section avatar>
               <q-avatar color="blue-7" text-color="white" size="40px">
                 <q-icon name="nfc" />
               </q-avatar>
             </q-item-section>
             <q-item-section>
-              <q-item-label class="text-weight-medium">{{!nfcPaymentsEnabled ? 'Enable ' : ''}}NFC Payments</q-item-label>
+              <q-item-label class="text-weight-medium">{{!walletStore.nfcPaymentsEnabled ? 'Enable ' : ''}}NFC Payments</q-item-label>
             </q-item-section>
             <q-item-section side>
               <div class="row items-center q-gutter-xs">
                 <span class="text-subtitle2">{{
-                  nfcPaymentsEnabled ? "Enabled" : "Disabled"
+                  walletStore.nfcPaymentsEnabled ? "Enabled" : "Disabled"
                 }}</span>
                 <q-icon
-                  v-if="nfcPaymentsEnabled"
+                  v-if="walletStore.nfcPaymentsEnabled"
                   name="check_circle"
                   size="18px"
                   color="green"
@@ -382,7 +386,6 @@ export default defineComponent({
     const debugIconVisible = ref(false);
     const longPressTimer = ref(null);
     const LONG_PRESS_DURATION = 500;
-    const nfcPaymentsEnabled = ref(false)
     const showEnableNfcPayments = ref(false);
 
     onMounted(async () => {
@@ -402,12 +405,16 @@ export default defineComponent({
       checkNfcPaymentsEnabled(); // Refresh NFC payments status after closing the dialog
     }
 
+    function onEnableNfcPaymentsClick() {
+      showEnableNfcPayments.value = true;
+    }
+
     /**
      * Checks if this POS device is set up for NFC payments
      */
     async function checkNfcPaymentsEnabled() {
       if (!walletStore.walletHash) {
-        nfcPaymentsEnabled.value = false;
+        walletStore.setNfcPaymentsEnabled(false);
         return;
       }
       const lookup_field = `${walletStore.walletHash}:${walletStore.posId}`;
@@ -415,11 +422,11 @@ export default defineComponent({
         `paytacapos/devices/${lookup_field}/`
       ).then(response => {
         console.log('NFC Payments API response:', response);
-        nfcPaymentsEnabled.value = response.data?.nfc_payments_enabled || false;
+        walletStore.setNfcPaymentsEnabled(response.data?.nfc_payments_enabled || false);
       })
       .catch(err => {
         console.error('Error checking NFC payments status:', err);
-        nfcPaymentsEnabled.value = false; // Assume disabled if there's an error
+        walletStore.setNfcPaymentsEnabled(false); // Assume disabled if there's an error
       });
     }
 
@@ -516,9 +523,9 @@ export default defineComponent({
       handleTitleTouchCancel,
       handleTitleMouseDown,
       handleTitleMouseUp,
-      nfcPaymentsEnabled,
       showEnableNfcPayments,
-      onCloseEnableNfcPaymentsDialog
+      onCloseEnableNfcPaymentsDialog,
+      onEnableNfcPaymentsClick
     };
   },
 });

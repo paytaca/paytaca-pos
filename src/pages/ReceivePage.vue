@@ -350,18 +350,6 @@ export default defineComponent({
       }
     })
 
-    onMounted (() => {
-      if (Capacitor.isNativePlatform() && walletStore.walletHash) {
-        console.log('[ReceivePage] Setting up NFC listener...')
-        setupNFCScanner()
-      }
-    })
-
-    // onBeforeUnmount(() => {
-    //   console.log('[ReceivePage] onBeforeUnmount - cleaning up resources')
-    //   closeStatusNotification()
-    // })
-
     const receiveAmount = ref(0)
     // Initialize currency from props, but prefer fiat currency if provided
     const currency = ref(props.setFiatCurrency || props.setCurrency || 'BCH')
@@ -1290,7 +1278,6 @@ export default defineComponent({
       startNewSession,
       clearPendingApiCalls,
       resetSessionData,
-      setupNFCScanner
     } = usePaymentTracking({
       addressSet,
       isCashtoken,

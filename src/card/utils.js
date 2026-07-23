@@ -9,11 +9,23 @@ import {
   decodeCashAddress,
   encodeCashAddress,
   CashAddressNetworkPrefix,
-  CashAddressType
+  CashAddressType,
+  sha256 as sha256Libauth,
+  utf8ToBin
 } from "@bitauth/libauth"
-import { createHash } from 'crypto';
 
 const HASHTYPE = 0x41; // SIGHASH_ALL | SIGHASH_FORKID
+
+function concatUint8Arrays(arrays) {
+  const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0)
+  const result = new Uint8Array(totalLength)
+  let offset = 0
+  for (const arr of arrays) {
+    result.set(arr, offset)
+    offset += arr.length
+  }
+  return result
+}
 
 /**
  * Derive public key from private key WIF
@@ -34,8 +46,8 @@ export function getPublicKeyFromPrivate(privateKeyWif) {
   * @param {Object} params
   * @param {Array} params.preimages - Array of objects containing inputIndex and preimage hex strings.
   * @param {string} params.wif - WIF encoded private key.
- * @returns {Promise<Array<{ inputIndex: number, merchantSigHex: string, merchantPkHex: string }>>} - Array of objects containing inputIndex, merchantSigHex, and merchantPkHex.
- */
+  * @returns {Promise<Array<{ inputIndex: number, merchantSigHex: string, merchantPkHex: string }>>} - Array of objects containing inputIndex, merchantSigHex, and merchantPkHex.
+  */
 export async function signPreimages({ preimages, wif }) {
   // time the signing process
   const startTime = performance.now();
@@ -81,11 +93,12 @@ export function encodeCommitment({ authorized, merchant, spendLimitSats }) {
     if (!spendLimitSats) throw new Error ('missing required spend limit')
 
     // authorized
-    const authorizedBuf = Buffer.from([authorized ? 0x01 : 0x00]); // 1 byte
+    const authorizedBuf = new Uint8Array([authorized ? 0x01 : 0x00]); // 1 byte
 
     // spend limit
-    const spendLimitBuf = Buffer.alloc(8);
-    spendLimitBuf.writeBigInt64LE(BigInt(spendLimitSats)); // 8 bytes
+    const spendLimitBuf = new Uint8Array(8);
+    const spendLimitView = new DataView(spendLimitBuf.buffer, spendLimitBuf.byteOffset, spendLimitBuf.byteLength);
+    spendLimitView.setBigInt64(0, BigInt(spendLimitSats), true); // 8 bytes
 
     let commitmentData = [authorizedBuf, spendLimitBuf]
 
@@ -96,17 +109,19 @@ export function encodeCommitment({ authorized, merchant, spendLimitSats }) {
     }
 
     // commitment (40 bytes): authorized (1 byte) + spendLimit (8 bytes) + merchantHash (31 bytes)
-    const commitment = Buffer.concat(commitmentData);
+    const commitment = concatUint8Arrays(commitmentData);
 
-    return commitment.toString('hex'); 
+    return binToHex(commitment);
 }
 
 export function decodeCommitment(hex) {
-    const buf = Buffer.from(hex, 'hex');
+    const buf = hexToBin(hex);
+    const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
     return {
         authorized: buf[0] === 1,
-        spendLimitSats: buf.readBigUInt64LE(1),
-        hash: buf.length > 9 ? buf.subarray(9, buf.length).toString('hex') : undefined    };
+        spendLimitSats: view.getBigUint64(1, true),
+        hash: buf.length > 9 ? binToHex(buf.subarray(9, buf.length)) : undefined
+    };
 }
 
 export function encodeMerchantHash({ merchantId, merchantPk }) {
@@ -114,13 +129,16 @@ export function encodeMerchantHash({ merchantId, merchantPk }) {
         throw new Error('missing required merchantId or merchantPk')
     }
     
-    const merchantIdBuf = Buffer.from(merchantId.toString(), 'utf-8')
-    const merchantPkBuf = Buffer.from(merchantPk, 'hex')
-    const concat = Buffer.concat([merchantIdBuf, merchantPkBuf])
+    const merchantIdBuf = utf8ToBin(merchantId.toString())
+    const merchantPkBuf = hexToBin(merchantPk)
+    const concatLength = merchantIdBuf.length + merchantPkBuf.length
+    const concat = new Uint8Array(concatLength)
+    concat.set(merchantIdBuf, 0)
+    concat.set(merchantPkBuf, merchantIdBuf.length)
 
-    const fullHash = createHash('sha256').update(concat).digest(); // Buffer(32)
+    const fullHash = sha256Libauth.hash(concat) // Uint8Array(32)
     const truncatedHashBuf = fullHash.subarray(0, 31) // 31 bytes
-    const truncatedHashHex = truncatedHashBuf.toString('hex')
+    const truncatedHashHex = binToHex(truncatedHashBuf)
     return { buf: truncatedHashBuf, hex: truncatedHashHex };
 }
 
@@ -131,17 +149,21 @@ export function encodeMerchantHash({ merchantId, merchantPk }) {
  */
 export function decodeOwnershipCommitment(hex) {
     if (hex.length === 0) return null;
-    const buf = Buffer.from(hex, 'hex');
+    const buf = hexToBin(hex);
     return {
       type: buf[0] === 1 ? 'cat' : 'pkh',
-      value: reverseHex(buf.subarray(1, buf.length).toString('hex'))
+      value: reverseHex(binToHex(buf.subarray(1, buf.length)))
     };
 }
 
 export function sha256(data='', encoding='utf8') {
-  const _sha256 = createHash('sha256')
-  _sha256.update(Buffer.from(data, encoding))
-  return _sha256.digest().toString('hex')
+  let bin
+  if (encoding === 'hex') {
+    bin = hexToBin(data)
+  } else {
+    bin = utf8ToBin(data)
+  }
+  return binToHex(sha256Libauth.hash(bin))
 }
 
 export function pubkeyToPkHash(pubkey='') {

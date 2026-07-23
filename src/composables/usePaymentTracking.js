@@ -4,7 +4,8 @@ import { usePaymentsStore } from 'stores/payments'
 import { useAddressesStore } from 'stores/addresses'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
-import { startNFCScan } from 'src/utils/nfcScanner'
+import { Capacitor } from '@capacitor/core'
+import { startNFCScan, stopNFCScan } from 'src/utils/nfcScanner'
 import { payWithCard } from 'src/card/payment'
 import { loadCardMerchantUser } from 'src/card/user'
 
@@ -54,6 +55,7 @@ export function usePaymentTracking({
   const postedFiatMapTxIds = new Set()
   const fiatMapPostTimers = new Map()
   const txOutputsByTxid = new Map()
+  const nfcScannerActive = ref(false)
 
   const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
 
@@ -64,6 +66,14 @@ export function usePaymentTracking({
 
   const canViewPayments = computed(() => {
     return transactionsReceived.value?.length || websocketsReady.value
+  })
+
+  const shouldScanNfc = computed(() => {
+    return (
+      Capacitor.isNativePlatform() &&
+      Boolean(walletStore.walletHash) &&
+      Boolean(walletStore.nfcPaymentsEnabled)
+    )
   })
 
   function transactionExists(transaction) {
@@ -283,28 +293,39 @@ export function usePaymentTracking({
   }
 
   const nfcStatusNotification = ref(null)
-  let nfcListenerWebsocket = ref(null)
-
-  async function closeNfcListener() {
-    console.log('Closing NFC listener websocket if exists...')
-    if (nfcListenerWebsocket.value) {
-      try {
-        nfcListenerWebsocket.value.close()
-        nfcListenerWebsocket.value = null
-      } catch (error) {
-        console.error('Error closing NFC listener websocket', error)
-      }
-    }
-  }
 
   async function setupNFCScanner() {
-    
+    if (!shouldScanNfc.value || nfcScannerActive.value) return
+
     console.log('Setting up NFC scanner...')
     try {
       await startNFCScan(handleNFCData)
+      nfcScannerActive.value = true
     } catch (error) {
+      nfcScannerActive.value = false
       console.error('Error starting NFC scan:', error)
     }
+  }
+
+  async function stopNFCScanner() {
+    if (!nfcScannerActive.value) return
+
+    try {
+      await stopNFCScan()
+    } catch (error) {
+      console.error('[usePaymentTracking] Error stopping NFC scan:', error)
+    } finally {
+      nfcScannerActive.value = false
+    }
+  }
+
+  async function syncNFCScannerState() {
+    if (shouldScanNfc.value) {
+      await setupNFCScanner()
+      return
+    }
+
+    await stopNFCScanner()
   }
 
   async function handleNFCData(data) {
@@ -353,6 +374,9 @@ export function usePaymentTracking({
         })
         return
       }
+
+      showNfcPaymentError(error)
+      return
     }
     
     await onNFCUrlReceived({ merchant, uid, url, contractParams })
@@ -364,6 +388,7 @@ export function usePaymentTracking({
     const receivingAddress = addressSet.value?.receiving
     if (!receivingAddress) {
       console.error('No receiving address available for processing NFC URL')
+      $q.loading.hide()
       return
     }
 
@@ -463,7 +488,17 @@ export function usePaymentTracking({
     if (addressSet.value?.receiving) {
       setupListener()
     }
+
+    syncNFCScannerState()
   })
+
+  // Toggle NFC scanner as wallet/link settings change while Receive page is active
+  watch(
+    () => [walletStore.walletHash, walletStore.nfcPaymentsEnabled],
+    () => {
+      syncNFCScannerState()
+    }
+  )
 
   // Cleanup on unmount
   onUnmounted(() => {
@@ -475,6 +510,8 @@ export function usePaymentTracking({
     // Clear all timers
     fiatMapPostTimers.forEach(timer => clearTimeout(timer))
     fiatMapPostTimers.clear()
+
+    stopNFCScanner()
   })
 
   return {

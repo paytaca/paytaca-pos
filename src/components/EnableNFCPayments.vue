@@ -90,11 +90,11 @@
                               />
                             </template>
                         </q-input>
-                        <q-btn 
+                          <q-btn 
                           color="primary" 
                           label="Setup"
                           :disabled="!requestCode"
-                          @click="decodeData"
+                          @click="() => decodeData()"
                           />
                       </div>
                     </div>
@@ -226,9 +226,9 @@ export default {
     const onQrDecode = async (data) => {
       console.log("QR code decoded:", data);
       showQRScanner.value = false;
+      let parsedData;
       try {
-        const parsedData = JSON.parse(data);
-        decodeData(parsedData);
+        parsedData = JSON.parse(data);
       } catch (error) {
         console.error("Invalid QR code data:", error);
         $q.notify({
@@ -238,7 +238,9 @@ export default {
           icon: "error",
           color: "negative",
         });
+        return;
       }
+      await decodeData(parsedData);
     };
 
     const onQrError = (error) => {
@@ -262,7 +264,7 @@ export default {
       try {
         const encryptionKeypair = await getEncryptionKeypair()
         const decryptKey = encryptionKeypair?.privkey
-        const result = JSON.parse(decryptWithPrivateKey(encryptedData, encryptKey, decryptKey));
+        const result = JSON.parse(await decryptWithPrivateKey(encryptedData, encryptKey, decryptKey));
         console.log('Decrypted data:', result);
         return { xpubkey: result.xpubkey, authPrivateKey: result.privateKey };
       } catch(error) {
@@ -375,20 +377,41 @@ export default {
     }
 
     const parseLinkCode = (value) => {
-      let linkCode = "";
+      if (!value || typeof value !== 'string') {
+        throw new Error('Link code is empty');
+      }
+
+      const trimmed = value.trim();
+
+      // If it looks like JSON, return it directly
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        return trimmed;
+      }
+
+      let linkCode = '';
       try {
-        let url = new URL(value);
-        linkCode = url.searchParams.get("code") || "";
-      } catch (error) {
-        console.error(error);
-        linkCode = value;
+        const url = new URL(trimmed);
+        linkCode = url.searchParams.get('code') || '';
+      } catch (_) {
+        // Not a URL, treat the whole value as the code
+        linkCode = trimmed;
+      }
+
+      if (!linkCode) {
+        throw new Error('No code found in link URL');
       }
 
       try {
-        return atob(linkCode);
+        // Support both standard base64 and base64url (replace URL-safe chars and fix padding)
+        let normalized = linkCode.replace(/-/g, '+').replace(/_/g, '/');
+        const padding = normalized.length % 4;
+        if (padding) {
+          normalized += '='.repeat(4 - padding);
+        }
+        return atob(normalized);
       } catch (error) {
         console.error(error);
-        throw new Error(error);
+        throw new Error('Invalid link code format');
       }
     }
 

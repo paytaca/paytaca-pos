@@ -11,11 +11,7 @@
         @device-linked="() => (forceDisplayWalletLink = false)"
       />
       <div v-else class="home-main-content q-py-md full-width">
-        <EnableNFCPayments 
-          v-if="showEnableNfcPayments" 
-          :show="showEnableNfcPayments"
-          @close="showEnableNfcPayments = false"
-        />
+
         <div class="q-px-md q-mb-md">
           <template v-if="isRefreshing || isInitialLoading">
             <q-card
@@ -306,7 +302,7 @@ import {
 import MainFooter from "src/components/MainFooter.vue";
 import MarketplaceWidget from "src/components/marketplace/MarketplaceWidget.vue";
 import SetAmountFormDialog from "src/components/SetAmountFormDialog.vue";
-import EnableNFCPayments from "src/components/EnableNFCPayments.vue";
+// NFC setup is opt-in via Settings; EnableNFCPayments removed from Home
 import {
   paymentUriHasMatch,
   findMatchingPaymentLink,
@@ -317,7 +313,7 @@ import { useCashtokenStore } from "src/stores/cashtoken";
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { getEncryptionKeypair } from "src/card/keypair";
+// getEncryptionKeypair import removed; NFC setup is now opt-in via Settings
 import { useTransactionHelpers } from "src/composables/transaction";
 
 export default defineComponent({
@@ -334,7 +330,6 @@ export default defineComponent({
     ),
     MarketplaceWidget,
     MainFooter,
-    EnableNFCPayments,
   },
   props: {
     walletLinkUrl: String,
@@ -347,7 +342,6 @@ export default defineComponent({
     const txCacheStore = useTxCacheStore();
     const cashtokenStore = useCashtokenStore();
     const { t } = useI18n();
-    const showEnableNfcPayments = ref(false);
     const { getTxDisplayFiat } = useTransactionHelpers();
 
     const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
@@ -361,15 +355,6 @@ export default defineComponent({
     });
 
     onMounted(async () => {
-      getEncryptionKeypair().then((keypair) => {
-        if (!keypair) {
-          console.warn("No encryption keypair found");
-          showEnableNfcPayments.value = true;
-          return;
-        }
-        console.log('Encryption keypair loaded:', keypair);
-      });
-
       if (!walletStore.walletHash) {
         isInitialLoading.value = false;
         return;
@@ -507,21 +492,6 @@ export default defineComponent({
       () => fetchTransactions()
     );
 
-    watch(() => walletStore.walletHash, () => {
-      console.log('Wallet hash changed, checking for encryption keypair...');
-      checkShowEnableNfcPayments();
-    });
-
-    async function checkShowEnableNfcPayments() {
-      const keypair = await getEncryptionKeypair();
-      if (!keypair) {
-        console.warn("No encryption keypair found");
-        showEnableNfcPayments.value = true;
-      } else {
-        console.log('Encryption keypair loaded:', keypair);
-        showEnableNfcPayments.value = false;
-      }
-    }
     watch(
       () => hasFullSalesReportAccess.value,
       (newVal) => {
@@ -579,12 +549,6 @@ export default defineComponent({
     }
 
     const forceDisplayWalletLink = ref(false);
-    watch(() => forceDisplayWalletLink.value, (newVal) => {
-      if (newVal) {
-        console.log('Force display wallet link enabled, checking for encryption keypair...');
-        checkShowEnableNfcPayments();
-      }
-    });
 
     onMounted(() => {
       if (walletStore.isLinked && !walletStore.isDeviceValid)
@@ -739,7 +703,6 @@ export default defineComponent({
       refreshPage,
       isRefreshing,
       isInitialLoading,
-      showEnableNfcPayments,
       hasFullSalesReportAccess,
       isMarketplaceUserLoggedIn,
       showSetAmountDialog,

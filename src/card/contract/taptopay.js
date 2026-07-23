@@ -10,7 +10,7 @@ import {
     sortUtxos,
     pubkeyToPkHash
 } from "src/card/utils";
-import { binToHex, decodeTransaction, hexToBin } from '@bitauth/libauth';
+import { binToHex, decodeTransaction, hexToBin, utf8ToBin } from '@bitauth/libauth';
 import artifact from "src/card/contract/artifact.json";
 import Watchtower from 'watchtower-cash-js0.3.1';
 
@@ -220,7 +220,7 @@ export class TapToPayContract {
         ]
 
         const merchantId = merchant.id.toString()
-        const encodedMerchantId = Buffer.from(merchantId, 'utf8');
+        const encodedMerchantId = utf8ToBin(merchantId);
         const outputs = [
             {
                 to: toTokenAddress(contract.address),

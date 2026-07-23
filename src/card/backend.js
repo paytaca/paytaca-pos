@@ -2,7 +2,18 @@ import axios from 'axios'
 import { getAuthToken } from './user'
 import { useWalletStore } from 'src/stores/wallet'
 
-const API_BASE_URL = process.env.CARD_API_BASE_URL || 'http://localhost:8002/api' 
+const DEV_FALLBACK_API_BASE_URL = 'http://localhost:8002/api'
+const API_BASE_URL = process.env.CARD_API_BASE_URL || (
+  process.env.NODE_ENV === 'development' ? DEV_FALLBACK_API_BASE_URL : ''
+)
+
+if (!API_BASE_URL) {
+  throw new Error('CARD_API_BASE_URL is required outside development builds')
+}
+
+if (!process.env.CARD_API_BASE_URL && process.env.NODE_ENV === 'development') {
+  console.warn('[card/backend] CARD_API_BASE_URL is not set, using development localhost fallback')
+}
 
 export const backend = axios.create({
   baseURL: API_BASE_URL,

@@ -121,3 +121,8 @@ export async function startNFCScan(callback) {
     await nfcScannerInstance.startScan();
     await nfcScannerInstance.onRead(callback);
 }
+
+// Export a function to stop NFC scanning and unregister listeners
+export async function stopNFCScan() {
+    await nfcScannerInstance.stopScan();
+}
