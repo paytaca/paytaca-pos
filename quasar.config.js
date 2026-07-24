@@ -102,10 +102,7 @@ module.exports = configure(function (ctx) {
       // related links:
       //    - https://github.com/bitcoinjs/bitcoinjs-lib/issues/659
       uglifyOptions: {
-        mangle: {
-          reserved: ["Point"],
-          // reserved: ['Array','BigInteger','Boolean','Buffer','ECPair','Function','Number','Point'],
-        },
+        mangle: false,
       },
 
       chainWebpack(chain) {

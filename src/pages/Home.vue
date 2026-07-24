@@ -1,9 +1,6 @@
 <template>
   <q-page class="home-page q-pb-lg">
-    <q-pull-to-refresh
-      @refresh="refreshPage"
-      :disable="forceDisplayWalletLink || !walletStore.walletHash"
-    >
+    <div class="home-scroll-area">
       <WalletLink
         ref="walletLinkComponent"
         v-if="forceDisplayWalletLink || !walletStore.walletHash"
@@ -281,8 +278,8 @@
         </div>
         </div>
 
-      <MainFooter />
-    </q-pull-to-refresh>
+    </div>
+    <MainFooter />
   </q-page>
 </template>
 
@@ -621,7 +618,7 @@ export default defineComponent({
       $router.replace({ query: {} });
     }
 
-    async function refreshPage(done) {
+    async function refreshPage() {
       isRefreshing.value = true;
       try {
         await Promise.allSettled([
@@ -641,7 +638,6 @@ export default defineComponent({
         console.error("Error refreshing page:", error);
       } finally {
         isRefreshing.value = false;
-        done();
       }
     }
 
@@ -714,8 +710,10 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.home-main-content {
-  overflow: auto;
+.home-scroll-area {
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 80px;
 }
 
