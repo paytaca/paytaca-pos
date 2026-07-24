@@ -105,10 +105,19 @@ class NFCScanner {
             // Stop NFC scanning (iOS only, android is always scanning NFC in the background)
             if (!Capacitor.isNativePlatform()) return;
             if (Capacitor.getPlatform() === 'ios') {
-                await NFC.stopScan();
+                await NFC.cancelScan();
             }
         } catch (error) {
             console.error('Error stopping NFC scan:', error);
+        }
+    }
+
+    async isSupported() {
+        try {
+            const result = await NFC.isSupported();
+            return result.supported;
+        } catch {
+            return false;
         }
     }
 }
