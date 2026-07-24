@@ -93,38 +93,60 @@ export async function decryptWithPrivateKey(encryptedData, encryptKey, privateKe
   )
 
   let decrypted
-  try {
-    decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: gcmIv },
-      gcmKey,
-      gcmCiphertext
-    )
-  } catch {
-    // Backward compatibility for payloads encrypted with AES-CBC.
-    let cbcIv = cbcFallbackIv
-    if (payload.ivB64) {
-      const candidateIv = decodeBase64ToBytes(payload.ivB64)
-      if (candidateIv.length >= 16) {
-        cbcIv = candidateIv.slice(0, 16)
-      }
-    }
-
-    const cbcKey = await crypto.subtle.importKey(
-      'raw',
-      sharedSecret,
-      { name: 'AES-CBC' },
-      false,
-      ['decrypt']
-    )
+  // Try new format first: iv (12) + authTag (16) + ciphertext, all base64
+  if (!payload.ivB64 && !payload.tagB64 && ciphertext.length >= 28) {
+    const newFormatIv = ciphertext.slice(0, 12)
+    const newFormatTag = ciphertext.slice(12, 28)
+    const newFormatCiphertext = ciphertext.slice(28)
+    const newFormatGcmData = new Uint8Array(newFormatCiphertext.length + 16)
+    newFormatGcmData.set(newFormatCiphertext)
+    newFormatGcmData.set(newFormatTag, newFormatCiphertext.length)
 
     try {
       decrypted = await crypto.subtle.decrypt(
-        { name: 'AES-CBC', iv: cbcIv },
-        cbcKey,
-        ciphertext
+        { name: 'AES-GCM', iv: newFormatIv },
+        gcmKey,
+        newFormatGcmData
       )
     } catch {
-      throw new Error('Unable to decrypt payload. Link code may be expired or generated for a different encryption key.')
+      // Continue to fallback
+    }
+  }
+
+  if (!decrypted) {
+    try {
+      decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: gcmIv },
+        gcmKey,
+        gcmCiphertext
+      )
+    } catch {
+      // Backward compatibility for payloads encrypted with AES-CBC.
+      let cbcIv = cbcFallbackIv
+      if (payload.ivB64) {
+        const candidateIv = decodeBase64ToBytes(payload.ivB64)
+        if (candidateIv.length >= 16) {
+          cbcIv = candidateIv.slice(0, 16)
+        }
+      }
+
+      const cbcKey = await crypto.subtle.importKey(
+        'raw',
+        sharedSecret,
+        { name: 'AES-CBC' },
+        false,
+        ['decrypt']
+      )
+
+      try {
+        decrypted = await crypto.subtle.decrypt(
+          { name: 'AES-CBC', iv: cbcIv },
+          cbcKey,
+          ciphertext
+        )
+      } catch {
+        throw new Error('Unable to decrypt payload. Link code may be expired or generated for a different encryption key.')
+      }
     }
   }
 
