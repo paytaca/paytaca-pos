@@ -41,6 +41,8 @@ const phrases = {
       PaytacaCard: "Paytaca Card",
       NoTransactionsReceived: "No transactions received",
       NoTransactionsToDisplay: "No transactions to display",
+      SalesLast24h: "Sales (Last 24h)",
+      Last24Hours: "Last 24 hours",
       CopiedToClipboard: "Copied to clipboard",
       LeavePage: "Leave Page",
       LeavePagePromptMsg:
