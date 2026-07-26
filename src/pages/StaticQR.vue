@@ -134,10 +134,11 @@ export default defineComponent({
           allowTaint: true,
         })
 
-        const link = document.createElement('a')
-        link.download = `paytaca-pos-qr-${Date.now()}.png`
-        link.href = canvas.toDataURL('image/png')
-        link.click()
+        const base64Data = canvas.toDataURL('image/png').split(',')[1]
+        const filename = `paytaca-pos-qr-${Date.now()}.png`
+
+        const SaveToGallery = (await import('src/utils/save-to-gallery')).default
+        await SaveToGallery.saveImage({ base64Data, filename })
 
         $q.notify({ type: 'positive', message: t('ImageSaved') })
       } catch (err) {
