@@ -1,8 +1,7 @@
 import { WebPlugin } from '@capacitor/core'
-import type { SaveToGalleryPlugin } from './save-to-gallery'
 
-export class SaveToGalleryWeb extends WebPlugin implements SaveToGalleryPlugin {
-  async saveImage(options: { base64Data: string; filename: string }): Promise<{ filePath: string }> {
+export class SaveToGalleryWeb extends WebPlugin {
+  async saveImage(options) {
     const blob = this.base64toBlob(options.base64Data, 'image/png')
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -16,7 +15,7 @@ export class SaveToGalleryWeb extends WebPlugin implements SaveToGalleryPlugin {
     return { filePath: options.filename }
   }
 
-  private base64toBlob(base64Data: string, contentType: string): Blob {
+  base64toBlob(base64Data, contentType) {
     const byteCharacters = atob(base64Data)
     const byteArrays = []
 
