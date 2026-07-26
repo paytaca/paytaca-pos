@@ -7,7 +7,7 @@
       class="back-btn"
       @click="$router.push({ name: 'settings' })"
     />
-    <div class="standee">
+    <div class="standee" ref="standeeRef">
       <div class="standee__inner">
         <div class="standee__header">
           <div class="standee__store-name">{{ merchantName }}</div>
@@ -15,7 +15,7 @@
 
         <div class="standee__divider"></div>
 
-        <div class="standee__title">{{ $t('ScanToPayWithBCH') }}</div>
+        <div class="standee__subtitle">{{ $t('ScanToPayWithBCH') }}</div>
 
         <div v-if="loading" class="standee__loading">
           <q-spinner size="40px" color="primary" />
@@ -26,54 +26,54 @@
             <QRCode
               :text="qrData"
               color="#000"
-              :size="280"
+              :size="260"
               error-level="H"
             />
-            <div class="standee__qr-icon">
-              <img src="/bch-logo.png" alt="BCH" height="32" />
+            <div class="standee__qr-overlay">
+              <img src="/bch-logo.png" alt="BCH" height="28" />
             </div>
           </div>
 
-          <div class="standee__address" @click="copyAddress">
+          <div class="standee__address">
             <span class="standee__address-text">{{ receivingAddress }}</span>
-            <q-icon name="content_copy" size="16px" class="q-ml-xs" />
           </div>
 
-          <div class="standee__hint">{{ $t('CopyAddressOrScanQR') }}</div>
-
-          <div class="standee__print-logo">
-            <img src="/paytaca-logo.png" alt="Paytaca" class="standee__print-logo-img" />
+          <div class="standee__brand">
+            <img src="/paytaca-logo.png" alt="Paytaca" class="standee__brand-logo" />
           </div>
+        </template>
+      </div>
+    </div>
 
-          <div class="standee__footer">
+    <div class="standee__actions">
             <q-btn
-              unelevated
+              outline
               no-caps
               color="primary"
-              icon="print"
-              :label="$t('Print')"
-              @click="printPage"
+              icon="download"
+              :label="$t('SaveImage')"
+              :loading="saving"
+              @click="saveAsImage"
             />
             <q-btn
-              flat
+              outline
               no-caps
+              color="primary"
               :label="$t('Regenerate')"
               @click="regenerateAddress"
               class="q-ml-sm"
             />
           </div>
-        </template>
-      </div>
-    </div>
   </q-page>
 </template>
 
 <script>
-import { defineComponent, ref, computed, onMounted } from 'vue'
+import { defineComponent, ref, computed, onMounted, nextTick } from 'vue'
 import { useWalletStore } from 'stores/wallet'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import QRCode from 'vue-qrcode-component'
+import html2canvas from 'html2canvas'
 
 export default defineComponent({
   name: 'StaticQR',
@@ -85,6 +85,8 @@ export default defineComponent({
 
     const receivingAddress = ref('')
     const loading = ref(true)
+    const saving = ref(false)
+    const standeeRef = ref(null)
     const index = ref(Math.floor(Math.random() * 100000) + 1)
 
     const merchantName = computed(() => {
@@ -117,14 +119,33 @@ export default defineComponent({
       }
     }
 
-    function copyAddress() {
-      if (!receivingAddress.value) return
-      $q.copyText({
-        text: receivingAddress.value,
-        done() {
-          $q.notify({ type: 'positive', message: t('CopiedToClipboard') })
-        }
-      })
+    async function saveAsImage() {
+      saving.value = true
+      try {
+        await nextTick()
+        const el = standeeRef.value
+        if (!el) return
+
+        const canvas = await html2canvas(el, {
+          backgroundColor: '#ffffff',
+          scale: 4,
+          logging: false,
+          useCORS: true,
+          allowTaint: true,
+        })
+
+        const link = document.createElement('a')
+        link.download = `paytaca-pos-qr-${Date.now()}.png`
+        link.href = canvas.toDataURL('image/png')
+        link.click()
+
+        $q.notify({ type: 'positive', message: t('ImageSaved') })
+      } catch (err) {
+        console.error('[StaticQR] Error saving image:', err)
+        $q.notify({ type: 'negative', message: t('ErrorSavingImage') })
+      } finally {
+        saving.value = false
+      }
     }
 
     function printPage() {
@@ -142,9 +163,11 @@ export default defineComponent({
     return {
       receivingAddress,
       loading,
+      saving,
+      standeeRef,
       merchantName,
       qrData,
-      copyAddress,
+      saveAsImage,
       printPage,
       regenerateAddress,
     }
@@ -155,8 +178,8 @@ export default defineComponent({
 <style lang="scss" scoped>
 .static-qr-page {
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
   padding: 24px 16px;
   min-height: 100vh;
   position: relative;
@@ -173,12 +196,13 @@ export default defineComponent({
   width: 100%;
   max-width: 400px;
   aspect-ratio: 9 / 16;
+  margin-top: 16px;
 
   .standee__inner {
     background: #fff;
     border: 2px solid #e0e0e0;
-    border-radius: 24px;
-    padding: 32px 24px;
+    border-radius: 20px;
+    padding: 28px 24px 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
@@ -189,7 +213,6 @@ export default defineComponent({
 
   .standee__header {
     text-align: center;
-    margin-bottom: 8px;
   }
 
   .standee__store-name {
@@ -199,18 +222,19 @@ export default defineComponent({
   }
 
   .standee__divider {
-    width: 60px;
+    width: 48px;
     height: 3px;
     background: #333;
-    margin: 16px 0;
+    margin: 12px 0;
     border-radius: 2px;
   }
 
-  .standee__title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #555;
-    margin-bottom: 24px;
+  .standee__subtitle {
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    margin-top: 8px;
+    margin-bottom: 20px;
     text-align: center;
   }
 
@@ -222,65 +246,67 @@ export default defineComponent({
     position: relative;
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
-    padding: 16px;
+    align-items: center;
+    padding: 20px;
     background: #fafafa;
     border-radius: 16px;
+    margin-bottom: 16px;
   }
 
-  .standee__qr-icon {
+  .standee__qr-overlay {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     background: #fff;
-    border-radius: 8px;
-    padding: 4px;
+    border-radius: 50%;
+    padding: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   .standee__address {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12px 16px;
+    padding: 10px 14px;
     background: #f5f5f5;
     border-radius: 8px;
-    border: 1px solid #e0e0e0;
-    cursor: pointer;
+    border: 1px solid #eee;
     max-width: 100%;
-    transition: background 0.2s;
-
-    &:hover {
-      background: #eee;
-    }
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    margin-bottom: auto;
   }
 
   .standee__address-text {
-    font-size: 13px;
+    font-size: 12px;
     font-family: monospace;
-    color: #333;
+    color: #444;
     word-break: break-all;
     line-height: 1.5;
   }
 
-  .standee__hint {
-    font-size: 12px;
-    color: #999;
-    margin-top: 8px;
-  }
-
-  .standee__footer {
+  .standee__brand {
     display: flex;
-    gap: 8px;
-    margin-top: 24px;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 0 4px;
   }
 
-  .standee__print-logo {
-    display: none;
+  .standee__brand-logo {
+    height: 72px;
+    width: auto;
+    object-fit: contain;
   }
+}
+
+.standee__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 16px;
+  flex-wrap: wrap;
 }
 
 @media print {
@@ -299,7 +325,7 @@ export default defineComponent({
   }
   .standee {
     max-width: 100vw;
-    max-height: 100vh;
+    max-height: 70vh;
     aspect-ratio: 9 / 16;
     display: flex;
     align-items: center;
@@ -307,8 +333,7 @@ export default defineComponent({
     .standee__inner {
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
       padding: 24px 20px;
-      height: auto;
-      min-height: 90vh;
+      height: 100%;
       position: relative;
     }
     .standee__inner::after {
@@ -319,27 +344,24 @@ export default defineComponent({
       right: 8px;
       bottom: 8px;
       border: 1.5px dashed #ccc;
-      border-radius: 18px;
+      border-radius: 14px;
       pointer-events: none;
     }
-    .standee__footer {
+    .standee__subtitle {
       display: none;
     }
-    .standee__hint {
+    .standee__divider {
       display: none;
     }
-    .standee__print-logo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-top: auto;
-      padding-top: 20px;
+    .standee__header {
+      display: none;
     }
-    .standee__print-logo-img {
-      height: 32px;
-      width: auto;
-      object-fit: contain;
+    .standee__brand-logo {
+      opacity: 1;
     }
+  }
+  .standee__actions {
+    display: none;
   }
 }
 </style>

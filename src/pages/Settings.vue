@@ -1,6 +1,6 @@
 <template>
   <div class="settings-page">
-    <MainHeader :title="$t('Settings')">
+    <MainHeader :title="$t('Settings')" back-to="home">
       <template #title>
         <q-toolbar-title
           class="text-h4"

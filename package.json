@@ -40,6 +40,7 @@
     "cashscript": "^0.11.4",
     "cashscript0.11.5": "npm:cashscript@^0.11.5",
     "core-js": "^3.6.5",
+    "html2canvas": "^1.4.1",
     "leaflet": "^1.9.2",
     "net": "^1.0.2",
     "ping.js": "^0.3.0",

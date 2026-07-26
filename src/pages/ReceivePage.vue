@@ -20,7 +20,7 @@
     <q-banner v-if="!isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-lg rounded-borders">
       {{ $t('AppOfflineMessage') }}
     </q-banner>
-    <div v-if="!paid" class="row items-center justify-center q-mt-md">
+    <div v-if="!paid" class="row items-center justify-center q-mt-xl">
       <div
         class="qr-code-container"
         :class="qrCodeContainerClass"

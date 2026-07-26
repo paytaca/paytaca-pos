@@ -805,5 +805,8 @@ export default {
   Regenerate: "Regenerate",
   WalletNotReady: "Wallet is not ready",
   ErrorGeneratingAddress: "Error generating address",
+  SaveImage: "Save Image",
+  ImageSaved: "Image saved successfully",
+  ErrorSavingImage: "Error saving image",
   Tools: "Tools"
 }
