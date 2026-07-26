@@ -181,13 +181,18 @@ export default defineComponent({
   flex-direction: column;
   align-items: center;
   padding: 24px 16px;
+  padding-top: calc(24px + constant(safe-area-inset-top));
+  padding-top: calc(24px + env(safe-area-inset-top));
+  padding-bottom: calc(24px + constant(safe-area-inset-bottom));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
   min-height: 100vh;
   position: relative;
 }
 
 .back-btn {
   position: absolute;
-  top: 8px;
+  top: calc(8px + constant(safe-area-inset-top));
+  top: calc(8px + env(safe-area-inset-top));
   left: 8px;
   z-index: 10;
 }
