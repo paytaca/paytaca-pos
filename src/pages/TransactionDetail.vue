@@ -413,7 +413,7 @@ export default defineComponent({
           ?.writeText(value)
           .then(() => {
             $q.notify({
-              message: message || t("Copied to clipboard"),
+              message: message || t("CopiedToClipboard"),
               timeout: 800,
               icon: "mdi-clipboard-check",
               color: "blue-9",
@@ -425,7 +425,7 @@ export default defineComponent({
       $copyText(value)
         .then(() => {
           $q.notify({
-            message: message || t("Copied to clipboard"),
+            message: message || t("CopiedToClipboard"),
             timeout: 800,
             icon: "mdi-clipboard-check",
             color: "blue-9",
@@ -598,13 +598,13 @@ export default defineComponent({
         walletObj: walletStore.walletObj ? 'present' : 'missing'
       });
       if (!txid) {
-        loadError.value = t("Transaction ID is required");
+        loadError.value = t("TransactionIDIsRequired");
         console.log('[TransactionDetail] No txid, setting loadError');
         return;
       }
 
       if (!walletStore.walletHash || !walletStore.walletObj) {
-        loadError.value = t("Wallet not initialized");
+        loadError.value = t("WalletNotInitialized");
         console.log('[TransactionDetail] Wallet not initialized, setting loadError');
         return;
       }
@@ -676,7 +676,7 @@ export default defineComponent({
             // No websocket data available either
             // Only set error if this is not a background refresh
             if (!forceServerFetch) {
-              loadError.value = t("Transaction not found");
+              loadError.value = t("TransactionNotFound");
             }
             isLoading.value = false;
             return;
@@ -702,7 +702,7 @@ export default defineComponent({
             }
             // Only set error if this is not a background refresh
             if (!forceServerFetch) {
-              loadError.value = t("Failed to load transaction");
+              loadError.value = t("FailedToLoadTransaction");
             }
             isLoading.value = false;
             return;
@@ -722,8 +722,8 @@ export default defineComponent({
         } else if (!forceServerFetch) {
           // Only set error if this is not a background refresh
           loadError.value = lastError
-            ? t("Failed to load transaction")
-            : t("Transaction not found");
+            ? t("FailedToLoadTransaction")
+            : t("TransactionNotFound");
         }
       }
       isLoading.value = false;
@@ -776,7 +776,7 @@ export default defineComponent({
       console.error("[TransactionDetail] Error in onMounted:", error);
       isLoading.value = false;
       if (!loadError.value) {
-        loadError.value = t("Failed to load transaction");
+        loadError.value = t("FailedToLoadTransaction");
       }
     }
   });

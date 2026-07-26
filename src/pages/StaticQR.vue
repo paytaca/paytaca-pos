@@ -202,7 +202,7 @@ export default defineComponent({
   width: 100%;
   max-width: 400px;
   aspect-ratio: 9 / 16;
-  margin-top: 16px;
+  margin-top: 32px;
 
   .standee__inner {
     background: #fff;

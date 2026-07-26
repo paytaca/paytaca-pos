@@ -473,7 +473,7 @@ export default defineComponent({
       }
 
       $q.dialog({
-        title: t("Show Debug Tools"),
+        title: t("ShowDebugTools"),
         message: t(
           "Do you want to show the debug icon? This will enable console log capture."
         ),
