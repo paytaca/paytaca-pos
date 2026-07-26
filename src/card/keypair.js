@@ -71,10 +71,11 @@ export class Signer {
     const wif = this.privkey()
     message = timestamp ? [message, timestamp].join('::') : message
     const messageHash = sha256.hash(utf8ToBin(message))
-    const privateKeyBin = decodePrivateKeyWif(wif).privateKey
-    if (typeof privateKeyBin === 'string') throw (new Error("Invalid WIF: " + wif))
+    const decoded = decodePrivateKeyWif(wif)
+    if (typeof decoded === 'string') throw new Error('Invalid WIF: ' + decoded)
+    const privateKeyBin = decoded.privateKey
     const signatureBin = secp256k1.signMessageHashDER(privateKeyBin, messageHash)
-    if (typeof signatureBin === 'string') throw new Error(signatureBin)
+    if (typeof signatureBin === 'string') throw new Error('Signing failed: ' + signatureBin)
     const signature = binToHex(signatureBin)
     return signature
   }

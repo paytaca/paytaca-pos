@@ -66,7 +66,7 @@ class NFCScanner {
 
             const ndefRecords = asString.messages[0]?.records;
             const records = []
-            for (const record of ndefRecords) {
+            for (const record of (ndefRecords || [])) {
                 console.log('Record type:', record.type);
                 console.log('Record payload:', record.payload);
                 const type = record.type === 'U' ? 'uri' : 'text';

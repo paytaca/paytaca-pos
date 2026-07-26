@@ -56,12 +56,14 @@ export async function signPreimages({ preimages, wif }) {
 
   const secp = await instantiateSecp256k1();
   const merchantPkBin = secp.derivePublicKeyCompressed(decoded.privateKey);
+  if (typeof merchantPkBin === 'string') throw new Error(merchantPkBin);
   const merchantPkHex = binToHex(merchantPkBin);
   const signedPreimages = preimages.map(({ inputIndex, preimage }) => {
     const preimageBin = hexToBin(preimage);
     const messageHash = hash256(preimageBin);
 
     const sig64 = secp.signMessageHashSchnorr(decoded.privateKey, messageHash);
+    if (typeof sig64 === 'string') throw new Error(sig64);
     const sigWithHashType = new Uint8Array([...sig64, HASHTYPE]); // 65 bytes
 
     return {

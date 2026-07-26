@@ -392,7 +392,6 @@ export function usePaymentTracking({
       return
     }
 
-    const paymentsStore = usePaymentsStore()
     const bchAmount = paymentsStore.total || 0
 
     const splitParams = contractParams.split(':')

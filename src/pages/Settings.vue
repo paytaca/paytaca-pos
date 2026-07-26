@@ -271,12 +271,12 @@
               </q-avatar>
             </q-item-section>
             <q-item-section>
-              <q-item-label class="text-weight-medium">{{!walletStore.nfcPaymentsEnabled ? 'Enable ' : ''}}NFC Payments</q-item-label>
+              <q-item-label class="text-weight-medium">{{ !walletStore.nfcPaymentsEnabled ? $t('Enable') + ' ' : '' }}{{ $t('NfcPayments') }}</q-item-label>
             </q-item-section>
             <q-item-section side>
               <div class="row items-center q-gutter-xs">
                 <span class="text-subtitle2">{{
-                  walletStore.nfcPaymentsEnabled ? "Enabled" : "Disabled"
+                  walletStore.nfcPaymentsEnabled ? $t("FiatModeEnabled") : $t("FiatModeDisabled")
                 }}</span>
                 <q-icon
                   v-if="walletStore.nfcPaymentsEnabled"

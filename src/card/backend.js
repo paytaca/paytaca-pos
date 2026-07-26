@@ -29,10 +29,13 @@ backend.interceptors.request.use(async (config) => {
   }
   const walletStore = useWalletStore();
   config.headers['public-key'] = walletStore.authPublicKey
-  await getAuthToken().then(token => {
-    config.headers.Authorization = `Token ${token}`
-  }).catch(error => {
+  try {
+    const token = await getAuthToken();
+    if (token) {
+      config.headers.Authorization = `Token ${token}`;
+    }
+  } catch (error) {
     console.error('Error fetching auth token for request:', error);
-  });
+  }
   return config
 })

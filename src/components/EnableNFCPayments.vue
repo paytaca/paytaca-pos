@@ -186,9 +186,12 @@ export default {
     async function onStartSetup() {
         updateStep("encryption-key-transfer");
         loadingKeypair.value = true;
-        const keypair = await getOrGenerateEncryptionKeypair();
-        encryptionPublicKey.value = keypair.pubkey;
-        loadingKeypair.value = false;
+        try {
+            const keypair = await getOrGenerateEncryptionKeypair();
+            encryptionPublicKey.value = keypair.pubkey;
+        } finally {
+            loadingKeypair.value = false;
+        }
     }
 
      async function copyToClipboard(value, message = "") {
