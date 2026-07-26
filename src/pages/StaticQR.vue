@@ -74,6 +74,7 @@ import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import QRCode from 'vue-qrcode-component'
 import html2canvas from 'html2canvas'
+import SaveToGallery from 'src/utils/save-to-gallery'
 
 export default defineComponent({
   name: 'StaticQR',
@@ -137,7 +138,6 @@ export default defineComponent({
         const base64Data = canvas.toDataURL('image/png').split(',')[1]
         const filename = `paytaca-pos-qr-${Date.now()}.png`
 
-        const SaveToGallery = (await import('src/utils/save-to-gallery')).default
         await SaveToGallery.saveImage({ base64Data, filename })
 
         $q.notify({ type: 'positive', message: t('ImageSaved') })
