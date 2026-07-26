@@ -126,7 +126,7 @@
       </div>
     </div>
 
-    <div class="payment-options q-mt-lg q-px-md">
+    <div v-if="walletStore.nfcPaymentsEnabled" class="payment-options q-mt-lg q-px-md">
       <div class="payment-options__divider">
         <span class="text-caption text-grey">{{ $t('OrPayWith') }}</span>
       </div>
@@ -1753,10 +1753,11 @@ export default defineComponent({
   padding: 20px 16px 28px;
   text-align: center;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
 
@@ -1782,7 +1783,7 @@ export default defineComponent({
 }
 
 .body--dark .waiting-footer {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.5);
   border-top-color: rgba(255, 255, 255, 0.08);
 }
 

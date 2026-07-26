@@ -291,6 +291,31 @@
       </q-card>
 
       <div class="section-title text-overline text-uppercase q-mb-sm q-pl-sm">
+        {{ $t("Tools") }}
+      </div>
+      <q-card
+        class="settings-card q-mb-lg"
+        :class="{ 'bg-dark': $q.dark.isActive }"
+      >
+        <q-list class="rounded-borders">
+          <q-item clickable v-ripple class="q-py-md" @click="goToStaticQr">
+            <q-item-section avatar>
+              <q-avatar color="primary" text-color="white" size="40px">
+                <q-icon name="qr_code_2" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-medium">{{ $t("PrintStaticQR") }}</q-item-label>
+              <q-item-label caption>{{ $t("PrintStaticQRDesc") }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-icon name="chevron_right" color="grey" />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card>
+
+      <div class="section-title text-overline text-uppercase q-mb-sm q-pl-sm">
         {{ $t("About") }}
       </div>
       <q-card
@@ -463,6 +488,10 @@ export default defineComponent({
       router.push({ name: "debug" });
     }
 
+    function goToStaticQr() {
+      router.push({ name: "static-qr" });
+    }
+
     function handleTitleTouchStart() {
       longPressTimer.value = setTimeout(() => {
         showDebugConfirmation();
@@ -518,6 +547,7 @@ export default defineComponent({
       truncatedWalletHash,
       debugIconVisible,
       goToDebug,
+      goToStaticQr,
       handleTitleTouchStart,
       handleTitleTouchEnd,
       handleTitleTouchCancel,

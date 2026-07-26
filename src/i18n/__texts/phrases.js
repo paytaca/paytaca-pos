@@ -26,6 +26,13 @@ const phrases = {
       DetectedDeviceTimeNotMatch:
         "Detected that device does not match server time. QR code expiration is adjusted",
       WaitingForPayment: "Waiting for payment ... ",
+      PrintStaticQR: "Print Static QR",
+      PrintStaticQRDesc: "Display a QR code for in-store customer payments",
+      ScanToPayWithBCH: "Scan to pay with Bitcoin Cash",
+      CopyAddressOrScanQR: "Copy the address or scan the QR code",
+      Regenerate: "Regenerate",
+      WalletNotReady: "Wallet is not ready",
+      ErrorGeneratingAddress: "Error generating address",
       OrPayWith: "Or pay with",
       TapToPay: "Tap to pay",
       PaytacaCard: "Paytaca Card",

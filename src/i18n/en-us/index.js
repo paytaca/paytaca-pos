@@ -797,5 +797,13 @@ export default {
   minutes: "minutes",
   stock: "stock",
   stockId: "stock#{id}",
-  stocks: "stocks"
+  stocks: "stocks",
+  PrintStaticQR: "Print Static QR",
+  PrintStaticQRDesc: "Display a QR code for in-store customer payments",
+  ScanToPayWithBCH: "Scan to pay with Bitcoin Cash",
+  CopyAddressOrScanQR: "Copy the address or scan the QR code",
+  Regenerate: "Regenerate",
+  WalletNotReady: "Wallet is not ready",
+  ErrorGeneratingAddress: "Error generating address",
+  Tools: "Tools"
 }
