@@ -254,6 +254,39 @@
               </div>
             </q-item-section>
           </q-item>
+          
+          <q-separator
+            :dark="$q.dark.isActive"
+            inset="item"
+          />
+
+          <q-item
+            :clickable="!walletStore.nfcPaymentsEnabled"
+            class="q-py-md"
+            v-on="!walletStore.nfcPaymentsEnabled ? { click: onEnableNfcPaymentsClick } : {}"
+          >
+            <q-item-section avatar>
+              <q-avatar color="blue-7" text-color="white" size="40px">
+                <q-icon name="nfc" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-medium">{{ !walletStore.nfcPaymentsEnabled ? $t('Enable') + ' ' : '' }}{{ $t('NfcPayments') }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <div class="row items-center q-gutter-xs">
+                <span class="text-subtitle2">{{
+                  walletStore.nfcPaymentsEnabled ? $t("FiatModeEnabled") : $t("FiatModeDisabled")
+                }}</span>
+                <q-icon
+                  v-if="walletStore.nfcPaymentsEnabled"
+                  name="check_circle"
+                  size="18px"
+                  color="green"
+                />
+              </div>
+            </q-item-section>
+          </q-item>
         </q-list>
       </q-card>
 
@@ -313,6 +346,7 @@
         </q-list>
       </q-card>
     </div>
+    <EnableNFCPayments v-if="showEnableNfcPayments" :show="showEnableNfcPayments" @close="onCloseEnableNfcPaymentsDialog" />
   </div>
 </template>
 
@@ -328,12 +362,15 @@ import packageInfo from "../../package.json";
 import LanguageSelector from "src/components/LanguageSelector.vue";
 import DefaultAssetSelector from "src/components/settings/DefaultAssetSelector.vue";
 import { useDebugLogger } from "src/composables/useDebugLogger";
+import EnableNFCPayments from "src/components/EnableNFCPayments.vue";
+import Watchtower from 'watchtower-cash-js';
 
 export default defineComponent({
   name: "SettingsPage",
   components: {
     MainHeader,
     LanguageSelector,
+    EnableNFCPayments,
     DefaultAssetSelector,
   },
   setup() {
@@ -344,12 +381,14 @@ export default defineComponent({
     const appVersion = packageInfo.version;
     const repoUrl = "https://github.com/paytaca/paytaca-pos";
     const { startInterception, stopInterception } = useDebugLogger();
+    const watchtower = new Watchtower()
 
     const debugIconVisible = ref(false);
     const longPressTimer = ref(null);
     const LONG_PRESS_DURATION = 500;
+    const showEnableNfcPayments = ref(false);
 
-    onMounted(() => {
+    onMounted(async () => {
       const stored = localStorage.getItem("debugIconVisible");
       debugIconVisible.value = stored === "true";
       if (debugIconVisible.value) {
@@ -357,7 +396,39 @@ export default defineComponent({
       } else {
         stopInterception();
       }
+
+      await checkNfcPaymentsEnabled();
     });
+
+    function onCloseEnableNfcPaymentsDialog() {
+      showEnableNfcPayments.value = false;
+      checkNfcPaymentsEnabled(); // Refresh NFC payments status after closing the dialog
+    }
+
+    function onEnableNfcPaymentsClick() {
+      showEnableNfcPayments.value = true;
+    }
+
+    /**
+     * Checks if this POS device is set up for NFC payments
+     */
+    async function checkNfcPaymentsEnabled() {
+      if (!walletStore.walletHash) {
+        walletStore.setNfcPaymentsEnabled(false);
+        return;
+      }
+      const lookup_field = `${walletStore.walletHash}:${walletStore.posId}`;
+      await  watchtower.BCH._api.get(
+        `paytacapos/devices/${lookup_field}/`
+      ).then(response => {
+        console.log('NFC Payments API response:', response);
+        walletStore.setNfcPaymentsEnabled(response.data?.nfc_payments_enabled || false);
+      })
+      .catch(err => {
+        console.error('Error checking NFC payments status:', err);
+        walletStore.setNfcPaymentsEnabled(false); // Assume disabled if there's an error
+      });
+    }
 
     function toggleDebugIcon() {
       debugIconVisible.value = !debugIconVisible.value;
@@ -452,6 +523,9 @@ export default defineComponent({
       handleTitleTouchCancel,
       handleTitleMouseDown,
       handleTitleMouseUp,
+      showEnableNfcPayments,
+      onCloseEnableNfcPaymentsDialog,
+      onEnableNfcPaymentsClick
     };
   },
 });

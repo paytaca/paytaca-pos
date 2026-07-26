@@ -211,11 +211,10 @@ import { useWalletStore } from 'stores/wallet'
 import { usePaymentsStore } from 'stores/payments'
 import { useAddressesStore } from 'stores/addresses'
 import { useCashtokenStore } from 'src/stores/cashtoken'
-import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, inject, markRaw } from 'vue'
+import { defineComponent, reactive, ref, onMounted, computed, watch, onUnmounted, inject, markRaw, onBeforeUnmount } from 'vue'
 import { onBeforeRouteLeave, useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
-import { Capacitor } from '@capacitor/core'
 import QRCode from 'vue-qrcode-component'
 import MainHeader from 'src/components/MainHeader.vue'
 import SetAmountFormDialog from 'src/components/SetAmountFormDialog.vue'
@@ -228,7 +227,7 @@ import { useQrCodeGenerator } from 'src/composables/useQrCodeGenerator'
 import { useFiatRateManager } from 'src/composables/useFiatRateManager'
 import { usePaymentTracking } from 'src/composables/usePaymentTracking'
 import { validateBchRate, validateTokenRate, validateConversionResult } from 'src/utils/rate-validation'
-
+import { Capacitor } from '@capacitor/core'
 
 export default defineComponent({
   name: "ReceivePage",
@@ -294,6 +293,7 @@ export default defineComponent({
 
     /* <-- Core details */
     onMounted(() => {
+
       paymentsStore.resetPayment()
 
       // Initialize fiat reference from props first
@@ -349,6 +349,7 @@ export default defineComponent({
         cashTokenStore.fetchTokenMetadata(tokenCategory.value)
       }
     })
+
     const receiveAmount = ref(0)
     // Initialize currency from props, but prefer fiat currency if provided
     const currency = ref(props.setFiatCurrency || props.setCurrency || 'BCH')
@@ -1723,6 +1724,7 @@ export default defineComponent({
       formatNumberWithDecimals,
       isDebugModeEnabled,
       goToDebugConsole,
+      Capacitor
     }
   },
 })

@@ -1,9 +1,6 @@
 <template>
   <q-page class="home-page q-pb-lg">
-    <q-pull-to-refresh
-      @refresh="refreshPage"
-      :disable="forceDisplayWalletLink || !walletStore.walletHash"
-    >
+    <div class="home-scroll-area">
       <WalletLink
         ref="walletLinkComponent"
         v-if="forceDisplayWalletLink || !walletStore.walletHash"
@@ -11,6 +8,7 @@
         @device-linked="() => (forceDisplayWalletLink = false)"
       />
       <div v-else class="home-main-content q-py-md full-width">
+
         <div class="q-px-md q-mb-md">
           <template v-if="isRefreshing || isInitialLoading">
             <q-card
@@ -280,8 +278,8 @@
         </div>
         </div>
 
-      <MainFooter />
-    </q-pull-to-refresh>
+    </div>
+    <MainFooter />
   </q-page>
 </template>
 
@@ -301,6 +299,7 @@ import {
 import MainFooter from "src/components/MainFooter.vue";
 import MarketplaceWidget from "src/components/marketplace/MarketplaceWidget.vue";
 import SetAmountFormDialog from "src/components/SetAmountFormDialog.vue";
+// NFC setup is opt-in via Settings; EnableNFCPayments removed from Home
 import {
   paymentUriHasMatch,
   findMatchingPaymentLink,
@@ -311,6 +310,7 @@ import { useCashtokenStore } from "src/stores/cashtoken";
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+// getEncryptionKeypair import removed; NFC setup is now opt-in via Settings
 import { useTransactionHelpers } from "src/composables/transaction";
 
 export default defineComponent({
@@ -488,6 +488,7 @@ export default defineComponent({
       () => [walletStore.walletHash, walletStore.posId],
       () => fetchTransactions()
     );
+
     watch(
       () => hasFullSalesReportAccess.value,
       (newVal) => {
@@ -545,6 +546,7 @@ export default defineComponent({
     }
 
     const forceDisplayWalletLink = ref(false);
+
     onMounted(() => {
       if (walletStore.isLinked && !walletStore.isDeviceValid)
         $q.dialog({
@@ -616,7 +618,7 @@ export default defineComponent({
       $router.replace({ query: {} });
     }
 
-    async function refreshPage(done) {
+    async function refreshPage() {
       isRefreshing.value = true;
       try {
         await Promise.allSettled([
@@ -636,7 +638,6 @@ export default defineComponent({
         console.error("Error refreshing page:", error);
       } finally {
         isRefreshing.value = false;
-        done();
       }
     }
 
@@ -709,8 +710,10 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.home-main-content {
-  overflow: auto;
+.home-scroll-area {
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 80px;
 }
 

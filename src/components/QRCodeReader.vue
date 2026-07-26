@@ -52,6 +52,7 @@ import { QrcodeStream } from "vue3-qrcode-reader";
 import { Capacitor } from "@capacitor/core";
 import { useQuasar } from "quasar";
 import { ref, computed, onBeforeUnmount, watch } from "vue";
+import { nextTick } from "vue";
 
 const { t: $t } = i18n.global;
 
@@ -65,7 +66,7 @@ export default {
     },
     toggle: Function,
   },
-  emits: ["decode", "error", "update:modelValue"],
+  emits: ["decode", "error", "update:modelValue", "close"],
   setup(props, { emit: $emit }) {
     const $q = useQuasar();
     const errorMessage = ref(null);
@@ -74,7 +75,9 @@ export default {
       () => [props.modelValue],
       () => (innerVal.value = props.modelValue)
     );
-    watch(innerVal, () => $emit("update:modelValue", innerVal.value));
+    watch(innerVal, () => {
+      $emit("update:modelValue", innerVal.value)
+    });
 
     const isNativePlatform = computed(() => Capacitor.isNativePlatform());
 
@@ -85,6 +88,7 @@ export default {
         stopScan();
       }
     });
+
     onBeforeUnmount(() => stopScan());
 
     function onScannerDecode(content) {
@@ -128,7 +132,7 @@ export default {
       if (status?.granted) {
         const prepared = await prepareScannerUtil();
         if (prepared) {
-          scanBarcode();
+          await scanBarcode();
         } else {
           $emit("error", "Failed to prepare scanner");
         }
@@ -161,9 +165,10 @@ export default {
 
     async function scanBarcode() {
       adjustComponentsClasslist(true);
-
       const res = await startScan();
-      if (res.hasContent) $emit("decode", res.content);
+      if (res.hasContent) {
+        $emit("decode", res.content);
+      }
       stopScan();
     }
 
@@ -175,7 +180,9 @@ export default {
     }
 
     const scannerContainerRef = ref();
-    function adjustComponentsClasslist(isScanning) {
+    async function adjustComponentsClasslist(isScanning) {
+      await nextTick(); // wait the DOM to update
+
       const appContainer = document.getElementById("q-app");
       const scannerUI = scannerContainerRef.value;
       const transparent = "transparent-body";

@@ -109,73 +109,213 @@
       </div>
     </div>
     <script>
-      // Inline fallback: catches JS bundle parse/load failures
-      // Uses ES5 syntax only to guarantee execution on all browsers
+      // ---------- Floating Debug Console ----------
+      // Intercepts errors, promise rejections, and console methods.
+      // Renders a collapsible floating panel. Works before AND after Vue mounts.
       (function () {
-        var loadingErrors = [];
-        var appStarted = false;
+        // ---- Storage ----
+        var logs = [];
+        var MAX_LOGS = 500;
+        var isIntercepting = false;
+        var originalConsole = {};
 
-        // Mark app as started when Vue mounts (App.vue removes #app-loading)
-        var observer = new MutationObserver(function (mutations) {
-          if (!document.getElementById("app-loading")) {
-            appStarted = true;
-            observer.disconnect();
+        // ---- Create UI ----
+        function ensureContainer() {
+          var el = document.getElementById("__debug_console");
+          if (el) return el;
+          el = document.createElement("div");
+          el.id = "__debug_console";
+          el.style.cssText =
+            "position:fixed;bottom:40px;right:10px;z-index:99999;font:11px/1.4 monospace;max-height:50vh;overflow:hidden;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,0.4);display:none;flex-direction:column;min-width:260px;max-width:90vw;";
+          var header = document.createElement("div");
+          header.id = "__dc_header";
+          header.style.cssText =
+            "background:#1a1a2e;color:#fff;padding:6px 10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;font:bold 12px/1 sans-serif;";
+          header.innerHTML =
+            '<span>&#x1f41b; Debug</span><span id="__dc_badge" style="background:#e94560;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;">0</span>';
+          header.onclick = togglePanel;
+          var body = document.createElement("div");
+          body.id = "__dc_body";
+          body.style.cssText =
+            "background:rgba(26,26,46,0.92);color:#e0e0e0;padding:6px;overflow-y:auto;flex:1;display:none;font:11px/1.4 monospace;";
+          body.ontouchstart = function (e) {
+            e.stopPropagation();
+          };
+          var toolbar = document.createElement("div");
+          toolbar.style.cssText =
+            "display:flex;gap:4px;padding:4px 6px;background:rgba(26,26,46,0.95);border-top:1px solid #333;display:none;";
+          toolbar.id = "__dc_toolbar";
+          var clearBtn = document.createElement("button");
+          clearBtn.textContent = "Clear";
+          clearBtn.style.cssText =
+            "background:#333;color:#ccc;border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font:10px/1 sans-serif;";
+          clearBtn.onclick = function () {
+            logs = [];
+            renderLogs();
+          };
+          var collapseBtn = document.createElement("button");
+          collapseBtn.textContent = "Collapse";
+          collapseBtn.style.cssText =
+            "background:#333;color:#ccc;border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font:10px/1 sans-serif;";
+          collapseBtn.onclick = togglePanel;
+          toolbar.appendChild(clearBtn);
+          toolbar.appendChild(collapseBtn);
+          body.appendChild(toolbar);
+          el.appendChild(header);
+          el.appendChild(body);
+          document.body.appendChild(el);
+          return el;
+        }
+
+        var isOpen = false;
+
+        function togglePanel() {
+          isOpen = !isOpen;
+          var body = document.getElementById("__dc_body");
+          var toolbar = document.getElementById("__dc_toolbar");
+          var badge = document.getElementById("__dc_badge");
+          if (body) body.style.display = isOpen ? "block" : "none";
+          if (toolbar) toolbar.style.display = isOpen ? "flex" : "none";
+          if (badge) badge.style.display = isOpen ? "none" : "inline";
+          if (isOpen) renderLogs();
+        }
+
+        function addLog(type, args) {
+          var text = "";
+          for (var i = 0; i < args.length; i++) {
+            try {
+              if (typeof args[i] === "object") {
+                text +=
+                  (i > 0 ? " " : "") +
+                  JSON.stringify(args[i], null, 2).slice(0, 500);
+              } else {
+                text += (i > 0 ? " " : "") + String(args[i]);
+              }
+            } catch (e) {
+              text += (i > 0 ? " " : "") + "[unstringifiable]";
+            }
           }
-        });
-        observer.observe(document.getElementById("q-app"), {
-          childList: true,
-          subtree: true,
-        });
+          logs.push({
+            type: type,
+            text: text,
+            time: new Date().toLocaleTimeString(),
+          });
+          if (logs.length > MAX_LOGS) logs.shift();
+          var el = document.getElementById("__debug_console");
+          if (el) el.style.display = "flex";
+          var badge = document.getElementById("__dc_badge");
+          if (badge) badge.textContent = logs.length;
+          if (isOpen) renderLogs();
+        }
 
-        // Catch script errors (including parse errors from bundle)
-        window.addEventListener(
-          "error",
-          function (event) {
-            var msg = "";
-            if (event.message) {
-              msg = event.message;
-            }
-            if (event.filename) {
-              msg += " in " + event.filename + ":" + event.lineno;
-            }
-            if (msg) {
-              loadingErrors.push(msg);
-            }
-          },
-          true
-        );
-
-        // Fallback timeout: if app hasn't started after 10s, show error info
-        setTimeout(function () {
-          if (appStarted) return;
-          var loadingEl = document.getElementById("app-loading");
-          if (!loadingEl) return;
-
-          var spinner = loadingEl.querySelector(".app-loading-spinner");
-          if (spinner) spinner.style.display = "none";
-
-          var textEl = document.getElementById("app-loading-text");
-          if (textEl) {
-            if (loadingErrors.length > 0) {
-              textEl.innerHTML =
-                'Failed to load app.<br><small style="font-size:12px;color:#999;word-break:break-all;">' +
-                loadingErrors.slice(0, 5).join("<br>") +
-                "</small>";
-            } else {
-              textEl.textContent =
-                "App is taking too long to load. Please refresh.";
-            }
+        function renderLogs() {
+          var body = document.getElementById("__dc_body");
+          if (!body) return;
+          var toolbar = body.querySelector("#__dc_toolbar");
+          body.innerHTML = "";
+          if (toolbar) body.appendChild(toolbar.parentNode ? toolbar : toolbar);
+          for (var i = Math.max(0, logs.length - 200); i < logs.length; i++) {
+            var entry = logs[i];
+            var div = document.createElement("div");
+            div.style.cssText =
+              "padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.05);word-break:break-all;";
+            var color =
+              entry.type === "error" || entry.type === "Global"
+                ? "#ff6b6b"
+                : entry.type === "warn"
+                ? "#ffd93d"
+                : entry.type === "info"
+                ? "#6bcbff"
+                : "#aaa";
+            div.innerHTML =
+              '<span style="color:' +
+              color +
+              ";" +
+              (entry.type === "error" || entry.type === "Global"
+                ? "font-weight:bold;"
+                : "") +
+              '">[' +
+              entry.time +
+              " " +
+              entry.type.toUpperCase() +
+              "]</span> " +
+              escapeHtml(entry.text);
+            body.appendChild(div);
           }
-        }, 10000);
+          body.scrollTop = body.scrollHeight;
+        }
 
-        // More aggressive fallback: remove loading screen after 15s no matter what
-        setTimeout(function () {
-          var loadingEl = document.getElementById("app-loading");
-          if (loadingEl) {
-            console.warn("Force-removing loading screen after 15s");
-            loadingEl.remove();
+        function escapeHtml(str) {
+          return String(str || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+
+        // ---- Intercept ----
+        function startInterception() {
+          if (isIntercepting) return;
+          isIntercepting = true;
+
+          // Ensure container exists
+          ensureContainer();
+
+          // Global errors
+          window.addEventListener(
+            "error",
+            function (e) {
+              var msg =
+                (e.error && e.error.message) || e.message || String(e);
+              if (e.filename)
+                msg += " at " + e.filename + ":" + (e.lineno || 0);
+              addLog("Global", [msg]);
+            },
+            true
+          );
+
+          // Promise rejections
+          window.addEventListener(
+            "unhandledrejection",
+            function (e) {
+              var msg =
+                (e.reason && (e.reason.message || e.reason.stack || e.reason)) ||
+                String(e);
+              addLog("PROMISE", [msg]);
+            },
+            true
+          );
+
+          // Console methods
+          var methods = ["log", "error", "warn", "info", "debug"];
+          for (var m = 0; m < methods.length; m++) {
+            var method = methods[m];
+            originalConsole[method] = console[method];
+            (function (mName) {
+              console[mName] = function () {
+                var args = Array.prototype.slice.call(arguments);
+                addLog(mName === "debug" ? "DEBUG" : mName.toUpperCase(), args);
+                if (originalConsole[mName]) {
+                  originalConsole[mName].apply(console, args);
+                }
+              };
+            })(method);
           }
-        }, 15000);
+
+          // Log startup
+          addLog("INFO", ["Debug console active"]);
+
+          // Show the debug button immediately
+          var el = document.getElementById("__debug_console");
+          if (el) el.style.display = "flex";
+        }
+
+        // ---- Init on DOM ready ----
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", startInterception);
+        } else {
+          startInterception();
+        }
       })();
     </script>
   </body>

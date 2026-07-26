@@ -13,6 +13,7 @@ export const useWalletStore = defineStore("wallet", {
     posId: -1,
     walletHash: null,
     xPubKey: null,
+    authPublicKey: null,
     linkCode: null,
     firstReceivingAddress: null,
 
@@ -110,6 +111,7 @@ export const useWalletStore = defineStore("wallet", {
       // '3d3ad2a8e0...': { qrData: 'bitcoincash:ead42...?amount=10.1', timestamp: 1639596781 }
       // ...
     },
+    nfcPaymentsEnabled: false,
   }),
 
   getters: {
@@ -298,6 +300,8 @@ export const useWalletStore = defineStore("wallet", {
      * @param {String} data.linked_device.unlink_request.updated_at
      */
     setDeviceInfo(data) {
+      this.setNfcPaymentsEnabled(data?.nfc_payments_enabled);
+
       this.deviceInfo = {
         name: data?.name,
         walletHash: data?.wallet_hash,
@@ -545,12 +549,20 @@ export const useWalletStore = defineStore("wallet", {
       this.qrDataTimestampCache[qrDataHash] = {
         qrData: qrData,
         timestamp: timestamp,
-      };
+      }
+    },
+    setAuthPublicKey(publicKey) {
+      this.authPublicKey = publicKey
+    },
+    setNfcPaymentsEnabled(value) {
+      this.nfcPaymentsEnabled = Boolean(value)
     },
     clearAll() {
       this.walletHash = "";
       this.posId = -1;
       this.xPubKey = "";
+      this.authPublicKey = null
+      this.setNfcPaymentsEnabled(false)
       this.linkCode = "";
       this.setDeviceInfo(null);
       this.setBranchInfo(null);
