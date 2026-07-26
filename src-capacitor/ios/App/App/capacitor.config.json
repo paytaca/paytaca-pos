@@ -16,6 +16,7 @@
 		"KeyboardPlugin",
 		"PushNotificationsPlugin",
 		"NFCPlugin",
-		"SecureStoragePlugin"
+		"SecureStoragePlugin",
+		"SaveToGalleryPlugin"
 	]
 }

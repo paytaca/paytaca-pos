@@ -129,7 +129,7 @@ export default defineComponent({
 
         const canvas = await html2canvas(el, {
           backgroundColor: '#ffffff',
-          scale: 4,
+          scale: 2,
           logging: false,
           useCORS: true,
           allowTaint: true,
@@ -143,7 +143,7 @@ export default defineComponent({
         $q.notify({ type: 'positive', message: t('ImageSaved') })
       } catch (err) {
         console.error('[StaticQR] Error saving image:', err)
-        $q.notify({ type: 'negative', message: t('ErrorSavingImage') })
+        $q.notify({ type: 'negative', message: `Error saving image: ${err.message || err}`, timeout: 5000 })
       } finally {
         saving.value = false
       }
