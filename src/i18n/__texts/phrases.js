@@ -26,6 +26,9 @@ const phrases = {
       DetectedDeviceTimeNotMatch:
         "Detected that device does not match server time. QR code expiration is adjusted",
       WaitingForPayment: "Waiting for payment ... ",
+      OrPayWith: "Or pay with",
+      TapToPay: "Tap to pay",
+      PaytacaCard: "Paytaca Card",
       NoTransactionsReceived: "No transactions received",
       NoTransactionsToDisplay: "No transactions to display",
       CopiedToClipboard: "Copied to clipboard",
