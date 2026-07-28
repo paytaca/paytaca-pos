@@ -318,7 +318,7 @@
 
               <div class="row">
                 <div class="col-6 q-pr-sm">
-                  <div>{{ $t('Initial Stock') }}</div>
+                  <div>{{ $t('InitialStock') }}</div>
                   <q-input
                     outlined
                     dense
@@ -334,7 +334,7 @@
                   />
                 </div>
                 <div class="col-6">
-                  <div>{{ $t('Cost Price') }}</div>
+                  <div>{{ $t('CostPrice') }}</div>
                   <q-input
                     outlined
                     dense
@@ -360,7 +360,7 @@
             <q-btn
               no-caps
               color="brandblue"
-              :label="$t('Add Variant')"
+              :label="$t('AddVariant')"
               class="full-width"
               @click="() => addVariant()"
             />

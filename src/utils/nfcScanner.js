@@ -24,7 +24,7 @@ class NFCScanner {
         }
     }
 
-    async onRead(callback) {
+    async onRead(callback, onError) {
         console.log('onRead:', callback)
 
         // Unsubscribe previous listeners to prevent leaks
@@ -84,6 +84,9 @@ class NFCScanner {
         // Handle NFC errors
         this.offError = NFC.onError((error) => {
             console.error('NFC Error:', error);
+            if (onError) {
+                onError(error);
+            }
         });
     }
 
@@ -126,9 +129,9 @@ const nfcScannerInstance = new NFCScanner();
 export default nfcScannerInstance;
 
 // Export a function to start NFC scanning and listen for tag detection
-export async function startNFCScan(callback) {
+export async function startNFCScan(callback, onError) {
     await nfcScannerInstance.startScan();
-    await nfcScannerInstance.onRead(callback);
+    await nfcScannerInstance.onRead(callback, onError);
 }
 
 // Export a function to stop NFC scanning and unregister listeners

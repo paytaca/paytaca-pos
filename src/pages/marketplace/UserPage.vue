@@ -208,7 +208,7 @@ export default defineComponent({
       }
       const dialog = $q.dialog({
         title: t('PasswordUpdate'),
-        message: t('Updating password'),
+        message: t('UpdatingPassword'),
         progress: true,
         persistent: true,
         ok: false,

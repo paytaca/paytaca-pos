@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%">
+  <!-- Arcs centered at a virtual point on the left to create perfect concentric circles -->
+  
+  <!-- Wave 1 (Inner) -->
+  <path d="M 6.0 8.0 A 5.5 5.5 0 0 1 6.0 16.0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+  
+  <!-- Wave 2 -->
+  <path d="M 9.5 5.5 A 9.5 9.5 0 0 1 9.5 18.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+  
+  <!-- Wave 3 -->
+  <path d="M 13.0 3.0 A 13.5 13.5 0 0 1 13.0 21.0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+  
+  <!-- Wave 4 (Outer) -->
+  <path d="M 16.5 0.5 A 17.5 17.5 0 0 1 16.5 23.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

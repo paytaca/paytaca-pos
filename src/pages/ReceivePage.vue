@@ -20,7 +20,7 @@
     <q-banner v-if="!isOnline" class="bg-red text-white q-pa-md q-mx-md q-mb-lg rounded-borders">
       {{ $t('AppOfflineMessage') }}
     </q-banner>
-    <div v-if="!paid" class="row items-center justify-center q-mt-md">
+    <div v-if="!paid" class="row items-center justify-center q-mt-xl">
       <div
         class="qr-code-container"
         :class="qrCodeContainerClass"
@@ -126,47 +126,25 @@
       </div>
     </div>
 
-    <div v-if="canViewPayments && !paymentDialogOpen" class="q-px-md q-mt-md">
-      <div class="row items-center">
-        <div class="q-space text-subtitle1">
-          {{ $t('Payments') }}
-        </div>
-        <div class="text-caption">
-          <div v-if="paid" class="text-green">{{ $t('PaymentComplete') }}</div>
-          <div v-if="!paid" style="color: #ed5f59">
-            <q-icon
-              v-if="currencyBchRate && currencyBchRate.status !== 2"
-              :name="bchRateStatus.icon"
-              :color="bchRateStatus.color"
-              size="xs"
-            />
-            {{
-              $t(
-                'AmountLeftValue',
-                { price: remainingPaymentRounded, symbol: remainingPaymentSymbol },
-                `${remainingPaymentRounded} ${remainingPaymentSymbol} left`
-              )
-            }}            
-            <q-btn v-if="showRemainingCurrencyAmount" color="grey" icon="info" flat size="xs" class="q-px-xs" style="width: 20px">
-              <q-menu>
-                <q-list style="min-width: 100px">
-                  <q-item clickable v-close-popup>
-                    <q-item-section>{{ formatNumberAutoDecimals(currencyAmountRemaining) }} {{ currency }}</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </q-btn>
+    <div v-if="walletStore.nfcPaymentsEnabled" class="payment-options q-mt-lg q-px-md">
+      <div class="payment-options__divider">
+        <span class="text-caption text-grey">{{ $t('OrPayWith') }}</span>
+      </div>
+      <div class="row items-center justify-center">
+        <div
+          class="nfc-pill cursor-pointer"
+          @click="onNfcPillClick"
+          v-ripple
+        >
+          <div class="nfc-pill__text">
+            <div class="text-weight-medium">{{ $t('ClickToEnableTapToPay') }}</div>
           </div>
+          <img src="/nfc-logo.svg" alt="NFC" class="nfc-logo" />
         </div>
       </div>
+    </div>
 
-      <div>
-        <q-linear-progress
-          :value="paymentProgress"
-          class="text-brandblue q-mb-md q-px-xl"
-        />
-      </div>
-
+    <div v-if="canViewPayments && !paymentDialogOpen" class="q-px-md q-mt-md">
       <template v-if="transactionsReceived?.length">
         <q-item
           v-for="(txReceived, index) in transactionsReceived"
@@ -193,16 +171,15 @@
           </q-item-section>
         </q-item>
       </template>
-      <div v-else-if="websocketsReady" class="row items-center justify-center">
-        <div v-if="!paid" class="text-grey text-center q-mt-xs q-pt-xs">
-          <q-spinner size="30px" class="q-mb-md" />
-          <div>{{ $t('WaitingForPayment') }}</div>
-        </div>
-      </div>
-      <div v-else>
-        {{ $t('NoTransactionsReceived') }}
+    </div>
+
+    <div v-if="websocketsReady && !paid" class="waiting-footer">
+      <div class="row items-center justify-center q-gutter-sm">
+        <q-spinner size="24px" />
+        <span class="text-subtitle1">{{ $t('WaitingForPayment') }}</span>
       </div>
     </div>
+
   </q-page>
 </template>
 <script>
@@ -1278,6 +1255,9 @@ export default defineComponent({
       startNewSession,
       clearPendingApiCalls,
       resetSessionData,
+      setupNFCScanner,
+      stopNFCScanner,
+      nfcScannerActive,
     } = usePaymentTracking({
       addressSet,
       isCashtoken,
@@ -1297,6 +1277,14 @@ export default defineComponent({
     watch(qrScannedFromTracking, (newVal) => {
       qrScanned.value = newVal
     }, { immediate: true })
+
+    function onNfcPillClick() {
+      setupNFCScanner(() => {
+        stopNFCScanner()
+        prepareForNewInvoice()
+        $router.push('/')
+      })
+    }
 
     // Start session if fiat amount was provided via props (after composable is initialized)
     if (props.setFiatAmount && props.setFiatCurrency && fiatReferenceAmount.value && fiatReferenceCurrency.value) {
@@ -1674,6 +1662,7 @@ export default defineComponent({
     })
 
     return {
+      walletStore,
       isOnline,
       promptOnLeave,
       loading,
@@ -1724,7 +1713,8 @@ export default defineComponent({
       formatNumberWithDecimals,
       isDebugModeEnabled,
       goToDebugConsole,
-      Capacitor
+      Capacitor,
+      onNfcPillClick,
     }
   },
 })
@@ -1768,5 +1758,148 @@ export default defineComponent({
   transform: translateX(-50%);
   z-index: 9999;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.waiting-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px 16px 28px;
+  text-align: center;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.waiting-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.body--dark .waiting-footer {
+  background: rgba(0, 0, 0, 0.5);
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.nfc-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--q-primary);
+  gap: 6px;
+}
+
+.nfc-logo {
+  width: 28px;
+  height: 28px;
+  color: var(--q-primary);
+}
+
+.payment-options {
+  width: 100%;
+}
+
+.payment-options__divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.payment-options__divider::before,
+.payment-options__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(128, 128, 128, 0.25);
+}
+
+.payment-options__divider span {
+  padding: 0 12px;
+}
+
+.nfc-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  background: rgba(128, 128, 128, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.nfc-pill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+  animation: nfc-pulse 2s infinite;
+}
+
+@keyframes nfc-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(33, 150, 243, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+  }
+}
+
+.nfc-pill:active {
+  transform: scale(0.96);
+}
+
+.nfc-pill .nfc-logo {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.nfc-pill__text {
+  text-align: left;
+  line-height: 1.2;
+}
+
+.nfc-pill__text .text-caption {
+  color: #2196f3 !important;
+}
+
+.body--dark .nfc-pill {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.body--dark .nfc-pill__text .text-caption {
+  color: #64b5f6 !important;
 }
 </style>

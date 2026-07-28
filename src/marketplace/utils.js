@@ -68,7 +68,7 @@ export function formatRole(value) {
 export function formatPurchaseOrderStatus(value) {
   switch(value) {
     case 'partial':
-      return $t('Partially received', {}, 'Partially received')
+      return $t('PartiallyReceived', {}, 'Partially received')
     case 'draft':
     case 'pending':
     case 'received':
