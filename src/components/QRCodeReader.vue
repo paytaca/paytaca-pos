@@ -43,10 +43,10 @@
 import { i18n } from "src/boot/i18n";
 import {
   checkPermission,
+  requestPermission,
   prepareScanner as prepareScannerUtil,
   startScan,
   stopScan as stopScanUtil,
-  openAppSettings,
 } from "src/utils/barcodeScanner";
 import { QrcodeStream } from "vue3-qrcode-reader";
 import { Capacitor } from "@capacitor/core";
@@ -160,11 +160,12 @@ export default {
         return status;
       }
 
-      if (status.asked || status.neverAsked) {
-        await openAppSettings();
+      if (status.neverAsked || status.unknown) {
+        const result = await requestPermission();
+        return result;
       }
 
-      if (status.restricted || status.unknown) {
+      if (status.restricted) {
         return status;
       }
 
