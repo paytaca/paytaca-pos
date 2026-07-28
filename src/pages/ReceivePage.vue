@@ -131,12 +131,15 @@
         <span class="text-caption text-grey">{{ $t('OrPayWith') }}</span>
       </div>
       <div class="row items-center justify-center">
-        <div class="nfc-pill">
-          <img src="/nfc-logo.svg" alt="NFC" class="nfc-logo" />
+        <div
+          class="nfc-pill cursor-pointer"
+          @click="onNfcPillClick"
+          v-ripple
+        >
           <div class="nfc-pill__text">
-            <div class="text-weight-medium">{{ $t('TapToPay') }}</div>
-            <div class="text-caption text-grey">{{ $t('PaytacaCard') }}</div>
+            <div class="text-weight-medium">{{ $t('ClickToEnableTapToPay') }}</div>
           </div>
+          <img src="/nfc-logo.svg" alt="NFC" class="nfc-logo" />
         </div>
       </div>
     </div>
@@ -1252,6 +1255,9 @@ export default defineComponent({
       startNewSession,
       clearPendingApiCalls,
       resetSessionData,
+      setupNFCScanner,
+      stopNFCScanner,
+      nfcScannerActive,
     } = usePaymentTracking({
       addressSet,
       isCashtoken,
@@ -1271,6 +1277,14 @@ export default defineComponent({
     watch(qrScannedFromTracking, (newVal) => {
       qrScanned.value = newVal
     }, { immediate: true })
+
+    function onNfcPillClick() {
+      setupNFCScanner(() => {
+        stopNFCScanner()
+        prepareForNewInvoice()
+        $router.push('/')
+      })
+    }
 
     // Start session if fiat amount was provided via props (after composable is initialized)
     if (props.setFiatAmount && props.setFiatCurrency && fiatReferenceAmount.value && fiatReferenceCurrency.value) {
@@ -1699,7 +1713,8 @@ export default defineComponent({
       formatNumberWithDecimals,
       isDebugModeEnabled,
       goToDebugConsole,
-      Capacitor
+      Capacitor,
+      onNfcPillClick,
     }
   },
 })
@@ -1833,6 +1848,34 @@ export default defineComponent({
   border: 1px solid rgba(128, 128, 128, 0.2);
   background: rgba(128, 128, 128, 0.04);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.nfc-pill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+  animation: nfc-pulse 2s infinite;
+}
+
+@keyframes nfc-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(33, 150, 243, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+  }
+}
+
+.nfc-pill:active {
+  transform: scale(0.96);
 }
 
 .nfc-pill .nfc-logo {
@@ -1847,8 +1890,16 @@ export default defineComponent({
   line-height: 1.2;
 }
 
+.nfc-pill__text .text-caption {
+  color: #2196f3 !important;
+}
+
 .body--dark .nfc-pill {
   border-color: rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
+}
+
+.body--dark .nfc-pill__text .text-caption {
+  color: #64b5f6 !important;
 }
 </style>

@@ -294,12 +294,12 @@ export function usePaymentTracking({
 
   const nfcStatusNotification = ref(null)
 
-  async function setupNFCScanner() {
+  async function setupNFCScanner(onCancel) {
     if (!shouldScanNfc.value || nfcScannerActive.value) return
 
     console.log('Setting up NFC scanner...')
     try {
-      await startNFCScan(handleNFCData)
+      await startNFCScan(handleNFCData, onCancel)
       nfcScannerActive.value = true
     } catch (error) {
       nfcScannerActive.value = false
@@ -487,17 +487,7 @@ export function usePaymentTracking({
     if (addressSet.value?.receiving) {
       setupListener()
     }
-
-    syncNFCScannerState()
   })
-
-  // Toggle NFC scanner as wallet/link settings change while Receive page is active
-  watch(
-    () => [walletStore.walletHash, walletStore.nfcPaymentsEnabled],
-    () => {
-      syncNFCScannerState()
-    }
-  )
 
   // Cleanup on unmount
   onUnmounted(() => {
@@ -525,7 +515,9 @@ export function usePaymentTracking({
     startNewSession,
     clearPendingApiCalls,
     resetSessionData,
-    setupNFCScanner
+    setupNFCScanner,
+    stopNFCScanner,
+    nfcScannerActive
   }
 }
 

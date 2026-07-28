@@ -65,7 +65,11 @@ public class SaveToGalleryPlugin: CAPPlugin, CAPBridgedPlugin {
 
         PHPhotoLibrary.shared().performChanges({
             let creationRequest = PHAssetCreationRequest.forAsset()
-            creationRequest.addResource(with: .photo, data: image.pngData()!, options: nil)
+            guard let pngData = image.pngData() else {
+                call.reject("Failed to encode image")
+                return
+            }
+            creationRequest.addResource(with: .photo, data: pngData, options: nil)
             localIdentifier = creationRequest.placeholderForCreatedAsset?.localIdentifier
         }) { success, error in
             DispatchQueue.main.async {

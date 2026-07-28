@@ -53,6 +53,7 @@
               icon="download"
               :label="$t('SaveImage')"
               :loading="saving"
+              :disable="loading"
               @click="saveAsImage"
             />
             <q-btn
@@ -132,7 +133,6 @@ export default defineComponent({
           scale: 3,
           logging: false,
           useCORS: true,
-          allowTaint: true,
         })
 
         const base64Data = canvas.toDataURL('image/png').split(',')[1]
@@ -147,10 +147,6 @@ export default defineComponent({
       } finally {
         saving.value = false
       }
-    }
-
-    function printPage() {
-      window.print()
     }
 
     function regenerateAddress() {
@@ -169,7 +165,6 @@ export default defineComponent({
       merchantName,
       qrData,
       saveAsImage,
-      printPage,
       regenerateAddress,
     }
   },
