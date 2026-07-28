@@ -197,6 +197,8 @@ export default defineComponent({
         return;
       }
 
+      localStorage.setItem('debugIconVisible', 'false');
+
       addressesStore.fillAddressSets();
       emit("device-linked");
 

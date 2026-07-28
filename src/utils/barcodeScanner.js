@@ -40,6 +40,27 @@ export async function checkPermission() {
   }
 }
 
+export async function requestPermission() {
+  const scanner = await getBarcodeScanner();
+  if (!scanner) return { granted: false, denied: true, asked: false, neverAsked: true, restricted: false, unknown: false };
+
+  const { BarcodeScanner } = scanner;
+  try {
+    const { camera } = await BarcodeScanner.requestPermissions();
+    return {
+      granted: camera === "granted",
+      denied: camera === "denied",
+      asked: camera !== "prompt",
+      neverAsked: camera === "prompt",
+      restricted: camera === "restricted",
+      unknown: camera === "prompt-with-rationale",
+    };
+  } catch (error) {
+    console.warn("BarcodeScanner requestPermission error:", error);
+    return { granted: false, denied: true, asked: false, neverAsked: true, restricted: false, unknown: false };
+  }
+}
+
 export async function prepareScanner() {
   const scanner = await getBarcodeScanner();
   if (!scanner) return false;
