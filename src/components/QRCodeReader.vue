@@ -1,5 +1,5 @@
 <template>
-  <div v-show="innerVal" ref="scannerContainerRef" class="scanner-container">
+  <div v-show="scannerUIVisible" ref="scannerContainerRef" class="scanner-container">
     <q-btn
       icon="close"
       rounded
@@ -71,6 +71,7 @@ export default {
     const $q = useQuasar();
     const errorMessage = ref(null);
     const innerVal = ref(props.modelValue);
+    const scannerUIVisible = ref(false);
     watch(
       () => [props.modelValue],
       () => (innerVal.value = props.modelValue)
@@ -81,9 +82,11 @@ export default {
 
     const isNativePlatform = computed(() => Capacitor.isNativePlatform());
 
-    watch(innerVal, () => {
+    watch(innerVal, async () => {
       if (innerVal.value && isNativePlatform.value) {
-        prepareScanner();
+        await prepareScanner();
+      } else if (innerVal.value && !isNativePlatform.value) {
+        scannerUIVisible.value = true;
       } else if (!innerVal.value) {
         stopScan();
       }
@@ -132,12 +135,17 @@ export default {
       if (status?.granted) {
         const prepared = await prepareScannerUtil();
         if (prepared) {
+          scannerUIVisible.value = true;
           await scanBarcode();
         } else {
+          innerVal.value = false;
           $emit("error", "Failed to prepare scanner");
         }
       } else {
-        $emit("error", "Permission denied");
+        innerVal.value = false;
+        if (status?.denied) {
+          $emit("error", "Permission denied");
+        }
       }
     }
 
@@ -175,7 +183,7 @@ export default {
     function stopScan() {
       stopScanUtil();
       adjustComponentsClasslist(false);
-
+      scannerUIVisible.value = false;
       innerVal.value = false;
     }
 
@@ -208,6 +216,7 @@ export default {
 
     return {
       innerVal,
+      scannerUIVisible,
       isNativePlatform,
       onScannerDecode,
       onScannerInit,
