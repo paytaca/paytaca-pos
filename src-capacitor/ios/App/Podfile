@@ -24,3 +24,49 @@ target 'App' do
   capacitor_pods
   # Add your Pods here
 end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    if target.name == 'GoogleToolboxForMac'
+      next if target.resources_build_phase.files_references.any? { |f|
+        f.path&.end_with?('PrivacyInfo.xcprivacy')
+      }
+
+      resources_dir = File.join(installer.sandbox.root,
+        'GoogleToolboxForMac', 'Resources')
+      privacy_path = File.join(resources_dir, 'PrivacyInfo.xcprivacy')
+
+      FileUtils.mkdir_p(resources_dir)
+      unless File.exist?(privacy_path)
+        File.write(privacy_path, <<~PLIST)
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+          	<key>NSPrivacyAccessedAPITypes</key>
+          	<array>
+          		<dict>
+          			<key>NSPrivacyAccessedAPIType</key>
+          			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+          			<key>NSPrivacyAccessedAPITypeReasons</key>
+          			<array>
+          				<string>CA92.1</string>
+          			</array>
+          		</dict>
+          	</array>
+          	<key>NSPrivacyCollectedDataTypes</key>
+          	<array/>
+          	<key>NSPrivacyTracking</key>
+          	<false/>
+          	<key>NSPrivacyTrackingDomains</key>
+          	<array/>
+          </dict>
+          </plist>
+        PLIST
+      end
+
+      file = installer.pods_project.new_file(privacy_path)
+      target.resources_build_phase.add_file_reference(file, true)
+    end
+  end
+end
