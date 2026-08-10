@@ -32,6 +32,7 @@ module.exports = configure(function (ctx) {
       "push-notifications",
       "qrcodereader",
       "websocket",
+      "card-socket",
       "i18n",
       "keyboard",
     ],
@@ -72,6 +73,9 @@ module.exports = configure(function (ctx) {
             "COINGECKO_API_KEY",
             "PINATA_GATEWAY_TOKEN",
             "SECURE_STORAGE_KEY",
+            "CARD_API_BASE_URL",
+            "CARD_SOCKET_PATH",
+            "CARD_SOCKET_FORMAT",
           ]
             .filter((key) => process.env[key])
             .map((key) => [key, process.env[key]]),

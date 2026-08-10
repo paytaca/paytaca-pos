@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 import { Capacitor } from '@capacitor/core'
 import { startNFCScan, stopNFCScan } from 'src/utils/nfcScanner'
 import { payWithCard } from 'src/card/payment'
+import { cardSocket } from 'src/card/socket'
 import { loadCardMerchantUser } from 'src/card/user'
 
 /**
@@ -357,6 +358,11 @@ export function usePaymentTracking({
     const url = urlRecord.payload
     const contractParams = textRecord.payload
     let merchant = null
+
+    // Warm up the persistent card socket in parallel with the merchant user
+    // load so the connection is ready (or reconnected) by the time the tap is
+    // processed, reducing the first-tap latency.
+    cardSocket.warmUp()
 
     try {
       merchant = await loadCardMerchantUser()    
