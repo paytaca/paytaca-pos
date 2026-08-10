@@ -66,9 +66,12 @@ export class CardSocket {
     this._lastMessageAt = 0
     this._notificationHandlers = new Set()
     this._auth = { token: null, publicKey: null }
+    this._authPromise = null
+    this._authenticated = false
     this._cleanup = null
 
     this.connectTimeout = opts.connectTimeout || 5000
+    this.authTimeout = opts.authTimeout || 3000
     this.requestTimeout = opts.requestTimeout || 60000
     this.heartbeatInterval = opts.heartbeatInterval || 15000
     this.staleTimeout = opts.staleTimeout || 45000
@@ -97,6 +100,14 @@ export class CardSocket {
 
   get isConnected() {
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN
+  }
+
+  /**
+   * True when the connection is open and its authentication message has been
+   * sent. `_authenticated` is reset per connection attempt in `_open()`.
+   */
+  get isReady() {
+    return this.isConnected && this._authenticated === true
   }
 
   get connectionState() {
@@ -133,15 +144,18 @@ export class CardSocket {
   }
 
   /**
-   * Connection-state gate. Resolves `true` once the socket is open, triggering
-   * a (re)connect if needed. Resolves `false` if the connection could not be
-   * established within `timeout`. Callers may fall back to HTTPS in that case.
+   * Connection-state gate. Resolves `true` once the socket is open AND its
+   * authentication has been sent, triggering a (re)connect if needed.
+   * Resolves `false` if the connection could not be established or
+   * authenticated within `timeout`. Callers may fall back to HTTPS in that case.
    * @param {Object} [opts]
    * @param {number} [opts.timeout] - Max milliseconds to wait for an open socket.
    * @returns {Promise<boolean>}
    */
   async ensureConnected({ timeout } = {}) {
-    if (this.isConnected) return true
+    if (this.isConnected) {
+      return this.ensureAuthenticated({ timeout: timeout || this.authTimeout })
+    }
     const waitFor = timeout || this.connectTimeout
     this.connect().catch(() => {})
     const start = Date.now()
@@ -149,18 +163,54 @@ export class CardSocket {
       if (Date.now() - start >= waitFor) return this.isConnected
       await delay(100)
     }
-    return true
+    const remaining = Math.max(waitFor - (Date.now() - start), 200)
+    return this.ensureAuthenticated({ timeout: remaining })
   }
 
   /**
-   * Sends a JSON-RPC request and resolves with the `result` payload.
+   * Waits until the authentication message for the current connection has been
+   * sent (or skipped because no credentials are available). WebSocket frames
+   * are processed in order, so sending `authenticate` before any RPC guarantees
+   * the server sees it first and prevents spurious "Not authenticated" errors.
+   * @param {Object} [opts]
+   * @param {number} [opts.timeout] - Max milliseconds to wait for auth readiness.
+   * @returns {Promise<boolean>}
+   */
+  async ensureAuthenticated({ timeout } = {}) {
+    if (!this.isConnected) return false
+    if (this._authenticated) return true
+    const authPromise = this._authPromise
+    if (!authPromise) return false
+    const waitFor = timeout || this.authTimeout
+    let timer
+    try {
+      const settled = await Promise.race([
+        authPromise,
+        new Promise((resolve) => {
+          timer = setTimeout(() => resolve(false), waitFor)
+        })
+      ])
+      return settled === true
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  /**
+   * Sends a JSON-RPC request and resolves with the `result` payload, gated on
+   * the connection being authenticated so requests never race the handshake.
    * @param {string} method - RPC method name.
    * @param {Object} [params] - RPC params.
    * @param {Object} [opts]
    * @param {number} [opts.timeout] - Per-request timeout in milliseconds.
    * @returns {Promise<*>}
    */
-  request(method, params = {}, { timeout } = {}) {
+  async request(method, params = {}, { timeout } = {}) {
+    const authenticated = await this.ensureAuthenticated()
+    if (!authenticated) {
+      const reason = this.isConnected ? 'is not authenticated' : 'is not connected'
+      throw new Error(`Card socket ${reason} (cannot call ${method})`)
+    }
     return new Promise((resolve, reject) => {
       if (!this.isConnected) {
         reject(new Error(`Card socket is not connected (cannot call ${method})`))
@@ -242,8 +292,9 @@ export class CardSocket {
         this._ctr = 0
         this._reconnectAttempts = 0
         this._lastMessageAt = Date.now()
+        this._authenticated = false
         this._startHeartbeat()
-        this._sendAuth().catch(() => {})
+        this._authPromise = this._sendAuth()
         resolve()
       }
       const onError = () => {
@@ -363,9 +414,14 @@ export class CardSocket {
     const params = { ...envelope.params }
     if (typeof params.picc_data === 'string') params.picc_data = hexToBytes(params.picc_data)
     if (typeof params.cmac === 'string') params.cmac = hexToBytes(params.cmac)
-    if (params.tx && typeof params.tx === 'object') {
-      params.tx = { ...params.tx }
-      if (typeof params.tx.hex === 'string') params.tx.hex = hexToBytes(params.tx.hex)
+    if (Array.isArray(params.signatures)) {
+      params.signatures = params.signatures.map((sig) => {
+        if (!sig || typeof sig !== 'object') return sig
+        const out = { ...sig }
+        if (typeof out.merchantSigHex === 'string') out.merchantSigHex = hexToBytes(out.merchantSigHex)
+        if (typeof out.merchantPkHex === 'string') out.merchantPkHex = hexToBytes(out.merchantPkHex)
+        return out
+      })
     }
     return { ...envelope, params }
   }
@@ -414,10 +470,20 @@ export class CardSocket {
       const params = {}
       if (token) params.token = token
       if (publicKey) params.public_key = publicKey
-      if (Object.keys(params).length === 0) return
+      this._authPromise = null
+      if (Object.keys(params).length === 0) {
+        // No credentials to send; assume the server does not require auth so
+        // the connection is treated as request-ready.
+        this._authenticated = true
+        return true
+      }
       this._sendRaw({ jsonrpc: '2.0', method: 'authenticate', params })
+      this._authenticated = true
+      return true
     } catch (error) {
+      this._authenticated = false
       console.warn('[cardSocket] Authentication message not sent:', error.message)
+      return false
     }
   }
 

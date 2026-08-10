@@ -7,6 +7,15 @@ import { TapToPayContract } from "./contract/taptopay"
 
 const SOCKET_CONNECT_TIMEOUT_MS = 5000
 
+// Server-side persistence window for the preimage result (TRANSACTION_TTL_SECONDS).
+// The spend step must start within this window or the server reports the tx_id as expired.
+const PREIMAGE_TTL_MS = 120 * 1000
+const PREIMAGE_TTL_MARGIN_MS = 5000
+
+// Retry policy for concurrent-finalize conflicts on the spend endpoint.
+const SPEND_RETRY_MAX = 3
+const SPEND_RETRY_BACKOFF_MS = 250
+
 
 /**
  * Parses the NFC URL to extract the piccData and cmac values.
@@ -90,11 +99,11 @@ async function validatePreimages({ preimages, contractParameters, merchant, reci
   * @param {string} params.receivingAddress - The Bitcoin address to receive the payment
   * @param {number} params.amountSats - The amount to spend in satoshis
   * @param {string} params.piccData - The piccData value from the NFC URL
-  * @param {string} params.cmac - The cmac value from the NFC URL
-  * @returns {Promise<object>} The preimage response data
-  */
+   * @param {string} params.cmac - The cmac value from the NFC URL
+   * @returns {Promise<object>} The preimage response data ({ tx_id, txHex, preimages, inputs })
+   */
 async function requestPreimages({ merchantId, receivingAddress, amountSats, piccData, cmac }) {
-  if (cardSocket.isConnected) {
+  if (cardSocket.isReady) {
     try {
       const data = await cardSocket.request('cards.preimage', {
         merchant_id: merchantId,
@@ -133,40 +142,118 @@ async function requestPreimages({ merchantId, receivingAddress, amountSats, picc
   return data;
 }
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 /**
-  * Submits the signed spend transaction, preferring the persistent WebSocket and
-  * falling back to HTTPS. The signed tx payload is reused on fallback so the
-  * preimages are never re-requested.
-  * @param {string} uid - The card UID
-  * @param {Object} params
-  * @param {string} params.merchantId - The ID of the merchant receiving the payment
-  * @param {Object} params.tx - The signed transaction { hex, signatures, inputs }
-  * @returns {Promise<object>} The spend response data
-  */
-async function requestSpend(uid, { merchantId, tx }) {
-  if (cardSocket.isConnected) {
+ * True when the server rejected a concurrent-finalize attempt. Retrying the
+ * same tx_id is safe and should be surfaced to the UI as retryable.
+ */
+function isRetryableConflictError(error) {
+  const message = error?.message || ''
+  return message.includes('already being finalized by another request')
+}
+
+/**
+ * True when the persisted preimage record expired before the spend step. The
+ * record cannot be revived; the full preimage -> sign -> spend flow must be
+ * restarted, so the error is terminal and not worth retrying.
+ */
+function isExpiredTransactionError(error) {
+  const message = error?.message || ''
+  return message.includes('Transaction not found or expired')
+}
+
+/**
+ * Runs a single spend attempt over the persistent WebSocket, falling back to
+ * HTTPS when the socket is unavailable or errors. Because the server keys the
+ * built transaction by tx_id, a lost/errored socket response can be safely
+ * replayed against HTTPS: the server returns the recorded outcome without
+ * rebroadcasting.
+ * @param {string} uid - The card UID
+ * @param {Object} params
+ * @param {string} params.merchant_id - The ID of the merchant receiving the payment
+ * @param {string} params.uid - The card UID echoed on the request
+ * @param {string} params.tx_id - The tx_id from the preimage response
+ * @param {Array<{ inputIndex: number, merchantSigHex: string }>} params.signatures
+ * @returns {Promise<object>} The spend response data
+ */
+async function attemptSpend(uid, params) {
+  if (cardSocket.isReady) {
     try {
-      const data = await cardSocket.request('cards.spend', {
-        merchant_id: merchantId,
-        tx: tx
-      });
+      const data = await cardSocket.request('cards.spend', params);
       console.log('Spend response (socket):', data);
+      if (data?.success === false) {
+        throw new Error(data.error || 'Failed to finalize spend transaction');
+      }
+      if (data?.success === true && data?.replay === true) {
+        console.warn('Spend record was already finalized by a previous attempt; replay treated as success:', data);
+      }
       return data;
     } catch (error) {
       console.warn('Socket spend request failed, falling back to HTTPS:', error.message);
     }
   }
 
-  const response = await backend.post(`/cards/${uid}/spend/`, {
-    merchant_id: merchantId,
-    tx: tx
-  }).catch(error => {
+  const response = await backend.post(`/cards/${uid}/spend/`, params).catch(error => {
     const errorMessage = error.response?.data?.error || error.message || 'Error during spend transaction request'
     console.error(errorMessage);
     throw new Error(errorMessage);
   });
 
-  return response.data
+  const data = response.data;
+  if (data?.success === false) {
+    throw new Error(data.error || 'Failed to finalize spend transaction');
+  }
+  return data;
+}
+
+/**
+  * Submits the signed spend for a preimage-recorded tx_id, preferring the
+  * persistent WebSocket and falling back to HTTPS. The server looks up the
+  * stored transaction by tx_id, so a lost socket response can be retried over
+  * HTTPS as an idempotent replay. Concurrent-finalize conflicts are retried a
+  * bounded number of times; expired-record errors are terminal.
+  * @param {string} uid - The card UID
+  * @param {Object} params
+  * @param {string} params.merchantId - The ID of the merchant receiving the payment
+  * @param {string} params.toAddress - The Bitcoin address receiving the payment (optional)
+  * @param {string} params.txId - The tx_id echoed from the preimage response
+  * @param {Array<{ inputIndex: number, merchantSigHex: string }>} params.signatures
+  * @returns {Promise<object>} The spend response data
+  */
+async function requestSpend(uid, { merchantId, toAddress, txId, signatures }) {
+  const params = {
+    merchant_id: merchantId,
+    uid: uid,
+    tx_id: txId,
+    signatures: signatures
+  };
+  if (toAddress) {
+    params.to_address = toAddress;
+  }
+
+  // Bounded retries for the retryable conflict error ("Transaction is already
+  // being finalized by another request; please retry"). Expired-record and
+  // other errors are terminal and surface immediately.
+  let retries = SPEND_RETRY_MAX;
+  for (;;) {
+    try {
+      return await attemptSpend(uid, params);
+    } catch (error) {
+      if (retries > 0 && isRetryableConflictError(error)) {
+        retries -= 1;
+        console.warn(`Spend request conflicted, retrying (${retries} left):`, error.message);
+        await delay(SPEND_RETRY_BACKOFF_MS * (SPEND_RETRY_MAX - retries));
+        continue;
+      }
+      if (isExpiredTransactionError(error)) {
+        throw new Error(`Transaction record expired or missing; please tap the card again to retry (${error.message})`);
+      }
+      throw error;
+    }
+  }
 }
 
 /**
@@ -206,6 +293,14 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
     cmac
   });
 
+  // The preimage record is bound to this server-generated tx_id for the whole
+  // preimage -> card-signing -> spend flow. The spend step echoes it back.
+  const txId = data.tx_id;
+  if (!txId) {
+    throw new Error('Preimage response did not include a tx_id; cannot finalize the spend');
+  }
+  const preimageReceivedAt = performance.now();
+
   const privkey = await getPrivateKeyWif()
   const merchant = { 
     id: merchantId,
@@ -226,18 +321,24 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
   });
 
   const preimages = data.preimages;
-  const signatures = await signPreimages({
+  const signatures = (await signPreimages({
     preimages,
     wif: privkey
-  });
+  })).map(({ inputIndex, merchantSigHex }) => ({ inputIndex, merchantSigHex }));
+
+  // Guard against slow card signing crossing the server's record window
+  // (TRANSACTION_TTL_SECONDS). If the tx_id has likely expired, a new tap is
+  // required and retrying the spend would only fail.
+  const elapsedMs = performance.now() - preimageReceivedAt;
+  if (elapsedMs > PREIMAGE_TTL_MS - PREIMAGE_TTL_MARGIN_MS) {
+    throw new Error('Spend preimage record expired; please tap the card again to retry');
+  }
 
   const spendData = await requestSpend(uid, {
     merchantId,
-    tx: {
-      hex: data.txHex,
-      signatures: signatures,
-      inputs: data.inputs
-    }
+    toAddress: receivingAddress,
+    txId,
+    signatures
   });
   
   const endTime = performance.now();

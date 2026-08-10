@@ -68,8 +68,24 @@ Request:
 Response (mirrors the REST response body):
 
 ```json
-{ "jsonrpc": "2.0", "id": 1, "result": { "preimages": [...], "txHex": "...", "inputs": [...] } }
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "success": true,
+    "uid": "...",
+    "tx_id": "11111111-1111-4111-8111-111111111111",
+    "txHex": "0200...",
+    "preimages": [...],
+    "inputs": [...]
+  }
+}
 ```
+
+`tx_id` is a server-generated identifier. The server persists the UTXO
+selection and built transaction under this id for a finite window
+(`TRANSACTION_TTL_SECONDS`, default 120s). The spend step must echo `tx_id`
+verbatim and finish before the record expires.
 
 Error (either JSON-RPC error or `success: false` in the result, matching current
 REST semantics):
@@ -91,15 +107,47 @@ Request:
   "method": "cards.spend",
   "params": {
     "merchant_id": "...",
-    "tx": { "hex": "...", "signatures": [...], "inputs": [...] }
+    "uid": "...",
+    "to_address": "...",
+    "tx_id": "11111111-1111-4111-8111-111111111111",
+    "signatures": [
+      { "inputIndex": 0, "merchantSigHex": "..." },
+      { "inputIndex": 1, "merchantSigHex": "..." }
+    ]
   }
 }
 ```
 
+- `tx_id` is the value returned by `cards.preimage`, echoed back verbatim.
+  The full signed transaction hex is **not** sent; the server looks up the
+  stored record by `tx_id`, rebuilds it, and (re)broadcasts.
+- `signatures` has one entry per input, keyed by `inputIndex`.
+- `to_address` is optional.
+
+Lifecycle guarantees the client relies on:
+
+- **Finite validity** — the pushed record auto-expires after
+  `TRANSACTION_TTL_SECONDS` (default 120s). If the client calls spend after
+  expiry the server rejects with
+  `Transaction not found or expired. Unknown tx_id: <id>`. The whole
+  preimage → sign → spend flow must complete within this window; retrying a
+  spend never revives an expired record, a fresh `cards.preimage` is required.
+- **Idempotent replays** — re-sending `cards.spend` with an already-finalized
+  `tx_id` is safe and does not double-broadcast. The server returns the
+  recorded outcome, e.g.
+  `{ "success": true, "status": "broadcast", "txid": "...", "replay": true }`
+  (or `"status": "finalized"` plus `txHex`). The client treats such replays as
+  success — this is what makes the HTTPS fallback after a lost socket response
+  safe.
+- **Concurrent finalize conflicts** — a concurrent finalize for the same
+  `tx_id` returns `Transaction is already being finalized by another request;
+  please retry.` The client should retry the same request (bounded) and map the
+  exhausted error to a retryable UI state.
+
 Response:
 
 ```json
-{ "jsonrpc": "2.0", "id": 2, "result": { "success": true, ... } }
+{ "jsonrpc": "2.0", "id": 2, "result": { "success": true, "status": "broadcast", "txid": "...", "replay": true } }
 ```
 
 ## Binary framing (optional, opt-in)
@@ -107,11 +155,11 @@ Response:
 Payloads default to JSON (`CARD_SOCKET_FORMAT=json`). To enable compact binary
 framing, set `CARD_SOCKET_FORMAT=cbor`. In that mode every message frame is a
 CBOR-encoded JSON-RPC envelope instead of JSON text. `hex`-style fields that are
-typically large (e.g. `tx.hex`, and `picc_data`/`cmac`) are sent as CBOR byte
-strings rather than hex text. Responses returned by the server should use byte
-strings for the same fields; the client normalizes any byte string back to a hex
-string before it reaches the payment logic, so the wire format is transparent to
-the rest of the app.
+typically large (e.g. `signatures[].merchantSigHex`, and `picc_data`/`cmac`)
+are sent as CBOR byte strings rather than hex text. Responses returned by the
+server should use byte strings for the same fields; the client normalizes any
+byte string back to a hex string before it reaches the payment logic, so the
+wire format is transparent to the rest of the app.
 
 Only enable CBOR once the server has been updated to decode CBOR frames, since
 the client does not negotiate per-message.
@@ -120,7 +168,13 @@ the client does not negotiate per-message.
 
 - The socket is opened at app start (`src/boot/card-socket.js`).
 - Before processing a tap, `payWithCard` calls `ensureConnected()`, which waits
-  for/triggers a reconnect if the socket is not yet open.
+  for/triggers a reconnect if the socket is not yet open and also waits for the
+  `authenticate` frame to be sent. Because WebSocket frames are processed in
+  order, sending `authenticate` before any RPC prevents spurious
+  "Not authenticated" rejections.
+- `request()` itself is gated on auth readiness; the per-request helpers only
+  use the socket when it is `isReady` (open + authenticated), so a
+  not-yet-authenticated or failed connection falls back to HTTPS directly.
 - Heartbeat pings + a stale watchdog detect idle dropped connections and recover
   before the next tap.
 - Reconnects use exponential backoff (1s base, doubling, capped ~30s, with
