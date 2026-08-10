@@ -102,6 +102,7 @@ export default {
   Clear: "清除",
   ClearList: "清除列表",
   ClickToEnableTapToPay: "单击以启用触碰付款",
+  TapToPayScanning: "正在扫描 — 请将卡片靠近手机",
   Close: "关闭",
   Code: "代码",
   CollectionDeleted: "收藏已删除",

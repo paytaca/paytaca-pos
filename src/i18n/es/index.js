@@ -102,6 +102,7 @@ export default {
   Clear: "Borrar",
   ClearList: "Borrar lista",
   ClickToEnableTapToPay: "Haga clic para habilitar Tocar para pagar",
+  TapToPayScanning: "Escaneando ahora — acerque la tarjeta al teléfono",
   Close: "Cerrar",
   Code: "Código",
   CollectionDeleted: "Colección eliminada",

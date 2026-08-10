@@ -102,6 +102,7 @@ export default {
   Clear: "クリア",
   ClearList: "リストをクリアする",
   ClickToEnableTapToPay: "クリックしてタップツーペイを有効にします",
+  TapToPayScanning: "スキャン中 — カードを電話にかざしてください",
   Close: "閉じる",
   Code: "コード",
   CollectionDeleted: "コレクションが削除されました",

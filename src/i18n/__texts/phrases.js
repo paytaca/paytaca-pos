@@ -38,6 +38,7 @@ const phrases = {
       ErrorSavingImage: "Error saving image",
       OrPayWith: "Or pay with",
       ClickToEnableTapToPay: "Click to enable Tap-to-Pay",
+      TapToPayScanning: "Now scanning — tap the card near the phone",
       NoTransactionsReceived: "No transactions received",
       NoTransactionsToDisplay: "No transactions to display",
       SalesLast24h: "Sales (Last 24h)",

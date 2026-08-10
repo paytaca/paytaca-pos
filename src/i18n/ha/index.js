@@ -102,6 +102,7 @@ export default {
   Clear: "Share",
   ClearList: "Share jerin",
   ClickToEnableTapToPay: "Danna don kunna Tap-don-Biya",
+  TapToPayScanning: "Ana duba yanzu — a kusantar da katin zuwa waya",
   Close: "Kusa",
   Code: "Lambar",
   CollectionDeleted: "An goge tarin",

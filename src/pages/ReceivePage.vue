@@ -133,11 +133,16 @@
       <div class="row items-center justify-center">
         <div
           class="nfc-pill cursor-pointer"
+          :class="{ 'nfc-pill--active': nfcScannerActive }"
           @click="onNfcPillClick"
           v-ripple
         >
           <div class="nfc-pill__text">
-            <div class="text-weight-medium">{{ $t('ClickToEnableTapToPay') }}</div>
+            <div v-if="nfcScannerActive" class="nfc-indicator">
+              <q-spinner size="18px" />
+              <span class="text-weight-medium">{{ $t('TapToPayScanning') }}</span>
+            </div>
+            <div v-else class="text-weight-medium">{{ $t('ClickToEnableTapToPay') }}</div>
           </div>
           <img src="/nfc-logo.svg" alt="NFC" class="nfc-logo" />
         </div>
@@ -1279,6 +1284,7 @@ export default defineComponent({
     }, { immediate: true })
 
     function onNfcPillClick() {
+      if (nfcScannerActive.value) return
       setupNFCScanner(() => {
         stopNFCScanner()
         prepareForNewInvoice()
@@ -1715,6 +1721,7 @@ export default defineComponent({
       goToDebugConsole,
       Capacitor,
       onNfcPillClick,
+      nfcScannerActive,
     }
   },
 })
@@ -1876,6 +1883,15 @@ export default defineComponent({
 
 .nfc-pill:active {
   transform: scale(0.96);
+}
+
+.nfc-pill--active {
+  border-color: #2196f3;
+  background: rgba(33, 150, 243, 0.1);
+}
+
+.nfc-pill--active .nfc-logo {
+  opacity: 1;
 }
 
 .nfc-pill .nfc-logo {
