@@ -302,6 +302,9 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
   const preimageReceivedAt = performance.now();
 
   const privkey = await getPrivateKeyWif()
+  if (!privkey) {
+    throw new Error('Merchant private key not found. Please enable NFC payments in Settings first.')
+  }
   const merchant = { 
     id: merchantId,
     pubkey: getPublicKeyFromPrivate(privkey)

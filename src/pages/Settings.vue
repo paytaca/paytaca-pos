@@ -261,6 +261,7 @@
           />
 
           <q-item
+            v-if="nfcSupported"
             :clickable="!walletStore.nfcPaymentsEnabled"
             class="q-py-md"
             v-on="!walletStore.nfcPaymentsEnabled ? { click: onEnableNfcPaymentsClick } : {}"
@@ -371,7 +372,7 @@
         </q-list>
       </q-card>
     </div>
-    <EnableNFCPayments v-if="showEnableNfcPayments" :show="showEnableNfcPayments" @close="onCloseEnableNfcPaymentsDialog" />
+    <EnableNFCPayments v-if="showEnableNfcPayments && nfcSupported" :show="showEnableNfcPayments" @close="onCloseEnableNfcPaymentsDialog" />
   </div>
 </template>
 
@@ -389,6 +390,7 @@ import DefaultAssetSelector from "src/components/settings/DefaultAssetSelector.v
 import { useDebugLogger } from "src/composables/useDebugLogger";
 import EnableNFCPayments from "src/components/EnableNFCPayments.vue";
 import Watchtower from 'watchtower-cash-js';
+import nfcScanner from "src/utils/nfcScanner";
 
 export default defineComponent({
   name: "SettingsPage",
@@ -412,6 +414,7 @@ export default defineComponent({
     const longPressTimer = ref(null);
     const LONG_PRESS_DURATION = 500;
     const showEnableNfcPayments = ref(false);
+    const nfcSupported = ref(false);
 
     onMounted(async () => {
       const stored = localStorage.getItem("debugIconVisible");
@@ -422,6 +425,7 @@ export default defineComponent({
         stopInterception();
       }
 
+      nfcSupported.value = await nfcScanner.isSupported();
       await checkNfcPaymentsEnabled();
     });
 
@@ -555,7 +559,8 @@ export default defineComponent({
       handleTitleMouseUp,
       showEnableNfcPayments,
       onCloseEnableNfcPaymentsDialog,
-      onEnableNfcPaymentsClick
+      onEnableNfcPaymentsClick,
+      nfcSupported
     };
   },
 });

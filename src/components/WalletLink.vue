@@ -25,15 +25,6 @@
         <q-btn
           unelevated
           color="primary"
-          icon="key"
-          :label="$t('ViewEncryptionKey', 'View Encryption Key')"
-          class="link-button"
-          @click="encryptionKeyPrompt()"
-        />
-
-        <q-btn
-          unelevated
-          color="primary"
           icon="mdi-link-variant"
           :label="$t('InputLink')"
           class="link-button"
@@ -57,40 +48,6 @@
     @decode="onQrDecode"
     @error="onQrError"
   />
-  <q-dialog v-model="showEncryptionKeyDialog">
-    <q-card style="min-width: 200px; max-width: 400px">
-      <q-card-section>
-        <div class="text-h6">{{ $t("EncryptionKey", "Encryption Key") }}</div>
-        <div class="row justify-center">
-          <QRCode
-            v-if="encryptionPublicKey"
-            :text="encryptionPublicKey"
-            :size="200"
-            class="q-mt-md"
-          />
-        </div>
-        <q-input
-          v-model="encryptionPublicKey"
-          label="Encryption Public Key"
-          readonly
-          outlined
-          class="q-mt-md"
-        >
-        <template #append>
-          <q-btn
-            flat
-            color="primary"
-            icon="content_copy"
-            @click="copyToClipboard(encryptionPublicKey, $t('EncryptionKeyCopied', 'Encryption key copied to clipboard'))"
-          />
-        </template>
-        </q-input>
-      </q-card-section>
-      <q-card-actions align="right">
-        <q-btn flat @click="showEncryptionKeyDialog = false" :label="$t('Close')" />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
 </template>
 <script>
 import Watchtower from "watchtower-cash-js";
@@ -99,18 +56,12 @@ import { useAddressesStore } from "src/stores/addresses";
 import { aes, getPubkeyAt } from "src/wallet/utils";
 import QRCodeReader from "src/components/QRCodeReader.vue";
 import { getDeviceInfo, getDeviceId } from "src/utils/device";
-import { defineComponent, onMounted, ref } from "vue";
+import { defineComponent, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useQuasar, copyToClipboard as qCopyToClipboard } from "quasar";
-import { getEncryptionKeypair, getOrGenerateEncryptionKeypair } from "src/card/keypair";
-import QRCode from "vue-qrcode-component";
-import { decryptWithPrivateKey } from "src/utils/ecies";
-import { getPrivateKeyWif, savePrivateKeyWif } from "src/card/user";
-
+import { useQuasar } from "quasar";
 export default defineComponent({
   components: {
     QRCodeReader,
-    QRCode,
   },
   emits: ["device-linked"],
   props: {
@@ -123,16 +74,7 @@ export default defineComponent({
 
     const walletStore = useWalletStore();
     const addressesStore = useAddressesStore();
-    const encryptionPublicKey = ref("");
-    const showEncryptionKeyDialog = ref(false);
     let dialog;
-
-    async function encryptionKeyPrompt() {
-      const encryptionKeypair = await getOrGenerateEncryptionKeypair();
-      const publicKey = encryptionKeypair.pubkey;
-      encryptionPublicKey.value = publicKey;
-      showEncryptionKeyDialog.value = true;
-    }
 
     function linkCodePrompt() {
       $q.dialog({
@@ -177,16 +119,11 @@ export default defineComponent({
       try {
         const parsedLinkCode = parseLinkCode(content);
         const qrCodeData = decodeLinkContent(parsedLinkCode);
-        const skipDecryption = qrCodeData?.skip || false;
-
-        if (!skipDecryption) {
-          const encryptedData = await retrieveLinkCodeData(qrCodeData);
-          const { xpubkey, authPrivateKey } = await decryptData(qrCodeData.encryptKey, encryptedData);
-          await savePrivateKeyWif(authPrivateKey);
-          const verifyingPubkey = generateVerifyingPubkey(xpubkey, qrCodeData.nonce);
-          const deviceInfo = await retrieveDeviceInfo();
-          await redeemDeviceLinkCode({ qrCodeData, xpubkey, verifyingPubkey, deviceInfo });
-        }
+        const encryptedData = await retrieveLinkCodeData(qrCodeData);
+        const xpubkey = await decryptData(qrCodeData.decryptKey, encryptedData);
+        const verifyingPubkey = generateVerifyingPubkey(xpubkey, qrCodeData.nonce);
+        const deviceInfo = await retrieveDeviceInfo();
+        await redeemDeviceLinkCode({ qrCodeData, xpubkey, verifyingPubkey, deviceInfo });
       } catch (error) {
         console.error(error);
         dialog.update({
@@ -253,9 +190,12 @@ export default defineComponent({
         dialog.update({ message: t("DecodingContent") });
         const decodedContent = JSON.parse(content);
         const code = decodedContent.code;
-        const encryptKey = decodedContent.encryptKey;
+        const decryptKey = {
+          password: decodedContent.decryptKey.split(".")[0],
+          iv: decodedContent.decryptKey.split(".")[1],
+        };
         const nonce = decodedContent.nonce;
-        return { code, encryptKey, nonce };
+        return { code, decryptKey, nonce };
       } catch (error) {
         dialog.update({
           title: t("LinkDeviceError"),
@@ -270,7 +210,7 @@ export default defineComponent({
       try {
         dialog.update({ message: t("RetrievingLinkCodeData") });
         const response = await watchtower.BCH._api.get(
-          `paytacapos/devices/link_code_data_v2/`,
+          `paytacapos/devices/link_code_data/`,
           { params: { code: qrCodeData.code } }
         );
         return response?.data;
@@ -284,16 +224,10 @@ export default defineComponent({
       }
     }
 
-    async function decryptData(encryptKey, encryptedData) {
+    async function decryptData(decryptKey, encryptedData) {
       try {
         dialog.update({ message: t("DecryptingXpubkey") });
-        const encryptionKeypair = await getEncryptionKeypair()
-        const decryptKey = encryptionKeypair?.privkey
-        if (!decryptKey) {
-          throw new Error("Missing device encryption private key. Generate and use this device's encryption key first.");
-        }
-        const result = JSON.parse(await decryptWithPrivateKey(encryptedData, encryptKey, decryptKey));
-        return { xpubkey: result.xpubkey, authPrivateKey: result.privateKey };
+        return aes.decrypt(encryptedData, decryptKey.password, decryptKey.iv);
       } catch(error) {
         dialog.update({
           title: t("LinkDeviceError"),
@@ -352,7 +286,7 @@ export default defineComponent({
           device_id: deviceInfo?.uuid,
         };
         const response = await watchtower.BCH._api.post(
-          "paytacapos/devices/redeem_link_device_code_v2/",
+          "paytacapos/devices/redeem_link_device_code/",
           data
         );
         walletStore.$patch((walletStoreState) => {
@@ -381,50 +315,14 @@ export default defineComponent({
       }
     }
 
-    async function copyToClipboard(value, message = "") {
-      const text = String(value || "");
-      if (!text) return;
-
-      const onCopySuccess = () => {
-        $q.notify({
-          message: message || t("CopiedToClipboard"),
-          timeout: 800,
-          icon: "mdi-clipboard-check",
-          color: "blue-9",
-        });
-      };
-
-      const onCopyError = () => {
-        $q.notify({
-          message: t("FailedToCopy") || "Failed to copy",
-          timeout: 1200,
-          icon: "error",
-          color: "negative",
-        });
-      };
-
-      try {
-        await qCopyToClipboard(text);
-        onCopySuccess();
-        return;
-      } catch (error) {
-        console.error("Quasar clipboard copy failed", error);
-        onCopyError();
-      }
-    }
-
     return {
       walletStore,
-      encryptionPublicKey,
-      showEncryptionKeyDialog,
-      encryptionKeyPrompt,
       linkCodePrompt,
       toggleQrScanner,
       showQrScanner,
       linkToWallet,
       onQrDecode,
       onQrError,
-      copyToClipboard
     };
   },
 });
