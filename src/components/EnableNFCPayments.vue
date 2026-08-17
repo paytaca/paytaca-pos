@@ -1,121 +1,121 @@
 <template>
-    <q-dialog v-model="showDialog" @hide="() => $emit('close')">
-        <q-card class="q-pb-md">
-            <div v-if="step == 'notice'">
-                <q-card-section class="row items-center q-gutter-md q-pa-lg">
-                    <q-avatar icon="nfc" size="56px" class="bg-primary text-white" />
-                    <div class="col">
-                        <div class="text-h6"> Enable NFC Payments </div>
-                        <div class="text-subtitle2">Enable NFC payments to make transactions faster and more convenient
-                        </div>
-                    </div>
-                </q-card-section>
-                <q-card-actions align="center">
-                    <q-btn color="primary" @click="onStartSetup">Get Started</q-btn>
-                    <q-btn flat @click="closeDialog">Close</q-btn>
-                </q-card-actions>
-            </div>
-            <div v-if="step == 'encryption-key-transfer'">
-                <q-card-section class="q-pa-lg">
-                    <div class="text-h6">Encryption Keypair</div>
-                    <div class="text-subtitle2 q-mt-sm">
-                        Open Paytaca app, navigate to Apps > Merchant Admin.
-                        <ol>
-                            <li>Select the merchant you want to enable NFC payments for. </li>
-                            <li>Create or select this POS device in the "POS Devices" section.</li>
-                            <li>Tap on more options (three dots) and select "Enable NFC Payments".</li>
-                            <li>Scan the QR code below, or copy the key and input it manually.</li>
-                        </ol>
-                    </div>
-                    <div v-if="!loadingKeypair" class="row justify-center q-mt-md">
-                        <div class="row">
-                            <QRCode
-                                :text="encryptionPublicKey"
-                                :size="$q.platform.is.ios ? 275 : 240"
-                                color="#253933"
-                                error-level="H"
-                                class="q-mb-sm"
-                                @error="(error) => console.error('[ReceivePage] QRCode component error:', error)"
-                            />
-                        </div>
-                        <div class="row justify-center q-gutter-md q-mt-md">
-                          <q-input
-                              v-model="encryptionPublicKey"
-                              label="Encryption Public Key"
-                              readonly
-                              outlined
-                              class="q-mt-md"
-                              style="min-width: 50%;">
-                              <template #append>
-                                <q-btn
-                                    flat
-                                    dense
-                                    color="primary"
-                                    icon="content_copy"
-                                    @click="copyToClipboard(encryptionPublicKey, $t('EncryptionKeyCopied', 'Encryption key copied to clipboard'))"
-                                />
-                              </template>
-                          </q-input>
-                          <q-btn color="primary" @click="updateStep('code-parse')">Next</q-btn>
-                        </div>
-                    </div>
-                    <div v-else class="row justify-center q-mt-md">
-                        <q-spinner color="primary" size="50px" />
-                    </div>
-                </q-card-section>
-            </div>
-            <div v-if="step == 'code-parse'">
-                <q-card-section class="q-pa-lg">
-                    <div class="text-h6">Input NFC Setup Code</div>
-                    <div class="text-subtitle2 q-mt-sm">
-                        Input or scan the NFC setup code displayed in the Paytaca app to complete the setup process. 
-                    </div>
-                    <div class="row justify-center q-mt-md">
-                      <div class="row justify-center q-gutter-md q-mt-md">
-                        <q-input
-                            v-model="requestCode"
-                            label="NFC Setup Code"
-                            outlined
-                            class="q-mt-md"
-                            :rules="[value => !!value || 'NFC setup code is required']"
-                            hide-bottom-space
-                            style="min-width: 50%;">
-                            <template #append>
-                              <q-btn
-                                  flat
-                                  dense
-                                  color="primary"
-                                  icon="qr_code_scanner"
-                                  @click="showQRScanner = true"
-                              />
-                            </template>
-                        </q-input>
-                          <q-btn 
-                          color="primary" 
-                          label="Setup"
-                          :disabled="!requestCode"
-                          @click="() => decodeData()"
-                          />
+  <QRCodeReader v-model="showQRScanner" @decode="onQrDecode"  @error="onQrError" />
+  <q-dialog v-model="showDialog" @hide="() => $emit('close')">
+      <q-card class="q-pb-md">
+          <div v-if="step == 'notice'">
+              <q-card-section class="row items-center q-gutter-md q-pa-lg">
+                  <q-avatar icon="nfc" size="56px" class="bg-primary text-white" />
+                  <div class="col">
+                      <div class="text-h6"> Enable NFC Payments </div>
+                      <div class="text-subtitle2">Enable NFC payments to make transactions faster and more convenient
                       </div>
+                  </div>
+              </q-card-section>
+              <q-card-actions align="center">
+                  <q-btn color="primary" @click="onStartSetup">Get Started</q-btn>
+                  <q-btn flat @click="closeDialog">Close</q-btn>
+              </q-card-actions>
+          </div>
+          <div v-if="step == 'encryption-key-transfer'">
+            <q-card-section class="q-pa-lg">
+                <div class="text-h6">Encryption Keypair</div>
+                <div class="text-subtitle2 q-mt-sm">
+                    Open Paytaca app, navigate to Apps > Merchant Admin.
+                    <ol>
+                        <li>Select the merchant you want to enable NFC payments for. </li>
+                        <li>Create or select this POS device in the "POS Devices" section.</li>
+                        <li>Tap on more options (three dots) and select "Enable NFC Payments".</li>
+                        <li>Scan the QR code below, or copy the key and input it manually.</li>
+                    </ol>
+                </div>
+                <div v-if="!loadingKeypair" class="row justify-center q-mt-md">
+                    <div class="row">
+                        <QRCode
+                            :text="encryptionPublicKey"
+                            :size="$q.platform.is.ios ? 275 : 240"
+                            color="#253933"
+                            error-level="H"
+                            class="q-mb-sm"
+                            @error="(error) => console.error('[ReceivePage] QRCode component error:', error)"
+                        />
                     </div>
-                </q-card-section>
-            </div>
-            <div v-if="step == 'decoding'">
-              <q-card-section class="row items-center q-pa-lg">
-                <div class="row justify-center">
-                  <div class="text-h6">Decoding NFC Setup Code</div>
+                    <div class="row justify-center q-gutter-md q-mt-md">
+                      <q-input
+                          v-model="encryptionPublicKey"
+                          label="Encryption Public Key"
+                          readonly
+                          outlined
+                          class="q-mt-md"
+                          style="min-width: 50%;">
+                          <template #append>
+                            <q-btn
+                                flat
+                                dense
+                                color="primary"
+                                icon="content_copy"
+                                @click="copyToClipboard(encryptionPublicKey, $t('EncryptionKeyCopied', 'Encryption key copied to clipboard'))"
+                            />
+                          </template>
+                      </q-input>
+                      <q-btn color="primary" @click="updateStep('code-parse')">Next</q-btn>
+                    </div>
+                </div>
+                <div v-else class="row justify-center q-mt-md">
+                    <q-spinner color="primary" size="50px" />
+                </div>
+            </q-card-section>
+          </div>
+          <div v-if="step == 'code-parse'">
+              <q-card-section class="q-pa-lg">
+                  <div class="text-h6">Input NFC Setup Code</div>
                   <div class="text-subtitle2 q-mt-sm">
-                      Please wait while we decode the NFC setup code and enable NFC payments for this POS device.
+                      Input or scan the NFC setup code displayed in the Paytaca app to complete the setup process. 
                   </div>
                   <div class="row justify-center q-mt-md">
-                    <q-spinner class="col" color="primary" size="50px" />
+                    <div class="row justify-center q-gutter-md q-mt-md">
+                      <q-input
+                          v-model="requestCode"
+                          label="NFC Setup Code"
+                          outlined
+                          class="q-mt-md"
+                          :rules="[value => !!value || 'NFC setup code is required']"
+                          hide-bottom-space
+                          style="min-width: 50%;">
+                          <template #append>
+                            <q-btn
+                                flat
+                                dense
+                                color="primary"
+                                icon="qr_code_scanner"
+                                @click="onShowQRScanner"
+                            />
+                          </template>
+                      </q-input>
+                        <q-btn 
+                        color="primary" 
+                        label="Setup"
+                        :disabled="!requestCode"
+                        @click="() => decodeData()"
+                        />
+                    </div>
                   </div>
-                </div>
               </q-card-section>
-            </div>
-        </q-card>
-    </q-dialog>
-  <QRCodeReader v-model="showQRScanner" @decode="onQrDecode"  @error="onQrError" />
+          </div>
+          <div v-if="step == 'decoding'">
+            <q-card-section class="row items-center q-pa-lg">
+              <div class="row justify-center">
+                <div class="text-h6">Decoding NFC Setup Code</div>
+                <div class="text-subtitle2 q-mt-sm">
+                    Please wait while we decode the NFC setup code and enable NFC payments for this POS device.
+                </div>
+                <div class="row justify-center q-mt-md">
+                  <q-spinner class="col" color="primary" size="50px" />
+                </div>
+              </div>
+            </q-card-section>
+          </div>
+      </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -126,7 +126,6 @@ import { useI18n } from "vue-i18n";
 import { getEncryptionKeypair, getOrGenerateEncryptionKeypair } from "src/card/keypair";
 import { decryptWithPrivateKey } from "src/utils/ecies";
 import { savePrivateKeyWif } from "src/card/user";
-import { getPubkeyAt } from "src/wallet/utils";
 
 import QRCodeReader from "./QRCodeReader.vue";
 import QRCode from 'vue-qrcode-component'
@@ -257,6 +256,10 @@ export default {
       });
     };
 
+    const onShowQrScanner = () => {
+      this.showQRScanner.value = true
+    };
+
     const onCloseQrScanner = () => {
       console.log('Closing QR scanner');
       showQRScanner.value = false;
@@ -269,17 +272,7 @@ export default {
         const decryptKey = encryptionKeypair?.privkey
         const result = JSON.parse(await decryptWithPrivateKey(encryptedData, encryptKey, decryptKey));
         console.log('Decrypted data:', result);
-        return { xpubkey: result.xpubkey, authPrivateKey: result.privateKey };
-      } catch(error) {
-        console.error(error);
-        throw new Error(error);
-      }
-    }
-
-    function generateVerifyingPubkey(xpubkey, nonce) {
-      try {
-        const verifyingPubkey = getPubkeyAt(xpubkey, nonce);
-        return verifyingPubkey
+        return { privateKey: result.privateKey };
       } catch(error) {
         console.error(error);
         throw new Error(error);
@@ -303,10 +296,9 @@ export default {
 
         if (!skipDecryption) {
           const encryptedData = await retrieveRequestCodeData(qrCodeData);
-          const { xpubkey, authPrivateKey } = await decryptData(qrCodeData.encryptKey, encryptedData);
-          await savePrivateKeyWif(authPrivateKey);
-          const verifyingPubkey = generateVerifyingPubkey(xpubkey, qrCodeData.nonce);
-          const result = await redeemRequestCode({ qrCodeData, xpubkey, verifyingPubkey });
+          const { privateKey } = await decryptData(qrCodeData.encryptKey, encryptedData);
+          await savePrivateKeyWif(privateKey);
+          const result = await redeemRequestCode({ qrCodeData });
           if (result?.success) {
             $q.notify({
               message: "NFC payments enabled successfully!",
@@ -352,13 +344,10 @@ export default {
 
     async function redeemRequestCode({
       qrCodeData,
-      xpubkey,
-      verifyingPubkey,
     }) {
       try {
         const data = {
           nfc_code: qrCodeData.code,
-          verifying_pubkey: verifyingPubkey,
         };
         const response = await watchtower.BCH._api.post(
           "paytacapos/devices/redeem_nfc_request_code/",
@@ -367,7 +356,6 @@ export default {
         walletStore.$patch((walletStoreState) => {
           if (response?.data?.wallet_hash) {
             walletStoreState.walletHash = response?.data?.wallet_hash;
-            walletStoreState.xPubKey = xpubkey;
             walletStoreState.posId = Number(response?.data?.posid);
             walletStoreState.nfcCode = data.nfc_code;
           }

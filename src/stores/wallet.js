@@ -7,6 +7,7 @@ import { useAddressesStore } from "./addresses";
 import { sha256, decodePaymentUri, getPubkeyAt } from "src/wallet/utils";
 import { summarizeSalesReports } from "src/utils/sales-report";
 import { useCashtokenStore } from "./cashtoken";
+import { clearPrivateKeyWif, getPrivateKeyWif } from "src/card/user";
 
 export const useWalletStore = defineStore("wallet", {
   state: () => ({
@@ -352,8 +353,15 @@ export const useWalletStore = defineStore("wallet", {
           this.refetchMerchantInfo();
         });
     },
-    confirmUnlinkRequest() {
+    async confirmUnlinkRequest() {
       if (!this.xPubKey) return null;
+      
+      const privateKeyWif = await getPrivateKeyWif()
+      if (privateKeyWif !== null) {
+        // delete NFC signing privkey if existing
+        clearPrivateKeyWif()
+      }
+      
       const pubkey = getPubkeyAt(
         this.xPubKey,
         this.deviceInfo.linkedDevice.unlinkRequest.nonce
