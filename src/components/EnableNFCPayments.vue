@@ -1,6 +1,6 @@
 <template>
   <QRCodeReader v-model="showQRScanner" @decode="onQrDecode"  @error="onQrError" />
-  <q-dialog v-model="showDialog" @hide="() => $emit('close')">
+  <q-dialog v-model="showDialog" @hide="onDialogHide">
       <q-card class="q-pb-md">
           <div v-if="step == 'notice'">
               <q-card-section class="row items-center q-gutter-md q-pa-lg">
@@ -57,6 +57,7 @@
                             />
                           </template>
                       </q-input>
+                      <q-btn flat icon="arrow_back" label="Back" @click="goBack" />
                       <q-btn color="primary" @click="updateStep('code-parse')">Next</q-btn>
                     </div>
                 </div>
@@ -87,10 +88,11 @@
                                 dense
                                 color="primary"
                                 icon="qr_code_scanner"
-                                @click="onShowQRScanner"
+                                @click="onShowQrScanner"
                             />
                           </template>
                       </q-input>
+                        <q-btn flat icon="arrow_back" label="Back" @click="goBack" />
                         <q-btn 
                         color="primary" 
                         label="Setup"
@@ -123,9 +125,10 @@ import { onMounted, ref, watch } from "vue";
 import { useWalletStore } from "src/stores/wallet";
 import { useQuasar, copyToClipboard as qCopyToClipboard } from "quasar";
 import { useI18n } from "vue-i18n";
-import { getEncryptionKeypair, getOrGenerateEncryptionKeypair } from "src/card/keypair";
+import { getEncryptionKeypair, regenerateEncryptionKeypair } from "src/card/keypair";
 import { decryptWithPrivateKey } from "src/utils/ecies";
 import { savePrivateKeyWif } from "src/card/user";
+import { getPubkeyAt } from "src/wallet/utils";
 
 import QRCodeReader from "./QRCodeReader.vue";
 import QRCode from 'vue-qrcode-component'
@@ -160,37 +163,45 @@ export default {
     const watchtower = new Watchtower();
 
     onMounted(async () => {
-      const keypair = await getOrGenerateEncryptionKeypair();
-      encryptionPublicKey.value = keypair.pubkey;
-      console.log('[EnableNFCPayments] Encryption public key:', encryptionPublicKey.value);
-      console.log('posid:', walletStore.posId);
+      try {
+        const keypair = await regenerateEncryptionKeypair();
+        encryptionPublicKey.value = keypair?.pubkey;
+        console.log('[EnableNFCPayments] Encryption public key:', encryptionPublicKey.value);
+        console.log('posid:', walletStore.posId);
+      } catch (error) {
+        console.error('[EnableNFCPayments] Failed to rotate encryption keypair:', error);
+      }
     });
 
-    watch(
-      showQRScanner,
-      (newVal) => {
-        console.log('showQRScanner changed:', newVal);
-      }
-    )
+    watch(showQRScanner, (newVal) => {
+      showDialog.value = !newVal;
+    });
 
     function closeDialog() {
       showDialog.value = false;
       emit("close");
     }
 
+    function onDialogHide() {
+      if (!showQRScanner.value) {
+        emit("close");
+      }
+    }
+
     function updateStep(newStep) {
       step.value = newStep;
     }
 
-    async function onStartSetup() {
+    function goBack() {
+      const previous = {
+        'encryption-key-transfer': 'notice',
+        'code-parse': 'encryption-key-transfer',
+      };
+      if (previous[step.value]) step.value = previous[step.value];
+    }
+
+    function onStartSetup() {
         updateStep("encryption-key-transfer");
-        loadingKeypair.value = true;
-        try {
-            const keypair = await getOrGenerateEncryptionKeypair();
-            encryptionPublicKey.value = keypair.pubkey;
-        } finally {
-            loadingKeypair.value = false;
-        }
     }
 
      async function copyToClipboard(value, message = "") {
@@ -257,7 +268,8 @@ export default {
     };
 
     const onShowQrScanner = () => {
-      this.showQRScanner.value = true
+      console.log('onShowQRScanner:', showQRScanner.value)
+      showQRScanner.value = true
     };
 
     const onCloseQrScanner = () => {
@@ -346,8 +358,16 @@ export default {
       qrCodeData,
     }) {
       try {
+        if (!walletStore.xPubKey) {
+          throw new Error("Wallet xpubkey is missing");
+        }
+        if (qrCodeData.nonce == null) {
+          throw new Error("Nonce is missing");
+        }
         const data = {
           nfc_code: qrCodeData.code,
+          verifying_pubkey: getPubkeyAt(walletStore.xPubKey, qrCodeData.nonce),
+          nonce: qrCodeData.nonce,
         };
         const response = await watchtower.BCH._api.post(
           "paytacapos/devices/redeem_nfc_request_code/",
@@ -442,6 +462,7 @@ export default {
       encryptionPublicKey,
       closeDialog,
       updateStep,
+      goBack,
       onStartSetup,
       copyToClipboard,
       loadingKeypair,
@@ -450,7 +471,9 @@ export default {
       onQrDecode,
       onQrError,
       onCloseQrScanner,
-      decodeData
+      decodeData,
+      onShowQrScanner,
+      onDialogHide
     };
   },
 };

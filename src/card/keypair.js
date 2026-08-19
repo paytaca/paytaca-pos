@@ -134,6 +134,22 @@ export async function getOrGenerateEncryptionKeypair () {
 }
 
 /**
+ * Regenerate and persist a brand new encryption keypair.
+ *
+ * Used to rotate the encryption keypair (e.g. every time the NFC
+ * setup dialog is opened).
+ *
+ * @returns {Promise<{ privkey: string, pubkey: string }>}
+ */
+export async function regenerateEncryptionKeypair () {
+  console.log('Regenerating encryption keypair...')
+  const newKeypair = generateEncryptionKeypair()
+  await saveEncryptionKeypairToStorage(newKeypair)
+  console.log('New encryption keypair generated and stored.')
+  return newKeypair
+}
+
+/**
  * Generate a random secp256k1 encryption keypair.
  *
  * @param {Object} [opts]
