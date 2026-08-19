@@ -1,7 +1,7 @@
 import { getPrivateKeyWif } from "./user"
 import { signPreimages } from "./utils"
 import { backend } from "./backend"
-import { cardSocket } from "./socket"
+import { cardSocket, delay } from "./socket"
 import { getPublicKeyFromPrivate } from "./utils"
 import { TapToPayContract } from "./contract/taptopay"
 
@@ -142,16 +142,12 @@ async function requestPreimages({ merchantId, receivingAddress, amountSats, picc
   return data;
 }
 
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 /**
  * True when the server rejected a concurrent-finalize attempt. Retrying the
  * same tx_id is safe and should be surfaced to the UI as retryable.
  */
 function isRetryableConflictError(error) {
-  const message = error?.message || ''
+  const message = (error?.message || '').toLowerCase().trim()
   return message.includes('already being finalized by another request')
 }
 
@@ -161,8 +157,8 @@ function isRetryableConflictError(error) {
  * restarted, so the error is terminal and not worth retrying.
  */
 function isExpiredTransactionError(error) {
-  const message = error?.message || ''
-  return message.includes('Transaction not found or expired')
+  const message = (error?.message || '').toLowerCase().trim()
+  return message.includes('transaction not found or expired')
 }
 
 /**

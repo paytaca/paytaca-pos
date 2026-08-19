@@ -123,6 +123,10 @@ function encodeValue(value, out) {
 }
 
 function encodeHead(major, addInfo, out) {
+  // Coerce small BigInt values to Number so bitwise ops and array pushes work.
+  if (typeof addInfo === 'bigint' && addInfo < 0x100000000n) {
+    addInfo = Number(addInfo)
+  }
   if (addInfo < 24) {
     out.push((major << 5) | addInfo)
   } else if (addInfo < 0x100) {

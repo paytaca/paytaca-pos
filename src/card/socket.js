@@ -22,7 +22,7 @@ export function deriveCardSocketUrl() {
   return `${scheme}://${parsed.host}${path}`
 }
 
-function delay(ms) {
+export function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
@@ -105,6 +105,13 @@ export class CardSocket {
   /**
    * True when the connection is open and its authentication message has been
    * sent. `_authenticated` is reset per connection attempt in `_open()`.
+   */
+  /**
+   * True when the connection is open and its authentication message has been
+   * sent. Note: this is set *optimistically* right after `_sendRaw` for the
+   * `authenticate` frame (not after a server ack), because WS frames are
+   * processed in order. The server is expected to close the connection on auth
+   * failure; if that changes, this should await a server response instead.
    */
   get isReady() {
     return this.isConnected && this._authenticated === true
@@ -478,6 +485,10 @@ export class CardSocket {
         return true
       }
       this._sendRaw({ jsonrpc: '2.0', method: 'authenticate', params })
+      // Optimistically mark as authenticated: WS guarantees ordered delivery,
+      // so the server will see this frame before any RPC. The server closes the
+      // connection on auth failure; if that behaviour changes, switch to
+      // awaiting a server acknowledgement before setting this flag.
       this._authenticated = true
       return true
     } catch (error) {

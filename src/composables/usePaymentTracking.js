@@ -452,7 +452,7 @@ export function usePaymentTracking({
   function showNfcPaymentError(error) {
     nfcStatusNotification.value = $q.dialog({
       title: t('CardPaymentError', 'Card Payment Error'),
-      message: t('CardPaymentErrorMessage', `Error processing card payment: ${error.message}`),
+      message: t('CardPaymentErrorMessage', 'Error processing card payment. Please try again.'),
       ok: {
         label: t('OK', 'OK'),
         color: 'red'
