@@ -163,6 +163,7 @@ export default {
     const watchtower = new Watchtower();
 
     onMounted(async () => {
+      loadingKeypair.value = true;
       try {
         const keypair = await regenerateEncryptionKeypair();
         encryptionPublicKey.value = keypair?.pubkey;
@@ -170,6 +171,8 @@ export default {
         console.log('posid:', walletStore.posId);
       } catch (error) {
         console.error('[EnableNFCPayments] Failed to rotate encryption keypair:', error);
+      } finally {
+        loadingKeypair.value = false;
       }
     });
 

@@ -42,7 +42,7 @@ export function hexToBytes(hex) {
   if (clean.length % 2 !== 0) throw new Error('Invalid hex string length')
   const bytes = new Uint8Array(clean.length / 2)
   for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(clean.substr(i * 2, 2), 16)
+    bytes[i] = parseInt(clean.substring(i * 2, i * 2 + 2), 16)
   }
   return bytes
 }
@@ -123,9 +123,18 @@ function encodeValue(value, out) {
 }
 
 function encodeHead(major, addInfo, out) {
-  // Coerce small BigInt values to Number so bitwise ops and array pushes work.
-  if (typeof addInfo === 'bigint' && addInfo < 0x100000000n) {
-    addInfo = Number(addInfo)
+  // Coerce BigInt values to Number when safe; otherwise encode directly as
+  // 8-byte to avoid mixing BigInt with Number in comparisons / bitwise ops.
+  if (typeof addInfo === 'bigint') {
+    if (addInfo <= Number.MAX_SAFE_INTEGER) {
+      addInfo = Number(addInfo)
+    } else {
+      out.push((major << 5) | 27)
+      for (let i = 7; i >= 0; i--) {
+        out.push(Number((addInfo >> BigInt(i * 8)) & 0xffn))
+      }
+      return
+    }
   }
   if (addInfo < 24) {
     out.push((major << 5) | addInfo)

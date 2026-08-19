@@ -342,6 +342,7 @@ export class CardSocket {
     this.ws = null
     this.connectionPhase = 'closed'
     this._stopHeartbeat()
+    this._authPromise = null
     this._rejectAllPending(new Error('Card socket closed'))
     this._scheduleReconnect()
   }
@@ -477,7 +478,6 @@ export class CardSocket {
       const params = {}
       if (token) params.token = token
       if (publicKey) params.public_key = publicKey
-      this._authPromise = null
       if (Object.keys(params).length === 0) {
         // No credentials to send; assume the server does not require auth so
         // the connection is treated as request-ready.
@@ -499,6 +499,7 @@ export class CardSocket {
   }
 
   _rejectAllPending(error) {
+    if (this._pending.size === 0) return
     for (const [id, pending] of this._pending.entries()) {
       clearTimeout(pending.timer)
       pending.reject(error)
