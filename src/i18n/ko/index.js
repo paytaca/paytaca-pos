@@ -102,6 +102,7 @@ export default {
   Clear: "지우기",
   ClearList: "목록 지우기",
   ClickToEnableTapToPay: "탭하여 결제를 활성화하려면 클릭하세요.",
+  TapToPayScanning: "스캔 중 — 카드를 휴대폰에 가까이 가져다 대세요",
   Close: "닫기",
   Code: "코드",
   CollectionDeleted: "컬렉션이 삭제되었습니다.",

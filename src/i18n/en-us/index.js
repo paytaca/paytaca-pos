@@ -102,6 +102,7 @@ export default {
   Clear: "Clear",
   ClearList: "Clear list",
   ClickToEnableTapToPay: "Click to enable Tap-to-Pay",
+  TapToPayScanning: "Now scanning — tap the card near the phone",
   Close: "Close",
   Code: "Code",
   CollectionDeleted: "Collection deleted",

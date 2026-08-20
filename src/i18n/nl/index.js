@@ -102,6 +102,7 @@ export default {
   Clear: "Duidelijk",
   ClearList: "Duidelijke lijst",
   ClickToEnableTapToPay: "Klik om Tap-to-Pay in te schakelen",
+  TapToPayScanning: "Nu aan het scannen — houd de kaart dicht bij de telefoon",
   Close: "Sluiten",
   Code: "Codeer",
   CollectionDeleted: "Collectie verwijderd",

@@ -102,6 +102,7 @@ export default {
   Clear: "Jelas",
   ClearList: "Hapus daftar",
   ClickToEnableTapToPay: "Klik untuk mengaktifkan Ketuk untuk Membayar",
+  TapToPayScanning: "Memindai sekarang — dekatkan kartu ke ponsel",
   Close: "Tutup",
   Code: "Kode",
   CollectionDeleted: "Koleksi dihapus",

@@ -102,6 +102,7 @@ export default {
   Clear: "Duidelik",
   ClearList: "Maak lys skoon",
   ClickToEnableTapToPay: "Klik om Tik-om-te-betaal te aktiveer",
+  TapToPayScanning: "Nou skandeer — hou die kaart naby die foon",
   Close: "Maak toe",
   Code: "Kode",
   CollectionDeleted: "Versameling is uitgevee",

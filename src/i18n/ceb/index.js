@@ -102,6 +102,7 @@ export default {
   Clear: "Klaro",
   ClearList: "Klaro nga lista",
   ClickToEnableTapToPay: "Pag-klik aron mahimo ang Tap-to-Pay",
+  TapToPayScanning: "Karon nag-scan — ibutang ang kard duol sa telepono",
   Close: "Duol",
   Code: "Kodigo",
   CollectionDeleted: "Gitangtang ang koleksyon",
