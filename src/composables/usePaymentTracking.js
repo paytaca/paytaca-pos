@@ -6,9 +6,10 @@ import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { Capacitor } from '@capacitor/core'
 import { startNFCScan, stopNFCScan } from 'src/utils/nfcScanner'
-import { payWithCard } from 'src/card/payment'
+import { payWithCard, FT_DUST_SATS } from 'src/card/payment'
 import { cardSocket } from 'src/card/socket'
 import { loadCardMerchantUser } from 'src/card/user'
+import { toTokenAddress } from 'src/utils/crypto'
 
 /**
  * Composable for managing payment tracking, websocket connections, and transaction handling
@@ -391,14 +392,12 @@ export function usePaymentTracking({
   async function onNFCUrlReceived({ merchant, uid, url, contractParams }) {
     console.log('Processing NFC URL received:', { merchant, uid, url, contractParams })
 
-    const receivingAddress = addressSet.value?.receiving
-    if (!receivingAddress) {
+    const cashAddress = addressSet.value?.receiving
+    if (!cashAddress) {
       console.error('No receiving address available for processing NFC URL')
       $q.loading.hide()
       return
     }
-
-    const bchAmount = paymentsStore.total || 0
 
     const splitParams = contractParams.split(':')
     if (splitParams.length !== 2) {
@@ -413,13 +412,45 @@ export function usePaymentTracking({
       category: splitParams[1]
     }
 
-    const params = {
-      uid,
-      merchantId: merchant.id,
-      receivingAddress,
-      amountSats: Math.round(bchAmount * 1e8),
-      url,
-      contractParameters
+    let params
+    if (isCashtoken.value && tokenCategory.value) {
+      const decimals = Number.isSafeInteger(cashtokenMetadata.value?.decimals)
+        ? cashtokenMetadata.value.decimals
+        : 0
+      const tokenBaseUnits = Math.round((paymentsStore.total || 0) * 10 ** decimals)
+      if (!Number.isSafeInteger(tokenBaseUnits) || tokenBaseUnits <= 0) {
+        showNfcPaymentError(new Error('Token amount must be positive'))
+        $q.loading.hide()
+        return
+      }
+      let tokenAddress = cashAddress
+      try {
+        tokenAddress = toTokenAddress(cashAddress)
+      } catch (error) {
+        console.error('Failed to derive token address, using cash address:', error)
+      }
+      // FT tap: dust sats + token fields. spendLimit caps BCH sats only,
+      // so dust always passes; enforce any per-tap FT cap here if needed.
+      params = {
+        uid,
+        merchantId: merchant.id,
+        receivingAddress: tokenAddress,
+        amountSats: FT_DUST_SATS,
+        url,
+        contractParameters,
+        tokenCategory: tokenCategory.value,
+        tokenAmount: String(tokenBaseUnits)
+      }
+    } else {
+      const bchAmount = paymentsStore.total || 0
+      params = {
+        uid,
+        merchantId: merchant.id,
+        receivingAddress: cashAddress,
+        amountSats: Math.round(bchAmount * 1e8),
+        url,
+        contractParameters
+      }
     }
 
     console.log('Spending with params:', params)
@@ -450,9 +481,11 @@ export function usePaymentTracking({
   }
 
   function showNfcPaymentError(error) {
+    const detail = error?.message?.trim()
+    const baseMessage = t('CardPaymentErrorMessage', 'Error processing card payment. Please try again.')
     nfcStatusNotification.value = $q.dialog({
       title: t('CardPaymentError', 'Card Payment Error'),
-      message: t('CardPaymentErrorMessage', 'Error processing card payment. Please try again.'),
+      message: detail && detail !== baseMessage ? `${baseMessage}\n\n${detail}` : baseMessage,
       ok: {
         label: t('OK', 'OK'),
         color: 'red'

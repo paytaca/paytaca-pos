@@ -65,6 +65,29 @@ Request:
 }
 ```
 
+FT taps add two fields (same shape on `POST /cards/preimage/`):
+
+```json
+{
+  "to_address": "<merchant token address, not cash address>",
+  "amount_sats": 1000,
+  "token_category": "<FT category hex>",
+  "token_amount": "1234"
+}
+```
+
+- `token_category`: FT category hex.
+- `token_amount`: FT base units (string or int).
+- Omit both token fields for a normal BCH tap.
+- `cards.spend` is unchanged (`tx_id` + `signatures`); the server replays
+  FT inputs from its stored record.
+- `spendLimit` caps BCH sats only — dust always passes, so enforce any
+  per-tap FT cap in POS if needed.
+- FT errors to surface: `Token amount is required...`,
+  `Token amount must be positive`,
+  `Insufficient fungible token balance...`,
+  `Insufficient BCH to cover fee and dust.`
+
 Response (mirrors the REST response body):
 
 ```json

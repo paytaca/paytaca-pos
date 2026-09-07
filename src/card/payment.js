@@ -91,44 +91,58 @@ async function validatePreimages({ preimages, contractParameters, merchant, reci
   console.log(`Preimage validation successful in ${(endTime - startTime) / 1000} seconds`);
 }
 
+export const FT_DUST_SATS = 1000
+
 /**
   * Requests preimages from the backend, preferring the persistent WebSocket and
   * falling back to HTTPS when the socket is unavailable or errors.
+  * For FT taps pass tokenCategory + tokenAmount (base units as string or int);
+  * to_address must then be the merchant's token address and amountSats is dust.
+  * Omit both token fields for a normal BCH tap.
+  * cards.spend is unchanged: tx_id + signatures are replayed from the stored record.
   * @param {Object} params
   * @param {string} params.merchantId - The ID of the merchant receiving the payment
-  * @param {string} params.receivingAddress - The Bitcoin address to receive the payment
-  * @param {number} params.amountSats - The amount to spend in satoshis
+  * @param {string} params.receivingAddress - BCH address, or token address for FT taps
+  * @param {number} params.amountSats - Sats to send (dust, e.g. 1000, for FT taps)
   * @param {string} params.piccData - The piccData value from the NFC URL
    * @param {string} params.cmac - The cmac value from the NFC URL
+   * @param {string} [params.tokenCategory] - FT category hex, omit for BCH taps
+   * @param {string|number} [params.tokenAmount] - FT base units, omit for BCH taps
    * @returns {Promise<object>} The preimage response data ({ tx_id, txHex, preimages, inputs })
    */
-async function requestPreimages({ merchantId, receivingAddress, amountSats, piccData, cmac }) {
+async function requestPreimages({ merchantId, receivingAddress, amountSats, piccData, cmac, tokenCategory, tokenAmount }) {
+  const buildPayload = () => {
+    const payload = {
+      merchant_id: merchantId,
+      to_address: receivingAddress,
+      amount_sats: amountSats,
+      picc_data: piccData,
+      cmac: cmac
+    };
+    if (tokenCategory != null && tokenAmount != null) {
+      payload.token_category = tokenCategory;
+      payload.token_amount = String(tokenAmount);
+    }
+    return payload;
+  };
+
   if (cardSocket.isReady) {
+    let data;
     try {
-      const data = await cardSocket.request('cards.preimage', {
-        merchant_id: merchantId,
-        to_address: receivingAddress,
-        amount_sats: amountSats,
-        picc_data: piccData,
-        cmac: cmac
-      });
+      data = await cardSocket.request('cards.preimage', buildPayload());
+    } catch (error) {
+      console.warn('Socket preimage request failed, falling back to HTTPS:', error.message);
+    }
+    if (data !== undefined) {
       console.log('Preimage response (socket):', data);
       if (data?.success === false) {
         throw new Error(data.error || 'Failed to get preimages for spend transaction');
       }
       return data;
-    } catch (error) {
-      console.warn('Socket preimage request failed, falling back to HTTPS:', error.message);
     }
   }
 
-  const response = await backend.post(`/cards/preimage/`, {
-    merchant_id: merchantId,
-    to_address: receivingAddress,
-    amount_sats: amountSats,
-    picc_data: piccData,
-    cmac: cmac
-  }).catch(error => {
+  const response = await backend.post(`/cards/preimage/`, buildPayload()).catch(error => {
     const errorMessage = error.response?.data?.error || error.message || 'Error during preimage request'
     console.error(errorMessage);
     throw new Error(errorMessage);
@@ -152,13 +166,26 @@ function isRetryableConflictError(error) {
 }
 
 /**
- * True when the persisted preimage record expired before the spend step. The
- * record cannot be revived; the full preimage -> sign -> spend flow must be
- * restarted, so the error is terminal and not worth retrying.
- */
+  * True when the persisted preimage record expired before the spend step. The
+  * record cannot be revived; the full preimage -> sign -> spend flow must be
+  * restarted, so the error is terminal and not worth retrying.
+  */
 function isExpiredTransactionError(error) {
   const message = (error?.message || '').toLowerCase().trim()
   return message.includes('transaction not found or expired')
+}
+
+/**
+ * True for FT preimage rejections that should be surfaced directly:
+ * missing/non-positive token amount, insufficient FT balance, or
+ * insufficient BCH to cover fee and dust.
+ */
+export function isFtPreimageError(error) {
+  const message = (error?.message || '').toLowerCase().trim()
+  return message.includes('token amount is required')
+    || message.includes('token amount must be positive')
+    || message.includes('insufficient fungible token balance')
+    || message.includes('insufficient bch to cover fee and dust')
 }
 
 /**
@@ -253,17 +280,25 @@ async function requestSpend(uid, { merchantId, toAddress, txId, signatures }) {
 }
 
 /**
-  * Spends {amountSats} satoshis from the card to a specified address.
+  * Spends {amountSats} satoshis, or an FT amount, from the card.
+  * For FT taps receivingAddress must be the merchant token address,
+  * amountSats is dust (e.g. FT_DUST_SATS), and tokenCategory/tokenAmount
+  * carry the FT transfer in base units. Omit both token fields for BCH.
+  * cards.spend is unchanged: tx_id + signatures replay the stored record.
+  * Note: spendLimit caps BCH sats only; dust always passes, so enforce any
+  * per-tap FT cap in POS before calling.
   * @param {object} params
   * @param {string} params.uid - The unique identifier of the card being used for payment
   * @param {string} params.merchantId - The ID of the merchant receiving the payment
-  * @param {string} params.receivingAddress - The Bitcoin address to receive the payment
-  * @param {number} params.amountSats - The amount to spend in satoshis
+  * @param {string} params.receivingAddress - BCH address, or token address for FT taps
+  * @param {number} params.amountSats - Sats to spend (dust for FT taps)
   * @param {string} params.url - The NFC URL containing the piccData and cmac values
   * @param {object} params.contractParameters - The contract parameters for rebuilding the contract
+  * @param {string} [params.tokenCategory] - FT category hex, omit for BCH taps
+  * @param {string|number} [params.tokenAmount] - FT base units, omit for BCH taps
   * @returns {Promise<object>} The response data from the spend transaction
   */
-export async function payWithCard({ uid, merchantId, receivingAddress, amountSats, url, contractParameters }) {
+export async function payWithCard({ uid, merchantId, receivingAddress, amountSats, url, contractParameters, tokenCategory, tokenAmount }) {
   // time the entire payWithCard process
   const startTime = performance.now();
   console.log('Starting payWithCard process...');
@@ -281,12 +316,14 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
     console.warn('Card socket not ready, falling back to HTTPS for payment.');
   }
 
+  const isFtTap = tokenCategory != null && tokenAmount != null;
   const data = await requestPreimages({
     merchantId,
     receivingAddress,
     amountSats,
     piccData,
-    cmac
+    cmac,
+    ...(isFtTap ? { tokenCategory, tokenAmount } : {})
   });
 
   // The preimage record is bound to this server-generated tx_id for the whole
@@ -311,13 +348,17 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
     amount: amountSats 
   }
 
-  // Validate if preimages are correct
-  await validatePreimages({ 
-    preimages: data.preimages,
-    contractParameters, 
-    merchant, 
-    recipient
-  });
+  // Local validation rebuilds the BCH-only spend; the server-built FT tx
+  // carries extra FT inputs/outputs, so FT taps skip it and rely on tx_id
+  // replay from the server's stored record in the spend step.
+  if (!isFtTap) {
+    await validatePreimages({ 
+      preimages: data.preimages,
+      contractParameters, 
+      merchant, 
+      recipient
+    });
+  }
 
   const preimages = data.preimages;
   const signatures = (await signPreimages({
