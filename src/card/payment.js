@@ -60,6 +60,7 @@ async function parseUrl(url) {
  * @param {Object} param0.contractParameters - The contract parameters for rebuilding the contract
  * @param {string} param0.contractParameters.backendPk - The backend public key
  * @param {string} param0.contractParameters.category - The category of the contract
+ * @param {string} [param0.contractParameters.version] - The contract version reported by the backend
  * @param {Object} param0.merchant - The merchant information
  * @param {string} param0.merchant.id - The merchant ID
  * @param {string} param0.merchant.pubkey - The merchant public key
@@ -76,7 +77,8 @@ async function validatePreimages({ preimages, contractParameters, merchant, reci
   // rebuild the contract from the provided parameters
   const contract = new TapToPayContract(
     contractParameters.backendPk,
-    contractParameters.category
+    contractParameters.category,
+    contractParameters.version
   );
 
   // build the expected preimages based on the contract and provided parameters
@@ -109,7 +111,7 @@ async function validatePreimages({ preimages, contractParameters, merchant, reci
   * @param {number} params.amountSats - The amount to spend in satoshis
   * @param {string} params.piccData - The piccData value from the NFC URL
    * @param {string} params.cmac - The cmac value from the NFC URL
-   * @returns {Promise<object>} The preimage response data ({ tx_id, txHex, preimages, inputs })
+   * @returns {Promise<object>} The preimage response data ({ tx_id, contract_version, txHex, preimages, inputs })
    */
 function getRunningAppVersion() {
   const env = typeof process !== 'undefined' ? process.env || {} : {}
@@ -352,6 +354,12 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
     cmac
   });
 
+  // The backend reports which contract version the tapped card uses. The
+  // contract must be rebuilt from the matching artifact so the locally derived
+  // preimages line up with the transaction the server built.
+  const contractVersion = data.contract_version;
+  console.log('Card contract version from preimage response:', contractVersion ?? '(default)');
+
   // The preimage record is bound to this server-generated tx_id for the whole
   // preimage -> card-signing -> spend flow. The spend step echoes it back.
   const txId = data.tx_id;
@@ -377,7 +385,7 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
   // Validate if preimages are correct
   await validatePreimages({ 
     preimages: data.preimages,
-    contractParameters, 
+    contractParameters: { ...contractParameters, version: contractVersion }, 
     merchant, 
     recipient
   });

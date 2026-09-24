@@ -11,18 +11,61 @@ import {
     pubkeyToPkHash
 } from "src/card/utils";
 import { binToHex, decodeTransaction, hexToBin, utf8ToBin } from '@bitauth/libauth';
-import artifact from "src/card/contract/tap-to-pay-v1.artifact.json";
+import tapToPayV1Artifact from "src/card/contract/tap-to-pay-v1.artifact.json";
+import tapToPayV2Artifact from "src/card/contract/tap-to-pay-v2.artifact.json";
 import Watchtower from 'watchtower-cash-js0.3.1';
 
 const watchtower = new Watchtower()
 
+/**
+ * Contract artifacts indexed by version. The version is reported by the card
+ * backend (preimage response) so the client rebuilds the exact contract the
+ * server used to build the transaction.
+ */
+const TAP_TO_PAY_ARTIFACTS = {
+    v1: tapToPayV1Artifact,
+    v2: tapToPayV2Artifact,
+};
+
+export const DEFAULT_TAP_TO_PAY_VERSION = 'v1';
+
+/**
+ * Normalizes a version value (e.g. "v2", "2", 2) to its artifact key.
+ * Falls back to the default version when the value is missing or unknown so
+ * cards/backends that predate contract versioning keep working as v1.
+ * @param {string|number|undefined} version
+ * @returns {string}
+ */
+export function normalizeTapToPayVersion(version) {
+    if (version === undefined || version === null || version === '') {
+        return DEFAULT_TAP_TO_PAY_VERSION;
+    }
+    const normalized = String(version).trim().toLowerCase().replace(/^v/, '');
+    const key = `v${normalized}`;
+    return TAP_TO_PAY_ARTIFACTS[key] ? key : DEFAULT_TAP_TO_PAY_VERSION;
+}
+
 export class TapToPayContract {
-    constructor(backendPk, category) {
+    /**
+     * @param {string} backendPk - The backend public key
+     * @param {string} category - The contract ownership token category
+     * @param {string|number} [version] - The contract version reported by the backend
+     */
+    constructor(backendPk, category, version) {
         this.params = {
             backendPk: backendPk,
             backendPkh: pubkeyToPkHash(backendPk),
             category: category
         };
+        this.version = normalizeTapToPayVersion(version);
+    }
+
+    /**
+     * The artifact selected for the card's contract version.
+     * @returns {object}
+     */
+    get artifact () {
+        return TAP_TO_PAY_ARTIFACTS[this.version];
     }
     
     /**
@@ -47,7 +90,7 @@ export class TapToPayContract {
             contractCreationParams.category
         ];
 
-        const contract = new Contract(artifact, contractParams)
+        const contract = new Contract(this.artifact, contractParams)
         return contract;
     }
 
