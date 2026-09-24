@@ -11,7 +11,7 @@ import {
     pubkeyToPkHash
 } from "src/card/utils";
 import { binToHex, decodeTransaction, hexToBin, utf8ToBin } from '@bitauth/libauth';
-import artifact from "src/card/contract/artifact.json";
+import artifact from "src/card/contract/tap-to-pay-v1.artifact.json";
 import Watchtower from 'watchtower-cash-js0.3.1';
 
 const watchtower = new Watchtower()
