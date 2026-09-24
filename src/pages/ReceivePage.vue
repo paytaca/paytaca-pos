@@ -127,26 +127,38 @@
     </div>
 
     <div v-if="walletStore.nfcPaymentsEnabled" class="payment-options q-mt-lg q-px-md">
-      <div class="payment-options__divider">
-        <span class="text-caption text-grey">{{ $t('OrPayWith') }}</span>
+      <div
+        v-if="nfcMaintenanceActive"
+        class="nfc-maintenance-notice q-pa-md rounded-borders bg-amber-1 text-grey-9 text-center"
+      >
+        <q-icon name="mdi-credit-card-off-outline" size="30px" class="q-mb-xs" />
+        <div class="text-weight-medium">{{ $t('CardMaintenanceTitle', 'Card payments are unavailable right now') }}</div>
+        <div v-if="nfcMaintenance.message" class="text-caption q-mt-xs">{{ nfcMaintenance.message }}</div>
+        <div v-if="nfcMaintenance.eta" class="text-caption">{{ $t('CardMaintenanceEta', 'Back {eta}').replace('{eta}', nfcMaintenance.eta) }}</div>
+        <div v-if="nfcMaintenance.updateRequired" class="text-caption">{{ $t('CardMaintenanceUpdateRequired', 'Please update the app to continue using card payments.') }}</div>
       </div>
-      <div class="row items-center justify-center">
-        <div
-          class="nfc-pill cursor-pointer"
-          :class="{ 'nfc-pill--active': nfcScannerActive }"
-          @click="onNfcPillClick"
-          v-ripple
-        >
-          <div class="nfc-pill__text">
-            <div v-if="nfcScannerActive" class="nfc-indicator">
-              <q-spinner size="18px" />
-              <span class="text-weight-medium">{{ $t('TapToPayScanning') }}</span>
-            </div>
-            <div v-else class="text-weight-medium">{{ $t('ClickToEnableTapToPay') }}</div>
-          </div>
-          <img src="/nfc-logo.svg" alt="NFC" class="nfc-logo" />
+      <template v-else>
+        <div class="payment-options__divider">
+          <span class="text-caption text-grey">{{ $t('OrPayWith') }}</span>
         </div>
-      </div>
+        <div class="row items-center justify-center">
+          <div
+            class="nfc-pill"
+            :class="{ 'nfc-pill--active': nfcScannerActive }"
+            @click="onNfcPillClick"
+            v-ripple
+          >
+            <div class="nfc-pill__text">
+              <div v-if="nfcScannerActive" class="nfc-indicator">
+                <q-spinner size="18px" />
+                <span class="text-weight-medium">{{ $t('TapToPayScanning') }}</span>
+              </div>
+              <div v-else class="text-weight-medium">{{ $t('ClickToEnableTapToPay') }}</div>
+            </div>
+            <img src="/nfc-logo.svg" alt="NFC" class="nfc-logo" />
+          </div>
+        </div>
+      </template>
     </div>
 
     <div v-if="canViewPayments && !paymentDialogOpen" class="q-px-md q-mt-md">
@@ -1263,6 +1275,8 @@ export default defineComponent({
       setupNFCScanner,
       stopNFCScanner,
       nfcScannerActive,
+      nfcMaintenance,
+      refreshNfcMaintenance,
     } = usePaymentTracking({
       addressSet,
       isCashtoken,
@@ -1283,9 +1297,19 @@ export default defineComponent({
       qrScanned.value = newVal
     }, { immediate: true })
 
-    function onNfcPillClick() {
+    const nfcMaintenanceActive = computed(() => Boolean(nfcMaintenance.value?.active))
+
+    // NFC-scoped status check on entering the receive (tap) flow so the tap
+    // button is hidden immediately when maintenance is on. Fire-and-forget and
+    // fail-open: a failing status endpoint never blocks app start or the QR flow.
+    onMounted(async () => {
+      if (!walletStore.nfcPaymentsEnabled) return
+      await refreshNfcMaintenance()
+    })
+
+    async function onNfcPillClick() {
       if (nfcScannerActive.value) return
-      setupNFCScanner(() => {
+      await setupNFCScanner(() => {
         stopNFCScanner()
         prepareForNewInvoice()
         $router.push('/')
@@ -1722,6 +1746,8 @@ export default defineComponent({
       Capacitor,
       onNfcPillClick,
       nfcScannerActive,
+      nfcMaintenance,
+      nfcMaintenanceActive,
     }
   },
 })
@@ -1888,6 +1914,13 @@ export default defineComponent({
 .nfc-pill--active {
   border-color: #2196f3;
   background: rgba(33, 150, 243, 0.1);
+}
+
+.nfc-maintenance-notice {
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid rgba(255, 167, 38, 0.5);
 }
 
 .nfc-pill--active .nfc-logo {

@@ -98,12 +98,18 @@ Response (mirrors the REST response body):
     "success": true,
     "uid": "...",
     "tx_id": "11111111-1111-4111-8111-111111111111",
+    "contract_version": "v2",
     "txHex": "0200...",
     "preimages": [...],
     "inputs": [...]
   }
 }
 ```
+
+`contract_version` identifies which tap-to-pay contract artifact the server
+used to build the transaction (e.g. `v1`, `v2`). The client rebuilds the
+contract from the matching artifact when validating preimages. When the field
+is absent (older server) the client defaults to `v1`.
 
 `tx_id` is a server-generated identifier. The server persists the UTXO
 selection and built transaction under this id for a finite window
