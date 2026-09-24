@@ -4,6 +4,16 @@ import { backend } from "./backend"
 import { cardSocket, delay } from "./socket"
 import { getPublicKeyFromPrivate } from "./utils"
 import { TapToPayContract } from "./contract/taptopay"
+import {
+  NfcMaintenanceError,
+  isNfcMaintenanceError,
+  fetchNfcMaintenanceStatus,
+  applyNfcMaintenanceErrorToCache,
+  shouldBlockNfcTap,
+} from "./maintenance"
+import { extractServerMessage, serverError, errorTexts } from "./errors"
+
+export { NfcMaintenanceError, isNfcMaintenanceError, extractServerMessage }
 
 const SOCKET_CONNECT_TIMEOUT_MS = 5000
 
@@ -15,7 +25,6 @@ const PREIMAGE_TTL_MARGIN_MS = 5000
 // Retry policy for concurrent-finalize conflicts on the spend endpoint.
 const SPEND_RETRY_MAX = 3
 const SPEND_RETRY_BACKOFF_MS = 250
-
 
 /**
  * Parses the NFC URL to extract the piccData and cmac values.
@@ -102,7 +111,41 @@ async function validatePreimages({ preimages, contractParameters, merchant, reci
    * @param {string} params.cmac - The cmac value from the NFC URL
    * @returns {Promise<object>} The preimage response data ({ tx_id, txHex, preimages, inputs })
    */
+function getRunningAppVersion() {
+  const env = typeof process !== 'undefined' ? process.env || {} : {}
+  return (
+    env.APP_VERSION ||
+    env.npm_package_version ||
+    (typeof window !== 'undefined' && window.__POS_APP_VERSION__) ||
+    ''
+  )
+}
+
+async function ensureNfcNotUnderMaintenance() {
+  let status
+  try {
+    status = await fetchNfcMaintenanceStatus(
+      (path, config) => backend.get(path, config),
+      getRunningAppVersion()
+    )
+  } catch (_) {
+    return
+  }
+  if (status?.fetchFailed) return
+  const { blocked } = shouldBlockNfcTap(status, getRunningAppVersion())
+  if (blocked) {
+    throw new NfcMaintenanceError({
+      message: status.message,
+      eta: status.eta,
+      retryAfterSec: status.retryAfterSec,
+    })
+  }
+}
+
 async function requestPreimages({ merchantId, receivingAddress, amountSats, piccData, cmac }) {
+  await ensureNfcNotUnderMaintenance()
+
+  let socketMaintenanceError = null
   if (cardSocket.isReady) {
     try {
       const data = await cardSocket.request('cards.preimage', {
@@ -114,11 +157,17 @@ async function requestPreimages({ merchantId, receivingAddress, amountSats, picc
       });
       console.log('Preimage response (socket):', data);
       if (data?.success === false) {
-        throw new Error(data.error || 'Failed to get preimages for spend transaction');
+        const failure = serverError(data, 'Failed to get preimages for spend transaction');
+        failure.code = data.code
+        throw failure;
       }
       return data;
     } catch (error) {
-      console.warn('Socket preimage request failed, falling back to HTTPS:', error.message);
+      if (isNfcMaintenanceError(error)) {
+        socketMaintenanceError = error
+      } else {
+        console.warn('Socket preimage request failed, falling back to HTTPS:', error.message);
+      }
     }
   }
 
@@ -129,15 +178,26 @@ async function requestPreimages({ merchantId, receivingAddress, amountSats, picc
     picc_data: piccData,
     cmac: cmac
   }).catch(error => {
-    const errorMessage = error.response?.data?.error || error.message || 'Error during preimage request'
-    console.error(errorMessage);
-    throw new Error(errorMessage);
+    if (isNfcMaintenanceError(error) || socketMaintenanceError) {
+      throw applyNfcMaintenanceErrorToCache(error?.response ? error : (socketMaintenanceError || error))
+    }
+    const failure = serverError(error.response?.data, error.message || 'Error during preimage request')
+    console.error(failure.message);
+    throw failure;
   });
 
   const data = response.data;
   console.log('Preimage response:', data);
   if (data.success === false) {
-    throw new Error(data.error || 'Failed to get preimages for spend transaction');
+    const failure = serverError(data, 'Failed to get preimages for spend transaction');
+    failure.code = data.code
+    if (isNfcMaintenanceError(failure)) {
+      throw applyNfcMaintenanceErrorToCache(failure)
+    }
+    throw failure;
+  }
+  if (socketMaintenanceError) {
+    console.warn('Socket preimage hit maintenance but HTTPS succeeded; proceeding with HTTPS result.');
   }
   return data;
 }
@@ -147,8 +207,7 @@ async function requestPreimages({ merchantId, receivingAddress, amountSats, picc
  * same tx_id is safe and should be surfaced to the UI as retryable.
  */
 function isRetryableConflictError(error) {
-  const message = (error?.message || '').toLowerCase().trim()
-  return message.includes('already being finalized by another request')
+  return errorTexts(error).includes('already being finalized by another request')
 }
 
 /**
@@ -157,8 +216,7 @@ function isRetryableConflictError(error) {
  * restarted, so the error is terminal and not worth retrying.
  */
 function isExpiredTransactionError(error) {
-  const message = (error?.message || '').toLowerCase().trim()
-  return message.includes('transaction not found or expired')
+  return errorTexts(error).includes('transaction not found or expired')
 }
 
 /**
@@ -181,7 +239,7 @@ async function attemptSpend(uid, params) {
       const data = await cardSocket.request('cards.spend', params);
       console.log('Spend response (socket):', data);
       if (data?.success === false) {
-        throw new Error(data.error || 'Failed to finalize spend transaction');
+        throw serverError(data, 'Failed to finalize spend transaction');
       }
       if (data?.success === true && data?.replay === true) {
         console.warn('Spend record was already finalized by a previous attempt; replay treated as success:', data);
@@ -193,14 +251,14 @@ async function attemptSpend(uid, params) {
   }
 
   const response = await backend.post(`/cards/${uid}/spend/`, params).catch(error => {
-    const errorMessage = error.response?.data?.error || error.message || 'Error during spend transaction request'
-    console.error(errorMessage);
-    throw new Error(errorMessage);
+    const failure = serverError(error.response?.data, error.message || 'Error during spend transaction request')
+    console.error(failure.message);
+    throw failure;
   });
 
   const data = response.data;
   if (data?.success === false) {
-    throw new Error(data.error || 'Failed to finalize spend transaction');
+    throw serverError(data, 'Failed to finalize spend transaction');
   }
   return data;
 }
@@ -219,6 +277,11 @@ async function attemptSpend(uid, params) {
   * @param {Array<{ inputIndex: number, merchantSigHex: string }>} params.signatures
   * @returns {Promise<object>} The spend response data
   */
+/**
+ * Spend/broadcast path is NEVER gated on card-server maintenance: in-flight
+ * NFC taps must drain, not fail. No status check and no NfcMaintenanceError
+ * mapping here; the existing conflict-retry behaviour is unchanged.
+ */
 async function requestSpend(uid, { merchantId, toAddress, txId, signatures }) {
   const params = {
     merchant_id: merchantId,

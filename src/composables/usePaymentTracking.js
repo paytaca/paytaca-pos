@@ -6,9 +6,15 @@ import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { Capacitor } from '@capacitor/core'
 import { startNFCScan, stopNFCScan } from 'src/utils/nfcScanner'
-import { payWithCard } from 'src/card/payment'
+import { payWithCard, isNfcMaintenanceError } from 'src/card/payment'
 import { cardSocket } from 'src/card/socket'
 import { loadCardMerchantUser } from 'src/card/user'
+import {
+  getNfcMaintenanceState,
+  fetchNfcMaintenanceStatus,
+  shouldBlockNfcTap,
+} from 'src/card/maintenance'
+import { backend } from 'src/card/backend'
 
 /**
  * Composable for managing payment tracking, websocket connections, and transaction handling
@@ -57,6 +63,46 @@ export function usePaymentTracking({
   const fiatMapPostTimers = new Map()
   const txOutputsByTxid = new Map()
   const nfcScannerActive = ref(false)
+  const nfcMaintenance = ref(getNfcMaintenanceState())
+  const nfcMaintenanceChecking = ref(false)
+
+  function getRunningAppVersion() {
+    return (
+      (typeof process !== 'undefined' && (process.env?.APP_VERSION || process.env?.npm_package_version)) ||
+      (typeof window !== 'undefined' && window.__POS_APP_VERSION__) ||
+      ''
+    )
+  }
+
+  async function refreshNfcMaintenance() {
+    nfcMaintenanceChecking.value = true
+    try {
+      const status = await fetchNfcMaintenanceStatus(
+        (path, config) => backend.get(path, config),
+        getRunningAppVersion()
+      )
+      if (!status?.fetchFailed) {
+        nfcMaintenance.value = { ...status }
+      } else {
+        nfcMaintenance.value = { ...getNfcMaintenanceState(), fetchFailed: true }
+      }
+      return nfcMaintenance.value
+    } finally {
+      nfcMaintenanceChecking.value = false
+    }
+  }
+
+  function setNfcMaintenanceFromError(error) {
+    const state = getNfcMaintenanceState()
+    nfcMaintenance.value = {
+      ...state,
+      active: true,
+      message: error?.message || state.message,
+      eta: error?.eta ?? state.eta,
+      retryAfterSec: error?.retryAfterSec ?? state.retryAfterSec,
+      blockedAt: Date.now(),
+    }
+  }
 
   const websocketUrl = `${process.env.WATCHTOWER_WEBSOCKET}/watch/bch`
 
@@ -298,6 +344,13 @@ export function usePaymentTracking({
   async function setupNFCScanner(onCancel) {
     if (!shouldScanNfc.value || nfcScannerActive.value) return
 
+    const status = await refreshNfcMaintenance()
+    const { blocked } = shouldBlockNfcTap(status, getRunningAppVersion())
+    if (blocked) {
+      nfcMaintenance.value = { ...status }
+      return { blocked: true }
+    }
+
     console.log('Setting up NFC scanner...')
     try {
       await startNFCScan(handleNFCData, onCancel)
@@ -431,6 +484,11 @@ export function usePaymentTracking({
       }
     } catch (error) {
       console.error('Error processing NFC payment', error)
+      if (isNfcMaintenanceError(error)) {
+        setNfcMaintenanceFromError(error)
+        $q.loading.hide()
+        return
+      }
       showNfcPaymentError(error)
     } finally {
       $q.loading.hide()
@@ -450,9 +508,12 @@ export function usePaymentTracking({
   }
 
   function showNfcPaymentError(error) {
+    // Surface the card-server message (e.g. "Insufficient balance") when
+    // available; fall back to the generic copy for technical failures.
+    const serverMessage = typeof error?.message === 'string' ? error.message.trim() : ''
     nfcStatusNotification.value = $q.dialog({
       title: t('CardPaymentError', 'Card Payment Error'),
-      message: t('CardPaymentErrorMessage', 'Error processing card payment. Please try again.'),
+      message: serverMessage || t('CardPaymentErrorMessage', 'Error processing card payment. Please try again.'),
       ok: {
         label: t('OK', 'OK'),
         color: 'red'
@@ -523,7 +584,10 @@ export function usePaymentTracking({
     resetSessionData,
     setupNFCScanner,
     stopNFCScanner,
-    nfcScannerActive
+    nfcScannerActive,
+    nfcMaintenance,
+    nfcMaintenanceChecking,
+    refreshNfcMaintenance,
   }
 }
 
