@@ -16,6 +16,7 @@ import {
   shouldBlockNfcTap,
 } from 'src/card/maintenance'
 import { backend } from 'src/card/backend'
+import { parseContractParams } from 'src/card/contract/version.js'
 
 /**
  * Composable for managing payment tracking, websocket connections, and transaction handling
@@ -452,17 +453,22 @@ export function usePaymentTracking({
       return
     }
 
-    const splitParams = contractParams.split(':')
-    if (splitParams.length !== 2) {
-      console.error('Invalid contract parameters received from NFC URL:', contractParams)
+    // The NDEF TEXT record is "backend_pk:category[:version]". Version is
+    // optional (absent => V1). Anything malformed fails closed here.
+    let parsedParams
+    try {
+      parsedParams = parseContractParams(contractParams)
+    } catch (error) {
+      console.error('Invalid contract parameters received from NFC URL:', contractParams, error)
       showNfcPaymentError(new Error('Invalid contract parameters'))
       $q.loading.hide()
       return
     }
 
     const contractParameters = {
-      backendPk: splitParams[0],
-      category: splitParams[1]
+      backendPk: parsedParams.backendPk,
+      category: parsedParams.category,
+      version: parsedParams.originVersion
     }
 
     let params

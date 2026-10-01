@@ -3,7 +3,9 @@ import { signPreimages } from "./utils"
 import { backend } from "./backend"
 import { cardSocket, delay } from "./socket"
 import { getPublicKeyFromPrivate } from "./utils"
-import { TapToPayContract } from "./contract/taptopay"
+import { TapToPayContract, tapToPayArtifactForVersion } from "./contract/taptopay"
+import { resolveActiveContract } from "./contract/resolution.js"
+import { assertServerVersionMatches, verifySpendBuild } from "./contract/verify.js"
 import {
   NfcMaintenanceError,
   isNfcMaintenanceError,
@@ -54,49 +56,80 @@ async function parseUrl(url) {
 }
 
 /**
- * Validates the server provided preimages against the expected preimages generated locally.
- * @param {{ preimages: Array, contractParameters: Object, merchant: Object, recipient: Object }} param0
- * @param {Array} param0.preimages - The preimages to validate
- * @param {Object} param0.contractParameters - The contract parameters for rebuilding the contract
- * @param {string} param0.contractParameters.backendPk - The backend public key
- * @param {string} param0.contractParameters.category - The category of the contract
- * @param {string} [param0.contractParameters.version] - The contract version reported by the backend
- * @param {Object} param0.merchant - The merchant information
- * @param {string} param0.merchant.id - The merchant ID
- * @param {string} param0.merchant.pubkey - The merchant public key
- * @param {Object} param0.recipient - The recipient information
- * @param {string} param0.recipient.address - The recipient Bitcoin address
- * @param {bigint} param0.recipient.amount - The amount to send in satoshis
- * @returns {Promise<void>} Resolves if validation is successful, otherwise throws an error
+ * Resolves the card's ACTIVE contract from the origin NDEF parameters by
+ * scanning the origin token address for the on-chain version pointer. The
+ * resolved version/category — not the server's hint — is authoritative.
+ *
+ * A chain-read failure rejects (throwOnError) so a transient outage can never
+ * be mistaken for "no pointer, still V1".
+ *
+ * @param {Object} contractParameters
+ * @param {string} contractParameters.backendPk
+ * @param {string} contractParameters.category - origin category from NDEF
+ * @param {number} [contractParameters.version] - origin version from NDEF
+ * @returns {Promise<Object>} resolution from resolveActiveContract
  */
-async function validatePreimages({ preimages, contractParameters, merchant, recipient}) {
-  // time the validation process
+async function resolveCardContract(contractParameters) {
+  const backendPk = contractParameters.backendPk
+  const category = contractParameters.category
+  const hasVersion = Number.isInteger(contractParameters.version)
+  const originVersion = hasVersion ? contractParameters.version : 1
+
+  const originContract = new TapToPayContract(backendPk, category, originVersion)
+  const resolution = await resolveActiveContract({
+    backendPk,
+    category,
+    originVersion,
+    deriveTokenAddress: ({ backendPk: pk, category: cat, version }) =>
+      new TapToPayContract(pk, cat, version).getTokenAddress(),
+    fetchTokenUtxos: (tokenId, tokenAddress) =>
+      originContract.getTokenUtxos(tokenId, tokenAddress, { throwOnError: true }),
+  })
+
+  // Confirm this build has an artifact for the resolved version before we ask
+  // the server for a spend. FT taps skip the local tx rebuild, but they still
+  // need a spendable version.
+  tapToPayArtifactForVersion(resolution.activeVersion)
+
+  return resolution
+}
+
+/**
+ * Locally rebuilds the spend the server should have built for the ACTIVE
+ * contract, for byte-for-byte comparison before signing.
+ * @param {Object} activeContractParameters - { backendPk, category, version }
+ * @param {Object} merchant
+ * @param {Object} recipient
+ * @returns {Promise<{ txHex: string, preimages: Array, inputs: Array }>}
+ */
+async function buildExpectedSpend(activeContractParameters, merchant, recipient) {
+  const contract = new TapToPayContract(
+    activeContractParameters.backendPk,
+    activeContractParameters.category,
+    activeContractParameters.version
+  )
+  return contract.generateSpendPreimages({ merchant, recipient })
+}
+
+/**
+ * Validates the server-built spend against a local rebuild of the resolved
+ * ACTIVE contract. Enforces the version rule and compares preimages and txHex.
+ * Inputs are compared only when the server includes them. Any mismatch throws
+ * and the caller must not sign.
+ * @param {Object} param0
+ * @param {number} param0.activeVersion - resolved on-chain active version
+ * @param {Object} param0.server - server preimage payload
+ * @param {Object} param0.activeContractParameters - for the local rebuild
+ * @param {Object} param0.merchant
+ * @param {Object} param0.recipient
+ * @returns {Promise<void>}
+ */
+async function validatePreimages({ activeVersion, server, activeContractParameters, merchant, recipient }) {
   console.log('Validating preimages...');
   const startTime = performance.now();
 
-  // rebuild the contract from the provided parameters
-  const contract = new TapToPayContract(
-    contractParameters.backendPk,
-    contractParameters.category,
-    contractParameters.version
-  );
-
-  // build the expected preimages based on the contract and provided parameters
-  const { preimages: expectedPreimages } = await contract.generateSpendPreimages({
-    merchant: merchant,
-    recipient: recipient
-  });
-
-  // Compare the expected preimages with the provided preimages
-  if (preimages.length !== expectedPreimages.length) {
-    throw new Error('Preimage validation failed: length mismatch');
-  }
-
-  for (let i = 0; i < preimages.length; i++) {
-    if (preimages[i].preimage !== expectedPreimages[i].preimage) {
-      throw new Error(`Preimage validation failed at index ${i}`);
-    }
-  }
+  const expected = await buildExpectedSpend(activeContractParameters, merchant, recipient)
+  verifySpendBuild({ activeVersion, server, expected })
 
   const endTime = performance.now();
   console.log(`Preimage validation successful in ${(endTime - startTime) / 1000} seconds`);
@@ -176,7 +209,11 @@ async function requestPreimages({ merchantId, receivingAddress, amountSats, picc
     try {
       data = await cardSocket.request('cards.preimage', buildPayload());
     } catch (error) {
-      console.warn('Socket preimage request failed, falling back to HTTPS:', error.message);
+      if (isNfcMaintenanceError(error)) {
+        socketMaintenanceError = error
+      } else {
+        console.warn('Socket preimage request failed, falling back to HTTPS:', error.message);
+      }
     }
     if (data !== undefined) {
       console.log('Preimage response (socket):', data);
@@ -186,12 +223,6 @@ async function requestPreimages({ merchantId, receivingAddress, amountSats, picc
         throw failure;
       }
       return data;
-    } catch (error) {
-      if (isNfcMaintenanceError(error)) {
-        socketMaintenanceError = error
-      } else {
-        console.warn('Socket preimage request failed, falling back to HTTPS:', error.message);
-      }
     }
   }
 
@@ -236,32 +267,6 @@ function isRetryableConflictError(error) {
 function isExpiredTransactionError(error) {
   const message = (error?.message || '').toLowerCase().trim()
   return message.includes('transaction not found or expired')
-}
-
-/**
- * True for FT preimage rejections that should be surfaced directly:
- * missing/non-positive token amount, insufficient FT balance, or
- * insufficient BCH to cover fee and dust.
- */
-export function isFtPreimageError(error) {
-  const message = (error?.message || '').toLowerCase().trim()
-  return message.includes('token amount is required')
-    || message.includes('token amount must be positive')
-    || message.includes('insufficient fungible token balance')
-    || message.includes('insufficient bch to cover fee and dust')
-}
-
-/**
- * True for FT preimage rejections that should be surfaced directly:
- * missing/non-positive token amount, insufficient FT balance, or
- * insufficient BCH to cover fee and dust.
- */
-export function isFtPreimageError(error) {
-  const message = (error?.message || '').toLowerCase().trim()
-  return message.includes('token amount is required')
-    || message.includes('token amount must be positive')
-    || message.includes('insufficient fungible token balance')
-    || message.includes('insufficient bch to cover fee and dust')
 }
 
 /**
@@ -398,6 +403,17 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
   }
 
   const isFtTap = tokenCategory != null && tokenAmount != null;
+
+  // Resolve the ACTIVE contract on-chain first. This both fails fast before we
+  // ask the server for anything, and avoids burning the server's preimage TTL
+  // on a card whose active version we cannot confirm.
+  const resolution = await resolveCardContract(contractParameters);
+  const activeContractParameters = {
+    backendPk: contractParameters.backendPk,
+    category: resolution.activeCategory,
+    version: resolution.activeVersion
+  };
+
   const data = await requestPreimages({
     merchantId,
     receivingAddress,
@@ -407,9 +423,8 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
     ...(isFtTap ? { tokenCategory, tokenAmount } : {})
   });
 
-  // The backend reports which contract version the tapped card uses. The
-  // contract must be rebuilt from the matching artifact so the locally derived
-  // preimages line up with the transaction the server built.
+  // The backend reports which contract version it built for. It is only a hint:
+  // it MUST equal the on-chain active version or we refuse to sign.
   const contractVersion = data.contract_version;
   console.log('Card contract version from preimage response:', contractVersion ?? '(default)');
 
@@ -436,15 +451,19 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
   }
 
   // Local validation rebuilds the BCH-only spend; the server-built FT tx
-  // carries extra FT inputs/outputs, so FT taps skip it and rely on tx_id
-  // replay from the server's stored record in the spend step.
+  // carries extra FT inputs/outputs, so FT taps skip the byte-for-byte rebuild
+  // and rely on tx_id replay from the server's stored record in the spend step.
+  // Both paths still enforce the resolved version rule.
   if (!isFtTap) {
-    await validatePreimages({ 
-      preimages: data.preimages,
-      contractParameters: { ...contractParameters, version: contractVersion }, 
-      merchant, 
+    await validatePreimages({
+      activeVersion: resolution.activeVersion,
+      server: data,
+      activeContractParameters,
+      merchant,
       recipient
     });
+  } else {
+    assertServerVersionMatches(contractVersion, resolution.activeVersion);
   }
 
   const preimages = data.preimages;

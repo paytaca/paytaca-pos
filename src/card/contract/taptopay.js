@@ -14,13 +14,14 @@ import { binToHex, decodeTransaction, hexToBin, utf8ToBin } from '@bitauth/libau
 import tapToPayV1Artifact from "src/card/contract/tap-to-pay-v1.artifact.json";
 import tapToPayV2Artifact from "src/card/contract/tap-to-pay-v2.artifact.json";
 import Watchtower from 'watchtower-cash-js0.3.1';
+import { normalizeVersionHint } from './version.js';
 
 const watchtower = new Watchtower()
 
 /**
- * Contract artifacts indexed by version. The version is reported by the card
- * backend (preimage response) so the client rebuilds the exact contract the
- * server used to build the transaction.
+ * Contract artifacts indexed by version. Payment flow picks the version from
+ * on-chain resolution (see ./resolution.js); these maps only hold the artifacts
+ * this build can spend.
  */
 const TAP_TO_PAY_ARTIFACTS = {
     v1: tapToPayV1Artifact,
@@ -29,10 +30,16 @@ const TAP_TO_PAY_ARTIFACTS = {
 
 export const DEFAULT_TAP_TO_PAY_VERSION = 'v1';
 
+// Versions this build knows how to spend. A resolved active version without an
+// artifact fails closed instead of silently falling back to v1.
+export const SUPPORTED_TAP_TO_PAY_VERSIONS = Object.freeze([1, 2]);
+
 /**
  * Normalizes a version value (e.g. "v2", "2", 2) to its artifact key.
  * Falls back to the default version when the value is missing or unknown so
  * cards/backends that predate contract versioning keep working as v1.
+ * NOTE: this fallback is intentionally lossy and must NOT be used for the
+ * resolved active version; use tapToPayArtifactForVersion for that.
  * @param {string|number|undefined} version
  * @returns {string}
  */
@@ -45,11 +52,27 @@ export function normalizeTapToPayVersion(version) {
     return TAP_TO_PAY_ARTIFACTS[key] ? key : DEFAULT_TAP_TO_PAY_VERSION;
 }
 
+/**
+ * Resolves the artifact for a contract version. Unparseable/missing values
+ * default to v1; a parsed version with no artifact in this build throws.
+ * @param {string|number|undefined} version
+ * @returns {{ key: string, artifact: object }}
+ */
+export function tapToPayArtifactForVersion(version) {
+    const normalized = normalizeVersionHint(version);
+    const key = normalized === null ? DEFAULT_TAP_TO_PAY_VERSION : `v${normalized}`;
+    const artifact = TAP_TO_PAY_ARTIFACTS[key];
+    if (!artifact) {
+        throw new Error(`Unsupported TapToPay contract version: ${version}`);
+    }
+    return { key, artifact };
+}
+
 export class TapToPayContract {
     /**
      * @param {string} backendPk - The backend public key
      * @param {string} category - The contract ownership token category
-     * @param {string|number} [version] - The contract version reported by the backend
+     * @param {string|number} [version] - Contract version to instantiate (origin or active)
      */
     constructor(backendPk, category, version) {
         this.params = {
@@ -57,7 +80,9 @@ export class TapToPayContract {
             backendPkh: pubkeyToPkHash(backendPk),
             category: category
         };
-        this.version = normalizeTapToPayVersion(version);
+        const { key, artifact } = tapToPayArtifactForVersion(version);
+        this.version = key;
+        this._artifact = artifact;
     }
 
     /**
@@ -65,7 +90,7 @@ export class TapToPayContract {
      * @returns {object}
      */
     get artifact () {
-        return TAP_TO_PAY_ARTIFACTS[this.version];
+        return this._artifact;
     }
     
     /**
@@ -132,9 +157,12 @@ export class TapToPayContract {
      * Fetches token UTXOs for a given token ID and token address.
      * @param {string} tokenId - The tokenId or category of the token to fetch
      * @param {string} tokenAddress - The token address that holds the token UTXOs
+     * @param {{ throwOnError?: boolean }} [options] - when true, a fetch failure rejects
+     *   instead of returning an empty list. Version resolution must use this so a
+     *   chain read failure never degrades into "no pointer / not migrated".
      * @returns {Promise<Array>}
      */
-    async getTokenUtxos(tokenId, tokenAddress) {
+    async getTokenUtxos(tokenId, tokenAddress, { throwOnError = false } = {}) {
         let result = []
         try {
             const response = await watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/${tokenId}/`, {
@@ -157,6 +185,7 @@ export class TapToPayContract {
             })) || []
         } catch (error) {
             console.error('Error fetching token UTXOs:', error)
+            if (throwOnError) throw error
         }
         return result
     }
@@ -203,7 +232,7 @@ export class TapToPayContract {
      * @param {Object} param0.recipient - The recipient information
      * @param {string} param0.recipient.address - The recipient Bitcoin address
      * @param {bigint} param0.recipient.amount - The amount to send in satoshis
-     * @returns {Promise<{ txHex: string, preimages: Array }>} The built transaction hex and preimages
+     * @returns {Promise<{ txHex: string, preimages: Array, inputs: Array }>} The built transaction hex, preimages, and inputs
      */
     async generateSpendPreimages({ merchant, recipient }) {
         const backendPk = this.params.backendPk
@@ -222,6 +251,10 @@ export class TapToPayContract {
                 const token = utxo.token
                 if (token.category === merchantAuthCategory && token.nft) {
                     const commitment = utxo.token.nft.commitment
+                    // Skip version-pointer commitments so they are not treated as auth NFTs.
+                    if (typeof commitment === 'string' && /^0x?02/i.test(commitment)) {
+                        return
+                    }
                     const decodedCommitment = commitment ? decodeCommitment(commitment) : undefined
                     const nftData = { decodedCommitment, utxo }
                     if (decodedCommitment.hash === undefined) {
@@ -238,7 +271,7 @@ export class TapToPayContract {
         // Use the globalAuthNft if it is ON
         let authNft
         let useGlobalAuthNft = globalAuthNft && globalAuthNft.decodedCommitment.authorized
-        
+
         if (useGlobalAuthNft) {
             authNft = globalAuthNft.utxo
         } else {
@@ -323,7 +356,8 @@ export class TapToPayContract {
 
         return {
             txHex: builtHex,
-            preimages: preimagePerInput
+            preimages: preimagePerInput,
+            inputs: inputsForPreimage
         }
     }
 }
