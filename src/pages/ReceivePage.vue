@@ -1163,6 +1163,11 @@ export default defineComponent({
 
       // Helper function to navigate to transaction details
       const navigateToTransactionDetails = () => {
+        // This navigation is the payment-received page. Always skip the
+        // unpaid-leave prompt so cashtoken taps are not blocked when remaining
+        // BCH dust is still showing as unpaid.
+        promptOnLeave.value = false
+
         if (paid.value) {
           addressesStore.removeAddressSet(data?.address)
           receiveAmount.value = 0
@@ -1173,7 +1178,6 @@ export default defineComponent({
           if (transactionsReceivedRef) {
             transactionsReceivedRef.value = []
           }
-          promptOnLeave.value = false
 
           const qrDataHash = sha256(_qrData)
           delete walletStore.qrDataTimestampCache[qrDataHash]
@@ -1495,6 +1499,12 @@ export default defineComponent({
         resetAllState()
         return next()
       }
+
+      // The received/confetti page is the success destination, not an unpaid leave.
+      if (to.name === 'transaction-detail') {
+        promptOnLeave.value = false
+        return next()
+      }
       
       // Don't prompt if there's no QR data yet
       if (!qrData.value || !promptOnLeave.value) return next()
@@ -1502,7 +1512,8 @@ export default defineComponent({
       // Don't prompt if there's a rate fetch error - user should be able to leave
       if (rateFetchError.value) return next()
       
-      const isPaid = remainingPaymentRounded.value < 1000 / 1e8 // provide margin
+      const dustMargin = isCashtoken.value ? 0 : 1000 / 1e8
+      const isPaid = paid.value || remainingPaymentRounded.value <= dustMargin
       if (promptOnLeave.value && !isPaid) {
         const proceed = await new Promise((resolve) => {
           $q.dialog({

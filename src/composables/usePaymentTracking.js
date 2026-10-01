@@ -125,6 +125,22 @@ export function usePaymentTracking({
     )
   })
 
+  function normalizeTokenCategory(tokenId) {
+    if (typeof tokenId !== 'string' || !tokenId) return ''
+    return tokenId.replace(/^ct\//i, '').toLowerCase()
+  }
+
+  function isExpectedCashtoken(transaction) {
+    if (!isCashtoken.value || !tokenCategory.value) return false
+    return normalizeTokenCategory(transaction?.tokenId) === normalizeTokenCategory(tokenCategory.value)
+  }
+
+  function tokenDecimalsFor(transaction) {
+    if (Number.isSafeInteger(transaction?.tokenDecimals)) return transaction.tokenDecimals
+    const metadataDecimals = cashtokenMetadata.value?.decimals
+    return Number.isSafeInteger(metadataDecimals) ? metadataDecimals : 0
+  }
+
   function transactionExists(transaction) {
     return transactionsReceived.value?.some?.(
       obj => (
@@ -175,8 +191,9 @@ export function usePaymentTracking({
     else if(data?.image_url) response.logo = data?.image_url
 
     if (response?.tokenId && response?.amount) {
-      const decimals = response?.tokenDecimals;
-      response.tokenAmount = response?.amount / 10 ** decimals;
+      const decimals = tokenDecimalsFor(response)
+      response.tokenAmount = response?.amount / 10 ** decimals
+      response.tokenDecimals = decimals
     }
     return response
   }
@@ -235,16 +252,20 @@ export function usePaymentTracking({
 
 
   function updatePayment(transaction) {
+    // Cashtoken invoices must ignore BCH-only/dust outputs (card FT spends include
+    // 1000-sat dust). Navigating on those leaves remaining unpaid and trips the
+    // "leave without receiving payment" guard on the way to the received page.
+    if (isCashtoken.value && !isExpectedCashtoken(transaction)) return
+
     if (!updateTransactionList(transaction)) return
 
     const txid = transaction?.txid
 
     if (isCashtoken.value) {
-      if (transaction?.tokenId === `ct/${tokenCategory.value}`) {
-        const decimals = transaction.tokenDecimals;
-        const tokenAmount = transaction.tokenAmount;
-        const tokenAmountRounded = Number(tokenAmount.toFixed(decimals));
-        paymentsStore.addPayment(tokenAmountRounded);
+      const decimals = tokenDecimalsFor(transaction)
+      const tokenAmount = Number(transaction.tokenAmount)
+      if (Number.isFinite(tokenAmount)) {
+        paymentsStore.addPayment(Number(tokenAmount.toFixed(decimals)))
       }
     } else {
       const paidBchValue = transaction.value / 1e8
@@ -267,7 +288,7 @@ export function usePaymentTracking({
 
   function onWebsocketReceive(data) {
     if (data?.update_type) processLiveUpdate(data)
-    if (!data?.value) return
+    if (!data?.value && !data?.amount) return
     if (data?.voucher) return
 
     const parsedData = parseWebsocketDataReceived(data)
