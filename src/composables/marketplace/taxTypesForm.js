@@ -3,33 +3,39 @@ import { toValue, objectPick } from "@vueuse/core";
 
 import { TaxType } from 'src/marketplace/objects.js';
 
+export const taxCodeOptions = [
+  {
+    value: 'tax_exclusive',
+    label: 'Tax Exclusive',
+    description: 'Prices of products assigned to this tax code do not have taxes included',
+  },
+  {
+    value: 'tax_inclusive',
+    label: 'Tax Inclusive',
+    description: 'Prices of products assigned to this tax code already have taxes included',
+  },
+  {
+    value: 'non_tax',
+    label: 'Non Tax',
+    description: 'Prices of products assigned to this tax code are not taxable',
+  },
+  {
+    value: 'tax_exempt',
+    label: 'Tax exempt',
+    description: 'Prices of products assigned to this tax code are taxable but not taxed for special cases',
+  },
+];
+
+/**
+ * Tax codes where the rate/value does not apply and is forced to zero.
+ */
+export const zeroValueTaxCodes = ['non_tax', 'tax_exempt'];
+
 /**
  * 
  * @param {import("vue").Ref<TaxType[]>} taxTypesRef 
  */
 export function useTaxTypesForm(taxTypesRef) {
-  const taxCodeOptions = [
-    {
-      value: 'tax_exclusive',
-      label: 'Tax Exclusive',
-      description: 'Prices of products assigned to this tax code do not have taxes included',
-    },
-    {
-      value: 'tax_inclusive',
-      label: 'Tax Inclusive',
-      description: 'Prices of products assigned to this tax code already have taxes included',
-    },
-    {
-      value: 'non_tax',
-      label: 'Non Tax',
-      description: 'Prices of products assigned to this tax code are not taxable',
-    },
-    {
-      value: 'tax_exempt',
-      label: 'Tax exempt',
-      description: 'Prices of products assigned to this tax code are taxable but not taxed for special cases',
-    },
-  ];
 
   let idCtr = 0;
   function createEmptyRow() {

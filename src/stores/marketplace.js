@@ -31,6 +31,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
       fetchingShop: false,
       activeShopId: 1,
       lastShopSync: 0,
+      lastShopSettingsSync: 0,
       shopData: {
         id: 0,
         watchtower_branch_id: null,
@@ -169,12 +170,26 @@ export const useMarketplaceStore = defineStore('marketplace', {
       this.activeShopId = null
     },
     refetchShopSettings() {
-      backend.get(`shops/${this.shop.id}/settings/`)
+      if (!this.shop.id) return Promise.reject()
+      return backend.get(`shops/${this.shop.id}/settings/`)
         .then(response => {
           if (response?.data?.shop_id != this.shop.id) return Promise.reject({ response })
           this.setShopSettingsData(response?.data)
+          this.lastShopSettingsSync = Date.now()
           return response
         })
+    },
+    /**
+     * Refetches shop settings only when they were last fetched longer ago than
+     * `opts.maxAge`. Useful when a page needs the latest settings (e.g. the
+     * default tax type) but shouldn't request them on every visit.
+     * @param {Object} opts
+     * @param {Number} [opts.maxAge] max age in milliseconds before the settings are considered stale
+     */
+    refetchShopSettingsIfStale(opts = { maxAge: 5 * 60 * 1000 }) {
+      const lastSync = this.lastShopSettingsSync || 0
+      if (lastSync && Date.now() - lastSync < opts?.maxAge) return Promise.resolve()
+      return this.refetchShopSettings()
     },
     /**
      * @param {Object} data 
@@ -200,6 +215,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
           name: data.default_tax_type?.name,
           code: data.default_tax_type?.code,
           value: data.default_tax_type?.value,
+          scope: data.default_tax_type?.scope,
         },
       }
     },
