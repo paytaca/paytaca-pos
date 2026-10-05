@@ -12,11 +12,12 @@
       round
       icon="arrow_back"
       color="grey-8"
-      @click="goToHome"
+      @click="onBackButton"
     />
     <slot name="title">
       <div class="q-space">
-        <div class="text-h4">{{ title }}</div>
+        <div :class="subtitle ? 'text-h5' : 'text-h4'">{{ title }}</div>
+        <div v-if="subtitle" class="text-grey">{{ subtitle }}</div>
       </div>
     </slot>
     <div>
@@ -147,11 +148,17 @@ export default defineComponent({
   name: "MarketplaceHeader",
   props: {
     title: { type: String, default: t("Marketplace") },
+    subtitle: { type: String, default: '' },
     showBackButton: { type: Boolean, default: false },
+    backButtonMode: {
+      type: String,
+      default: "home",
+      validator: (value) => ["home", "back"].includes(value),
+    },
   },
-  setup() {
+  setup(props) {
     const $q = useQuasar();
-    const router = useRouter();
+    const $router = useRouter();
     const marketplaceStore = useMarketplaceStore();
     const openUserMenu = ref(false);
 
@@ -181,8 +188,12 @@ export default defineComponent({
       }
     }
 
-    function goToHome() {
-      router.push({ name: "home" });
+    function onBackButton() {
+      if (props.backButtonMode === "back") {
+        $router.go(-1);
+        return;
+      }
+      $router.push({ name: "home" });
     }
 
     return {
@@ -190,7 +201,7 @@ export default defineComponent({
       openUserMenu,
       userImage,
       logOut,
-      goToHome,
+      onBackButton,
 
       // utils funcs
       formatRole,
