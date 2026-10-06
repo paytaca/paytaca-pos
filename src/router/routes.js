@@ -12,6 +12,7 @@ const routes = [
         props: false,
       },
       { path: 'settings', component: () => import('pages/Settings.vue'), name: 'settings'},
+      { path: 'static-qr', component: () => import('src/pages/StaticQR.vue'), name: 'static-qr'},
       { path: 'debug', component: () => import('src/pages/Debug.vue'), name: 'debug'},
       { path: 'transactions/:txid', component: () => import('src/pages/TransactionDetail.vue'), name: 'transaction-detail', props: route => Object.assign({}, route?.query, route?.params)}
     ]

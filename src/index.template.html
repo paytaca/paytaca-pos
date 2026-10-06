@@ -12,6 +12,27 @@
       content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, viewport-fit=cover"
     />
 
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="<%= productName %>" />
+
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="icons/apple-touch-icon-180x180.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="192x192"
+      href="icons/icon-192x192.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="512x512"
+      href="icons/icon-512x512.png"
+    />
+
     <link
       rel="icon"
       type="image/png"
@@ -87,75 +108,6 @@
         <div class="app-loading-text" id="app-loading-text">Loading...</div>
       </div>
     </div>
-    <script>
-      // Inline fallback: catches JS bundle parse/load failures
-      // Uses ES5 syntax only to guarantee execution on all browsers
-      (function () {
-        var loadingErrors = [];
-        var appStarted = false;
 
-        // Mark app as started when Vue mounts (App.vue removes #app-loading)
-        var observer = new MutationObserver(function (mutations) {
-          if (!document.getElementById("app-loading")) {
-            appStarted = true;
-            observer.disconnect();
-          }
-        });
-        observer.observe(document.getElementById("q-app"), {
-          childList: true,
-          subtree: true,
-        });
-
-        // Catch script errors (including parse errors from bundle)
-        window.addEventListener(
-          "error",
-          function (event) {
-            var msg = "";
-            if (event.message) {
-              msg = event.message;
-            }
-            if (event.filename) {
-              msg += " in " + event.filename + ":" + event.lineno;
-            }
-            if (msg) {
-              loadingErrors.push(msg);
-            }
-          },
-          true
-        );
-
-        // Fallback timeout: if app hasn't started after 10s, show error info
-        setTimeout(function () {
-          if (appStarted) return;
-          var loadingEl = document.getElementById("app-loading");
-          if (!loadingEl) return;
-
-          var spinner = loadingEl.querySelector(".app-loading-spinner");
-          if (spinner) spinner.style.display = "none";
-
-          var textEl = document.getElementById("app-loading-text");
-          if (textEl) {
-            if (loadingErrors.length > 0) {
-              textEl.innerHTML =
-                'Failed to load app.<br><small style="font-size:12px;color:#999;word-break:break-all;">' +
-                loadingErrors.slice(0, 5).join("<br>") +
-                "</small>";
-            } else {
-              textEl.textContent =
-                "App is taking too long to load. Please refresh.";
-            }
-          }
-        }, 10000);
-
-        // More aggressive fallback: remove loading screen after 15s no matter what
-        setTimeout(function () {
-          var loadingEl = document.getElementById("app-loading");
-          if (loadingEl) {
-            console.warn("Force-removing loading screen after 15s");
-            loadingEl.remove();
-          }
-        }, 15000);
-      })();
-    </script>
   </body>
 </html>

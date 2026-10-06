@@ -1,10 +1,20 @@
 {
 	"appId": "com.paytaca.pos",
 	"appName": "Paytaca POS",
-	"bundledWebRuntime": false,
 	"npmClient": "npm",
 	"webDir": "www",
 	"server": {
 		"androidScheme": "https"
-	}
+	},
+	"packageClassList": [
+		"NativeAudio",
+		"BarcodeScannerPlugin",
+		"AppPlugin",
+		"CAPCameraPlugin",
+		"DevicePlugin",
+		"KeyboardPlugin",
+		"PushNotificationsPlugin",
+		"NFCPlugin",
+		"SecureStoragePlugin"
+	]
 }

@@ -9,17 +9,64 @@ install! 'cocoapods', :disable_input_output_paths => true
 def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-  pod 'CapacitorCommunityBarcodeScanner', :path => '../../node_modules/@capacitor-community/barcode-scanner'
+  pod 'CapacitorCommunityNativeAudio', :path => '../../node_modules/@capacitor-community/native-audio'
+  pod 'CapacitorMlkitBarcodeScanning', :path => '../../node_modules/@capacitor-mlkit/barcode-scanning'
   pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
   pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
   pod 'CapacitorDevice', :path => '../../node_modules/@capacitor/device'
   pod 'CapacitorKeyboard', :path => '../../node_modules/@capacitor/keyboard'
   pod 'CapacitorPushNotifications', :path => '../../node_modules/@capacitor/push-notifications'
-  pod 'CapacitorCommunityNativeAudio', :path => '../../node_modules/@capacitor-community/native-audio'
+  pod 'ExxiliCapacitorNfc', :path => '../../node_modules/@exxili/capacitor-nfc'
   pod 'CapacitorSecureStoragePlugin', :path => '../../node_modules/capacitor-secure-storage-plugin'
 end
 
 target 'App' do
   capacitor_pods
   # Add your Pods here
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    if target.name == 'GoogleToolboxForMac'
+      next if target.resources_build_phase.files_references.any? { |f|
+        f.path&.end_with?('PrivacyInfo.xcprivacy')
+      }
+
+      resources_dir = File.join(installer.sandbox.root,
+        'GoogleToolboxForMac', 'Resources')
+      privacy_path = File.join(resources_dir, 'PrivacyInfo.xcprivacy')
+
+      FileUtils.mkdir_p(resources_dir)
+      unless File.exist?(privacy_path)
+        File.write(privacy_path, <<~PLIST)
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+          	<key>NSPrivacyAccessedAPITypes</key>
+          	<array>
+          		<dict>
+          			<key>NSPrivacyAccessedAPIType</key>
+          			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+          			<key>NSPrivacyAccessedAPITypeReasons</key>
+          			<array>
+          				<string>CA92.1</string>
+          			</array>
+          		</dict>
+          	</array>
+          	<key>NSPrivacyCollectedDataTypes</key>
+          	<array/>
+          	<key>NSPrivacyTracking</key>
+          	<false/>
+          	<key>NSPrivacyTrackingDomains</key>
+          	<array/>
+          </dict>
+          </plist>
+        PLIST
+      end
+
+      file = installer.pods_project.new_file(privacy_path)
+      target.resources_build_phase.add_file_reference(file, true)
+    end
+  end
 end

@@ -12,6 +12,7 @@ services:
         - PURELYPEER_HEADER_VALUE=${PURELYPEER_HEADER_VALUE}
         - COINGECKO_API_KEY=${COINGECKO_API_KEY}
         - PINATA_GATEWAY_TOKEN=${PINATA_GATEWAY_TOKEN}
+        - CARD_API_BASE_URL=${CARD_API_BASE_URL}
     image: paytaca-pos:latest
     ports:
       - "8080:8080"

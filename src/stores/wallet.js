@@ -7,12 +7,14 @@ import { useAddressesStore } from "./addresses";
 import { sha256, decodePaymentUri, getPubkeyAt } from "src/wallet/utils";
 import { summarizeSalesReports } from "src/utils/sales-report";
 import { useCashtokenStore } from "./cashtoken";
+import { clearPrivateKeyWif, getPrivateKeyWif } from "src/card/user";
 
 export const useWalletStore = defineStore("wallet", {
   state: () => ({
     posId: -1,
     walletHash: null,
     xPubKey: null,
+    authPublicKey: null,
     linkCode: null,
     firstReceivingAddress: null,
 
@@ -110,6 +112,7 @@ export const useWalletStore = defineStore("wallet", {
       // '3d3ad2a8e0...': { qrData: 'bitcoincash:ead42...?amount=10.1', timestamp: 1639596781 }
       // ...
     },
+    nfcPaymentsEnabled: false,
   }),
 
   getters: {
@@ -298,6 +301,8 @@ export const useWalletStore = defineStore("wallet", {
      * @param {String} data.linked_device.unlink_request.updated_at
      */
     setDeviceInfo(data) {
+      this.setNfcPaymentsEnabled(data?.nfc_payments_enabled);
+
       this.deviceInfo = {
         name: data?.name,
         walletHash: data?.wallet_hash,
@@ -348,8 +353,15 @@ export const useWalletStore = defineStore("wallet", {
           this.refetchMerchantInfo();
         });
     },
-    confirmUnlinkRequest() {
+    async confirmUnlinkRequest() {
       if (!this.xPubKey) return null;
+      
+      const privateKeyWif = await getPrivateKeyWif()
+      if (privateKeyWif !== null) {
+        // delete NFC signing privkey if existing
+        clearPrivateKeyWif()
+      }
+      
       const pubkey = getPubkeyAt(
         this.xPubKey,
         this.deviceInfo.linkedDevice.unlinkRequest.nonce
@@ -545,12 +557,20 @@ export const useWalletStore = defineStore("wallet", {
       this.qrDataTimestampCache[qrDataHash] = {
         qrData: qrData,
         timestamp: timestamp,
-      };
+      }
+    },
+    setAuthPublicKey(publicKey) {
+      this.authPublicKey = publicKey
+    },
+    setNfcPaymentsEnabled(value) {
+      this.nfcPaymentsEnabled = Boolean(value)
     },
     clearAll() {
       this.walletHash = "";
       this.posId = -1;
       this.xPubKey = "";
+      this.authPublicKey = null
+      this.setNfcPaymentsEnabled(false)
       this.linkCode = "";
       this.setDeviceInfo(null);
       this.setBranchInfo(null);

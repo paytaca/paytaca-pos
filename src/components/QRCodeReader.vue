@@ -1,5 +1,5 @@
 <template>
-  <div v-show="innerVal" ref="scannerContainerRef" class="scanner-container">
+  <div v-show="scannerUIVisible" ref="scannerContainerRef" class="scanner-container">
     <q-btn
       icon="close"
       rounded
@@ -28,7 +28,7 @@
     </div>
 
     <qrcode-stream
-      v-if="!isMobile && innerVal"
+      v-if="!isNativePlatform && innerVal"
       @decode="onScannerDecode"
       @init="onScannerInit"
       :style="{
@@ -43,14 +43,16 @@
 import { i18n } from "src/boot/i18n";
 import {
   checkPermission,
+  requestPermission,
   prepareScanner as prepareScannerUtil,
   startScan,
   stopScan as stopScanUtil,
-  openAppSettings,
 } from "src/utils/barcodeScanner";
 import { QrcodeStream } from "vue3-qrcode-reader";
+import { Capacitor } from "@capacitor/core";
 import { useQuasar } from "quasar";
 import { ref, computed, onBeforeUnmount, watch } from "vue";
+import { nextTick } from "vue";
 
 const { t: $t } = i18n.global;
 
@@ -64,30 +66,32 @@ export default {
     },
     toggle: Function,
   },
-  emits: ["decode", "error", "update:modelValue"],
+  emits: ["decode", "error", "update:modelValue", "close"],
   setup(props, { emit: $emit }) {
     const $q = useQuasar();
     const errorMessage = ref(null);
     const innerVal = ref(props.modelValue);
+    const scannerUIVisible = ref(false);
     watch(
       () => [props.modelValue],
       () => (innerVal.value = props.modelValue)
     );
-    watch(innerVal, () => $emit("update:modelValue", innerVal.value));
-
-    const isMobile = computed(() => {
-      return (
-        $q.platform.is.mobile || $q.platform.is.android || $q.platform.is.ios
-      );
+    watch(innerVal, () => {
+      $emit("update:modelValue", innerVal.value)
     });
 
-    watch(innerVal, () => {
-      if (innerVal.value && isMobile.value) {
-        prepareScanner();
+    const isNativePlatform = computed(() => Capacitor.isNativePlatform());
+
+    watch(innerVal, async () => {
+      if (innerVal.value && isNativePlatform.value) {
+        await prepareScanner();
+      } else if (innerVal.value && !isNativePlatform.value) {
+        scannerUIVisible.value = true;
       } else if (!innerVal.value) {
         stopScan();
       }
     });
+
     onBeforeUnmount(() => stopScan());
 
     function onScannerDecode(content) {
@@ -131,12 +135,17 @@ export default {
       if (status?.granted) {
         const prepared = await prepareScannerUtil();
         if (prepared) {
-          scanBarcode();
+          scannerUIVisible.value = true;
+          await scanBarcode();
         } else {
+          innerVal.value = false;
           $emit("error", "Failed to prepare scanner");
         }
       } else {
-        $emit("error", "Permission denied");
+        innerVal.value = false;
+        if (status?.denied) {
+          $emit("error", "Permission denied");
+        }
       }
     }
 
@@ -151,11 +160,12 @@ export default {
         return status;
       }
 
-      if (status.asked || status.neverAsked) {
-        await openAppSettings();
+      if (status.neverAsked || status.unknown) {
+        const result = await requestPermission();
+        return result;
       }
 
-      if (status.restricted || status.unknown) {
+      if (status.restricted) {
         return status;
       }
 
@@ -164,21 +174,24 @@ export default {
 
     async function scanBarcode() {
       adjustComponentsClasslist(true);
-
       const res = await startScan();
-      if (res.hasContent) $emit("decode", res.content);
+      if (res.hasContent) {
+        $emit("decode", res.content);
+      }
       stopScan();
     }
 
     function stopScan() {
       stopScanUtil();
       adjustComponentsClasslist(false);
-
+      scannerUIVisible.value = false;
       innerVal.value = false;
     }
 
     const scannerContainerRef = ref();
-    function adjustComponentsClasslist(isScanning) {
+    async function adjustComponentsClasslist(isScanning) {
+      await nextTick(); // wait the DOM to update
+
       const appContainer = document.getElementById("q-app");
       const scannerUI = scannerContainerRef.value;
       const transparent = "transparent-body";
@@ -204,7 +217,8 @@ export default {
 
     return {
       innerVal,
-      isMobile,
+      scannerUIVisible,
+      isNativePlatform,
       onScannerDecode,
       onScannerInit,
       stopScan,

@@ -198,14 +198,14 @@ export default defineComponent({
       if ($copyText) {
         $copyText(logsText).then(() => {
           $q.notify({
-            message: t('Copied to clipboard'),
+            message: t('CopiedToClipboard'),
             timeout: 2000,
             icon: 'mdi-clipboard-check',
             color: 'blue-9'
           })
         }).catch(() => {
           $q.notify({
-            message: t('Failed to copy'),
+            message: t('FailedToCopy'),
             timeout: 2000,
             icon: 'error',
             color: 'negative'
@@ -215,14 +215,14 @@ export default defineComponent({
         // Fallback to native clipboard API
         navigator.clipboard?.writeText(logsText).then(() => {
           $q.notify({
-            message: t('Copied to clipboard'),
+            message: t('CopiedToClipboard'),
             timeout: 2000,
             icon: 'mdi-clipboard-check',
             color: 'blue-9'
           })
         }).catch(() => {
           $q.notify({
-            message: t('Failed to copy'),
+            message: t('FailedToCopy'),
             timeout: 2000,
             icon: 'error',
             color: 'negative'

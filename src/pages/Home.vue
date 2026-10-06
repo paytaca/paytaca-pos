@@ -1,9 +1,6 @@
 <template>
   <q-page class="home-page q-pb-lg">
-    <q-pull-to-refresh
-      @refresh="refreshPage"
-      :disable="forceDisplayWalletLink || !walletStore.walletHash"
-    >
+    <div class="home-scroll-area">
       <WalletLink
         ref="walletLinkComponent"
         v-if="forceDisplayWalletLink || !walletStore.walletHash"
@@ -11,6 +8,7 @@
         @device-linked="() => (forceDisplayWalletLink = false)"
       />
       <div v-else class="home-main-content q-py-md full-width">
+
         <div class="q-px-md q-mb-md">
           <template v-if="isRefreshing || isInitialLoading">
             <q-card
@@ -280,8 +278,8 @@
         </div>
         </div>
 
-      <MainFooter />
-    </q-pull-to-refresh>
+    </div>
+    <MainFooter />
   </q-page>
 </template>
 
@@ -301,6 +299,7 @@ import {
 import MainFooter from "src/components/MainFooter.vue";
 import MarketplaceWidget from "src/components/marketplace/MarketplaceWidget.vue";
 import SetAmountFormDialog from "src/components/SetAmountFormDialog.vue";
+// NFC setup is opt-in via Settings; EnableNFCPayments removed from Home
 import {
   paymentUriHasMatch,
   findMatchingPaymentLink,
@@ -311,6 +310,7 @@ import { useCashtokenStore } from "src/stores/cashtoken";
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+// getEncryptionKeypair import removed; NFC setup is now opt-in via Settings
 import { useTransactionHelpers } from "src/composables/transaction";
 
 export default defineComponent({
@@ -488,6 +488,7 @@ export default defineComponent({
       () => [walletStore.walletHash, walletStore.posId],
       () => fetchTransactions()
     );
+
     watch(
       () => hasFullSalesReportAccess.value,
       (newVal) => {
@@ -545,6 +546,7 @@ export default defineComponent({
     }
 
     const forceDisplayWalletLink = ref(false);
+
     onMounted(() => {
       if (walletStore.isLinked && !walletStore.isDeviceValid)
         $q.dialog({
@@ -616,7 +618,7 @@ export default defineComponent({
       $router.replace({ query: {} });
     }
 
-    async function refreshPage(done) {
+    async function refreshPage() {
       isRefreshing.value = true;
       try {
         await Promise.allSettled([
@@ -636,17 +638,33 @@ export default defineComponent({
         console.error("Error refreshing page:", error);
       } finally {
         isRefreshing.value = false;
-        done();
       }
     }
 
     window.t = walletLinkComponent;
 
     function showSetAmountDialog() {
+      const tokenCategories = [];
+      const acceptedTokensData = walletStore.acceptedTokensData?.accepted_tokens;
+      if (Array.isArray(acceptedTokensData)) {
+        tokenCategories.push(
+          ...acceptedTokensData.map((tokenData) => tokenData?.category)
+        );
+      }
+
+      const musdTokenCategory = "b38a33f750f84c5c169a6f23cb873e6e79605021585d4f3408789689ed87f366";
+      if (!tokenCategories.includes(musdTokenCategory)) {
+        tokenCategories.unshift(musdTokenCategory);
+      }
+      const pusdTokenCategory = "2469acc5afa4b10cb5b5c04afb89c3a3ffd61c5da9c01e26d00951cae2a02544";
+      if (!tokenCategories.includes(pusdTokenCategory)) {
+        tokenCategories.unshift(pusdTokenCategory);
+      }
+
       $q.dialog({
         component: SetAmountFormDialog,
         componentProps: {
-          currencies: ["BCH"],
+          currencies: ["BCH", ...tokenCategories],
         },
       }).onOk((data) => {
         const amount = data?.amount;
@@ -692,8 +710,10 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.home-main-content {
-  overflow: auto;
+.home-scroll-area {
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 80px;
 }
 

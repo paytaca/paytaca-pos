@@ -1,6 +1,6 @@
 <template>
   <div class="settings-page">
-    <MainHeader :title="$t('Settings')">
+    <MainHeader :title="$t('Settings')" back-to="home">
       <template #title>
         <q-toolbar-title
           class="text-h4"
@@ -137,7 +137,7 @@
             </q-item-section>
           </q-item>
 
-          <q-separator :dark="$q.dark.isActive" inset="item" />
+          <q-separator :dark="$q.dark.isActive" inset />
 
           <q-item class="q-py-md">
             <q-item-section avatar>
@@ -152,6 +152,24 @@
             </q-item-section>
             <q-item-section side class="language-selector">
               <LanguageSelector />
+            </q-item-section>
+          </q-item>
+
+          <q-separator :dark="$q.dark.isActive" inset />
+
+          <q-item class="q-py-md">
+            <q-item-section avatar>
+              <q-avatar color="green-6" text-color="white" size="40px">
+                <q-icon name="currency_bitcoin" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-medium">{{
+                $t("DefaultAsset", {}, "Default Asset")
+              }}</q-item-label>
+            </q-item-section>
+            <q-item-section side class="language-selector">
+              <DefaultAssetSelector class="full-width"/>
             </q-item-section>
           </q-item>
         </q-list>
@@ -196,7 +214,6 @@
               walletStore.walletHash && walletStore.preferences.selectedCurrency
             "
             :dark="$q.dark.isActive"
-            inset="item"
           />
 
           <q-item
@@ -237,6 +254,65 @@
               </div>
             </q-item-section>
           </q-item>
+          
+          <q-separator
+            :dark="$q.dark.isActive"
+            inset="item"
+          />
+
+          <q-item
+            v-if="nfcSupported"
+            :clickable="!walletStore.nfcPaymentsEnabled"
+            class="q-py-md"
+            v-on="!walletStore.nfcPaymentsEnabled ? { click: onEnableNfcPaymentsClick } : {}"
+          >
+            <q-item-section avatar>
+              <q-avatar color="blue-7" text-color="white" size="40px">
+                <q-icon name="nfc" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-medium">{{ !walletStore.nfcPaymentsEnabled ? $t('Enable') + ' ' : '' }}{{ $t('NfcPayments') }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <div class="row items-center q-gutter-xs">
+                <span class="text-subtitle2">{{
+                  walletStore.nfcPaymentsEnabled ? $t("FiatModeEnabled") : $t("FiatModeDisabled")
+                }}</span>
+                <q-icon
+                  v-if="walletStore.nfcPaymentsEnabled"
+                  name="check_circle"
+                  size="18px"
+                  color="green"
+                />
+              </div>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card>
+
+      <div class="section-title text-overline text-uppercase q-mb-sm q-pl-sm">
+        {{ $t("Tools") }}
+      </div>
+      <q-card
+        class="settings-card q-mb-lg"
+        :class="{ 'bg-dark': $q.dark.isActive }"
+      >
+        <q-list class="rounded-borders">
+          <q-item clickable v-ripple class="q-py-md" @click="goToStaticQr">
+            <q-item-section avatar>
+              <q-avatar color="primary" text-color="white" size="40px">
+                <q-icon name="qr_code_2" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-medium">{{ $t("PrintStaticQR") }}</q-item-label>
+              <q-item-label caption>{{ $t("PrintStaticQRDesc") }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-icon name="chevron_right" color="grey" />
+            </q-item-section>
+          </q-item>
         </q-list>
       </q-card>
 
@@ -268,7 +344,7 @@
             </q-item-section>
           </q-item>
 
-          <q-separator :dark="$q.dark.isActive" inset="item" />
+          <q-separator :dark="$q.dark.isActive" />
 
           <q-item
             clickable
@@ -296,6 +372,7 @@
         </q-list>
       </q-card>
     </div>
+    <EnableNFCPayments v-if="showEnableNfcPayments && nfcSupported" :show="showEnableNfcPayments" @close="onCloseEnableNfcPaymentsDialog" />
   </div>
 </template>
 
@@ -309,13 +386,19 @@ import { useWalletStore } from "src/stores/wallet";
 import { padPosId } from "src/wallet/utils";
 import packageInfo from "../../package.json";
 import LanguageSelector from "src/components/LanguageSelector.vue";
+import DefaultAssetSelector from "src/components/settings/DefaultAssetSelector.vue";
 import { useDebugLogger } from "src/composables/useDebugLogger";
+import EnableNFCPayments from "src/components/EnableNFCPayments.vue";
+import Watchtower from 'watchtower-cash-js';
+import nfcScanner from "src/utils/nfcScanner";
 
 export default defineComponent({
   name: "SettingsPage",
   components: {
     MainHeader,
     LanguageSelector,
+    EnableNFCPayments,
+    DefaultAssetSelector,
   },
   setup() {
     const router = useRouter();
@@ -325,12 +408,15 @@ export default defineComponent({
     const appVersion = packageInfo.version;
     const repoUrl = "https://github.com/paytaca/paytaca-pos";
     const { startInterception, stopInterception } = useDebugLogger();
+    const watchtower = new Watchtower()
 
     const debugIconVisible = ref(false);
     const longPressTimer = ref(null);
     const LONG_PRESS_DURATION = 500;
+    const showEnableNfcPayments = ref(false);
+    const nfcSupported = ref(false);
 
-    onMounted(() => {
+    onMounted(async () => {
       const stored = localStorage.getItem("debugIconVisible");
       debugIconVisible.value = stored === "true";
       if (debugIconVisible.value) {
@@ -338,7 +424,40 @@ export default defineComponent({
       } else {
         stopInterception();
       }
+
+      nfcSupported.value = await nfcScanner.isSupported();
+      await checkNfcPaymentsEnabled();
     });
+
+    function onCloseEnableNfcPaymentsDialog() {
+      showEnableNfcPayments.value = false;
+      checkNfcPaymentsEnabled(); // Refresh NFC payments status after closing the dialog
+    }
+
+    function onEnableNfcPaymentsClick() {
+      showEnableNfcPayments.value = true;
+    }
+
+    /**
+     * Checks if this POS device is set up for NFC payments
+     */
+    async function checkNfcPaymentsEnabled() {
+      if (!walletStore.walletHash) {
+        walletStore.setNfcPaymentsEnabled(false);
+        return;
+      }
+      const lookup_field = `${walletStore.walletHash}:${walletStore.posId}`;
+      await  watchtower.BCH._api.get(
+        `paytacapos/devices/${lookup_field}/`
+      ).then(response => {
+        console.log('NFC Payments API response:', response);
+        walletStore.setNfcPaymentsEnabled(response.data?.nfc_payments_enabled || false);
+      })
+      .catch(err => {
+        console.error('Error checking NFC payments status:', err);
+        walletStore.setNfcPaymentsEnabled(false); // Assume disabled if there's an error
+      });
+    }
 
     function toggleDebugIcon() {
       debugIconVisible.value = !debugIconVisible.value;
@@ -358,7 +477,7 @@ export default defineComponent({
       }
 
       $q.dialog({
-        title: t("Show Debug Tools"),
+        title: t("ShowDebugTools"),
         message: t(
           "Do you want to show the debug icon? This will enable console log capture."
         ),
@@ -371,6 +490,10 @@ export default defineComponent({
 
     function goToDebug() {
       router.push({ name: "debug" });
+    }
+
+    function goToStaticQr() {
+      router.push({ name: "static-qr" });
     }
 
     function handleTitleTouchStart() {
@@ -428,11 +551,16 @@ export default defineComponent({
       truncatedWalletHash,
       debugIconVisible,
       goToDebug,
+      goToStaticQr,
       handleTitleTouchStart,
       handleTitleTouchEnd,
       handleTitleTouchCancel,
       handleTitleMouseDown,
       handleTitleMouseUp,
+      showEnableNfcPayments,
+      onCloseEnableNfcPaymentsDialog,
+      onEnableNfcPaymentsClick,
+      nfcSupported
     };
   },
 });

@@ -373,7 +373,7 @@ export default defineComponent({
       $copyText(value)
         .then(() => {
           $q.notify({
-            message: message || $t("Copied to clipboard"),
+            message: message || $t("CopiedToClipboard"),
             timeout: 800,
             icon: "mdi-clipboard-check",
             color: "blue-9",
