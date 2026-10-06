@@ -22,10 +22,10 @@
             <span v-else class="text-grey">—</span>
           </div>
         </div>
-        <div class="row items-center">
-          <div class="text-grey q-space">{{ $t('Scope', 'Scope') }}</div>
+        <div v-if="taxType?.source" class="row items-center">
+          <div class="text-grey q-space">{{ $t('Source') }}</div>
           <div>
-            {{ taxType?.scope === 'custom' ? $t('Custom', 'Custom') : $t('Platform', 'Platform') }}
+            {{ taxType?.source === 'custom' ? $t('Custom') : $t('Platform') }}
           </div>
         </div>
         <div v-if="isDefault" class="row items-center">

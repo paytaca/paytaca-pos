@@ -46,11 +46,11 @@
           :error-message="formErrors.code"
           :rules="[val => Boolean(val) || $t('Required')]"
         >
-          <template v-slot:option="scope">
-            <q-item v-bind="scope.itemProps">
+          <template v-slot:option="source">
+            <q-item v-bind="source.itemProps">
               <q-item-section>
-                <q-item-label>{{ scope.opt.label }}</q-item-label>
-                <q-item-label caption>{{ scope.opt.description }}</q-item-label>
+                <q-item-label>{{ source.opt.label }}</q-item-label>
+                <q-item-label caption>{{ source.opt.description }}</q-item-label>
               </q-item-section>
             </q-item>
           </template>

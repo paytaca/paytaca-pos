@@ -153,7 +153,23 @@
               no-caps
               padding="none"
               unelevated
-              :label="$t('ManageTaxes', {}, 'Manage Taxes')"
+              :label="$t('Manage')"
+            />
+          </q-item-section>
+        </q-item>
+        <q-item
+          clickable
+          :to="{ name: 'marketplace-discounts' }"
+        >
+          <q-item-section class="text-grey" top>
+            <q-item-label> {{ $t('Discounts') }} </q-item-label>
+          </q-item-section>
+          <q-item-section top>
+            <q-btn
+              no-caps
+              padding="none"
+              unelevated
+              :label="$t('Manage')"
             />
           </q-item-section>
         </q-item>

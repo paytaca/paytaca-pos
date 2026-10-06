@@ -80,16 +80,16 @@
                     />
                   </div>
                   <div>
-                    <div class="text-caption text-grey q-mb-xs">{{ $t('Scope') }}</div>
+                    <div class="text-caption text-grey q-mb-xs">{{ $t('Source') }}</div>
                     <q-btn-toggle
-                      v-model="filterOpts.scope"
+                      v-model="filterOpts.source"
                       spread
                       no-caps
                       dense
                       toggle-color="brandblue"
                       color="white"
                       text-color="grey-8"
-                      :options="scopeFilterOptions"
+                      :options="sourceFilterOptions"
                     />
                   </div>
                 </q-card-section>
@@ -288,10 +288,10 @@ export default defineComponent({
     const taxTypes = ref([].map(TaxType.parse))
     const fetchingTaxTypes = ref(false)
     const pagination = ref({ offset: 0, limit: DEFAULT_LIMIT, count: 0 })
-    const filterOpts = ref({ search: '', code: undefined, scope: undefined, sort: undefined })
+    const filterOpts = ref({ search: '', code: undefined, source: undefined, sort: undefined })
     /**
      * Whether the list currently in memory was fetched with a filter applied
-     * (`s`, `code` or `scope` query param). A filtered result can never be
+     * (`s`, `code` or `source` query param). A filtered result can never be
      * considered "all loaded", even when its count happens to fit within the
      * page size.
      */
@@ -301,7 +301,7 @@ export default defineComponent({
      * The whole (unfiltered) list is only fully loaded when the server count
      * fits within the current page size AND the list was fetched without a
      * filter. Otherwise there are more records on the server (or the list is a
-     * filtered subset) and the `s`, `code`, `scope` + `ordering` query params
+     * filtered subset) and the `s`, `code`, `source` + `ordering` query params
      * are used instead.
      */
     const allLoaded = computed(() => {
@@ -317,7 +317,7 @@ export default defineComponent({
       if (!allLoaded.value) {
         if (filterOpts.value.search?.trim?.()) params.s = filterOpts.value.search.trim()
         if (filterOpts.value.code) params.code = filterOpts.value.code
-        if (filterOpts.value.scope) params.scope = filterOpts.value.scope
+        if (filterOpts.value.source) params.source = filterOpts.value.source
         if (filterOpts.value.sort) params.ordering = filterOpts.value.sort
       }
       fetchingTaxTypes.value = true
@@ -328,7 +328,7 @@ export default defineComponent({
           pagination.value.limit = response?.data?.limit || pagination.value.limit
           pagination.value.offset = response?.data?.offset || 0
           pagination.value.count = response?.data?.count || 0
-          fetchedWithFilter.value = Boolean(params.s || params.code || params.scope)
+          fetchedWithFilter.value = Boolean(params.s || params.code || params.source)
           return response
         })
         .finally(() => {
@@ -346,7 +346,7 @@ export default defineComponent({
       const query = filterOpts.value.search?.trim().toLowerCase()
       return taxTypes.value.filter(taxType => {
         if (filterOpts.value.code && taxType.code !== filterOpts.value.code) return false
-        if (filterOpts.value.scope && taxType.scope !== filterOpts.value.scope) return false
+        if (filterOpts.value.source && taxType.source !== filterOpts.value.source) return false
         if (!query) return true
         return [taxType.name, taxType.code, taxType.value].some(field => {
           return String(field ?? '').toLowerCase().includes(query)
@@ -379,7 +379,7 @@ export default defineComponent({
       { label: $t('All'), value: undefined },
       ...taxCodeOptions.map(opt => ({ label: opt.label, value: opt.value })),
     ])
-    const scopeFilterOptions = computed(() => [
+    const sourceFilterOptions = computed(() => [
       { label: $t('All'), value: undefined },
       { label: $t('Platform', 'Platform'), value: 'platform' },
       { label: $t('Custom', 'Custom'), value: 'custom' },
@@ -389,7 +389,7 @@ export default defineComponent({
       let count = 0
       if (filterOpts.value.search) count++
       if (filterOpts.value.code !== undefined) count++
-      if (filterOpts.value.scope !== undefined) count++
+      if (filterOpts.value.source !== undefined) count++
       return count
     })
 
@@ -399,9 +399,9 @@ export default defineComponent({
         const label = codeFilterOptions.value.find(opt => opt.value === filterOpts.value.code)?.label
         chips.push({ key: 'code', label: `${$t('Code')}: ${label}` })
       }
-      if (filterOpts.value.scope !== undefined) {
-        const label = scopeFilterOptions.value.find(opt => opt.value === filterOpts.value.scope)?.label
-        chips.push({ key: 'scope', label: `${$t('Scope', 'Scope')}: ${label}` })
+      if (filterOpts.value.source !== undefined) {
+        const label = sourceFilterOptions.value.find(opt => opt.value === filterOpts.value.source)?.label
+        chips.push({ key: 'source', label: `${$t('Source')}: ${label}` })
       }
       return chips
     })
@@ -415,7 +415,7 @@ export default defineComponent({
     function resetFilters() {
       filterOpts.value.search = ''
       filterOpts.value.code = undefined
-      filterOpts.value.scope = undefined
+      filterOpts.value.source = undefined
       filterOpts.value.sort = undefined
     }
 
@@ -540,7 +540,7 @@ export default defineComponent({
       activeFilterCount,
       activeFilterChips,
       codeFilterOptions,
-      scopeFilterOptions,
+      sourceFilterOptions,
       clearSearch,
       removeFilter,
       resetFilters,

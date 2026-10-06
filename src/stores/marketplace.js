@@ -215,7 +215,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
           name: data.default_tax_type?.name,
           code: data.default_tax_type?.code,
           value: data.default_tax_type?.value,
-          scope: data.default_tax_type?.scope,
+          source: data.default_tax_type?.source,
         },
       }
     },

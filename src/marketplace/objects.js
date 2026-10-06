@@ -409,18 +409,18 @@ export class TaxType {
    * @param {String} data.code
    * @param {String} data.name
    * @param {String} data.value
-   * @param {"platform"|"custom"} [data.scope]
+   * @param {"platform"|"custom"| null} [data.source]
    */
   set raw(data) {
     this.id = data?.id;
     this.code = data?.code;
     this.name = data?.name;
     this.value = parseFloat(data?.value);
-    this.scope = data?.scope;
+    this.source = data?.source;
   }
 
   get isCustom() {
-    return this.scope === 'custom';
+    return this.source === 'custom';
   }
 }
 
