@@ -582,8 +582,10 @@ export class BenefitProgram {
    * @param {String} data.country_code
    * @param {String} data.name
    * @param {String} data.description
+   * @param {"platform"|"custom"| null} [data.source]
+   * @param {String[]} data.beneficiary_category_codes
    * @param {Object} data.tax_type
-   * @param {Object} data.discounts
+   * @param {Object[]} data.discount_types
    */
   set raw(data) {
     this.$raw = data;
@@ -591,8 +593,16 @@ export class BenefitProgram {
     this.countryCode = data?.country_code;
     this.name = data?.name;
     this.description = data?.description;
-    this.taxType = TaxType.parse(data?.tax_type);
-    this.discounts = DiscountType.parseList(data?.discounts);
+    this.source = data?.source;
+    this.beneficiaryCategoryCodes = Array.isArray(data?.beneficiary_category_codes)
+      ? data.beneficiary_category_codes
+      : [];
+    this.taxType = data?.tax_type ? TaxType.parse(data.tax_type) : null;
+    this.discounts = DiscountType.parseList(data?.discount_types);
+  }
+
+  get isCustom() {
+    return this.source === 'custom';
   }
 }
 

@@ -4,14 +4,38 @@
       <template v-slot:title>
         <q-btn flat icon="arrow_back" @click="() => $router.go(-1)" />
         <div class="q-space">
-          <div class="text-h5">
+          <div v-if="benefitProgramId" class="text-h5">
+            {{
+              isEditable
+                ? $t("EditBenefitProgram", {}, "Edit Benefit Program")
+                : $t("ViewBenefitProgram", {}, "View Benefit Program")
+            }}
+          </div>
+          <div v-else class="text-h5">
             {{ $t("CreateBenefitProgram", {}, "Create Benefit Program") }}
           </div>
           <div class="text-grey">{{ $t("Marketplace") }}</div>
         </div>
       </template>
     </MarketplaceHeader>
-    <q-form ref="form" @submit="submit">
+    <div v-if="!formReady" class="text-center q-py-xl">
+      <template v-if="fetchingBenefitProgram">
+        <q-spinner size="3rem" />
+        <div class="text-subtitle1 text-grey">
+          {{
+            $t(
+              "FetchingBenefitProgramDetails",
+              {},
+              "Fetching benefit program details"
+            )
+          }}
+        </div>
+      </template>
+      <div v-else class="text-subtitle1">
+        {{ $t("FailedToLoadPage", "Failed to load page") }}
+      </div>
+    </div>
+    <q-form v-else ref="form" @submit="submit">
       <q-banner
         v-if="formErrors?.detail?.length"
         class="bg-red text-white rounded-borders q-mb-md"
@@ -22,6 +46,18 @@
         <ul v-else class="q-pl-md q-my-none">
           <li v-for="(err, index) in formErrors.detail" :key="index">{{ err }}</li>
         </ul>
+      </q-banner>
+
+      <q-banner
+        v-if="benefitProgramId && !isEditable"
+        class="bg-grey-2 text-dark rounded-borders q-mb-md"
+      >
+        {{
+          $t(
+            "PlatformOrNullBenefitProgramReadOnlyMessage",
+            "This benefit program is provided by the platform or system and cannot be edited."
+          )
+        }}
       </q-banner>
 
       <q-tabs
@@ -96,7 +132,7 @@
                   dense
                   outlined
                   :loading="loading"
-                  :disable="loading"
+                  :disable="!isEditable || loading"
                   v-model="formData.name"
                   :error="Boolean(formErrors?.name)"
                   :error-message="formErrors?.name"
@@ -107,7 +143,7 @@
                   dense
                   outlined
                   :loading="loading"
-                  :disable="loading"
+                  :disable="!isEditable || loading"
                   type="textarea"
                   v-model="formData.description"
                   :error="Boolean(formErrors?.description)"
@@ -122,8 +158,9 @@
                   outlined
                   multiple
                   use-chips
+                  map-options
                   :loading="loading || fetchingBeneficiaryCategories"
-                  :disable="loading"
+                  :disable="!isEditable || loading"
                   v-model="formData.beneficiaryCategoryCodes"
                   :options="beneficiaryCategoryOptions"
                   option-value="code"
@@ -159,6 +196,7 @@
                 <div class="row items-center">
                   <div class="text-subtitle1 q-space">{{ $t('TaxType') }}</div>
                   <q-toggle
+                    v-if="isEditable"
                     v-model="formData.applyTaxType"
                     color="brandblue"
                     :disable="loading"
@@ -170,7 +208,7 @@
                     dense
                     outlined
                     :loading="loading"
-                    :disable="loading"
+                    :disable="!isEditable || loading"
                     v-model="formData.taxType.name"
                     :error="Boolean(formErrors?.taxType)"
                     :error-message="formErrors?.taxType"
@@ -183,7 +221,7 @@
                     map-options
                     emit-value
                     :loading="loading"
-                    :disable="loading"
+                    :disable="!isEditable || loading"
                     v-model="formData.taxType.code"
                     :options="taxCodeOptions"
                     :rules="[(val) => Boolean(val) || $t('Required')]"
@@ -204,7 +242,7 @@
                     type="number"
                     suffix="%"
                     :loading="loading"
-                    :disable="loading || isTaxValueDisabled"
+                    :disable="!isEditable || loading || isTaxValueDisabled"
                     v-model.number="formData.taxType.value"
                     :hint="
                       isTaxValueDisabled
@@ -233,6 +271,7 @@
                     {{ $t('DiscountTypes', {}, 'Discount Types') }}
                   </div>
                   <q-btn
+                    v-if="isEditable"
                     flat
                     round
                     dense
@@ -251,13 +290,14 @@
                 <div
                   v-for="(discount, index) in formData.discountTypes"
                   :key="index"
-                  class="q-pa-sm rounded-borders bg-grey-2"
+                  class="q-pa-sm rounded-borders"
                 >
                   <div class="row items-center">
                     <div class="text-weight-medium q-space">
                       {{ $t('Discount', {}, 'Discount') }} {{ index + 1 }}
                     </div>
                     <q-btn
+                      v-if="isEditable"
                       flat
                       round
                       dense
@@ -278,7 +318,7 @@
                     dense
                     outlined
                     :loading="loading"
-                    :disable="loading"
+                    :disable="!isEditable || loading"
                     v-model="discount.name"
                     :rules="[(val) => Boolean(val) || $t('Required')]"
                   />
@@ -291,7 +331,7 @@
                         map-options
                         emit-value
                         :loading="loading"
-                        :disable="loading"
+                        :disable="!isEditable || loading"
                         v-model="discount.code"
                         :options="discountCodeOptions"
                         :rules="[(val) => Boolean(val) || $t('Required')]"
@@ -316,7 +356,7 @@
                         map-options
                         emit-value
                         :loading="loading"
-                        :disable="loading"
+                        :disable="!isEditable || loading"
                         v-model="discount.scope"
                         :options="discountScopeOptions"
                         :rules="[(val) => Boolean(val) || $t('Required')]"
@@ -332,7 +372,7 @@
                         map-options
                         emit-value
                         :loading="loading"
-                        :disable="loading"
+                        :disable="!isEditable || loading"
                         v-model="discount.type"
                         :options="discountCalculationTypeOptions"
                         :rules="[(val) => Boolean(val) || $t('Required')]"
@@ -345,7 +385,7 @@
                         outlined
                         type="number"
                         :loading="loading"
-                        :disable="loading"
+                        :disable="!isEditable || loading"
                         v-model.number="discount.value"
                         :suffix="discount.type === 'percentage' ? '%' : marketplaceStore?.currency"
                         :rules="[(val) => Number(val) > 0 || $t('Invalid')]"
@@ -359,7 +399,7 @@
                     type="number"
                     :placeholder="$t('Optional')"
                     :loading="loading"
-                    :disable="loading"
+                    :disable="!isEditable || loading"
                     v-model.number="discount.maxAmount"
                     :suffix="marketplaceStore?.currency"
                     :rules="[(val) => !val || Number(val) > 0 || $t('Invalid')]"
@@ -373,7 +413,7 @@
 
       <div class="fixed-bottom q-pa-md">
         <q-btn
-          v-if="!isLastStep"
+          v-if="!isLastStep && isEditable"
           no-caps
           color="brandblue"
           class="full-width"
@@ -382,14 +422,14 @@
           @click="goNext"
         />
         <q-btn
-          v-else
+          v-else-if="isEditable"
           no-caps
           color="brandblue"
           class="full-width"
           type="submit"
           :loading="loading"
           :disable="loading"
-          :label="$t('Create', {}, 'Create')"
+          :label="benefitProgramId ? $t('Save') : $t('Create')"
         />
       </div>
     </q-form>
@@ -397,6 +437,7 @@
 </template>
 <script>
 import { backend } from 'src/marketplace/backend';
+import { BenefitProgram } from 'src/marketplace/objects';
 import { errorParser } from 'src/marketplace/utils';
 import {
   taxCodeOptions,
@@ -415,7 +456,12 @@ export default defineComponent({
   components: {
     MarketplaceHeader,
   },
-  setup() {
+  props: {
+    benefitProgramId: {
+      type: [Number, String],
+    },
+  },
+  setup(props) {
     const { t: $t } = useI18n();
     const $q = useQuasar();
     const $router = useRouter();
@@ -428,6 +474,7 @@ export default defineComponent({
 
     const loading = ref(false);
     const form = ref();
+    const formReady = ref(false);
     const formData = ref({
       name: '',
       description: '',
@@ -437,6 +484,70 @@ export default defineComponent({
       taxType: { name: '', code: 'tax_exclusive', value: 0 },
       discountTypes: [],
     });
+
+    const benefitProgram = ref(BenefitProgram.parse());
+    const fetchingBenefitProgram = ref(false);
+    async function fetchBenefitProgram() {
+      if (!props.benefitProgramId) return Promise.resolve();
+      fetchingBenefitProgram.value = true;
+      // The benefit-programs detail endpoint does not support GET, so the
+      // program is looked up from the (shop-scoped) list instead.
+      const params = { shop_ids: marketplaceStore.activeShopId };
+      return backend
+        .get('benefit-programs/', { params })
+        .then((response) => {
+          if (!Array.isArray(response?.data?.results))
+            return Promise.reject({ response });
+          const raw = response.data.results.find(
+            (program) => String(program?.id) === String(props.benefitProgramId)
+          );
+          if (!raw) return Promise.reject({ response });
+          benefitProgram.value = BenefitProgram.parse(raw);
+          formReady.value = true;
+          return response;
+        })
+        .finally(() => {
+          fetchingBenefitProgram.value = false;
+        });
+    }
+
+    const isEditable = computed(() => {
+      if (!props.benefitProgramId) return true;
+      return benefitProgram.value?.source === 'custom';
+    });
+
+    function resetFormData() {
+      const program = benefitProgram.value;
+      formData.value.name = program?.name ?? '';
+      formData.value.description = program?.description ?? '';
+      formData.value.beneficiaryCategoryCodes = Array.isArray(
+        program?.beneficiaryCategoryCodes
+      )
+        ? [...program.beneficiaryCategoryCodes]
+        : [];
+
+      const taxType = program?.taxType;
+      formData.value.applyTaxType = Boolean(taxType?.id);
+      formData.value.taxType = {
+        name: taxType?.name ?? '',
+        code: taxType?.code ?? 'tax_exclusive',
+        value: Number.isFinite(taxType?.value) ? taxType.value : 0,
+      };
+
+      formData.value.discountTypes = Array.isArray(program?.discounts)
+        ? program.discounts.map((discount) => ({
+            name: discount?.name ?? '',
+            code: discount?.code ?? 'with_tax',
+            scope: discount?.scope ?? 'line_item',
+            type: discount?.type ?? 'fixed',
+            value:
+              discount?.type === 'percentage'
+                ? (Number(discount?.value) || 0) * 100
+                : Number(discount?.value) || 0,
+            maxAmount: discount?.maxAmount ?? null,
+          }))
+        : [];
+    }
 
     const formErrors = ref(createEmptyFormErrors());
     function createEmptyFormErrors() {
@@ -519,7 +630,16 @@ export default defineComponent({
       return errors;
     });
 
-    onMounted(() => fetchBeneficiaryCategories());
+    onMounted(async () => {
+      fetchBeneficiaryCategories();
+      if (props.benefitProgramId) {
+        await fetchBenefitProgram();
+      } else {
+        formReady.value = true;
+      }
+      resetFormData();
+    });
+
     const beneficiaryCategoryOptions = ref([]);
     const fetchingBeneficiaryCategories = ref(false);
     function fetchBeneficiaryCategories() {
@@ -598,7 +718,7 @@ export default defineComponent({
       const data = error?.response?.data;
       if (!data) {
         formErrors.value.detail = [
-          $t('CreateBenefitProgramError', 'Encountered errors in creating benefit program'),
+          $t('SaveBenefitProgramError', 'Encountered errors in saving benefit program'),
         ];
         return;
       }
@@ -626,16 +746,17 @@ export default defineComponent({
         formErrors.value.discountTypes.length;
       if (!formErrors.value.detail.length && !hasFieldError) {
         formErrors.value.detail = [
-          $t('CreateBenefitProgramError', 'Encountered errors in creating benefit program'),
+          $t('SaveBenefitProgramError', 'Encountered errors in saving benefit program'),
         ];
       }
     }
 
     function submit() {
+      if (!isEditable.value) return;
       resetFormErrors();
 
       const data = {
-        shop_id: marketplaceStore.activeShopId,
+        shop_id: props.benefitProgramId ? undefined : marketplaceStore.activeShopId,
         name: formData.value.name,
         description: formData.value.description,
         beneficiary_category_codes: formData.value.beneficiaryCategoryCodes,
@@ -663,13 +784,18 @@ export default defineComponent({
         }),
       };
 
+      const request = props.benefitProgramId
+        ? backend.patch(`benefit-programs/${props.benefitProgramId}/`, data)
+        : backend.post('benefit-programs/', data);
+
       loading.value = true;
-      return backend
-        .post('benefit-programs/', data)
+      return request
         .then((response) => {
           $q.dialog({
             title: $t('Success'),
-            message: $t('BenefitProgramCreated', 'Benefit program created!'),
+            message: props.benefitProgramId
+              ? $t('BenefitProgramUpdated', 'Benefit program updated!')
+              : $t('BenefitProgramCreated', 'Benefit program created!'),
             ok: { color: 'brandblue' },
           }).onDismiss(() => $router.go(-1));
           return response;
@@ -684,8 +810,13 @@ export default defineComponent({
       marketplaceStore,
       loading,
       form,
+      formReady,
       formData,
       formErrors,
+
+      benefitProgram,
+      fetchingBenefitProgram,
+      isEditable,
 
       currentStep,
       isLastStep,
