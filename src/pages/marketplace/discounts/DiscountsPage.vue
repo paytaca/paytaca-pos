@@ -32,7 +32,7 @@
           </q-input>
           <q-btn
             round
-            icon="filter_list"
+            icon="tune"
             padding="sm"
             :color="activeFilterCount > 0 ? 'brandblue' : 'grey-6'"
             flat
@@ -107,6 +107,21 @@
                       color="white"
                       text-color="grey-8"
                       :options="typeFilterOptions"
+                    />
+                  </div>
+                  <div>
+                    <div class="text-caption text-grey q-mb-xs">
+                      {{ $t("Source") }}
+                    </div>
+                    <q-btn-toggle
+                      v-model="filterOpts.source"
+                      spread
+                      no-caps
+                      dense
+                      toggle-color="brandblue"
+                      color="white"
+                      text-color="grey-8"
+                      :options="sourceFilterOptions"
                     />
                   </div>
                 </q-card-section>
@@ -184,14 +199,24 @@
             @click="navigateToEdit(props.row.id)"
           >
             <q-td key="name" :props="props">
-              <div class="text-weight-medium">{{ props.row.name }}</div>
-              <div
-                v-if="props.row.activationCode"
-                dense
-                class="text-caption text-grey"
-              >
-                {{ props.row.activationCode }}
+              <div class="row items-center q-gutter-x-xs">
+                <span class="text-weight-medium">{{ props.row.name }}</span>
+                <q-chip
+                  v-if="props.row.source"
+                  dense
+                  size="xs"
+                  :color="props.row.source === 'custom' ? 'blue-1' : 'grey-3'"
+                  text-color="dark"
+                >
+                  {{ props.row.source === 'custom' ? $t('Custom') : $t('Platform') }}
+                </q-chip>
               </div>
+            </q-td>
+            <q-td key="activationCode" :props="props">
+              <span v-if="props.row.activationCode" class="text-caption text-weight-medium">
+                {{ props.row.activationCode }}
+              </span>
+              <span v-else class="text-grey text-caption">—</span>
             </q-td>
             <q-td key="code" :props="props">
               {{ getCodeLabel(props.row.code) }}
@@ -252,11 +277,15 @@
                 flat
                 round
                 dense
-                icon="edit"
-                color="brandblue"
+                :icon="props.row.source === 'custom' ? 'edit' : 'visibility'"
+                :color="props.row.source === 'custom' ? 'brandblue' : 'grey-6'"
                 size="sm"
                 @click.stop="navigateToEdit(props.row.id)"
-              />
+              >
+                <q-tooltip>
+                  {{ props.row.source === 'custom' ? $t('Edit') : $t('View') }}
+                </q-tooltip>
+              </q-btn>
             </q-td>
           </q-tr>
         </template>
@@ -318,6 +347,7 @@ export default defineComponent({
       code: undefined,
       scope: undefined,
       type: undefined,
+      source: undefined,
       sort: undefined,
     });
 
@@ -325,6 +355,12 @@ export default defineComponent({
       { label: $t("All"), value: undefined },
       { label: $t("Active"), value: true },
       { label: $t("Inactive"), value: false },
+    ];
+
+    const sourceFilterOptions = [
+      { label: $t("All"), value: undefined },
+      { label: $t("Custom", "Custom"), value: "custom" },
+      { label: $t("Platform", "Platform"), value: "platform" },
     ];
 
     const codeFilterOptions = computed(() => [
@@ -391,6 +427,7 @@ export default defineComponent({
       if (filterOpts.value.code !== undefined) count++;
       if (filterOpts.value.scope !== undefined) count++;
       if (filterOpts.value.type !== undefined) count++;
+      if (filterOpts.value.source !== undefined) count++;
       return count;
     });
 
@@ -420,6 +457,12 @@ export default defineComponent({
         )?.label;
         chips.push({ key: "type", label: `${$t("Type")}: ${label}` });
       }
+      if (filterOpts.value.source !== undefined) {
+        const label = sourceFilterOptions.find(
+          (opt) => opt.value === filterOpts.value.source
+        )?.label;
+        chips.push({ key: "source", label: `${$t("Source")}: ${label}` });
+      }
       return chips;
     });
 
@@ -433,6 +476,7 @@ export default defineComponent({
       filterOpts.value.code = undefined;
       filterOpts.value.scope = undefined;
       filterOpts.value.type = undefined;
+      filterOpts.value.source = undefined;
       filterOpts.value.sort = undefined;
     }
 
@@ -449,6 +493,7 @@ export default defineComponent({
         code: filterOpts.value.code,
         scope: filterOpts.value.scope,
         type: filterOpts.value.type,
+        source: filterOpts.value.source,
         ordering: filterOpts.value.sort || undefined,
       };
 
@@ -475,6 +520,14 @@ export default defineComponent({
         align: "left",
         label: $t("Name"),
         field: "name",
+        sortable: true,
+      },
+      {
+        name: "activationCode",
+        align: "left",
+        label: $t("ActivationCode", "Activation Code"),
+        field: "activationCode",
+        classes: "hidden-xs",
         sortable: true,
       },
       {
@@ -513,7 +566,9 @@ export default defineComponent({
 
     watch(filterOpts, () => fetchDiscounts(), { deep: true });
 
-    const sortFieldNameMap = {};
+    const sortFieldNameMap = {
+      activationCode: 'activation_code',
+    };
     function sortMethod(rows, sortBy, descending) {
       const fieldName = sortFieldNameMap[sortBy] || sortBy;
       filterOpts.value.sort = (descending ? "-" : "") + fieldName;
@@ -532,6 +587,7 @@ export default defineComponent({
     return {
       filterOpts,
       activeFilterOptions,
+      sourceFilterOptions,
       activeFilterCount,
       activeFilterChips,
       codeFilterOptions,

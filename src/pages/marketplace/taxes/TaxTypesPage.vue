@@ -52,7 +52,7 @@
           </q-input>
           <q-btn
             round
-            icon="filter_list"
+            icon="tune"
             padding="sm"
             :color="activeFilterCount > 0 ? 'brandblue' : 'grey-6'"
             flat
