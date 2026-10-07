@@ -44,6 +44,10 @@ export default defineComponent({
     operator: String,
     value: {},
     customCurrency: String,
+    readonly: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup(props) {
     const marketplaceStore = useMarketplaceStore();

@@ -12,6 +12,7 @@
           flat
           dense
           no-caps
+          :disable="readonly"
           :label="
             formData.logic === 'AND' ? $t('All', 'All') : $t('Any', 'Any')
           "
@@ -47,7 +48,7 @@
       </div>
       <q-space />
       <q-btn
-        v-if="hasRemovedListener"
+        v-if="!readonly && hasRemovedListener"
         flat
         round
         dense
@@ -120,7 +121,7 @@
               <DiscountConditionValue v-bind="item.data" />
             </div>
           </div>
-          <div class="row items-center q-gutter-x-xs">
+          <div v-if="!readonly" class="row items-center q-gutter-x-xs">
             <q-btn
               flat
               round
@@ -148,6 +149,7 @@
             v-model="formData.children[item.originalIndex]"
             :max-depth="maxDepth"
             :current-depth="currentDepth + 1"
+            :readonly="readonly"
             @remove="removeChild(item.originalIndex)"
           />
         </div>
@@ -156,7 +158,7 @@
 
     <!-- Footer / Add Actions -->
     <div
-      v-if="currentDepth < maxDepth || true"
+      v-if="!readonly && (currentDepth < maxDepth || true)"
       class="group-footer row q-gutter-x-sm q-mt-sm"
     >
       <q-btn
@@ -199,6 +201,10 @@ export default defineComponent({
     maxDepth: Number,
     currentDepth: Number,
     modelValue: Object,
+    readonly: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup(props, { emit: $emit }) {
     const $q = useQuasar();
@@ -215,6 +221,7 @@ export default defineComponent({
     });
 
     function emitUpdateModelValue() {
+      if (props.readonly) return;
       $emit("update:modelValue", formData.value);
     }
 
@@ -278,12 +285,14 @@ export default defineComponent({
     }
 
     function removeChild(indexToRemove) {
+      if (props.readonly) return;
       formData.value.children = formData.value.children.filter((_, index) => {
         return index !== indexToRemove;
       });
     }
 
     function addChild() {
+      if (props.readonly) return;
       if (props.currentDepth >= props.maxDepth) return;
       formData.value.children.push({
         logic: "AND",
@@ -293,6 +302,7 @@ export default defineComponent({
     }
 
     function removeCondition(indexToRemove) {
+      if (props.readonly) return;
       formData.value.conditions = formData.value.conditions.filter(
         (_, index) => {
           return index !== indexToRemove;
@@ -301,6 +311,7 @@ export default defineComponent({
     }
 
     function addCondition() {
+      if (props.readonly) return;
       $q.dialog({
         component: DiscountConditionFormDialog,
       }).onOk((data) => {
@@ -309,6 +320,7 @@ export default defineComponent({
     }
 
     function editCondition(index) {
+      if (props.readonly) return;
       const condition = formData.value.conditions[index];
       $q.dialog({
         component: DiscountConditionFormDialog,

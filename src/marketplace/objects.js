@@ -422,6 +422,10 @@ export class TaxType {
   get isCustom() {
     return this.source === 'custom';
   }
+
+  get isCustom() {
+    return this.source === 'custom';
+  }
 }
 
 export class DiscountCondition {
@@ -548,6 +552,11 @@ export class DiscountType {
       : undefined;
 
     this.appliedAmount = data?.applied_amount;
+    this.source = data?.source;
+  }
+
+  get isCustom() {
+    return this.source === 'custom';
   }
 }
 

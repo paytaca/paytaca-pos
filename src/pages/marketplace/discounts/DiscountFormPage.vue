@@ -5,7 +5,7 @@
         <q-btn flat icon="arrow_back" @click="() => $router.go(-1)" />
         <div class="q-space">
           <div v-if="discountId" class="text-h5">
-            {{ $t("EditDiscount", {}, "Edit Discount") }}
+            {{ isEditable ? $t("EditDiscount", {}, "Edit Discount") : $t("ViewDiscount", {}, "View Discount") }}
           </div>
           <div v-else class="text-h5">
             {{ $t("CreateDiscount", {}, "Create Discount") }}
@@ -26,6 +26,9 @@
       </div>
     </div>
     <q-form v-else ref="form" @submit="submit" class="q-mt-lg q-gutter-y-lg">
+      <q-banner v-if="!isEditable" class="bg-grey-2 text-dark rounded-borders">
+        {{ $t("PlatformOrNullDiscountReadOnlyMessage", "This discount is provided by the platform or system and cannot be edited.") }}
+      </q-banner>
       <q-card>
         <q-card-section class="q-gutter-y-xs">
           <div class="text-subtitle1">{{ $t("Details") }}</div>
@@ -34,7 +37,7 @@
             dense
             outlined
             :loading="loading"
-            :disable="loading"
+            :disable="!isEditable || loading"
             v-model="formData.name"
             :error="Boolean(formErrors?.name)"
             :error-message="formErrors?.name"
@@ -45,7 +48,7 @@
             dense
             outlined
             :loading="loading"
-            :disable="loading"
+            :disable="!isEditable || loading"
             v-model="formData.activationCode"
             :error="Boolean(formErrors?.activationCode)"
             :error-message="formErrors?.activationCode"
@@ -56,7 +59,7 @@
             dense
             outlined
             :loading="loading"
-            :disable="loading"
+            :disable="!isEditable || loading"
             map-options
             emit-value
             v-model="formData.code"
@@ -81,7 +84,7 @@
             dense
             outlined
             :loading="loading"
-            :disable="loading"
+            :disable="!isEditable || loading"
             map-options
             emit-value
             v-model="formData.scope"
@@ -109,7 +112,7 @@
                 dense
                 outlined
                 :loading="loading"
-                :disable="loading"
+                :disable="!isEditable || loading"
                 map-options
                 emit-value
                 v-model="formData.type"
@@ -136,7 +139,7 @@
                 dense
                 outlined
                 :loading="loading"
-                :disable="loading"
+                :disable="!isEditable || loading"
                 v-model.number="formData.value"
                 :error="Boolean(formErrors?.value)"
                 :error-message="formErrors?.value"
@@ -157,7 +160,7 @@
             dense
             outlined
             :loading="loading"
-            :disable="loading"
+            :disable="!isEditable || loading"
             :placeholder="$t('Optional')"
             v-model.number="formData.maxAmount"
             :error="Boolean(formErrors?.maxAmount)"
@@ -177,7 +180,7 @@
                   dense
                   outlined
                   :loading="loading"
-                  :disable="loading"
+                  :disable="!isEditable || loading"
                   :placeholder="$t('Optional')"
                   mask="####-##-##"
                   v-model="formData.startsAt"
@@ -187,12 +190,14 @@
                 >
                   <template v-slot:append>
                     <q-icon
+                      v-if="isEditable"
                       name="calendar_today"
                       @click.stop="startsAtMenuOpen = !startsAtMenuOpen"
                     />
                   </template>
                 </q-input>
                 <q-menu
+                  v-if="isEditable"
                   v-model="startsAtMenuOpen"
                   no-parent-event
                   auto-close
@@ -209,7 +214,7 @@
                   dense
                   outlined
                   :loading="loading"
-                  :disable="loading"
+                  :disable="!isEditable || loading"
                   :placeholder="$t('Optional')"
                   mask="####-##-##"
                   v-model="formData.endsAt"
@@ -219,12 +224,19 @@
                 >
                   <template v-slot:append>
                     <q-icon
+                      v-if="isEditable"
                       name="calendar_today"
                       @click.stop="endsAtMenuOpen = !endsAtMenuOpen"
                     />
                   </template>
                 </q-input>
-                <q-menu v-model="endsAtMenuOpen" no-parent-event auto-close fit>
+                <q-menu
+                  v-if="isEditable"
+                  v-model="endsAtMenuOpen"
+                  no-parent-event
+                  auto-close
+                  fit
+                >
                   <q-date v-model="formData.endsAt" mask="YYYY-MM-DD" />
                 </q-menu>
               </div>
@@ -256,6 +268,7 @@
           </q-banner>
           <div v-if="!formData.rootConditionGroup" class="text-center">
             <q-btn
+              v-if="isEditable"
               no-caps
               label="Add conditions"
               color="brandblue"
@@ -268,18 +281,20 @@
                 }
               "
             />
+            <div v-else class="text-grey q-py-sm">—</div>
           </div>
           <DiscountConditionGroupForm
             v-else
             v-model="formData.rootConditionGroup"
             :current-depth="1"
             :max-depth="3"
-            @remove="formData.rootConditionGroup = null"
+            :readonly="!isEditable"
+            @remove="isEditable ? (formData.rootConditionGroup = null) : null"
           />
         </q-card-section>
       </q-card>
 
-      <div class="q-pa-md sticky-bottom">
+      <div v-if="isEditable" class="q-pa-md sticky-bottom">
         <q-btn
           no-caps
           :label="discountId ? $t('Save') : $t('Create')"
@@ -298,7 +313,7 @@ import { useMarketplaceStore } from "src/stores/marketplace";
 import { useQuasar, date } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { defineComponent, onMounted, ref } from "vue";
+import { defineComponent, onMounted, ref, computed } from "vue";
 import MarketplaceHeader from "src/components/marketplace/MarketplaceHeader.vue";
 import DiscountConditionGroupForm from "src/components/marketplace/discounts/DiscountConditionGroupForm.vue";
 import { errorParser } from "src/marketplace/utils";
@@ -352,6 +367,11 @@ export default defineComponent({
           fetchingDiscount.value = false;
         });
     }
+
+    const isEditable = computed(() => {
+      if (!props.discountId) return true;
+      return discountType.value?.source === 'custom';
+    });
 
     const loading = ref(false);
     const formReady = ref(false);
@@ -462,6 +482,7 @@ export default defineComponent({
     }
 
     function submit() {
+      if (!isEditable.value) return;
       const discountTypeId = discountType.value.id;
 
       const startsAt = formData.value.startsAt
@@ -522,6 +543,7 @@ export default defineComponent({
 
       fetchingDiscount,
       discountType,
+      isEditable,
 
       loading,
       formReady,
