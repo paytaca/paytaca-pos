@@ -158,6 +158,12 @@
                 {{ props.row?.currency?.symbol }}
               </div>
             </q-td>
+            <q-td key="dates" :props="props">
+              <span v-if="getDateRangeText(props.row)" class="text-caption">
+                {{ getDateRangeText(props.row) }}
+              </span>
+              <span v-else class="text-grey text-caption">—</span>
+            </q-td>
             <q-td key="conditions" :props="props" class="text-center">
               <q-chip
                 v-if="getTotalConditions(props.row) > 0"
@@ -215,6 +221,7 @@
 <script>
 import { backend } from "src/marketplace/backend";
 import { DiscountType } from "src/marketplace/objects";
+import { formatTimestampToText } from "src/marketplace/utils";
 import { useDiscountFormHelpers } from "src/composables/marketplace/discount";
 import { useMarketplaceStore } from "src/stores/marketplace";
 import { useQuasar } from "quasar";
@@ -313,6 +320,15 @@ export default defineComponent({
     }
     function clearSearch() {
       filterOpts.value.search = "";
+    }
+    function getDateRangeText(discount) {
+      const startsAt = discount?.startsAt;
+      const endsAt = discount?.endsAt;
+      if (!startsAt && !endsAt) return "";
+      const startText = startsAt ? formatTimestampToText(startsAt) : "";
+      const endText = endsAt ? formatTimestampToText(endsAt) : "";
+      if (startText && endText) return `${startText} – ${endText}`;
+      return startText || endText;
     }
     function navigateToEdit(discountId) {
       $router.push({
@@ -465,6 +481,13 @@ export default defineComponent({
       },
       { name: "value", align: "left", label: $t("Amount"), field: "value" },
       {
+        name: "dates",
+        align: "left",
+        label: $t("Validity", "Validity"),
+        field: (row) => getDateRangeText(row),
+        classes: "hidden-xs",
+      },
+      {
         name: "conditions",
         align: "center",
         label: $t("Conditions"),
@@ -514,6 +537,7 @@ export default defineComponent({
       getScopeLabel,
       getTypeLabel,
       getTotalConditions,
+      getDateRangeText,
       clearSearch,
       navigateToEdit,
       removeFilter,

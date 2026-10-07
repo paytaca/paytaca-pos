@@ -170,76 +170,64 @@
           />
           <q-separator spaced />
           <div class="text-caption text-grey">
-            {{ $t("DatesSavedAsUTC", {}, "Dates are saved as UTC") }}
+            {{
+              $t(
+                "DatesShownInDeviceTimezone",
+                { timezone: deviceTimezone },
+                `Times are shown in your device's timezone (${deviceTimezone})`
+              )
+            }}
           </div>
           <div class="row no-wrap items-start q-gutter-xs">
             <div class="col-6">
               <div>{{ $t("StartsAt", {}, "Starts at") }}</div>
-              <div>
-                <q-input
-                  dense
-                  outlined
-                  :loading="loading"
-                  :disable="!isEditable || loading"
-                  :placeholder="$t('Optional')"
-                  mask="####-##-##"
-                  v-model="formData.startsAt"
-                  :error="Boolean(formErrors?.startsAt)"
-                  :error-message="formErrors?.startsAt"
-                  clearable
-                >
-                  <template v-slot:append>
-                    <q-icon
-                      v-if="isEditable"
-                      name="calendar_today"
-                      @click.stop="startsAtMenuOpen = !startsAtMenuOpen"
-                    />
-                  </template>
-                </q-input>
-                <q-menu
-                  v-if="isEditable"
-                  v-model="startsAtMenuOpen"
-                  no-parent-event
-                  auto-close
-                  fit
-                >
-                  <q-date v-model="formData.startsAt" mask="YYYY-MM-DD" />
-                </q-menu>
-              </div>
+              <q-field
+                dense
+                outlined
+                :loading="loading"
+                :disable="!isEditable || loading"
+                :model-value="startsAtDisplay"
+                :error="Boolean(formErrors?.startsAt)"
+                :error-message="formErrors?.startsAt"
+                clearable
+                @clear="formData.startsAt = ''"
+              >
+                <template v-slot:control>
+                  <div
+                    class="full-width no-outline cursor-pointer"
+                    tabindex="0"
+                    @click="isEditable && openDateTimePicker('startsAt')"
+                  >
+                    <span v-if="startsAtDisplay">{{ startsAtDisplay }}</span>
+                    <span v-else class="text-grey">{{ $t('Optional') }}</span>
+                  </div>
+                </template>
+              </q-field>
             </div>
             <div class="col-6">
               <div>{{ $t("EndsAt", {}, "Ends at") }}</div>
-              <div>
-                <q-input
-                  dense
-                  outlined
-                  :loading="loading"
-                  :disable="!isEditable || loading"
-                  :placeholder="$t('Optional')"
-                  mask="####-##-##"
-                  v-model="formData.endsAt"
-                  :error="Boolean(formErrors?.endsAt)"
-                  :error-message="formErrors?.endsAt"
-                  clearable
-                >
-                  <template v-slot:append>
-                    <q-icon
-                      v-if="isEditable"
-                      name="calendar_today"
-                      @click.stop="endsAtMenuOpen = !endsAtMenuOpen"
-                    />
-                  </template>
-                </q-input>
-                <q-menu
-                  v-if="isEditable"
-                  v-model="endsAtMenuOpen"
-                  no-parent-event
-                  auto-close
-                  fit
-                >
-                  <q-date v-model="formData.endsAt" mask="YYYY-MM-DD" />
-                </q-menu>
-              </div>
+              <q-field
+                dense
+                outlined
+                :loading="loading"
+                :disable="!isEditable || loading"
+                :model-value="endsAtDisplay"
+                :error="Boolean(formErrors?.endsAt)"
+                :error-message="formErrors?.endsAt"
+                clearable
+                @clear="formData.endsAt = ''"
+              >
+                <template v-slot:control>
+                  <div
+                    class="full-width no-outline cursor-pointer"
+                    tabindex="0"
+                    @click="isEditable && openDateTimePicker('endsAt')"
+                  >
+                    <span v-if="endsAtDisplay">{{ endsAtDisplay }}</span>
+                    <span v-else class="text-grey">{{ $t('Optional') }}</span>
+                  </div>
+                </template>
+              </q-field>
             </div>
           </div>
         </q-card-section>
@@ -310,13 +298,14 @@
 import { backend } from "src/marketplace/backend";
 import { useDiscountFormHelpers } from "src/composables/marketplace/discount";
 import { useMarketplaceStore } from "src/stores/marketplace";
-import { useQuasar, date } from "quasar";
+import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { defineComponent, onMounted, ref, computed } from "vue";
 import MarketplaceHeader from "src/components/marketplace/MarketplaceHeader.vue";
+import DateTimePickerDialog from "src/components/DateTimePickerDialog.vue";
 import DiscountConditionGroupForm from "src/components/marketplace/discounts/DiscountConditionGroupForm.vue";
-import { errorParser } from "src/marketplace/utils";
+import { errorParser, formatTimestampToText } from "src/marketplace/utils";
 import { DiscountType } from "src/marketplace/objects";
 
 export default defineComponent({
@@ -375,8 +364,6 @@ export default defineComponent({
 
     const loading = ref(false);
     const formReady = ref(false);
-    const startsAtMenuOpen = ref(false);
-    const endsAtMenuOpen = ref(false);
     const formData = ref({
       name: "",
       activationCode: "",
@@ -401,14 +388,42 @@ export default defineComponent({
           : discountType.value?.value || 0;
       formData.value.maxAmount = discountType.value?.maxAmount ?? null;
       formData.value.startsAt = discountType.value?.startsAt
-        ? date.formatDate(discountType.value.startsAt, "YYYY-MM-DD")
+        ? discountType.value.startsAt.toISOString()
         : "";
       formData.value.endsAt = discountType.value?.endsAt
-        ? date.formatDate(discountType.value.endsAt, "YYYY-MM-DD")
+        ? discountType.value.endsAt.toISOString()
         : "";
       formData.value.rootConditionGroup = convertFlatConditionGroupsToFormData(
         discountType.value.conditionGroups
       );
+    }
+
+    const deviceTimezone = computed(() => {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    });
+
+    const startsAtDisplay = computed(() => {
+      if (!formData.value.startsAt) return "";
+      return formatTimestampToText(formData.value.startsAt);
+    });
+    const endsAtDisplay = computed(() => {
+      if (!formData.value.endsAt) return "";
+      return formatTimestampToText(formData.value.endsAt);
+    });
+
+    function openDateTimePicker(field) {
+      $q.dialog({
+        component: DateTimePickerDialog,
+        componentProps: {
+          modelValue: formData.value[field],
+          title:
+            field === "startsAt"
+              ? $t("StartsAt", {}, "Starts at")
+              : $t("EndsAt", {}, "Ends at"),
+        },
+      }).onOk((iso) => {
+        formData.value[field] = iso;
+      });
     }
 
     const formErrors = ref({
@@ -488,11 +503,9 @@ export default defineComponent({
       const startsAt = formData.value.startsAt
         ? new Date(formData.value.startsAt)
         : undefined;
-      if (startsAt) startsAt.setUTCHours(0, 0, 0, 0);
       const endsAt = formData.value.endsAt
         ? new Date(formData.value.endsAt)
         : undefined;
-      if (endsAt) endsAt.setUTCHours(0, 0, 0, 0);
 
       const data = {
         name: formData.value.name,
@@ -547,8 +560,10 @@ export default defineComponent({
 
       loading,
       formReady,
-      startsAtMenuOpen,
-      endsAtMenuOpen,
+      deviceTimezone,
+      startsAtDisplay,
+      endsAtDisplay,
+      openDateTimePicker,
       formData,
       formErrors,
       submit,
