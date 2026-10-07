@@ -47,6 +47,15 @@ const routes = [
         ]
       },
       {
+        path: 'benefits',
+        meta: { requireAuth: true },
+        children: [
+          { path: '', component: () => import('src/pages/marketplace/benefits/BenefitProgramsPage.vue'), name: 'marketplace-benefits', props: route => Object.assign({}, route?.query, route?.params) },
+          { path: 'create', component: () => import('src/pages/marketplace/benefits/BenefitFormPage.vue'), name: 'marketplace-benefit-create', props: route => Object.assign({}, route?.query, route?.params) },
+          { path: 'edit/:benefitProgramId', component: () => import('src/pages/marketplace/benefits/BenefitFormPage.vue'), name: 'marketplace-benefit-edit', props: route => Object.assign({}, route?.query, route?.params) },
+        ],
+      },
+      {
         path: 'discounts',
         meta: { requireAuth: true },
         children: [
