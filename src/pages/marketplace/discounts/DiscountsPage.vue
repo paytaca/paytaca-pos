@@ -149,12 +149,12 @@
               </template>
               <div
                 v-if="
-                  Number.isFinite(props.row.maxValue) && props.row.maxValue > 0
+                  Number.isFinite(props.row.maxAmount) && props.row.maxAmount > 0
                 "
                 class="text-caption text-grey"
               >
                 {{ $t("Max", "max") }}
-                {{ Number(props.row.maxValue).toFixed(2) }}
+                {{ Number(props.row.maxAmount).toFixed(2) }}
                 {{ props.row?.currency?.symbol }}
               </div>
             </q-td>
