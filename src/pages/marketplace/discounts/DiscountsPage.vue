@@ -36,113 +36,11 @@
             padding="sm"
             :color="activeFilterCount > 0 ? 'brandblue' : 'grey-6'"
             flat
+            @click="openFiltersDialog"
           >
             <q-badge v-if="activeFilterCount > 0" floating color="red" rounded>
               {{ activeFilterCount }}
             </q-badge>
-            <q-menu anchor="bottom right" self="top right" :offset="[0, 8]">
-              <q-card style="min-width: 300px">
-                <q-card-section class="q-py-sm">
-                  <div class="text-subtitle2">
-                    {{ $t("Filters", "Filters") }}
-                  </div>
-                </q-card-section>
-                <q-separator />
-                <q-card-section class="q-gutter-y-md">
-                  <div>
-                    <div class="text-caption text-grey q-mb-xs">
-                      {{ $t("Status") }}
-                    </div>
-                    <q-btn-toggle
-                      v-model="filterOpts.isActive"
-                      spread
-                      no-caps
-                      dense
-                      toggle-color="brandblue"
-                      color="white"
-                      text-color="grey-8"
-                      :options="activeFilterOptions"
-                    />
-                  </div>
-                  <div>
-                    <div class="text-caption text-grey q-mb-xs">
-                      {{ $t("Code") }}
-                    </div>
-                    <q-btn-toggle
-                      v-model="filterOpts.code"
-                      spread
-                      no-caps
-                      dense
-                      toggle-color="brandblue"
-                      color="white"
-                      text-color="grey-8"
-                      :options="codeFilterOptions"
-                    />
-                  </div>
-                  <div>
-                    <div class="text-caption text-grey q-mb-xs">
-                      {{ $t("Scope") }}
-                    </div>
-                    <q-btn-toggle
-                      v-model="filterOpts.scope"
-                      spread
-                      no-caps
-                      dense
-                      toggle-color="brandblue"
-                      color="white"
-                      text-color="grey-8"
-                      :options="scopeFilterOptions"
-                    />
-                  </div>
-                  <div>
-                    <div class="text-caption text-grey q-mb-xs">
-                      {{ $t("Type") }}
-                    </div>
-                    <q-btn-toggle
-                      v-model="filterOpts.type"
-                      spread
-                      no-caps
-                      dense
-                      toggle-color="brandblue"
-                      color="white"
-                      text-color="grey-8"
-                      :options="typeFilterOptions"
-                    />
-                  </div>
-                  <div>
-                    <div class="text-caption text-grey q-mb-xs">
-                      {{ $t("Source") }}
-                    </div>
-                    <q-btn-toggle
-                      v-model="filterOpts.source"
-                      spread
-                      no-caps
-                      dense
-                      toggle-color="brandblue"
-                      color="white"
-                      text-color="grey-8"
-                      :options="sourceFilterOptions"
-                    />
-                  </div>
-                </q-card-section>
-                <q-separator />
-                <q-card-actions align="between" class="q-px-md q-py-sm">
-                  <q-btn
-                    flat
-                    no-caps
-                    color="grey-7"
-                    :label="$t('Reset', 'Reset')"
-                    @click="resetFilters"
-                  />
-                  <q-btn
-                    v-close-popup
-                    no-caps
-                    color="brandblue"
-                    :label="$t('Apply', 'Apply')"
-                  />
-                </q-card-actions>
-              </q-card>
-            </q-menu>
           </q-btn>
           <q-btn
             round
@@ -319,11 +217,13 @@ import { backend } from "src/marketplace/backend";
 import { DiscountType } from "src/marketplace/objects";
 import { useDiscountFormHelpers } from "src/composables/marketplace/discount";
 import { useMarketplaceStore } from "src/stores/marketplace";
+import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { defineComponent, onMounted, ref, computed, watch } from "vue";
 import MarketplaceHeader from "src/components/marketplace/MarketplaceHeader.vue";
 import LimitOffsetPagination from "src/components/LimitOffsetPagination.vue";
+import DiscountFiltersDialog from "src/components/marketplace/discounts/DiscountFiltersDialog.vue";
 
 export default defineComponent({
   name: "DiscountsPage",
@@ -333,6 +233,7 @@ export default defineComponent({
   },
   setup() {
     const { t: $t } = useI18n();
+    const $q = useQuasar();
     const $router = useRouter();
     const marketplaceStore = useMarketplaceStore();
     const {
@@ -480,6 +381,15 @@ export default defineComponent({
       filterOpts.value.sort = undefined;
     }
 
+    function openFiltersDialog() {
+      $q.dialog({
+        component: DiscountFiltersDialog,
+        componentProps: { filterOpts: filterOpts.value },
+      }).onOk((newFilterOpts) => {
+        Object.assign(filterOpts.value, newFilterOpts);
+      });
+    }
+
     const discounts = ref([].map(DiscountType.parse));
     const fetchingDiscounts = ref(false);
     const discountsPagination = ref({ offset: 0, limit: 0, count: 0 });
@@ -608,6 +518,7 @@ export default defineComponent({
       navigateToEdit,
       removeFilter,
       resetFilters,
+      openFiltersDialog,
       sortMethod,
 
       DiscountType,

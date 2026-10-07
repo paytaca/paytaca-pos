@@ -56,61 +56,11 @@
             padding="sm"
             :color="activeFilterCount > 0 ? 'brandblue' : 'grey-6'"
             flat
+            @click="openFiltersDialog"
           >
             <q-badge v-if="activeFilterCount > 0" floating color="red" rounded>
               {{ activeFilterCount }}
             </q-badge>
-            <q-menu anchor="bottom right" self="top right" :offset="[0, 8]">
-              <q-card style="min-width: 300px">
-                <q-card-section class="q-py-sm">
-                  <div class="text-subtitle2">
-                    {{ $t('Filters', 'Filters') }}
-                  </div>
-                </q-card-section>
-                <q-separator />
-                <q-card-section class="q-gutter-y-md">
-                  <div>
-                    <div class="text-caption text-grey q-mb-xs">{{ $t('Code') }}</div>
-                    <q-option-group
-                      v-model="filterOpts.code"
-                      size="sm"
-                      type="radio"
-                      color="brandblue"
-                      :options="codeFilterOptions"
-                    />
-                  </div>
-                  <div>
-                    <div class="text-caption text-grey q-mb-xs">{{ $t('Source') }}</div>
-                    <q-btn-toggle
-                      v-model="filterOpts.source"
-                      spread
-                      no-caps
-                      dense
-                      toggle-color="brandblue"
-                      color="white"
-                      text-color="grey-8"
-                      :options="sourceFilterOptions"
-                    />
-                  </div>
-                </q-card-section>
-                <q-separator />
-                <q-card-actions align="between" class="q-px-md q-py-sm">
-                  <q-btn
-                    flat
-                    no-caps
-                    color="grey-7"
-                    :label="$t('Reset')"
-                    @click="resetFilters"
-                  />
-                  <q-btn
-                    v-close-popup
-                    no-caps
-                    color="brandblue"
-                    :label="$t('Apply')"
-                  />
-                </q-card-actions>
-              </q-card>
-            </q-menu>
           </q-btn>
           <q-btn
             round
@@ -264,6 +214,7 @@ import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import TaxTypeFormDialog from 'src/components/marketplace/taxes/TaxTypeFormDialog.vue'
 import TaxTypeDetailDialog from 'src/components/marketplace/taxes/TaxTypeDetailDialog.vue'
+import TaxTypeFiltersDialog from 'src/components/marketplace/taxes/TaxTypeFiltersDialog.vue'
 
 const SHOP_SETTINGS_MAX_AGE = 5 * 60 * 1000
 const DEFAULT_LIMIT = 10
@@ -419,6 +370,15 @@ export default defineComponent({
       filterOpts.value.sort = undefined
     }
 
+    function openFiltersDialog() {
+      $q.dialog({
+        component: TaxTypeFiltersDialog,
+        componentProps: { filterOpts: filterOpts.value },
+      }).onOk(newFilterOpts => {
+        Object.assign(filterOpts.value, newFilterOpts)
+      })
+    }
+
     function openCreateTaxTypeDialog() {
       $q.dialog({
         component: TaxTypeFormDialog,
@@ -544,6 +504,7 @@ export default defineComponent({
       clearSearch,
       removeFilter,
       resetFilters,
+      openFiltersDialog,
       openCreateTaxTypeDialog,
       openEditTaxTypeDialog,
       openTaxTypeDetailDialog,
