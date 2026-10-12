@@ -26,6 +26,19 @@
       </div>
     </div>
     <q-form v-else ref="form" @submit="submit" class="q-mt-lg q-gutter-y-lg">
+      <q-banner
+        v-if="formErrors?.detail?.length"
+        class="bg-red text-white rounded-borders"
+      >
+        <div v-if="formErrors.detail.length === 1">
+          {{ formErrors.detail[0] }}
+        </div>
+        <ul v-else class="q-pl-md q-my-none">
+          <li v-for="(err, index) in formErrors.detail" :key="index">
+            {{ err }}
+          </li>
+        </ul>
+      </q-banner>
       <q-banner v-if="!isEditable" class="bg-grey-2 text-dark rounded-borders">
         {{ $t("PlatformOrNullDiscountReadOnlyMessage", "This discount is provided by the platform or system and cannot be edited.") }}
       </q-banner>
@@ -544,6 +557,7 @@ export default defineComponent({
     }
 
     const formErrors = ref({
+      detail: [],
       name: "",
       activationCode: "",
       code: "",
@@ -559,6 +573,7 @@ export default defineComponent({
     });
     function resetFormErrors() {
       formErrors.value = {
+        detail: [],
         name: "",
         activationCode: "",
         code: "",
@@ -575,7 +590,21 @@ export default defineComponent({
     }
 
     function parseErrorResponse(error) {
+      resetFormErrors();
       const data = error?.response?.data;
+      if (!data) {
+        formErrors.value.detail = [
+          $t("SaveDiscountError", "Encountered errors in saving discount"),
+        ];
+        return;
+      }
+
+      // Base-level errors (e.g. 403 permission errors, validation errors that
+      // are not tied to a specific field).
+      formErrors.value.detail = errorParser.toArray(data?.non_field_errors);
+      if (data?.detail)
+        formErrors.value.detail = errorParser.toArray(data?.detail);
+
       formErrors.value.name = errorParser.firstElementOrValue(data?.name);
       formErrors.value.activationCode = errorParser.firstElementOrValue(
         data?.activation_code
@@ -596,9 +625,28 @@ export default defineComponent({
         data?.starts_at
       );
       formErrors.value.endsAt = errorParser.firstElementOrValue(data?.ends_at);
-      formErrors.value.rootConditionGroup = errorParser.errorsToQTreeNodes(
-        data?.root_condition_group
-      );
+      formErrors.value.rootConditionGroup = data?.root_condition_group
+        ? errorParser.errorsToQTreeNodes(data.root_condition_group)
+        : null;
+
+      const hasFieldError =
+        formErrors.value.name ||
+        formErrors.value.activationCode ||
+        formErrors.value.code ||
+        formErrors.value.scope ||
+        formErrors.value.type ||
+        formErrors.value.value ||
+        formErrors.value.maxAmount ||
+        formErrors.value.maxRedemptions ||
+        formErrors.value.maxRedemptionsPerCustomer ||
+        formErrors.value.startsAt ||
+        formErrors.value.endsAt ||
+        formErrors.value.rootConditionGroup;
+      if (!formErrors.value.detail.length && !hasFieldError) {
+        formErrors.value.detail = [
+          $t("SaveDiscountError", "Encountered errors in saving discount"),
+        ];
+      }
     }
 
     function normalizeCondition(conditionData) {
