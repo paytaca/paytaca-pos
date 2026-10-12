@@ -158,6 +158,24 @@
                 {{ props.row?.currency?.symbol }}
               </div>
             </q-td>
+            <q-td key="redemptions" :props="props">
+              <template v-if="hasRedemptionLimits(props.row)">
+                <div
+                  v-if="props.row.maxRedemptions != null"
+                  class="text-caption"
+                >
+                  {{ $t("Total", "Total") }}: {{ props.row.maxRedemptions }}
+                </div>
+                <div
+                  v-if="props.row.maxRedemptionsPerCustomer != null"
+                  class="text-caption"
+                >
+                  {{ $t("PerCustomer", "Per customer") }}:
+                  {{ props.row.maxRedemptionsPerCustomer }}
+                </div>
+              </template>
+              <span v-else class="text-grey text-caption">—</span>
+            </q-td>
             <q-td key="dates" :props="props">
               <span v-if="getDateRangeText(props.row)" class="text-caption">
                 {{ getDateRangeText(props.row) }}
@@ -316,6 +334,12 @@ export default defineComponent({
       return discount.conditionGroups.reduce(
         (sum, group) => sum + (group.conditions?.length ?? 0),
         0
+      );
+    }
+    function hasRedemptionLimits(discount) {
+      return (
+        discount?.maxRedemptions != null ||
+        discount?.maxRedemptionsPerCustomer != null
       );
     }
     function clearSearch() {
@@ -481,6 +505,13 @@ export default defineComponent({
       },
       { name: "value", align: "left", label: $t("Amount"), field: "value" },
       {
+        name: "redemptions",
+        align: "left",
+        label: $t("Redemptions", "Redemptions"),
+        field: (row) => row.maxRedemptions,
+        classes: "hidden-xs",
+      },
+      {
         name: "dates",
         align: "left",
         label: $t("Validity", "Validity"),
@@ -538,6 +569,7 @@ export default defineComponent({
       getTypeLabel,
       getTotalConditions,
       getDateRangeText,
+      hasRedemptionLimits,
       clearSearch,
       navigateToEdit,
       removeFilter,

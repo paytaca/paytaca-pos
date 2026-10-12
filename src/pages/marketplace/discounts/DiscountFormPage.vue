@@ -169,14 +169,123 @@
             :rules="[(val) => !val || val > 0 || $t('Invalid')]"
           />
           <q-separator spaced />
-          <div class="text-caption text-grey">
-            {{
-              $t(
-                "DatesShownInDeviceTimezone",
-                { timezone: deviceTimezone },
-                `Times are shown in your device's timezone (${deviceTimezone})`
-              )
-            }}
+          <div class="row items-center q-gutter-x-xs">
+            <div class="text-subtitle2">
+              {{ $t("RedemptionLimits", "Redemption Limits") }}
+            </div>
+            <HelpIcon :title="$t('RedemptionLimits', 'Redemption Limits')">
+              <div class="text-body2">
+                {{
+                  $t(
+                    "RedemptionLimitsDescription",
+                    "How many times this discount can be redeemed with its activation code."
+                  )
+                }}
+              </div>
+              <div class="text-body2 q-mt-xs">
+                <span class="text-weight-medium">{{ $t("Max") }}:</span>
+                {{
+                  $t(
+                    "MaxRedemptionsDescription",
+                    "total across all customers."
+                  )
+                }}
+              </div>
+              <div class="text-body2">
+                <span class="text-weight-medium">
+                  {{ $t("PerCustomer", "Per Customer") }}:
+                </span>
+                {{
+                  $t("PerCustomerRedemptionsDescription", "limit per customer.")
+                }}
+              </div>
+              <div class="text-body2 text-grey q-mt-xs">
+                {{ $t("RedemptionLimitsHint", "Leave blank for unlimited.") }}
+              </div>
+            </HelpIcon>
+          </div>
+          <div class="row no-wrap items-end q-gutter-xs">
+            <div class="col-6">
+              <div>{{ $t("Max") }}</div>
+              <q-input
+                dense
+                outlined
+                type="number"
+                min="1"
+                step="1"
+                :loading="loading"
+                :disable="!isEditable || loading"
+                :placeholder="$t('Optional')"
+                v-model.number="formData.maxRedemptions"
+                :error="Boolean(formErrors?.maxRedemptions)"
+                :error-message="formErrors?.maxRedemptions"
+                :rules="[
+                  (val) =>
+                    val === null ||
+                    val === '' ||
+                    (Number.isInteger(Number(val)) && Number(val) >= 1) ||
+                    $t('Invalid'),
+                ]"
+              />
+            </div>
+            <div class="col-6">
+              <div>
+                {{ $t("PerCustomer", "Per Customer") }}
+              </div>
+              <q-input
+                dense
+                outlined
+                type="number"
+                min="1"
+                step="1"
+                :loading="loading"
+                :disable="!isEditable || loading"
+                :placeholder="$t('Optional')"
+                v-model.number="formData.maxRedemptionsPerCustomer"
+                :error="Boolean(formErrors?.maxRedemptionsPerCustomer)"
+                :error-message="formErrors?.maxRedemptionsPerCustomer"
+                :rules="[
+                  (val) =>
+                    val === null ||
+                    val === '' ||
+                    (Number.isInteger(Number(val)) && Number(val) >= 1) ||
+                    $t('Invalid'),
+                ]"
+              />
+            </div>
+          </div>
+          <q-separator spaced />
+          <div class="row items-center q-gutter-x-xs">
+            <div class="text-subtitle2">
+              {{ $t("DiscountDuration", "Discount Duration") }}
+            </div>
+            <HelpIcon :title="$t('DiscountDuration', 'Discount Duration')">
+              <div class="text-body2">
+                {{
+                  $t(
+                    "DiscountDurationDescription",
+                    "Period when the discount can be used."
+                  )
+                }}
+              </div>
+              <div class="text-body2 q-mt-xs">
+                {{
+                  $t(
+                    "DiscountDurationHint",
+                    "Leave a date blank to keep that side open."
+                  )
+                }}
+              </div>
+              <div class="text-body2 text-grey q-mt-xs">
+                {{
+                  $t(
+                    "DatesShownInDeviceTimezone",
+                    { timezone: deviceTimezone },
+                    `Shown in your timezone (${deviceTimezone}).`
+                  )
+                }}
+              </div>
+            </HelpIcon>
           </div>
           <div class="row no-wrap items-start q-gutter-xs">
             <div class="col-6">
@@ -304,6 +413,7 @@ import { useRouter } from "vue-router";
 import { defineComponent, onMounted, ref, computed } from "vue";
 import MarketplaceHeader from "src/components/marketplace/MarketplaceHeader.vue";
 import DateTimePickerDialog from "src/components/DateTimePickerDialog.vue";
+import HelpIcon from "src/components/HelpIcon.vue";
 import DiscountConditionGroupForm from "src/components/marketplace/discounts/DiscountConditionGroupForm.vue";
 import { errorParser, formatTimestampToText } from "src/marketplace/utils";
 import { DiscountType } from "src/marketplace/objects";
@@ -313,6 +423,7 @@ export default defineComponent({
   components: {
     MarketplaceHeader,
     DiscountConditionGroupForm,
+    HelpIcon,
   },
   props: {
     discountId: {
@@ -372,6 +483,8 @@ export default defineComponent({
       type: "",
       value: 10,
       maxAmount: null,
+      maxRedemptions: null,
+      maxRedemptionsPerCustomer: null,
       startsAt: "",
       endsAt: "",
       rootConditionGroup: null,
@@ -387,6 +500,10 @@ export default defineComponent({
           ? discountType.value?.value * 100 || 0
           : discountType.value?.value || 0;
       formData.value.maxAmount = discountType.value?.maxAmount ?? null;
+      formData.value.maxRedemptions =
+        discountType.value?.maxRedemptions ?? null;
+      formData.value.maxRedemptionsPerCustomer =
+        discountType.value?.maxRedemptionsPerCustomer ?? null;
       formData.value.startsAt = discountType.value?.startsAt
         ? discountType.value.startsAt.toISOString()
         : "";
@@ -434,6 +551,8 @@ export default defineComponent({
       type: "",
       value: "",
       maxAmount: "",
+      maxRedemptions: "",
+      maxRedemptionsPerCustomer: "",
       startsAt: "",
       endsAt: "",
       rootConditionGroup: null,
@@ -447,6 +566,8 @@ export default defineComponent({
         type: "",
         value: "",
         maxAmount: "",
+        maxRedemptions: "",
+        maxRedemptionsPerCustomer: "",
         startsAt: "",
         endsAt: "",
         rootConditionGroup: null,
@@ -466,6 +587,11 @@ export default defineComponent({
       formErrors.value.maxAmount = errorParser.firstElementOrValue(
         data?.max_amount
       );
+      formErrors.value.maxRedemptions = errorParser.firstElementOrValue(
+        data?.max_redemptions
+      );
+      formErrors.value.maxRedemptionsPerCustomer =
+        errorParser.firstElementOrValue(data?.max_redemptions_per_customer);
       formErrors.value.startsAt = errorParser.firstElementOrValue(
         data?.starts_at
       );
@@ -518,6 +644,9 @@ export default defineComponent({
             ? formData.value.value / 100
             : formData.value.value,
         max_amount: formData.value.maxAmount,
+        max_redemptions: formData.value.maxRedemptions || null,
+        max_redemptions_per_customer:
+          formData.value.maxRedemptionsPerCustomer || null,
         starts_at: startsAt,
         ends_at: endsAt,
         root_condition_group: formData.value.rootConditionGroup
