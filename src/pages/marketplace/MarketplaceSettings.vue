@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md">
+  <q-page class="q-pt-md q-px-md q-pb-xl">
     <MarketplaceHeader>
       <template v-slot:title>
         <q-btn flat icon="arrow_back" @click="$router.go(-1)"/>
@@ -18,34 +18,55 @@
       </q-card-section>
       <q-separator/>
       <q-list separator>
-        <q-item class="">
-          <q-item-section class="text-grey" top>
-            <q-item-label>{{ $t('Name') }}</q-item-label>
+        <q-item>
+          <q-item-section avatar>
+            <q-avatar rounded color="blue-1" text-color="brandblue" icon="store"/>
           </q-item-section>
-          <q-item-section top>
-            <q-item-label>{{ marketplaceStore.shop?.name }}</q-item-label>
-            <q-item-label v-if="marketplaceStore.merchant?.name" class="text-grey text-caption">
+          <q-item-section>
+            <q-item-label class="text-weight-medium">
+              {{ marketplaceStore.shop?.name }}
+            </q-item-label>
+            <q-item-label caption class="text-grey">
+              {{ $t('Name') }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item v-if="marketplaceStore.merchant?.name">
+          <q-item-section avatar>
+            <q-avatar rounded color="teal-1" text-color="teal-8" icon="business"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label class="text-weight-medium">
               {{ marketplaceStore.merchant?.name }}
             </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item v-if="marketplaceStore.shop?.location?.formatted" class="">
-          <q-item-section class="text-grey" top>
-            <q-item-label>{{ $t('Address') }}</q-item-label>
-          </q-item-section>
-          <q-item-section top>
-            <q-item-label>
-              {{ marketplaceStore.shop?.location?.formatted }}
+            <q-item-label caption class="text-grey">
+              {{ $t('Merchant', 'Merchant') }}
             </q-item-label>
           </q-item-section>
         </q-item>
-        <q-item class="">
-          <q-item-section class="text-grey" top>
-            <q-item-label>{{ $t('Currency') }}</q-item-label>
+        <q-item v-if="marketplaceStore.shop?.location?.formatted">
+          <q-item-section avatar>
+            <q-avatar rounded color="deep-orange-1" text-color="deep-orange-8" icon="location_on"/>
           </q-item-section>
-          <q-item-section top>
-            <q-item-label>
+          <q-item-section>
+            <q-item-label class="text-weight-medium">
+              {{ marketplaceStore.shop?.location?.formatted }}
+            </q-item-label>
+            <q-item-label caption class="text-grey">
+              {{ $t('Address') }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item>
+          <q-item-section avatar>
+            <q-avatar rounded color="amber-1" text-color="amber-9" icon="payments"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label class="text-weight-medium">
               {{ marketplaceStore?.merchant?.currency?.symbol }}
+            </q-item-label>
+            <q-item-label caption class="text-grey">
+              {{ $t('Currency') }}
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -53,20 +74,22 @@
     </q-card>
 
     <q-card class="q-pt-sm q-mt-lg text-weight-medium" style="border-radius:16px;">
-      <q-card-section>
-        {{ $t('Settings') }}
+      <q-card-section class="q-py-xs">
+        <div class="text-h6">
+          <q-icon name="settings" size="1.5em" class="q-mr-xs"/>
+          {{ $t('Settings') }}
+        </div>
       </q-card-section>
-      <q-list>
+      <q-separator/>
+      <q-list separator>
         <q-item v-if="formattedMarkupSaleRate">
-          <q-item-section class="text-grey" top>
-            <q-item-label>
-              {{ $t('MarkupPriceRate') }}
-            </q-item-label>
+          <q-item-section avatar>
+            <q-avatar rounded color="amber-1" text-color="amber-9" icon="percent"/>
           </q-item-section>
-          <q-item-section top>
-            <q-item-label>
+          <q-item-section>
+            <q-item-label class="text-weight-medium row items-center">
               {{ formattedMarkupSaleRate }}
-              <q-icon name="info"/>
+              <q-icon name="info" class="q-ml-xs" size="1.2em"/>
               <q-menu class="q-pa-sm">
                 {{
                   $t(
@@ -77,100 +100,137 @@
                 }}
               </q-menu>
             </q-item-label>
+            <q-item-label caption class="text-grey">
+              {{ $t('MarkupPriceRate') }}
+            </q-item-label>
           </q-item-section>
         </q-item>
         <q-item
           :disable="defaultPOReviewerForm.loading"
-          clickable
-          @click="() => defaultPOReviewerForm.show = true"
+          :clickable="isAdmin"
+          @click="() => isAdmin && (defaultPOReviewerForm.show = true)"
         >
-          <q-item-section class="text-grey" top>
-            <q-item-label>
-              {{ $t('DefaultReviewer') }}
-              <q-spinner v-if="defaultPOReviewerForm.loading"/>
-            </q-item-label>
+          <q-item-section avatar>
+            <q-avatar rounded color="blue-1" text-color="brandblue" icon="person_outline"/>
           </q-item-section>
-          <q-item-section top>
-            <q-item-label class="row items-center">
+          <q-item-section>
+            <q-item-label class="text-weight-medium">
               <span v-if="marketplaceStore?.shopSettings?.defaultPurchaseOrderReviewer?.id">
                 {{ marketplaceStore?.shopSettings?.defaultPurchaseOrderReviewer?.fullName }}
               </span>
-              <span v-else class="text-grey">
-                {{ $t('Unset') }}
-              </span>
-              <q-icon name="edit" class="q-ml-xs" size="1.2em"/>
+              <span v-else class="text-grey">—</span>
             </q-item-label>
+            <q-item-label caption class="text-grey row items-center">
+              {{ $t('DefaultReviewer') }}
+              <q-spinner v-if="defaultPOReviewerForm.loading" class="q-ml-xs" size="1em"/>
+            </q-item-label>
+          </q-item-section>
+          <q-item-section v-if="isAdmin" side>
+            <q-icon name="edit" color="grey-6"/>
           </q-item-section>
         </q-item>
-        <q-item clickable @click="() => updateLastPurchaseOrderNumber()">
-          <q-item-section class="text-grey" top>
-            <q-item-label>
-              {{ $t('LastPurchaseOrderNumber') }}
-              <q-spinner v-if="updatingLastPurchaseOrderNumber"/>
-            </q-item-label>
+        <q-item :clickable="isAdmin" @click="() => isAdmin && updateLastPurchaseOrderNumber()">
+          <q-item-section avatar>
+            <q-avatar rounded color="indigo-1" text-color="indigo-7" icon="shopping_cart"/>
           </q-item-section>
-          <q-item-section top>
-            <q-item-label>
+          <q-item-section>
+            <q-item-label class="text-weight-medium">
               <span v-if="marketplaceStore?.shopSettings?.startingPurchaseOrderNumber || marketplaceStore?.shopSettings?.startingPurchaseOrderNumber === 0">
                 {{ marketplaceStore?.shopSettings?.startingPurchaseOrderNumber }}
               </span>
-              <span v-else class="text-grey">
-                {{ $t('Unset') }}
-              </span>
-              <q-icon name="edit" class="q-ml-xs" size="1.2em"/>
+              <span v-else class="text-grey">—</span>
             </q-item-label>
+            <q-item-label caption class="text-grey row items-center">
+              {{ $t('LastPurchaseOrderNumber') }}
+              <q-spinner v-if="updatingLastPurchaseOrderNumber" class="q-ml-xs" size="1em"/>
+            </q-item-label>
+          </q-item-section>
+          <q-item-section v-if="isAdmin" side>
+            <q-icon name="edit" color="grey-6"/>
           </q-item-section>
         </q-item>
-        <q-item clickable @click="() => updateLastSalesOrderNumber()">
-          <q-item-section class="text-grey" top>
-            <q-item-label>
-              {{ $t('LastSalesOrderNumber') }}
-              <q-spinner v-if="updatingLastSalesOrderNumber"/>
-            </q-item-label>
+        <q-item :clickable="isAdmin" @click="() => isAdmin && updateLastSalesOrderNumber()">
+          <q-item-section avatar>
+            <q-avatar rounded color="green-1" text-color="green-8" icon="point_of_sale"/>
           </q-item-section>
-          <q-item-section top>
-            <q-item-label>
+          <q-item-section>
+            <q-item-label class="text-weight-medium">
               <span v-if="marketplaceStore?.shopSettings?.startingSalesOrderNumber || marketplaceStore?.shopSettings?.startingSalesOrderNumber === 0">
                 {{ marketplaceStore?.shopSettings?.startingSalesOrderNumber }}
               </span>
-              <span v-else class="text-grey">
-                {{ $t('Unset') }}
-              </span>
-              <q-icon name="edit" class="q-ml-xs" size="1.2em"/>
+              <span v-else class="text-grey">—</span>
+            </q-item-label>
+            <q-item-label caption class="text-grey row items-center">
+              {{ $t('LastSalesOrderNumber') }}
+              <q-spinner v-if="updatingLastSalesOrderNumber" class="q-ml-xs" size="1em"/>
             </q-item-label>
           </q-item-section>
+          <q-item-section v-if="isAdmin" side>
+            <q-icon name="edit" color="grey-6"/>
+          </q-item-section>
         </q-item>
+      </q-list>
+    </q-card>
 
-        <q-item
-          clickable
-          :to="{ name: 'marketplace-taxes' }"
-        >
-          <q-item-section class="text-grey" top>
-            <q-item-label> {{ $t('Taxes') }} </q-item-label>
+    <q-card
+      v-if="isAdmin"
+      class="q-pt-sm q-mt-lg text-weight-medium"
+      style="border-radius:16px;"
+    >
+      <q-card-section class="q-py-xs">
+        <div class="text-h6">
+          <q-icon name="tune" size="1.5em" class="q-mr-xs"/>
+          {{ $t('TaxesDiscountsBenefits', 'Taxes, Discounts & Benefits') }}
+        </div>
+      </q-card-section>
+      <q-separator/>
+      <q-list separator>
+        <q-item clickable :to="{ name: 'marketplace-taxes' }">
+          <q-item-section avatar>
+            <q-avatar rounded color="blue-1" text-color="brandblue" icon="receipt_long"/>
           </q-item-section>
-          <q-item-section top>
-            <q-btn
-              no-caps
-              padding="none"
-              unelevated
-              :label="$t('Manage')"
-            />
+          <q-item-section>
+            <q-item-label class="text-weight-medium">
+              {{ $t('Taxes') }}
+            </q-item-label>
+            <q-item-label caption class="text-grey">
+              {{ $t('TaxesDescription', 'Manage the tax types applied to products') }}
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side>
+            <q-icon name="chevron_right" color="grey-6"/>
           </q-item-section>
         </q-item>
-        <q-item
-          clickable
-          :to="{ name: 'marketplace-discounts' }"
-        >
-          <q-item-section class="text-grey" top>
-            <q-item-label> {{ $t('Discounts') }} </q-item-label>
+        <q-item clickable :to="{ name: 'marketplace-discounts' }">
+          <q-item-section avatar>
+            <q-avatar rounded color="purple-1" text-color="purple-7" icon="local_offer"/>
           </q-item-section>
-          <q-item-section top>
-            <q-btn
-              no-caps
-              padding="none"
-              unelevated
-              :label="$t('Manage')"
-            />
+          <q-item-section>
+            <q-item-label class="text-weight-medium">
+              {{ $t('Discounts') }}
+            </q-item-label>
+            <q-item-label caption class="text-grey">
+              {{ $t('DiscountsDescription', 'Create and manage discounts for your shop') }}
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side>
+            <q-icon name="chevron_right" color="grey-6"/>
+          </q-item-section>
+        </q-item>
+        <q-item clickable :to="{ name: 'marketplace-benefits' }">
+          <q-item-section avatar>
+            <q-avatar rounded color="green-1" text-color="green-8" icon="card_giftcard"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label class="text-weight-medium">
+              {{ $t('BenefitPrograms', 'Benefit Programs') }}
+            </q-item-label>
+            <q-item-label caption class="text-grey">
+              {{ $t('BenefitProgramsDescription', 'Set up benefit programs for your customers') }}
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side>
+            <q-icon name="chevron_right" color="grey-6"/>
           </q-item-section>
         </q-item>
       </q-list>
@@ -265,6 +325,8 @@ export default defineComponent({
       marketplaceStore.updateActiveShopId({ silent: true, forceSync: true, forceSyncAge: 5 * 60 * 1000 })
       marketplaceStore.refetchShopSettings()
     })
+
+    const isAdmin = computed(() => marketplaceStore.userPermissions.admin)
 
     const formattedMarkupSaleRate = computed(() => {
       const rate = marketplaceStore.shopSettings.markupSaleRate - 1
@@ -411,6 +473,7 @@ export default defineComponent({
     return {
       marketplaceStore,
 
+      isAdmin,
       formattedMarkupSaleRate,
 
       defaultPOReviewerForm,
