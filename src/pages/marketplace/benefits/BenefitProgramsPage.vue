@@ -175,6 +175,18 @@
                   {{ props.row.source === 'custom' ? $t('Edit') : $t('View') }}
                 </q-tooltip>
               </q-btn>
+              <q-btn
+                v-if="props.row.isCustom"
+                flat
+                round
+                dense
+                icon="delete"
+                color="negative"
+                size="sm"
+                @click.stop="confirmDeleteBenefitProgram(props.row)"
+              >
+                <q-tooltip>{{ $t('Delete') }}</q-tooltip>
+              </q-btn>
             </q-td>
           </q-tr>
         </template>
@@ -448,6 +460,40 @@ export default defineComponent({
       })
     }
 
+    function confirmDeleteBenefitProgram(program) {
+      if (!program?.isCustom) return
+      $q.dialog({
+        title: $t('DeleteBenefitProgram', {}, 'Delete benefit program'),
+        message: $t(
+          'DeleteBenefitProgramConfirm',
+          { name: program.name },
+          `Delete benefit program "${program.name}"? This cannot be undone.`,
+        ),
+        color: 'negative',
+        ok: { label: $t('Delete'), color: 'negative', noCaps: true },
+        cancel: { label: $t('Cancel'), flat: true, noCaps: true },
+      }).onOk(() => deleteBenefitProgram(program))
+    }
+
+    function deleteBenefitProgram(program) {
+      if (!program?.id) return Promise.resolve()
+      return backend.delete(`benefit-programs/${program.id}/`)
+        .then(() => {
+          $q.notify({
+            type: 'positive',
+            message: $t('BenefitProgramDeleted', {}, 'Benefit program deleted'),
+          })
+          return fetchBenefitPrograms({ offset: 0 })
+        })
+        .catch(error => {
+          $q.notify({
+            type: 'negative',
+            message: error?.response?.data?.detail
+              || $t('FailedToDeleteBenefitProgram', {}, 'Failed to delete benefit program'),
+          })
+        })
+    }
+
     async function refreshPage(done = () => {}) {
       try {
         await Promise.allSettled([
@@ -495,6 +541,8 @@ export default defineComponent({
       openFiltersDialog,
 
       navigateToForm,
+      confirmDeleteBenefitProgram,
+      deleteBenefitProgram,
 
       fetchBenefitPrograms,
       fetchBeneficiaryCategories,

@@ -208,6 +208,18 @@
                   {{ props.row.source === 'custom' ? $t('Edit') : $t('View') }}
                 </q-tooltip>
               </q-btn>
+              <q-btn
+                v-if="props.row.isCustom"
+                flat
+                round
+                dense
+                icon="delete"
+                color="negative"
+                size="sm"
+                @click.stop="confirmDeleteDiscount(props.row)"
+              >
+                <q-tooltip>{{ $t('Delete') }}</q-tooltip>
+              </q-btn>
             </q-td>
           </q-tr>
         </template>
@@ -359,6 +371,42 @@ export default defineComponent({
         name: "marketplace-discount-edit",
         params: { discountId },
       });
+    }
+
+    function confirmDeleteDiscount(discount) {
+      if (!discount?.isCustom) return;
+      $q.dialog({
+        title: $t("DeleteDiscount", {}, "Delete discount"),
+        message: $t(
+          "DeleteDiscountConfirm",
+          { name: discount.name },
+          `Delete discount "${discount.name}"? This cannot be undone.`
+        ),
+        color: "negative",
+        ok: { label: $t("Delete"), color: "negative", noCaps: true },
+        cancel: { label: $t("Cancel"), flat: true, noCaps: true },
+      }).onOk(() => deleteDiscount(discount));
+    }
+
+    function deleteDiscount(discount) {
+      if (!discount?.id) return Promise.resolve();
+      return backend
+        .delete(`discount-types/${discount.id}/`)
+        .then(() => {
+          $q.notify({
+            type: "positive",
+            message: $t("DiscountDeleted", {}, "Discount deleted"),
+          });
+          return fetchDiscounts({ offset: 0 });
+        })
+        .catch((error) => {
+          $q.notify({
+            type: "negative",
+            message:
+              error?.response?.data?.detail ||
+              $t("FailedToDeleteDiscount", {}, "Failed to delete discount"),
+          });
+        });
     }
 
     const activeFilterCount = computed(() => {
@@ -572,6 +620,8 @@ export default defineComponent({
       hasRedemptionLimits,
       clearSearch,
       navigateToEdit,
+      confirmDeleteDiscount,
+      deleteDiscount,
       removeFilter,
       resetFilters,
       openFiltersDialog,
