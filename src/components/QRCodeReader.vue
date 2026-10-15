@@ -135,8 +135,9 @@ export default {
       if (status?.granted) {
         const { prepared, error } = await prepareScannerUtil();
         if (prepared) {
-          // No custom scanner UI on native: the plugin scanner is a
-          // full-screen modal (Google Play Services code scanner)
+          // The bundled ML Kit camera preview is rendered behind the WebView,
+          // so this overlay UI (box + close) is the actual scanner view
+          scannerUIVisible.value = true;
           await scanBarcode();
         } else {
           innerVal.value = false;
@@ -174,7 +175,7 @@ export default {
     }
 
     async function scanBarcode() {
-      if (!isNativePlatform.value) adjustComponentsClasslist(true);
+      adjustComponentsClasslist(true);
       const res = await startScan();
       stopScan();
       if (res.canceled) return;

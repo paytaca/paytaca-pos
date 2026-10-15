@@ -3,7 +3,7 @@ import { Capacitor } from "@capacitor/core";
 let BarcodeScanner = null;
 let BarcodeFormat = null;
 
-const MODULE_INSTALL_TIMEOUT = 60000;
+let activeScan = null;
 
 async function getBarcodeScanner() {
   if (!Capacitor.isNativePlatform()) return null;
@@ -63,58 +63,6 @@ export async function requestPermission() {
   }
 }
 
-export async function isGoogleScannerModuleAvailable() {
-  const scanner = await getBarcodeScanner();
-  if (!scanner) return false;
-
-  const { BarcodeScanner } = scanner;
-  try {
-    const { available } = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable();
-    return Boolean(available);
-  } catch (error) {
-    console.warn("BarcodeScanner module availability check error:", error);
-    return false;
-  }
-}
-
-export async function installGoogleScannerModule() {
-  const scanner = await getBarcodeScanner();
-  if (!scanner) return false;
-
-  const { BarcodeScanner } = scanner;
-  return new Promise((resolve) => {
-    let listener = null;
-    const timeout = setTimeout(() => {
-      listener?.remove?.();
-      resolve(false);
-    }, MODULE_INSTALL_TIMEOUT);
-
-    BarcodeScanner.addListener(
-      "googleBarcodeScannerModuleInstallProgress",
-      (event) => {
-        if (event?.state === 4) {
-          clearTimeout(timeout);
-          listener?.remove?.();
-          resolve(true);
-        } else if (event?.state === 3) {
-          clearTimeout(timeout);
-          listener?.remove?.();
-          resolve(false);
-        }
-      }
-    ).then((handle) => {
-      listener = handle;
-    });
-
-    BarcodeScanner.installGoogleBarcodeScannerModule().catch((error) => {
-      console.warn("BarcodeScanner module install error:", error);
-      clearTimeout(timeout);
-      listener?.then?.((handle) => handle.remove?.());
-      resolve(false);
-    });
-  });
-}
-
 export async function prepareScanner() {
   const scanner = await getBarcodeScanner();
   if (!scanner) return { prepared: false, error: null };
@@ -125,16 +73,6 @@ export async function prepareScanner() {
     if (!supported) {
       return { prepared: false, error: "Barcode scanning is not supported on this device" };
     }
-
-    if (!(await isGoogleScannerModuleAvailable())) {
-      const installed = await installGoogleScannerModule();
-      if (!installed) {
-        return {
-          prepared: false,
-          error: "The Google Barcode Scanner module is not available. Please update Google Play services and try again",
-        };
-      }
-    }
     return { prepared: true, error: null };
   } catch (error) {
     console.warn("BarcodeScanner prepare error:", error);
@@ -142,33 +80,79 @@ export async function prepareScanner() {
   }
 }
 
+function finishScan(result) {
+  const scan = activeScan;
+  if (!scan) return;
+  activeScan = null;
+  scan.finish(result);
+}
+
 export async function startScan() {
   const scanner = await getBarcodeScanner();
   if (!scanner) return { hasContent: false, canceled: false, error: null };
 
   const { BarcodeScanner, BarcodeFormat } = scanner;
-  try {
-    const { barcodes } = await BarcodeScanner.scan({
-      formats: [BarcodeFormat.QrCode],
-    });
-    if (barcodes && barcodes.length > 0) {
-      return { hasContent: true, content: barcodes[0].rawValue, canceled: false, error: null };
-    }
-    return { hasContent: false, canceled: false, error: null };
-  } catch (error) {
-    console.warn("BarcodeScanner startScan error:", error);
-    const message = typeof error === "string" ? error : error?.message || "";
-    if (message && message.toLowerCase().includes("canceled")) {
-      return { hasContent: false, canceled: true, error: null };
-    }
-    return { hasContent: false, canceled: false, error: message || "The scan failed" };
+
+  if (activeScan) {
+    finishScan({ hasContent: false, canceled: true, error: null });
   }
+
+  return new Promise((resolve) => {
+    const listeners = [];
+
+    const finish = (result) => {
+      activeScan = null;
+      listeners.forEach((handle) => handle.then((h) => h.remove?.()));
+      try {
+        BarcodeScanner.stopScan().catch(() => {});
+      } catch (e) {
+        // Camera not started yet
+      }
+      resolve(result);
+    };
+
+    activeScan = { finish };
+
+    BarcodeScanner.addListener("barcodesScanned", (event) => {
+      const barcode = event?.barcodes?.find?.((b) => b?.rawValue);
+      if (!barcode) return;
+      finish({ hasContent: true, content: barcode.rawValue, canceled: false, error: null });
+    })
+      .then((handle) => listeners.push(handle))
+      .catch((error) => console.warn("BarcodeScanner listener error:", error));
+
+    BarcodeScanner.addListener("scanError", (event) => {
+      console.warn("BarcodeScanner scanError:", event);
+      finish({ hasContent: false, canceled: false, error: event?.message || "The scan failed" });
+    })
+      .then((handle) => listeners.push(handle))
+      .catch((error) => console.warn("BarcodeScanner listener error:", error));
+
+    BarcodeScanner.startScan({
+      formats: [BarcodeFormat.QrCode],
+      lensFacing: "back",
+    }).catch((error) => {
+      console.warn("BarcodeScanner startScan error:", error);
+      const message = typeof error === "string" ? error : error?.message || "";
+      finish({ hasContent: false, canceled: false, error: message || "The scan failed" });
+    });
+  });
 }
 
-// The new plugin uses a modal model — scan() resolves when done.
-// stopScan is kept for API compatibility but is a no-op.
 export async function stopScan() {
-  // No-op: @capacitor-mlkit/barcode-scanning scan() is modal and self-closing.
+  const scanner = await getBarcodeScanner();
+  if (!scanner) return;
+
+  const { BarcodeScanner } = scanner;
+  if (activeScan) {
+    finishScan({ hasContent: false, canceled: true, error: null });
+    return;
+  }
+  try {
+    await BarcodeScanner.stopScan();
+  } catch (error) {
+    console.warn("BarcodeScanner stopScan error:", error);
+  }
 }
 
 export async function openAppSettings() {
