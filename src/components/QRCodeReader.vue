@@ -201,6 +201,7 @@ export default {
 
       const appContainer = document.getElementById("q-app");
       const scannerUI = scannerContainerRef.value;
+      const root = document.documentElement;
       const transparent = "transparent-body";
       const visibilityHidden = "visibility-hide";
       const visibilityVisible = "visibility-visible";
@@ -211,11 +212,13 @@ export default {
 
       if (isScanning) {
         document.body.classList.add(transparent);
+        root?.classList?.add?.(transparent);
         appContainer?.classList?.add?.(visibilityHidden);
         scannerUI?.classList?.add?.(scannerActive);
         scannerUI?.classList?.add?.(visibilityVisible);
       } else {
         document.body.classList.remove(transparent);
+        root?.classList?.remove?.(transparent);
         appContainer?.classList?.remove?.(visibilityHidden);
         scannerUI?.classList?.remove?.(visibilityVisible);
         scannerUI?.classList?.remove?.(scannerActive);
