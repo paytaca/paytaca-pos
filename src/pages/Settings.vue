@@ -256,11 +256,13 @@
           </q-item>
           
           <q-separator
+            v-if="walletStore.isLinked"
             :dark="$q.dark.isActive"
             inset="item"
           />
 
           <q-item
+            v-if="walletStore.isLinked"
             :clickable="!walletStore.nfcPaymentsEnabled"
             class="q-py-md"
             v-on="!walletStore.nfcPaymentsEnabled ? { click: onNfcRowClick } : {}"
