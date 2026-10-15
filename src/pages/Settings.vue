@@ -263,9 +263,7 @@
 
           <q-item
             v-if="walletStore.isLinked && walletStore.isDeviceValid"
-            :clickable="!walletStore.nfcPaymentsEnabled"
             class="q-py-md"
-            v-on="!walletStore.nfcPaymentsEnabled ? { click: onNfcRowClick } : {}"
           >
             <q-item-section avatar>
               <q-avatar color="blue-7" text-color="white" size="40px">
@@ -273,47 +271,57 @@
               </q-avatar>
             </q-item-section>
             <q-item-section>
-              <q-item-label class="text-weight-medium">{{ !walletStore.nfcPaymentsEnabled ? $t('Enable') + ' ' : '' }}{{ $t('NfcPayments') }}</q-item-label>
+              <q-item-label class="text-weight-medium">{{ $t('NfcPayments') }}</q-item-label>
               <q-item-label v-if="nfcChecked && !nfcSupported" caption class="text-negative">
                 {{ $t('NfcNotAvailable') }}
               </q-item-label>
             </q-item-section>
             <q-item-section side>
-              <div class="row items-center q-gutter-sm">
-                <template v-if="walletStore.nfcPaymentsEnabled">
-                  <span class="text-subtitle2">{{ $t("FiatModeEnabled") }}</span>
-                  <q-icon name="check_circle" size="18px" color="green" />
-                  <q-btn
-                    flat
-                    dense
-                    no-caps
-                    color="negative"
-                    :label="$t('DisableNfcPayments')"
-                    @click.stop="onDisableNfcPaymentsClick"
+              <q-btn-dropdown
+                flat
+                dense
+                no-caps
+                padding="xs sm"
+                :loading="checkingNfc"
+              >
+                <template #label>
+                  <span
+                    class="text-subtitle2 text-weight-medium q-mr-xs"
+                    :class="walletStore.nfcPaymentsEnabled ? 'text-positive' : 'text-grey-7'"
+                  >
+                    {{ walletStore.nfcPaymentsEnabled ? $t('Enabled') : $t('Disabled') }}
+                  </span>
+                  <q-icon
+                    :name="walletStore.nfcPaymentsEnabled ? 'check_circle' : 'cancel'"
+                    size="18px"
+                    :color="walletStore.nfcPaymentsEnabled ? 'green' : 'grey-6'"
                   />
                 </template>
-                <template v-else-if="nfcSupported">
-                  <q-btn
-                    outline
-                    dense
-                    no-caps
-                    color="brandblue"
-                    :label="$t('Activate')"
-                    @click.stop="onEnableNfcPaymentsClick"
-                  />
-                </template>
-                <template v-else>
-                  <q-btn
-                    outline
-                    dense
-                    no-caps
-                    color="brandblue"
-                    :label="$t('CheckNfcAvailability')"
-                    :loading="checkingNfc"
-                    @click.stop="checkNfcAvailability"
-                  />
-                </template>
-              </div>
+                <q-list style="min-width: 150px">
+                  <q-item
+                    v-if="walletStore.nfcPaymentsEnabled"
+                    clickable
+                    v-close-popup
+                    @click="onDisableNfcPaymentsClick"
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="block" color="negative" />
+                    </q-item-section>
+                    <q-item-section>{{ $t('Disable') }}</q-item-section>
+                  </q-item>
+                  <q-item
+                    v-else
+                    clickable
+                    v-close-popup
+                    @click="onNfcEnableMenuClick"
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="check_circle" color="positive" />
+                    </q-item-section>
+                    <q-item-section>{{ $t('Enable') }}</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-btn-dropdown>
             </q-item-section>
           </q-item>
         </q-list>
@@ -503,13 +511,12 @@ export default defineComponent({
       });
     }
 
-    function onNfcRowClick() {
-      if (walletStore.nfcPaymentsEnabled) return;
-      if (nfcSupported.value) {
-        onEnableNfcPaymentsClick();
-      } else {
-        checkNfcAvailability();
-      }
+    function onNfcEnableMenuClick() {
+      // Always re-check NFC availability before starting the enable flow
+      nfcSupported.value = null;
+      checkNfcAvailability().then(() => {
+        if (nfcSupported.value) onEnableNfcPaymentsClick();
+      });
     }
 
     async function checkNfcAvailability() {
@@ -660,7 +667,7 @@ export default defineComponent({
       onCloseEnableNfcPaymentsDialog,
       onEnableNfcPaymentsClick,
       onDisableNfcPaymentsClick,
-      onNfcRowClick,
+      onNfcEnableMenuClick,
       checkNfcAvailability,
       nfcChecked,
       nfcSupported,
