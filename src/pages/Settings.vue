@@ -256,13 +256,13 @@
           </q-item>
           
           <q-separator
-            v-if="walletStore.isLinked"
+            v-if="walletStore.isLinked && walletStore.isDeviceValid"
             :dark="$q.dark.isActive"
             inset="item"
           />
 
           <q-item
-            v-if="walletStore.isLinked"
+            v-if="walletStore.isLinked && walletStore.isDeviceValid"
             :clickable="!walletStore.nfcPaymentsEnabled"
             class="q-py-md"
             v-on="!walletStore.nfcPaymentsEnabled ? { click: onNfcRowClick } : {}"
@@ -320,13 +320,13 @@
       </q-card>
 
       <div
-        v-if="walletStore.isLinked"
+        v-if="walletStore.isLinked && walletStore.isDeviceValid"
         class="section-title text-overline text-uppercase q-mb-sm q-pl-sm"
       >
         {{ $t("Tools") }}
       </div>
       <q-card
-        v-if="walletStore.isLinked"
+        v-if="walletStore.isLinked && walletStore.isDeviceValid"
         class="settings-card q-mb-lg"
         :class="{ 'bg-dark': $q.dark.isActive }"
       >
