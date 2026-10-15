@@ -526,8 +526,14 @@
       <div class="q-px-xs" @click="toggleAmountsDisplay">
         <div class="row items-start text-subtitle2">
           <div class="q-space">{{ $t('Subtotal') }}</div>
-          <div v-if="displayBch">{{ formatNumberAutoDecimals(orderAmounts.subtotal.bch) }} BCH</div>
-          <div v-else>{{ formatNumberAutoDecimals(orderAmounts.subtotal.currency) }} {{ orderCurrency }}</div>
+          <div v-if="displayBch">{{ formatNumberAutoDecimals(orderAmounts.undiscountedSubtotal.bch) }} BCH</div>
+          <div v-else>{{ formatNumberAutoDecimals(orderAmounts.undiscountedSubtotal.currency) }} {{ orderCurrency }}</div>
+        </div>
+
+        <div v-if="orderAmounts.discount.currency" class="row items-start text-subtitle2 text-red-5">
+          <div class="q-space">{{ $t('Discount', {}, 'Discount') }}</div>
+          <div v-if="displayBch">-{{ formatNumberAutoDecimals(orderAmounts.discount.bch) }} BCH</div>
+          <div v-else>-{{ formatNumberAutoDecimals(orderAmounts.discount.currency) }} {{ orderCurrency }}</div>
         </div>
 
         <div class="row items-start text-subtitle2">
@@ -539,6 +545,11 @@
           <div class="q-space">{{ $t('DeliveryFee') }}</div>
           <div v-if="displayBch">{{ formatNumberAutoDecimals(orderAmounts.deliveryFee.bch) }} BCH</div>
           <div v-else>{{ formatNumberAutoDecimals(orderAmounts.deliveryFee.currency) }} {{ orderCurrency }}</div>
+        </div>
+        <div v-if="orderAmounts.deliveryFeeDiscount.currency" class="row items-start text-subtitle2 text-red-5">
+          <div class="q-space">{{ $t('DeliveryFeeDiscount', {}, 'Delivery fee discount') }}</div>
+          <div v-if="displayBch">-{{ formatNumberAutoDecimals(orderAmounts.deliveryFeeDiscount.bch) }} BCH</div>
+          <div v-else>-{{ formatNumberAutoDecimals(orderAmounts.deliveryFeeDiscount.currency) }} {{ orderCurrency }}</div>
         </div>
         <div class="row items-start text-h6">
           <div class="q-space">{{ $t('Total') }}</div>
@@ -707,9 +718,11 @@ export default defineComponent({
     const orderAmounts = computed(() => {
       const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
       const data = {
-        subtotal: { currency: order.value?.subtotal || 0, bch: 0 },
+        undiscountedSubtotal: { currency: (parseFloat(order.value?.subtotal) || 0) + (parseFloat(order.value?.totalDiscount) || 0), bch: 0 },
+        discount: { currency: parseFloat(order.value?.totalDiscount) || 0, bch: 0 },
         markupAmount: { currency: order.value?.markupAmount || 0, bch: 0 },
         deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
+        deliveryFeeDiscount: { currency: order.value?.deliveryFeeDiscount || 0, bch: 0 },
         total: { currency: order.value.total, bch: 0 },
         totalPaid: { currency: parseFloat(order.value?.totalPaid), bch: 0 },
         totalPendingPayment: { currency: parseFloat(order.value?.totalPendingPayment), bch: 0 },
@@ -718,18 +731,22 @@ export default defineComponent({
       }
 
       if(!isNaN(orderBchPrice.value)) {
-        data.subtotal.bch = parseBch(data.subtotal.currency / orderBchPrice.value)
+        data.undiscountedSubtotal.bch = parseBch(data.undiscountedSubtotal.currency / orderBchPrice.value)
+        data.discount.bch = parseBch(data.discount.currency / orderBchPrice.value)
         data.markupAmount.bch = parseBch(data.markupAmount.currency / orderBchPrice.value)
         data.deliveryFee.bch = parseBch(data.deliveryFee.currency / orderBchPrice.value)
+        data.deliveryFeeDiscount.bch = parseBch(data.deliveryFeeDiscount.currency / orderBchPrice.value)
         data.total.bch = parseBch(data.total.currency / orderBchPrice.value)
         data.totalPaid.bch = parseBch(data.totalPaid.currency / orderBchPrice.value)
         data.totalPendingPayment.bch = parseBch(data.totalPendingPayment.currency / orderBchPrice.value)
         data.totalRefunded.bch = parseBch(data.totalRefunded.currency / orderBchPrice.value)
         data.netPaid.bch = parseBch(data.netPaid.currency / orderBchPrice.value)
       } else {
-        data.subtotal.bch = null
+        data.undiscountedSubtotal.bch = null
+        data.discount.bch = null
         data.markupAmount.bch = null
         data.deliveryFee.bch = null
+        data.deliveryFeeDiscount.bch = null
         data.total.bch = null
         data.totalPaid.bch = null
         data.totalPendingPayment.bch = null

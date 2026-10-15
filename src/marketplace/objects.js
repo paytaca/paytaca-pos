@@ -2362,11 +2362,12 @@ export class Order {
    * @param {Number} data.cutlery_subtotal
    * @param {Number} data.subtotal
    * @param {Number} data.markup_subtotal
+   * @param {Number} data.total_discount
    * @param {Number} data.total_paid
    * @param {Number} data.total_pending_payment
    * @param {Number} data.total_payments
    * @param {Number} data.total_refunded
-   * @param {{ delivery_fee:Number }} data.payment
+   * @param {{ delivery_fee:Number, delivery_fee_discount:Number, escrow_refund_address:String }} data.payment
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
    * @param {String | Number} [data.preparation_deadline]
@@ -2398,12 +2399,14 @@ export class Order {
     this.cutlerySubtotal = data?.cutlery_subtotal;
     this.subtotal = data?.subtotal;
     this.markupSubtotal = data?.markup_subtotal;
+    this.totalDiscount = data?.total_discount;
     this.totalPaid = data?.total_paid;
     this.totalPendingPayment = data?.total_pending_payment;
     this.totalPayments = data?.total_payments;
     this.totalRefunded = data?.total_refunded;
     this.payment = {
       deliveryFee: data?.payment?.delivery_fee,
+      deliveryFeeDiscount: data?.payment?.delivery_fee_discount,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
     };
 
@@ -2473,9 +2476,20 @@ export class Order {
     return Math.round(markupAmount * 10 ** 3) / 10 ** 3;
   }
 
+  get deliveryFeeDiscount() {
+    const deliveryFeeDiscount = parseFloat(this?.payment?.deliveryFeeDiscount);
+    return Number.isFinite(deliveryFeeDiscount) ? deliveryFeeDiscount : 0;
+  }
+
+  get finalDeliveryFee() {
+    const deliveryFee = parseFloat(this?.payment?.deliveryFee) || 0;
+    return (
+      Math.round((deliveryFee - this.deliveryFeeDiscount) * 10 ** 3) / 10 ** 3
+    );
+  }
+
   get total() {
-    const total =
-      Number(this?.payment?.deliveryFee) + Number(this.markupSubtotal);
+    const total = this.finalDeliveryFee + Number(this.markupSubtotal);
     return Math.round(total * 10 ** 3) / 10 ** 3;
   }
 
