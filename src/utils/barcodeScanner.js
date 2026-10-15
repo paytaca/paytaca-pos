@@ -114,6 +114,7 @@ export async function startScan() {
     activeScan = { finish };
 
     BarcodeScanner.addListener("barcodesScanned", (event) => {
+      console.warn("BarcodeScanner barcodesScanned event:", event);
       const barcode = event?.barcodes?.find?.((b) => b?.rawValue);
       if (!barcode) return;
       finish({ hasContent: true, content: barcode.rawValue, canceled: false, error: null });
@@ -128,14 +129,20 @@ export async function startScan() {
       .then((handle) => listeners.push(handle))
       .catch((error) => console.warn("BarcodeScanner listener error:", error));
 
+    console.warn("BarcodeScanner startScan: starting with options", {
+      formats: [BarcodeFormat.QrCode],
+      lensFacing: "BACK",
+    });
     BarcodeScanner.startScan({
       formats: [BarcodeFormat.QrCode],
-      lensFacing: "back",
-    }).catch((error) => {
-      console.warn("BarcodeScanner startScan error:", error);
-      const message = typeof error === "string" ? error : error?.message || "";
-      finish({ hasContent: false, canceled: false, error: message || "The scan failed" });
-    });
+      lensFacing: "BACK",
+    })
+      .then(() => console.warn("BarcodeScanner startScan: native start resolved"))
+      .catch((error) => {
+        console.warn("BarcodeScanner startScan error:", error);
+        const message = typeof error === "string" ? error : error?.message || "";
+        finish({ hasContent: false, canceled: false, error: message || "The scan failed" });
+      });
   });
 }
 
