@@ -6,6 +6,7 @@
 	"server": {
 		"androidScheme": "https"
 	},
+	"bundledWebRuntime": false,
 	"packageClassList": [
 		"NativeAudio",
 		"BarcodeScannerPlugin",
