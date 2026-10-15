@@ -3,7 +3,7 @@ import { defineStore } from "pinia";
 import { backend } from "src/marketplace/backend";
 import { FungibleCashToken } from "src/marketplace/objects";
 import { Wallet } from "src/wallet";
-import { useAddressesStore } from "./addresses";
+import { resetAllStores } from "src/utils/store-reset";
 import { sha256, decodePaymentUri, getPubkeyAt } from "src/wallet/utils";
 import { summarizeSalesReports } from "src/utils/sales-report";
 import { useCashtokenStore } from "./cashtoken";
@@ -574,22 +574,8 @@ export const useWalletStore = defineStore("wallet", {
       this.deviceId = value || null;
     },
     clearAll() {
-      this.walletHash = "";
-      this.posId = -1;
-      this.xPubKey = "";
-      this.authPublicKey = null
-      this.setNfcPaymentsEnabled(false)
-      this.linkCode = "";
-      this.deviceId = null;
-      this.setDeviceInfo(null);
-      this.setBranchInfo(null);
-      this.setMerchantInfo(null);
-      this.setAcceptedTokensData(null);
-      this.setPreferences(null);
-      this.clearQrDataTimestampCache();
-      this.clearSalesReport();
-      const addressesStore = useAddressesStore();
-      addressesStore.addressSets = [];
+      this.$reset();
+      resetAllStores();
     },
   },
 });
