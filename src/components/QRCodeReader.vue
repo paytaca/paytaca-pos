@@ -135,7 +135,8 @@ export default {
       if (status?.granted) {
         const { prepared, error } = await prepareScannerUtil();
         if (prepared) {
-          scannerUIVisible.value = true;
+          // No custom scanner UI on native: the plugin scanner is a
+          // full-screen modal (Google Play Services code scanner)
           await scanBarcode();
         } else {
           innerVal.value = false;
@@ -173,7 +174,7 @@ export default {
     }
 
     async function scanBarcode() {
-      adjustComponentsClasslist(true);
+      if (!isNativePlatform.value) adjustComponentsClasslist(true);
       const res = await startScan();
       stopScan();
       if (res.canceled) return;
