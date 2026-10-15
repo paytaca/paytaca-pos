@@ -177,7 +177,6 @@ export default {
     async function scanBarcode() {
       adjustComponentsClasslist(true);
       const res = await startScan();
-      console.warn("QRCodeReader scanBarcode resolved:", res);
       stopScan();
       if (res.canceled) return;
       if (res.error) {
