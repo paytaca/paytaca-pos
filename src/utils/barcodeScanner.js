@@ -98,11 +98,15 @@ export async function startScan() {
   }
 
   return new Promise((resolve) => {
-    const listeners = [];
+    const listenerPromises = [];
 
     const finish = (result) => {
       activeScan = null;
-      listeners.forEach((handle) => handle.then((h) => h.remove?.()));
+      listenerPromises.forEach((promise) =>
+        Promise.resolve(promise)
+          .then((handle) => handle?.remove?.())
+          .catch(() => {})
+      );
       try {
         BarcodeScanner.stopScan().catch(() => {});
       } catch (e) {
@@ -113,21 +117,25 @@ export async function startScan() {
 
     activeScan = { finish };
 
-    BarcodeScanner.addListener("barcodesScanned", (event) => {
+    const registerListener = (eventName, handler) => {
+      const promise = BarcodeScanner.addListener(eventName, handler).catch((error) => {
+        console.warn("BarcodeScanner listener error:", error);
+        return null;
+      });
+      listenerPromises.push(promise);
+    };
+
+    registerListener("barcodesScanned", (event) => {
       console.warn("BarcodeScanner barcodesScanned event:", event);
       const barcode = event?.barcodes?.find?.((b) => b?.rawValue);
       if (!barcode) return;
       finish({ hasContent: true, content: barcode.rawValue, canceled: false, error: null });
-    })
-      .then((handle) => listeners.push(handle))
-      .catch((error) => console.warn("BarcodeScanner listener error:", error));
+    });
 
-    BarcodeScanner.addListener("scanError", (event) => {
+    registerListener("scanError", (event) => {
       console.warn("BarcodeScanner scanError:", event);
       finish({ hasContent: false, canceled: false, error: event?.message || "The scan failed" });
-    })
-      .then((handle) => listeners.push(handle))
-      .catch((error) => console.warn("BarcodeScanner listener error:", error));
+    });
 
     console.warn("BarcodeScanner startScan: starting with options", {
       formats: [BarcodeFormat.QrCode],
