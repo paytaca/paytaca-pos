@@ -261,10 +261,9 @@
           />
 
           <q-item
-            v-if="nfcSupported"
             :clickable="!walletStore.nfcPaymentsEnabled"
             class="q-py-md"
-            v-on="!walletStore.nfcPaymentsEnabled ? { click: onEnableNfcPaymentsClick } : {}"
+            v-on="!walletStore.nfcPaymentsEnabled ? { click: onNfcRowClick } : {}"
           >
             <q-item-section avatar>
               <q-avatar color="blue-7" text-color="white" size="40px">
@@ -273,28 +272,59 @@
             </q-item-section>
             <q-item-section>
               <q-item-label class="text-weight-medium">{{ !walletStore.nfcPaymentsEnabled ? $t('Enable') + ' ' : '' }}{{ $t('NfcPayments') }}</q-item-label>
+              <q-item-label v-if="nfcChecked && !nfcSupported" caption class="text-negative">
+                {{ $t('NfcNotAvailable') }}
+              </q-item-label>
             </q-item-section>
             <q-item-section side>
-              <div class="row items-center q-gutter-xs">
-                <span class="text-subtitle2">{{
-                  walletStore.nfcPaymentsEnabled ? $t("FiatModeEnabled") : $t("FiatModeDisabled")
-                }}</span>
-                <q-icon
-                  v-if="walletStore.nfcPaymentsEnabled"
-                  name="check_circle"
-                  size="18px"
-                  color="green"
-                />
+              <div class="row items-center q-gutter-sm">
+                <template v-if="walletStore.nfcPaymentsEnabled">
+                  <span class="text-subtitle2">{{ $t("FiatModeEnabled") }}</span>
+                  <q-icon name="check_circle" size="18px" color="green" />
+                  <q-btn
+                    flat
+                    dense
+                    no-caps
+                    color="negative"
+                    :label="$t('DisableNfcPayments')"
+                    @click.stop="onDisableNfcPaymentsClick"
+                  />
+                </template>
+                <template v-else-if="nfcSupported">
+                  <q-btn
+                    outline
+                    dense
+                    no-caps
+                    color="brandblue"
+                    :label="$t('Activate')"
+                    @click.stop="onEnableNfcPaymentsClick"
+                  />
+                </template>
+                <template v-else>
+                  <q-btn
+                    outline
+                    dense
+                    no-caps
+                    color="brandblue"
+                    :label="$t('CheckNfcAvailability')"
+                    :loading="checkingNfc"
+                    @click.stop="checkNfcAvailability"
+                  />
+                </template>
               </div>
             </q-item-section>
           </q-item>
         </q-list>
       </q-card>
 
-      <div class="section-title text-overline text-uppercase q-mb-sm q-pl-sm">
+      <div
+        v-if="walletStore.isLinked"
+        class="section-title text-overline text-uppercase q-mb-sm q-pl-sm"
+      >
         {{ $t("Tools") }}
       </div>
       <q-card
+        v-if="walletStore.isLinked"
         class="settings-card q-mb-lg"
         :class="{ 'bg-dark': $q.dark.isActive }"
       >
@@ -372,7 +402,7 @@
         </q-list>
       </q-card>
     </div>
-    <EnableNFCPayments v-if="showEnableNfcPayments && nfcSupported" :show="showEnableNfcPayments" @close="onCloseEnableNfcPaymentsDialog" />
+    <EnableNFCPayments v-if="showEnableNfcPayments" :show="showEnableNfcPayments" @close="onCloseEnableNfcPaymentsDialog" />
   </div>
 </template>
 
@@ -414,7 +444,8 @@ export default defineComponent({
     const longPressTimer = ref(null);
     const LONG_PRESS_DURATION = 500;
     const showEnableNfcPayments = ref(false);
-    const nfcSupported = ref(false);
+    const nfcSupported = ref(null);
+    const checkingNfc = ref(false);
 
     onMounted(async () => {
       const stored = localStorage.getItem("debugIconVisible");
@@ -425,7 +456,6 @@ export default defineComponent({
         stopInterception();
       }
 
-      nfcSupported.value = await nfcScanner.isSupported();
       await checkNfcPaymentsEnabled();
     });
 
@@ -436,6 +466,71 @@ export default defineComponent({
 
     function onEnableNfcPaymentsClick() {
       showEnableNfcPayments.value = true;
+    }
+
+    function onDisableNfcPaymentsClick() {
+      $q.dialog({
+        title: t("DisableNfcPayments"),
+        message: t("DisableNfcPaymentsMsg"),
+        cancel: true,
+        persistent: false,
+      }).onOk(async () => {
+        try {
+          const lookup_field = `${walletStore.walletHash}:${walletStore.posId}`;
+          await watchtower.BCH._api.post(
+            `paytacapos/devices/${lookup_field}/disable_nfc_payments/`
+          );
+          walletStore.setNfcPaymentsEnabled(false);
+          $q.notify({
+            position: "top",
+            timeout: 2000,
+            icon: "check",
+            color: "positive",
+            message: t("NfcPaymentsDisabled"),
+          });
+        } catch (error) {
+          console.error('Failed to disable NFC payments:', error);
+          $q.notify({
+            position: "top",
+            timeout: 3000,
+            icon: "error",
+            color: "negative",
+            message: t("FailedToDisableNfcPayments"),
+          });
+        }
+      });
+    }
+
+    function onNfcRowClick() {
+      if (walletStore.nfcPaymentsEnabled) return;
+      if (nfcSupported.value) {
+        onEnableNfcPaymentsClick();
+      } else {
+        checkNfcAvailability();
+      }
+    }
+
+    async function checkNfcAvailability() {
+      if (checkingNfc.value) return;
+      checkingNfc.value = true;
+      try {
+        const result = await nfcScanner.isSupported();
+        nfcSupported.value = Boolean(result);
+      } catch (error) {
+        console.error('Error checking NFC availability:', error);
+        nfcSupported.value = false;
+      } finally {
+        checkingNfc.value = false;
+      }
+      if (!nfcSupported.value) {
+        $q.notify({
+          position: "top",
+          timeout: 3000,
+          icon: "error",
+          color: "negative",
+          message: t("NfcNotAvailableMessage"),
+        });
+      }
     }
 
     /**
@@ -531,6 +626,8 @@ export default defineComponent({
       }
     }
 
+    const nfcChecked = computed(() => nfcSupported.value !== null);
+
     const truncatedWalletHash = computed(() => {
       const walletHash = walletStore.walletHash;
       if (typeof walletHash !== "string") return walletHash;
@@ -560,7 +657,12 @@ export default defineComponent({
       showEnableNfcPayments,
       onCloseEnableNfcPaymentsDialog,
       onEnableNfcPaymentsClick,
-      nfcSupported
+      onDisableNfcPaymentsClick,
+      onNfcRowClick,
+      checkNfcAvailability,
+      nfcChecked,
+      nfcSupported,
+      checkingNfc
     };
   },
 });
