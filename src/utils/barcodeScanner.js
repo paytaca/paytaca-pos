@@ -3,6 +3,8 @@ import { Capacitor } from "@capacitor/core";
 let BarcodeScanner = null;
 let BarcodeFormat = null;
 
+const MODULE_INSTALL_TIMEOUT = 60000;
+
 async function getBarcodeScanner() {
   if (!Capacitor.isNativePlatform()) return null;
   if (BarcodeScanner) return { BarcodeScanner, BarcodeFormat };
@@ -61,23 +63,88 @@ export async function requestPermission() {
   }
 }
 
-export async function prepareScanner() {
+export async function isGoogleScannerModuleAvailable() {
   const scanner = await getBarcodeScanner();
   if (!scanner) return false;
 
   const { BarcodeScanner } = scanner;
   try {
+    const { available } = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable();
+    return Boolean(available);
+  } catch (error) {
+    console.warn("BarcodeScanner module availability check error:", error);
+    return false;
+  }
+}
+
+export async function installGoogleScannerModule() {
+  const scanner = await getBarcodeScanner();
+  if (!scanner) return false;
+
+  const { BarcodeScanner } = scanner;
+  return new Promise((resolve) => {
+    let listener = null;
+    const timeout = setTimeout(() => {
+      listener?.remove?.();
+      resolve(false);
+    }, MODULE_INSTALL_TIMEOUT);
+
+    BarcodeScanner.addListener(
+      "googleBarcodeScannerModuleInstallProgress",
+      (event) => {
+        if (event?.state === 4) {
+          clearTimeout(timeout);
+          listener?.remove?.();
+          resolve(true);
+        } else if (event?.state === 3) {
+          clearTimeout(timeout);
+          listener?.remove?.();
+          resolve(false);
+        }
+      }
+    ).then((handle) => {
+      listener = handle;
+    });
+
+    BarcodeScanner.installGoogleBarcodeScannerModule().catch((error) => {
+      console.warn("BarcodeScanner module install error:", error);
+      clearTimeout(timeout);
+      listener?.then?.((handle) => handle.remove?.());
+      resolve(false);
+    });
+  });
+}
+
+export async function prepareScanner() {
+  const scanner = await getBarcodeScanner();
+  if (!scanner) return { prepared: false, error: null };
+
+  const { BarcodeScanner } = scanner;
+  try {
     const { supported } = await BarcodeScanner.isSupported();
-    return supported;
+    if (!supported) {
+      return { prepared: false, error: "Barcode scanning is not supported on this device" };
+    }
+
+    if (!(await isGoogleScannerModuleAvailable())) {
+      const installed = await installGoogleScannerModule();
+      if (!installed) {
+        return {
+          prepared: false,
+          error: "The Google Barcode Scanner module is not available. Please update Google Play services and try again",
+        };
+      }
+    }
+    return { prepared: true, error: null };
   } catch (error) {
     console.warn("BarcodeScanner prepare error:", error);
-    return false;
+    return { prepared: false, error: null };
   }
 }
 
 export async function startScan() {
   const scanner = await getBarcodeScanner();
-  if (!scanner) return { hasContent: false };
+  if (!scanner) return { hasContent: false, canceled: false, error: null };
 
   const { BarcodeScanner, BarcodeFormat } = scanner;
   try {
@@ -85,12 +152,16 @@ export async function startScan() {
       formats: [BarcodeFormat.QrCode],
     });
     if (barcodes && barcodes.length > 0) {
-      return { hasContent: true, content: barcodes[0].rawValue };
+      return { hasContent: true, content: barcodes[0].rawValue, canceled: false, error: null };
     }
-    return { hasContent: false };
+    return { hasContent: false, canceled: false, error: null };
   } catch (error) {
     console.warn("BarcodeScanner startScan error:", error);
-    return { hasContent: false };
+    const message = typeof error === "string" ? error : error?.message || "";
+    if (message && message.toLowerCase().includes("canceled")) {
+      return { hasContent: false, canceled: true, error: null };
+    }
+    return { hasContent: false, canceled: false, error: message || "The scan failed" };
   }
 }
 

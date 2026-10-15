@@ -133,13 +133,13 @@ export default {
     async function prepareScanner() {
       const status = await checkPermissionUtil();
       if (status?.granted) {
-        const prepared = await prepareScannerUtil();
+        const { prepared, error } = await prepareScannerUtil();
         if (prepared) {
           scannerUIVisible.value = true;
           await scanBarcode();
         } else {
           innerVal.value = false;
-          $emit("error", "Failed to prepare scanner");
+          $emit("error", error || "Failed to prepare scanner");
         }
       } else {
         innerVal.value = false;
@@ -175,10 +175,15 @@ export default {
     async function scanBarcode() {
       adjustComponentsClasslist(true);
       const res = await startScan();
+      stopScan();
+      if (res.canceled) return;
+      if (res.error) {
+        $emit("error", res.error);
+        return;
+      }
       if (res.hasContent) {
         $emit("decode", res.content);
       }
-      stopScan();
     }
 
     function stopScan() {
