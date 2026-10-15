@@ -16,6 +16,7 @@ export const useWalletStore = defineStore("wallet", {
     xPubKey: null,
     authPublicKey: null,
     linkCode: null,
+    deviceId: null,
     firstReceivingAddress: null,
 
     deviceInfo: {
@@ -202,7 +203,10 @@ export const useWalletStore = defineStore("wallet", {
       return Boolean(this.walletHash && this.posId >= 0);
     },
     isDeviceValid() {
-      return this.linkCode == this.deviceInfo.linkedDevice.linkCode;
+      const linkedDevice = this.deviceInfo?.linkedDevice || {};
+      if (this.deviceId && linkedDevice.deviceId)
+        return this.deviceId === linkedDevice.deviceId;
+      return this.linkCode == linkedDevice.linkCode;
     },
     walletObj(state) {
       if (!state.xPubKey) return null;
@@ -311,6 +315,7 @@ export const useWalletStore = defineStore("wallet", {
         merchantId: data?.merchant_id,
         linkedDevice: {
           linkCode: data?.linked_device?.link_code,
+          deviceId: data?.linked_device?.device_id,
           name: data?.linked_device?.name,
           deviceModel: data?.linked_device?.device_model,
           os: data?.linked_device?.os,
@@ -565,6 +570,9 @@ export const useWalletStore = defineStore("wallet", {
     setNfcPaymentsEnabled(value) {
       this.nfcPaymentsEnabled = Boolean(value)
     },
+    setDeviceId(value) {
+      this.deviceId = value || null;
+    },
     clearAll() {
       this.walletHash = "";
       this.posId = -1;
@@ -572,6 +580,7 @@ export const useWalletStore = defineStore("wallet", {
       this.authPublicKey = null
       this.setNfcPaymentsEnabled(false)
       this.linkCode = "";
+      this.deviceId = null;
       this.setDeviceInfo(null);
       this.setBranchInfo(null);
       this.setMerchantInfo(null);
