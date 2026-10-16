@@ -137,8 +137,8 @@
                 class="row items-center no-wrap q-gutter-x-xs"
               >
                 <span>{{ props.row.taxType.name }}</span>
-                <span v-if="getTaxRateLabel(props.row.taxType)" class="text-caption text-grey">
-                  {{ getTaxRateLabel(props.row.taxType) }}
+                <span v-if="taxRateLabel(props.row.taxType)" class="text-caption text-grey">
+                  {{ taxRateLabel(props.row.taxType) }}
                 </span>
               </div>
               <span v-else class="text-grey text-caption">—</span>
@@ -156,7 +156,7 @@
                   color="blue-1"
                   text-color="dark"
                 >
-                  {{ getDiscountAmountLabel(discount) }}
+                  {{ formatDiscountValue(discount) }}
                 </q-chip>
               </div>
               <span v-else class="text-grey text-caption">—</span>
@@ -218,6 +218,8 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { BenefitProgram } from 'src/marketplace/objects'
+import { useTaxTypeHelpers } from 'src/composables/marketplace/taxTypesForm'
+import { useDiscountTypeHelpers } from 'src/composables/marketplace/discount'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
@@ -240,6 +242,8 @@ export default defineComponent({
     const $q = useQuasar()
     const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
+    const { taxRateLabel } = useTaxTypeHelpers()
+    const { formatDiscountValue } = useDiscountTypeHelpers()
 
     const benefitPrograms = ref([].map(BenefitProgram.parse))
     const fetchingBenefitPrograms = ref(false)
@@ -355,41 +359,6 @@ export default defineComponent({
     })
     function getBeneficiaryCategoryName(code) {
       return beneficiaryCategoryNameMap.value[code] || code
-    }
-
-    // --- Tax type helpers ---
-    function getTaxRateLabel(taxType) {
-      if (!Number.isFinite(taxType?.value)) return ''
-      return `${Number(taxType.value.toFixed(2))}%`
-    }
-
-    /**
-     * Builds the amount label for a discount, e.g. `50 PHP`, `10%` or
-     * `10% max 100 PHP`.
-     * @param {import('src/marketplace/objects').DiscountType} discount
-     */
-    function getDiscountAmountLabel(discount) {
-      const currency =
-        discount?.currency?.symbol ||
-        discount?.currency?.code ||
-        marketplaceStore?.merchant?.currency?.code ||
-        marketplaceStore?.merchant?.currency?.symbol ||
-        ''
-
-      let label = '—'
-      if (discount?.type === 'percentage') {
-        label = `${Number((Number(discount?.value || 0) * 100).toFixed(2))}%`
-      } else if (discount?.value != null && Number.isFinite(Number(discount.value))) {
-        const value = Number(discount.value).toFixed(2)
-        label = currency ? `${Number(value)} ${currency}` : `${Number(value)}`
-      }
-
-      const maxAmount = Number(discount?.maxAmount)
-      if (Number.isFinite(maxAmount) && maxAmount > 0) {
-        label += ` ${$t('Max', 'max')} ${Number(maxAmount.toFixed(2))}`
-        if (currency) label += ` ${currency}`
-      }
-      return label
     }
 
     function getDiscounts(program) {
@@ -528,9 +497,9 @@ export default defineComponent({
       fetchingBeneficiaryCategories,
       getBeneficiaryCategoryName,
 
-      getTaxRateLabel,
+      taxRateLabel,
       getDiscounts,
-      getDiscountAmountLabel,
+      formatDiscountValue,
 
       sourceFilterOptions,
       activeFilterCount,

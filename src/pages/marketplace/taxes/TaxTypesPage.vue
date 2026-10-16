@@ -3,32 +3,7 @@
     <q-pull-to-refresh @refresh="refreshPage">
       <MarketplaceHeader :title="$t('Taxes')" :subtitle="$t('Marketplace')" back-button-mode="back" show-back-button />
 
-      <q-banner
-        v-if="!hasDefaultTaxType"
-        rounded
-        dense
-        class="q-mb-md bg-warning text-dark"
-      >
-        <template v-slot:avatar>
-          <q-icon name="warning" color="warning" size="sm" />
-        </template>
-        <div class="text-body2">
-          {{ $t('NoDefaultTaxTypeMessage', 'No default tax type is set for this shop.') }}
-          <div class="text-caption text-grey-8">
-            {{ $t('NoDefaultTaxTypeHint', 'New products will use a default tax type when set.') }}
-          </div>
-        </div>
-        <template v-slot:action>
-          <q-btn
-            flat
-            no-caps
-            dense
-            color="dark"
-            :label="$t('SetupDefaultTaxType', 'Set default tax type')"
-            @click="setupDefaultTaxType"
-          />
-        </template>
-      </q-banner>
+      <TaxSetupStatusBanner @action="goToTaxRegimeSetup" />
 
       <div class="full-width q-mb-sm">
         <div class="row items-end q-mb-sm no-wrap q-gutter-x-sm">
@@ -205,9 +180,10 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { TaxType } from 'src/marketplace/objects'
-import { taxCodeOptions } from 'src/composables/marketplace/taxTypesForm'
+import { taxCodeOptions, useTaxTypeHelpers } from 'src/composables/marketplace/taxTypesForm'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { defineComponent, ref, computed, watch, onMounted } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
@@ -215,6 +191,7 @@ import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import TaxTypeFormDialog from 'src/components/marketplace/taxes/TaxTypeFormDialog.vue'
 import TaxTypeDetailDialog from 'src/components/marketplace/taxes/TaxTypeDetailDialog.vue'
 import TaxTypeFiltersDialog from 'src/components/marketplace/taxes/TaxTypeFiltersDialog.vue'
+import TaxSetupStatusBanner from 'src/components/marketplace/taxes/TaxSetupStatusBanner.vue'
 
 const SHOP_SETTINGS_MAX_AGE = 5 * 60 * 1000
 const DEFAULT_LIMIT = 10
@@ -230,10 +207,12 @@ export default defineComponent({
   components: {
     MarketplaceHeader,
     LimitOffsetPagination,
+    TaxSetupStatusBanner,
   },
   setup() {
     const { t: $t } = useI18n()
     const $q = useQuasar()
+    const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
 
     const taxTypes = ref([].map(TaxType.parse))
@@ -312,19 +291,14 @@ export default defineComponent({
     }
 
     const hasDefaultTaxType = computed(() => Boolean(marketplaceStore.shopSettings?.defaultTaxType?.id))
+    const hasAppliedRegime = computed(() => Boolean(marketplaceStore.shopSettings?.appliedTaxRegime?.id))
+    const isTaxSetupComplete = computed(() => hasAppliedRegime.value || hasDefaultTaxType.value)
     function isDefaultTaxType(taxType) {
       const defaultTaxTypeId = marketplaceStore.shopSettings?.defaultTaxType?.id
       return Boolean(taxType?.id && defaultTaxTypeId && taxType.id == defaultTaxTypeId)
     }
 
-    const taxCodeLabelMap = computed(() => {
-      const map = {}
-      taxCodeOptions.forEach(opt => (map[opt.value] = opt.label))
-      return map
-    })
-    function getTaxCodeLabel(code) {
-      return taxCodeLabelMap.value[code] || code
-    }
+    const { getTaxCodeLabel } = useTaxTypeHelpers()
 
     const codeFilterOptions = computed(() => [
       { label: $t('All'), value: undefined },
@@ -400,8 +374,8 @@ export default defineComponent({
       })
     }
 
-    function setupDefaultTaxType() {
-      openCreateTaxTypeDialog()
+    function goToTaxRegimeSetup() {
+      $router.push({ name: 'marketplace-tax-regime-setup' })
     }
 
     function setAsDefaultTaxType(taxType) {
@@ -464,7 +438,7 @@ export default defineComponent({
     }
 
     async function refreshShopSettingsIfNeeded() {
-      if (hasDefaultTaxType.value) return
+      if (isTaxSetupComplete.value) return
       return marketplaceStore.refetchShopSettingsIfStale({ maxAge: SHOP_SETTINGS_MAX_AGE }).catch(() => {})
     }
 
@@ -495,6 +469,8 @@ export default defineComponent({
       sortMethod,
       allLoaded,
       hasDefaultTaxType,
+      hasAppliedRegime,
+      isTaxSetupComplete,
       isDefaultTaxType,
       getTaxCodeLabel,
       activeFilterCount,
@@ -508,7 +484,7 @@ export default defineComponent({
       openCreateTaxTypeDialog,
       openEditTaxTypeDialog,
       openTaxTypeDetailDialog,
-      setupDefaultTaxType,
+      goToTaxRegimeSetup,
       setAsDefaultTaxType,
       confirmDeleteTaxType,
       deleteTaxType,

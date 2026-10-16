@@ -117,10 +117,10 @@
               <span v-else class="text-grey text-caption">—</span>
             </q-td>
             <q-td key="code" :props="props">
-              {{ getCodeLabel(props.row.code) }}
+              {{ getDiscountCodeLabel(props.row.code) }}
             </q-td>
             <q-td key="scope" :props="props">
-              {{ getScopeLabel(props.row.scope) }}
+              {{ getDiscountScopeLabel(props.row.scope) }}
             </q-td>
             <q-td key="type" :props="props">
               <q-chip
@@ -133,20 +133,11 @@
                 "
                 text-color="dark"
               >
-                {{ getTypeLabel(props.row.type) }}
+                {{ getDiscountTypeLabel(props.row.type) }}
               </q-chip>
             </q-td>
             <q-td key="value" :props="props">
-              <template v-if="!Number.isFinite(props.row.value)">
-                <span class="text-grey">—</span>
-              </template>
-              <template v-else-if="props.row?.type === DiscountType.TYPES.PCTG">
-                {{ Number((props.row.value * 100).toFixed(2)) }}%
-              </template>
-              <template v-else>
-                {{ Number(props.row.value.toFixed(2)) }}
-                {{ props.row?.currency?.symbol }}
-              </template>
+              <div>{{ formatDiscountValue(props.row, { includeMax: false }) }}</div>
               <div
                 v-if="
                   Number.isFinite(props.row.maxAmount) && props.row.maxAmount > 0
@@ -177,8 +168,8 @@
               <span v-else class="text-grey text-caption">—</span>
             </q-td>
             <q-td key="dates" :props="props">
-              <span v-if="getDateRangeText(props.row)" class="text-caption">
-                {{ getDateRangeText(props.row) }}
+              <span v-if="getDiscountDateRangeText(props.row)" class="text-caption">
+                {{ getDiscountDateRangeText(props.row) }}
               </span>
               <span v-else class="text-grey text-caption">—</span>
             </q-td>
@@ -251,8 +242,7 @@
 <script>
 import { backend } from "src/marketplace/backend";
 import { DiscountType } from "src/marketplace/objects";
-import { formatTimestampToText } from "src/marketplace/utils";
-import { useDiscountFormHelpers } from "src/composables/marketplace/discount";
+import { useDiscountFormHelpers, useDiscountTypeHelpers } from "src/composables/marketplace/discount";
 import { useMarketplaceStore } from "src/stores/marketplace";
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
@@ -278,6 +268,13 @@ export default defineComponent({
       discountScopeOptions,
       discountCalculationTypeOptions,
     } = useDiscountFormHelpers();
+    const {
+      getDiscountCodeLabel,
+      getDiscountScopeLabel,
+      getDiscountTypeLabel,
+      formatDiscountValue,
+      getDiscountDateRangeText,
+    } = useDiscountTypeHelpers();
 
     const filterOpts = ref({
       search: "",
@@ -314,33 +311,6 @@ export default defineComponent({
       ...discountCalculationTypeOptions,
     ]);
 
-    const codeLabelMap = computed(() => {
-      const map = {};
-      discountCodeOptions.forEach((opt) => (map[opt.value] = opt.label));
-      return map;
-    });
-    const scopeLabelMap = computed(() => {
-      const map = {};
-      discountScopeOptions.forEach((opt) => (map[opt.value] = opt.label));
-      return map;
-    });
-    const typeLabelMap = computed(() => {
-      const map = {};
-      discountCalculationTypeOptions.forEach(
-        (opt) => (map[opt.value] = opt.label)
-      );
-      return map;
-    });
-
-    function getCodeLabel(code) {
-      return codeLabelMap.value[code] || code;
-    }
-    function getScopeLabel(scope) {
-      return scopeLabelMap.value[scope] || scope;
-    }
-    function getTypeLabel(type) {
-      return typeLabelMap.value[type] || type;
-    }
     function getTotalConditions(discount) {
       if (!Array.isArray(discount?.conditionGroups)) return 0;
       return discount.conditionGroups.reduce(
@@ -356,15 +326,6 @@ export default defineComponent({
     }
     function clearSearch() {
       filterOpts.value.search = "";
-    }
-    function getDateRangeText(discount) {
-      const startsAt = discount?.startsAt;
-      const endsAt = discount?.endsAt;
-      if (!startsAt && !endsAt) return "";
-      const startText = startsAt ? formatTimestampToText(startsAt) : "";
-      const endText = endsAt ? formatTimestampToText(endsAt) : "";
-      if (startText && endText) return `${startText} – ${endText}`;
-      return startText || endText;
     }
     function navigateToEdit(discountId) {
       $router.push({
@@ -563,7 +524,7 @@ export default defineComponent({
         name: "dates",
         align: "left",
         label: $t("Validity", "Validity"),
-        field: (row) => getDateRangeText(row),
+        field: (row) => getDiscountDateRangeText(row),
         classes: "hidden-xs",
       },
       {
@@ -612,11 +573,12 @@ export default defineComponent({
       discountsTableColumns,
       refreshPage,
 
-      getCodeLabel,
-      getScopeLabel,
-      getTypeLabel,
+      getDiscountCodeLabel,
+      getDiscountScopeLabel,
+      getDiscountTypeLabel,
+      formatDiscountValue,
       getTotalConditions,
-      getDateRangeText,
+      getDiscountDateRangeText,
       hasRedemptionLimits,
       clearSearch,
       navigateToEdit,

@@ -1,5 +1,6 @@
 import { backend } from "src/marketplace/backend";
 import { useMarketplaceStore } from "src/stores/marketplace";
+import { formatTimestampToText } from "src/marketplace/utils";
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 
@@ -285,5 +286,85 @@ export function useDiscountRuleTypesAndConditionsMap() {
     getDiscountConditionText,
     getRuleTypeText,
     getOperatorText,
+  };
+}
+
+/**
+ * Shared display helpers for discount types, used by the discounts list and the
+ * discount/benefit detail dialogs so labels and value formatting stay in sync.
+ */
+export function useDiscountTypeHelpers() {
+  const { t: $t } = useI18n();
+  const marketplaceStore = useMarketplaceStore();
+  const { discountCodeOptions, discountScopeOptions, discountCalculationTypeOptions } =
+    useDiscountFormHelpers();
+
+  function labelFromOptions(options, value) {
+    if (value === undefined || value === null || value === "") return "—";
+    return options.find((opt) => opt.value === value)?.label || value;
+  }
+
+  function getDiscountCodeLabel(code) {
+    return labelFromOptions(discountCodeOptions, code);
+  }
+  function getDiscountScopeLabel(scope) {
+    return labelFromOptions(discountScopeOptions, scope);
+  }
+  function getDiscountTypeLabel(type) {
+    return labelFromOptions(discountCalculationTypeOptions, type);
+  }
+
+  function getDiscountCurrencySymbol(discount) {
+    return (
+      discount?.currency?.symbol ||
+      discount?.currency?.code ||
+      marketplaceStore?.merchant?.currency?.symbol ||
+      marketplaceStore?.merchant?.currency?.code ||
+      ""
+    );
+  }
+
+  /**
+   * Value label for a discount, e.g. `10%`, `50 PHP`, or with the cap
+   * `10% max 100 PHP` (disable with `{ includeMax: false }`).
+   * @param {import('src/marketplace/objects').DiscountType} discount
+   */
+  function formatDiscountValue(discount, opts = {}) {
+    const includeMax = opts.includeMax !== false;
+    const currency = getDiscountCurrencySymbol(discount);
+
+    let label = "—";
+    if (discount?.type === "percentage") {
+      label = `${Number((Number(discount?.value || 0) * 100).toFixed(2))}%`;
+    } else if (discount?.value != null && Number.isFinite(Number(discount.value))) {
+      const value = Number(discount.value).toFixed(2);
+      label = currency ? `${Number(value)} ${currency}` : `${Number(value)}`;
+    }
+
+    const maxAmount = Number(discount?.maxAmount);
+    if (includeMax && Number.isFinite(maxAmount) && maxAmount > 0) {
+      label += ` ${$t("Max", "max")} ${Number(maxAmount.toFixed(2))}`;
+      if (currency) label += ` ${currency}`;
+    }
+    return label;
+  }
+
+  function getDiscountDateRangeText(discount) {
+    const startsAt = discount?.startsAt;
+    const endsAt = discount?.endsAt;
+    if (!startsAt && !endsAt) return "";
+    const startText = startsAt ? formatTimestampToText(startsAt) : "";
+    const endText = endsAt ? formatTimestampToText(endsAt) : "";
+    if (startText && endText) return `${startText} – ${endText}`;
+    return startText || endText;
+  }
+
+  return {
+    getDiscountCodeLabel,
+    getDiscountScopeLabel,
+    getDiscountTypeLabel,
+    getDiscountCurrencySymbol,
+    formatDiscountValue,
+    getDiscountDateRangeText,
   };
 }

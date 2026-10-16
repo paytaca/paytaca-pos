@@ -31,6 +31,51 @@ export const taxCodeOptions = [
  */
 export const zeroValueTaxCodes = ['non_tax', 'tax_exempt'];
 
+const taxCodeLabelMap = taxCodeOptions.reduce((map, opt) => {
+  map[opt.value] = opt.label;
+  return map;
+}, {});
+
+/**
+ * Shared display helpers for tax types, used by the tax type list/detail and
+ * anywhere a tax type is shown (e.g. tax regimes, benefit programs).
+ */
+export function useTaxTypeHelpers() {
+  function getTaxCodeLabel(code) {
+    if (!code) return '—';
+    return taxCodeLabelMap[code] || code;
+  }
+
+  function isZeroValueTaxCode(code) {
+    return zeroValueTaxCodes.includes(code);
+  }
+
+  /**
+   * @param {import('src/marketplace/objects').TaxType} taxType
+   * @param {Object} [opts]
+   * @param {Boolean} [opts.hideZeroValue] omit the rate for zero-value tax codes
+   */
+  function taxRateLabel(taxType, opts = {}) {
+    if (!Number.isFinite(taxType?.value)) return '';
+    if (opts.hideZeroValue && isZeroValueTaxCode(taxType?.code)) return '';
+    return `${Number(taxType.value.toFixed(2))}%`;
+  }
+
+  /** Name with the rate appended, e.g. `VAT (12%)`. */
+  function taxTypeLabel(taxType) {
+    if (!taxType?.name) return '—';
+    const rate = taxRateLabel(taxType, { hideZeroValue: true });
+    return rate ? `${taxType.name} (${rate})` : taxType.name;
+  }
+
+  return {
+    getTaxCodeLabel,
+    isZeroValueTaxCode,
+    taxRateLabel,
+    taxTypeLabel,
+  };
+}
+
 /**
  * 
  * @param {import("vue").Ref<TaxType[]>} taxTypesRef 

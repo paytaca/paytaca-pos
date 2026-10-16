@@ -44,6 +44,7 @@ const routes = [
           { path: 'sales/create', component: () => import('src/pages/marketplace/sales/CreateSalePage.vue'), name: 'marketplace-sale', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'user', component: () => import('src/pages/marketplace/UserPage.vue'), name: 'marketplace-user', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'taxes', component: () => import('src/pages/marketplace/taxes/TaxTypesPage.vue'), name: 'marketplace-taxes', props: route => Object.assign({}, route?.query, route?.params)},
+          { path: 'tax-regime/setup', component: () => import('src/pages/marketplace/taxes/TaxRegimeSetupPage.vue'), name: 'marketplace-tax-regime-setup', props: route => Object.assign({}, route?.query, route?.params)},
         ]
       },
       {

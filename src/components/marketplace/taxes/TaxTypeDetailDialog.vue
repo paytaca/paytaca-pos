@@ -16,8 +16,8 @@
         <div class="row items-center">
           <div class="text-grey q-space">{{ $t('Rate', 'Rate') }}</div>
           <div>
-            <template v-if="Number.isFinite(taxType?.value)">
-              {{ Number(taxType.value.toFixed(2)) }}%
+            <template v-if="taxRateLabel(taxType)">
+              {{ taxRateLabel(taxType) }}
             </template>
             <span v-else class="text-grey">—</span>
           </div>
@@ -88,7 +88,7 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { Product } from 'src/marketplace/objects'
-import { taxCodeOptions } from 'src/composables/marketplace/taxTypesForm'
+import { useTaxTypeHelpers } from 'src/composables/marketplace/taxTypesForm'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useDialogPluginComponent } from 'quasar'
 import { defineComponent, ref, computed, watch, onMounted } from 'vue'
@@ -120,14 +120,7 @@ export default defineComponent({
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
-    const taxCodeLabelMap = computed(() => {
-      const map = {}
-      taxCodeOptions.forEach(opt => (map[opt.value] = opt.label))
-      return map
-    })
-    function getTaxCodeLabel(code) {
-      return taxCodeLabelMap.value[code] || code || '—'
-    }
+    const { getTaxCodeLabel, taxRateLabel } = useTaxTypeHelpers()
 
     const isDefault = computed(() => {
       const defaultTaxTypeId = marketplaceStore.shopSettings?.defaultTaxType?.id
@@ -170,6 +163,7 @@ export default defineComponent({
       marketplaceStore,
       isDefault,
       getTaxCodeLabel,
+      taxRateLabel,
       products,
       fetchingProducts,
       pagination,

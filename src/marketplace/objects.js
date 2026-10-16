@@ -428,6 +428,43 @@ export class TaxType {
   }
 }
 
+export class TaxRegime {
+  static parse(data) {
+    return new TaxRegime(data);
+  }
+
+  constructor(data) {
+    this.raw = data;
+  }
+
+  get raw() {
+    return this.$raw;
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.name
+   * @param {String} [data.country_code]
+   * @param {Boolean} [data.is_default_for_country]
+   * @param {Object} [data.default_tax_type]
+   * @param {Object[]} [data.tax_types]
+   * @param {Object[]} [data.discount_types]
+   * @param {Object[]} [data.benefit_programs]
+   */
+  set raw(data) {
+    this.$raw = data;
+    this.id = data?.id;
+    this.name = data?.name;
+    this.countryCode = data?.country_code;
+    this.isDefaultForCountry = Boolean(data?.is_default_for_country);
+    this.defaultTaxType = data?.default_tax_type ? TaxType.parse(data.default_tax_type) : null;
+    this.taxTypes = Array.isArray(data?.tax_types) ? data.tax_types.map(TaxType.parse) : [];
+    this.discountTypes = Array.isArray(data?.discount_types) ? data.discount_types.map(DiscountType.parse) : [];
+    this.benefitPrograms = Array.isArray(data?.benefit_programs) ? data.benefit_programs.map(BenefitProgram.parse) : [];
+  }
+}
+
 export class DiscountCondition {
   static parse(data) {
     return new DiscountCondition(data);
@@ -1222,6 +1259,7 @@ export class Shop {
    * @param {String} data.location.country
    * @param {String} data.location.longitude
    * @param {String} data.location.latitude
+   * @param {String} [data.country_code] ISO 3166-1 alpha-2 code
    */
   set raw(data) {
     Object.defineProperty(this, "$raw", {
@@ -1233,6 +1271,7 @@ export class Shop {
     this.id = data?.id;
     this.name = data?.name;
     this.productListingId = data?.product_listing_id;
+    this.countryCode = data?.country_code;
     this.location = Location.parse(data?.location);
   }
 }

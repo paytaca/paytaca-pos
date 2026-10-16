@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { backend } from 'src/marketplace/backend'
-import { Shop, ROLES, User, Storefront, FungibleCashToken, TaxType } from 'src/marketplace/objects';
+import { Shop, ROLES, User, Storefront, FungibleCashToken, TaxType, TaxRegime } from 'src/marketplace/objects';
 import { time } from 'src/marketplace/utils';
 import { useWalletStore } from './wallet';
 
@@ -37,6 +37,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
         watchtower_branch_id: null,
         merchant_id: 0,
         name: '',
+        country_code: null,
         location: { id: 0, address1: '', address2: '', street: '', city: '', state: '', country: '', longitude: '', latitude: '', utc_offset: null },
       },
       shopSettingsData: {
@@ -48,6 +49,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
         startingPurchaseOrderNumber: 0,
         startingSalesOrderNumber: 0,
         defaultTaxType: { id: 0, code: '', name: '', value: '' },
+        appliedTaxRegime: null,
       },
       storefrontData: {
         id: 0,
@@ -100,6 +102,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
       const data = Object.assign({}, this.shopSettingsData)
       data.defaultPurchaseOrderReviewer = User.parse(data.defaultPurchaseOrderReviewer)
       data.defaultTaxType = TaxType.parse(data.defaultTaxType)
+      data.appliedTaxRegime = data.appliedTaxRegime ? TaxRegime.parse(data.appliedTaxRegime) : null
       return data
     },
     shopUserRole() {
@@ -217,6 +220,12 @@ export const useMarketplaceStore = defineStore('marketplace', {
           value: data.default_tax_type?.value,
           source: data.default_tax_type?.source,
         },
+        appliedTaxRegime: !data?.applied_tax_regime ? null : {
+          id: data.applied_tax_regime?.id,
+          name: data.applied_tax_regime?.name,
+          countryCode: data.applied_tax_regime?.country_code,
+          isDefaultForCountry: data.applied_tax_regime?.is_default_for_country,
+        },
       }
     },
     /**
@@ -281,6 +290,7 @@ export const useMarketplaceStore = defineStore('marketplace', {
         watchtower_branch_id: data?.watchtower_branch_id,
         merchant_id: data?.merchant_id,
         name: data?.name,
+        country_code: data?.country_code,
         location: {
           id: data?.location?.id,
           address1: data?.location?.address1,

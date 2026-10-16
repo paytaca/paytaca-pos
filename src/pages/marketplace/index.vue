@@ -13,6 +13,12 @@
           </div>
         </template>
       </MarketplaceHeader>
+      <TaxSetupStatusBanner
+        v-if="!taxSetupBannerDismissed"
+        dismissible
+        @action="goToTaxSetup"
+        @dismiss="dismissTaxSetupBanner"
+      />
       <div class="row justify-end">
         <q-btn
           :ripple="false"
@@ -236,6 +242,7 @@ import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import DashboardCard from 'src/components/marketplace/dashboard/DashboardCard.vue'
 import MainFooter from 'src/components/MainFooter.vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
+import TaxSetupStatusBanner from 'src/components/marketplace/taxes/TaxSetupStatusBanner.vue'
 
 export default defineComponent({
   name: 'MarketplacePage',
@@ -246,6 +253,7 @@ export default defineComponent({
     DashboardCard,
     MainFooter,
     MarketplaceHeader,
+    TaxSetupStatusBanner,
   },
   setup(props) {
     const { t } = useI18n()
@@ -263,6 +271,29 @@ export default defineComponent({
       await marketplaceStore.appRefreshScopePromise?.catch?.(() => {})
       refreshPage()
     }, 100))
+
+    // Tax setup nudge. Dismissal is remembered per shop; shop settings are
+    // fetched (if stale) so the banner reflects the real applied regime/default.
+    const TAX_SETUP_BANNER_DISMISSED_PREFIX = 'marketplace-tax-setup-banner-dismissed'
+    const taxSetupBannerDismissed = ref(false)
+    function taxSetupBannerStorageKey() {
+      const shopId = marketplaceStore.shop?.id || marketplaceStore.activeShopId || 0
+      return `${TAX_SETUP_BANNER_DISMISSED_PREFIX}-${shopId}`
+    }
+    watch(() => marketplaceStore.shop?.id, (shopId) => {
+      if (!shopId) return
+      taxSetupBannerDismissed.value = localStorage.getItem(taxSetupBannerStorageKey()) === 'true'
+      marketplaceStore.refetchShopSettingsIfStale({ maxAge: 5 * 60 * 1000 }).catch(() => {})
+    }, { immediate: true })
+
+    function dismissTaxSetupBanner() {
+      taxSetupBannerDismissed.value = true
+      localStorage.setItem(taxSetupBannerStorageKey(), 'true')
+    }
+
+    function goToTaxSetup() {
+      $router.push({ name: 'marketplace-tax-regime-setup' })
+    }
 
     const tabOpts = ['sales', 'inventory', 'storefront', 'shop']
     const tabs = ref({
@@ -559,6 +590,10 @@ export default defineComponent({
       onDashboardCardClick,
 
       refreshPage,
+
+      taxSetupBannerDismissed,
+      dismissTaxSetupBanner,
+      goToTaxSetup,
 
       formatDateRelative,
     }
