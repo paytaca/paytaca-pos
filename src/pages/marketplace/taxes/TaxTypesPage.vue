@@ -3,7 +3,12 @@
     <q-pull-to-refresh @refresh="refreshPage">
       <MarketplaceHeader :title="$t('Taxes')" :subtitle="$t('Marketplace')" back-button-mode="back" show-back-button />
 
-      <TaxSetupStatusBanner @action="goToTaxRegimeSetup" />
+      <NextStepsBanner
+        v-model="taxSetupTaskIndex"
+        :dismissible="false"
+        :tasks="taxSetupTasks"
+        @action="goToSetupTask"
+      />
 
       <div class="full-width q-mb-sm">
         <div class="row items-end q-mb-sm no-wrap q-gutter-x-sm">
@@ -208,9 +213,9 @@
 import { backend } from 'src/marketplace/backend'
 import { TaxType } from 'src/marketplace/objects'
 import { taxCodeOptions, useTaxTypeHelpers } from 'src/composables/marketplace/taxTypesForm'
+import { useSetupTasks } from 'src/composables/marketplace/setupTasks'
 import { useMarketplaceStore } from 'src/stores/marketplace'
 import { useQuasar } from 'quasar'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { defineComponent, ref, computed, watch, onMounted } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
@@ -218,7 +223,7 @@ import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import TaxTypeFormDialog from 'src/components/marketplace/taxes/TaxTypeFormDialog.vue'
 import TaxTypeDetailDialog from 'src/components/marketplace/taxes/TaxTypeDetailDialog.vue'
 import TaxTypeFiltersDialog from 'src/components/marketplace/taxes/TaxTypeFiltersDialog.vue'
-import TaxSetupStatusBanner from 'src/components/marketplace/taxes/TaxSetupStatusBanner.vue'
+import NextStepsBanner from 'src/components/marketplace/NextStepsBanner.vue'
 
 const SHOP_SETTINGS_MAX_AGE = 5 * 60 * 1000
 const DEFAULT_LIMIT = 10
@@ -234,14 +239,19 @@ export default defineComponent({
   components: {
     MarketplaceHeader,
     LimitOffsetPagination,
-    TaxSetupStatusBanner,
+    NextStepsBanner,
     TaxTypeDetailDialog,
   },
   setup() {
     const { t: $t } = useI18n()
     const $q = useQuasar()
-    const $router = useRouter()
     const marketplaceStore = useMarketplaceStore()
+
+    const {
+      tasks: taxSetupTasks,
+      index: taxSetupTaskIndex,
+      goTo: goToSetupTask,
+    } = useSetupTasks({ only: ['setup-taxes'] })
 
     const taxTypes = ref([].map(TaxType.parse))
     const fetchingTaxTypes = ref(false)
@@ -401,10 +411,6 @@ export default defineComponent({
       }).onOk(() => fetchTaxTypes({ offset: 0 }))
     }
 
-    function goToTaxRegimeSetup() {
-      $router.push({ name: 'marketplace-tax-regime-setup' })
-    }
-
     function setAsDefaultTaxType(taxType) {
       if (!taxType?.id || isDefaultTaxType(taxType)) return
       return backend.patch(`shops/${marketplaceStore.activeShopId}/settings/`, {
@@ -551,7 +557,9 @@ export default defineComponent({
       openEditTaxTypeDialog,
       openTaxTypeDetailDialog,
       taxTypeDetailDialog,
-      goToTaxRegimeSetup,
+      taxSetupTasks,
+      taxSetupTaskIndex,
+      goToSetupTask,
       setAsDefaultTaxType,
       confirmDeleteTaxType,
       deleteTaxType,
