@@ -44,6 +44,7 @@ const routes = [
           { path: 'sales/create', component: () => import('src/pages/marketplace/sales/CreateSalePage.vue'), name: 'marketplace-sale', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'user', component: () => import('src/pages/marketplace/UserPage.vue'), name: 'marketplace-user', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'taxes', component: () => import('src/pages/marketplace/taxes/TaxTypesPage.vue'), name: 'marketplace-taxes', props: route => Object.assign({}, route?.query, route?.params)},
+          { path: 'taxes/add', component: () => import('src/pages/marketplace/AddProgramPage.vue'), name: 'marketplace-tax-add', meta: { programType: 'tax' }, props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'tax-regime/setup', component: () => import('src/pages/marketplace/taxes/TaxRegimeSetupPage.vue'), name: 'marketplace-tax-regime-setup', props: route => Object.assign({}, route?.query, route?.params)},
         ]
       },
@@ -52,6 +53,7 @@ const routes = [
         meta: { requireAuth: true },
         children: [
           { path: '', component: () => import('src/pages/marketplace/benefits/BenefitProgramsPage.vue'), name: 'marketplace-benefits', props: route => Object.assign({}, route?.query, route?.params) },
+          { path: 'add', component: () => import('src/pages/marketplace/AddProgramPage.vue'), name: 'marketplace-benefit-add', meta: { programType: 'benefit' }, props: route => Object.assign({}, route?.query, route?.params) },
           { path: 'create', component: () => import('src/pages/marketplace/benefits/BenefitFormPage.vue'), name: 'marketplace-benefit-create', props: route => Object.assign({}, route?.query, route?.params) },
           { path: 'edit/:benefitProgramId', component: () => import('src/pages/marketplace/benefits/BenefitFormPage.vue'), name: 'marketplace-benefit-edit', props: route => Object.assign({}, route?.query, route?.params) },
         ],
@@ -61,6 +63,7 @@ const routes = [
         meta: { requireAuth: true },
         children: [
           { path: '', component: () => import('src/pages/marketplace/discounts/DiscountsPage.vue'), name: 'marketplace-discounts', props: route => Object.assign({}, route?.query, route?.params) },
+          { path: 'add', component: () => import('src/pages/marketplace/AddProgramPage.vue'), name: 'marketplace-discount-add', meta: { programType: 'discount' }, props: route => Object.assign({}, route?.query, route?.params) },
           { path: 'create', component: () => import('src/pages/marketplace/discounts/DiscountFormPage.vue'), name: 'marketplace-discount-create', props: route => Object.assign({}, route?.query, route?.params) },
           { path: 'edit/:discountId', component: () => import('src/pages/marketplace/discounts/DiscountFormPage.vue'), name: 'marketplace-discount-edit', props: route => Object.assign({}, route?.query, route?.params) },
         ],
