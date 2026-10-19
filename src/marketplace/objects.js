@@ -759,6 +759,7 @@ export class Variant {
    * @param {String} data.code
    * @param {String} data.image_url
    * @param {String} data.name
+   * @param {Number} data.price
    * @param {Object} data.price_data
    * @param {Number} data.cutlery_cost
    * @param {Number} data.total_stocks
@@ -777,6 +778,7 @@ export class Variant {
     this.code = data?.code;
     this.imageUrl = data?.image_url;
     this.name = data?.name;
+    this.price = data?.price;
     this.priceData = PricingData.parseOptional(data?.price_data);
     this.cutleryCost = data?.cutlery_cost;
     this.totalStocks = data?.total_stocks;
