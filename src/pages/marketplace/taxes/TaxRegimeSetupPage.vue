@@ -52,6 +52,31 @@
       </template>
 
       <q-card
+        v-else-if="fetchError"
+        class="q-pa-md text-center"
+        style="border-radius:16px;"
+      >
+        <q-icon name="cloud_off" size="3em" class="text-grey-6 q-mb-sm" />
+        <div class="text-subtitle1">{{ $t('FailedToLoadTaxSetups', "Couldn't load tax setups") }}</div>
+        <div class="text-caption text-grey q-mt-xs">
+          {{
+            $t(
+              'FailedToLoadTaxSetupsHint',
+              'Something went wrong while loading tax setups. Please try again.',
+            )
+          }}
+        </div>
+        <q-btn
+          class="q-mt-md"
+          outline
+          no-caps
+          color="brandblue"
+          :label="$t('Retry', 'Retry')"
+          @click="fetchRegimes"
+        />
+      </q-card>
+
+      <q-card
         v-else
         class="q-pa-md text-center"
         style="border-radius:16px;"
@@ -83,10 +108,15 @@
         <div class="q-space">
           <div class="text-h6">{{ selectedRegime.name }}</div>
           <div class="text-caption text-grey">
-            {{ $t('TaxSetupReviewSubtitle', 'Review what this setup adds') }}
+            {{
+              hasMultipleRegimes
+                ? $t('TaxSetupReviewSubtitle', 'Review what this setup adds')
+                : $t('TaxSetupSingleSubtitle', 'This is the only tax setup available for your shop')
+            }}
           </div>
         </div>
         <q-btn
+          v-if="hasMultipleRegimes"
           flat
           dense
           no-caps
@@ -249,11 +279,14 @@ export default defineComponent({
     const regimes = ref([].map(TaxRegime.parse))
     const selectedRegimeId = ref(null)
     const fetchingRegimes = ref(false)
+    const fetchError = ref(false)
     const applying = ref(false)
 
     const selectedRegime = computed(() => {
       return regimes.value.find(regime => regime.id === selectedRegimeId.value) || null
     })
+
+    const hasMultipleRegimes = computed(() => regimes.value.length > 1)
 
     function isRegimeDefaultTaxType(taxType) {
       return Boolean(
@@ -288,9 +321,15 @@ export default defineComponent({
 
     function fetchRegimes() {
       const shopId = marketplaceStore.shop?.id || marketplaceStore.activeShopId
-      if (!shopId) return Promise.resolve()
+      if (!shopId) {
+        // Without a shop we can't tell whether any setups exist, so don't
+        // claim that none are available.
+        fetchError.value = true
+        return Promise.resolve()
+      }
 
       fetchingRegimes.value = true
+      fetchError.value = false
       return backend.get('tax-regimes/', {
         params: { shop_ids: shopId, is_active: true, limit: 100 },
       })
@@ -299,10 +338,18 @@ export default defineComponent({
           const results = Array.isArray(data) ? data : data?.results
           regimes.value = Array.isArray(results) ? results.map(TaxRegime.parse) : []
 
-          // Preselect the country's recommended blueprint.
-          const recommended = regimes.value.find(regime => regime.isDefaultForCountry)
-          if (recommended) selectedRegimeId.value = recommended.id
+          // Preselect the country's recommended blueprint. With only one option
+          // there's nothing to choose, so skip straight to the review screen.
+          const picked = regimes.value.find(regime => regime.isDefaultForCountry) || regimes.value[0]
+          if (picked) {
+            selectedRegimeId.value = picked.id
+            if (regimes.value.length === 1) view.value = 'review'
+          }
           return response
+        })
+        .catch(() => {
+          fetchError.value = true
+          regimes.value = []
         })
         .finally(() => {
           fetchingRegimes.value = false
@@ -357,7 +404,9 @@ export default defineComponent({
       selectedRegimeId,
       selectedRegime,
       fetchingRegimes,
+      fetchError,
       applying,
+      hasMultipleRegimes,
 
       getTaxCodeLabel,
       getDiscountCodeLabel,
