@@ -46,6 +46,7 @@ const routes = [
           { path: 'taxes', component: () => import('src/pages/marketplace/taxes/TaxTypesPage.vue'), name: 'marketplace-taxes', props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'taxes/add', component: () => import('src/pages/marketplace/AddProgramPage.vue'), name: 'marketplace-tax-add', meta: { programType: 'tax' }, props: route => Object.assign({}, route?.query, route?.params)},
           { path: 'tax-regime/setup', component: () => import('src/pages/marketplace/taxes/TaxRegimeSetupPage.vue'), name: 'marketplace-tax-regime-setup', props: route => Object.assign({}, route?.query, route?.params)},
+          { path: 'taxes/bulk-apply', component: () => import('src/pages/marketplace/taxes/TaxBulkApplyPage.vue'), name: 'marketplace-tax-bulk-apply', props: false },
         ]
       },
       {
