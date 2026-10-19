@@ -47,8 +47,10 @@
             icon="add"
             padding="sm"
             color="brandblue"
-            :to="{ name: 'marketplace-discount-create' }"
-          />
+            :to="{ name: 'marketplace-discount-add' }"
+          >
+            <q-tooltip>{{ $t('AddDiscount', 'Add discount') }}</q-tooltip>
+          </q-btn>
         </div>
         <div
           v-if="activeFilterChips.length"
@@ -94,7 +96,7 @@
           <q-tr
             :props="props"
             class="cursor-pointer"
-            @click="navigateToEdit(props.row.id)"
+            @click="openDiscountDetailDialog(props.row)"
           >
             <q-td key="name" :props="props">
               <div class="row items-center q-gutter-x-xs">
@@ -185,33 +187,6 @@
               </q-chip>
               <span v-else class="text-grey text-caption">—</span>
             </q-td>
-            <q-td key="actions" :props="props" class="text-center">
-              <q-btn
-                flat
-                round
-                dense
-                :icon="props.row.source === 'custom' ? 'edit' : 'visibility'"
-                :color="props.row.source === 'custom' ? 'brandblue' : 'grey-6'"
-                size="sm"
-                @click.stop="navigateToEdit(props.row.id)"
-              >
-                <q-tooltip>
-                  {{ props.row.source === 'custom' ? $t('Edit') : $t('View') }}
-                </q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="props.row.isCustom"
-                flat
-                round
-                dense
-                icon="delete"
-                color="negative"
-                size="sm"
-                @click.stop="confirmDeleteDiscount(props.row)"
-              >
-                <q-tooltip>{{ $t('Delete') }}</q-tooltip>
-              </q-btn>
-            </q-td>
           </q-tr>
         </template>
         <template v-slot:bottom>
@@ -236,6 +211,52 @@
           </div>
         </template>
       </q-table>
+
+      <DiscountTypeDetailDialog
+        v-model="discountDetailDialog.show"
+        :discount-type="discountDetailDialog.discountType"
+      >
+        <template #actions="{ discountType }">
+          <q-btn-dropdown
+            split
+            no-caps
+            color="brandblue"
+            icon="edit"
+            :label="$t('Edit')"
+            :disable-main-btn="!discountType?.isCustom"
+            @click="navigateToEdit(discountType.id)"
+          >
+            <q-list style="min-width: 200px">
+              <q-item
+                v-if="discountType?.isCustom"
+                clickable
+                v-close-popup
+                @click="confirmDeleteDiscount(discountType)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="delete" color="negative" />
+                </q-item-section>
+                <q-item-section class="text-negative">
+                  {{ $t('Delete') }}
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-else
+                clickable
+                v-close-popup
+                @click="confirmDetachDiscount(discountType)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="link_off" color="negative" />
+                </q-item-section>
+                <q-item-section class="text-negative">
+                  {{ $t('RemoveFromShop', 'Remove from shop') }}
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+        </template>
+      </DiscountTypeDetailDialog>
     </q-pull-to-refresh>
   </q-page>
 </template>
@@ -251,12 +272,14 @@ import { defineComponent, onMounted, ref, computed, watch } from "vue";
 import MarketplaceHeader from "src/components/marketplace/MarketplaceHeader.vue";
 import LimitOffsetPagination from "src/components/LimitOffsetPagination.vue";
 import DiscountFiltersDialog from "src/components/marketplace/discounts/DiscountFiltersDialog.vue";
+import DiscountTypeDetailDialog from "src/components/marketplace/discounts/DiscountTypeDetailDialog.vue";
 
 export default defineComponent({
   name: "DiscountsPage",
   components: {
     LimitOffsetPagination,
     MarketplaceHeader,
+    DiscountTypeDetailDialog,
   },
   setup() {
     const { t: $t } = useI18n();
@@ -327,7 +350,20 @@ export default defineComponent({
     function clearSearch() {
       filterOpts.value.search = "";
     }
+
+    const discountDetailDialog = ref({ show: false, discountType: null });
+
+    function openDiscountDetailDialog(discount) {
+      discountDetailDialog.value.discountType = discount;
+      discountDetailDialog.value.show = true;
+    }
+
+    function closeDiscountDetailDialog() {
+      discountDetailDialog.value.show = false;
+    }
+
     function navigateToEdit(discountId) {
+      closeDiscountDetailDialog();
       $router.push({
         name: "marketplace-discount-edit",
         params: { discountId },
@@ -336,6 +372,7 @@ export default defineComponent({
 
     function confirmDeleteDiscount(discount) {
       if (!discount?.isCustom) return;
+      closeDiscountDetailDialog();
       $q.dialog({
         title: $t("DeleteDiscount", {}, "Delete discount"),
         message: $t(
@@ -366,6 +403,45 @@ export default defineComponent({
             message:
               error?.response?.data?.detail ||
               $t("FailedToDeleteDiscount", {}, "Failed to delete discount"),
+          });
+        });
+    }
+
+    function confirmDetachDiscount(discount) {
+      if (!discount?.id || discount.source !== "platform") return;
+      closeDiscountDetailDialog();
+      $q.dialog({
+        title: $t("RemoveDiscountFromShop", {}, "Remove discount from shop"),
+        message: $t(
+          "RemoveDiscountFromShopConfirm",
+          { name: discount.name },
+          `Remove discount "${discount.name}" from this shop? It will no longer be available here, but you can add it again later.`
+        ),
+        color: "negative",
+        ok: { label: $t("Remove", "Remove"), color: "negative", noCaps: true },
+        cancel: { label: $t("Cancel"), flat: true, noCaps: true },
+      }).onOk(() => detachDiscount(discount));
+    }
+
+    function detachDiscount(discount) {
+      if (!discount?.id) return Promise.resolve();
+      return backend
+        .delete(`shops/${marketplaceStore.activeShopId}/discount-types/${discount.id}/`)
+        .then(() => {
+          $q.notify({
+            type: "positive",
+            message: $t("DiscountRemovedFromShop", {}, "Discount removed from shop"),
+          });
+          return fetchDiscounts({ offset: 0 });
+        })
+        .catch((error) => {
+          const data = error?.response?.data;
+          $q.notify({
+            type: "negative",
+            message:
+              data?.detail ||
+              (Array.isArray(data) ? data[0] : null) ||
+              $t("FailedToRemoveDiscount", {}, "Failed to remove discount from shop"),
           });
         });
     }
@@ -534,7 +610,6 @@ export default defineComponent({
         field: (row) => getTotalConditions(row),
         classes: "hidden-xs",
       },
-      { name: "actions", align: "center", label: "", field: "id" },
     ];
 
     watch(filterOpts, () => fetchDiscounts(), { deep: true });
@@ -572,6 +647,8 @@ export default defineComponent({
       fetchDiscounts,
       discountsTableColumns,
       refreshPage,
+      discountDetailDialog,
+      openDiscountDetailDialog,
 
       getDiscountCodeLabel,
       getDiscountScopeLabel,
@@ -584,6 +661,8 @@ export default defineComponent({
       navigateToEdit,
       confirmDeleteDiscount,
       deleteDiscount,
+      confirmDetachDiscount,
+      detachDiscount,
       removeFilter,
       resetFilters,
       openFiltersDialog,

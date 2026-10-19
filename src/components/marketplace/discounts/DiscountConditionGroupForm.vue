@@ -8,11 +8,17 @@
             ? $t("DiscountAppliesWhen", "Discount applies when")
             : $t("When", "When")
         }}</span>
+        <span
+          v-if="readonly"
+          class="text-primary text-weight-bold q-mx-xs"
+        >{{
+          formData.logic === 'AND' ? $t('All', 'All') : $t('Any', 'Any')
+        }}</span>
         <q-btn-dropdown
+          v-else
           flat
           dense
           no-caps
-          :disable="readonly"
           :label="
             formData.logic === 'AND' ? $t('All', 'All') : $t('Any', 'Any')
           "

@@ -42,9 +42,9 @@
             icon="add"
             padding="sm"
             color="brandblue"
-            @click="openCreateTaxTypeDialog"
+            :to="{ name: 'marketplace-tax-add' }"
           >
-            <q-tooltip>{{ $t('CreateTaxType', 'Create tax type') }}</q-tooltip>
+            <q-tooltip>{{ $t('AddTaxType', 'Add tax type') }}</q-tooltip>
           </q-btn>
         </div>
         <div
@@ -91,7 +91,16 @@
         <template v-slot:body="props">
           <q-tr :props="props" class="cursor-pointer" @click="openTaxTypeDetailDialog(props.row)">
             <q-td key="name" :props="props">
-              <div class="text-weight-medium">{{ props.row.name || '—' }}</div>
+              <div class="text-weight-medium row items-center no-wrap">
+                <q-icon
+                  v-if="isDefaultTaxType(props.row)"
+                  name="star"
+                  color="amber-7"
+                  size="sm"
+                  class="q-mr-xs"
+                />
+                <span>{{ props.row.name || '—' }}</span>
+              </div>
               <div class="text-caption text-grey">
                 {{ props.row.isCustom ? $t('Custom', 'Custom') : $t('Platform', 'Platform') }}
               </div>
@@ -104,51 +113,6 @@
                 {{ Number(props.row.value.toFixed(2)) }}%
               </template>
               <span v-else class="text-grey">—</span>
-            </q-td>
-            <q-td key="actions" :props="props" class="text-center">
-              <q-btn
-                flat
-                round
-                dense
-                :icon="isDefaultTaxType(props.row) ? 'star' : 'star_border'"
-                :color="isDefaultTaxType(props.row) ? 'amber-7' : 'grey-6'"
-                :disable="isDefaultTaxType(props.row)"
-                @click.stop="setAsDefaultTaxType(props.row)"
-              >
-                <q-tooltip>{{ $t('SetAsDefaultTaxType', 'Set as default tax type') }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="props.row.isCustom"
-                flat
-                round
-                dense
-                icon="edit"
-                color="brandblue"
-                @click.stop="openEditTaxTypeDialog(props.row)"
-              >
-                <q-tooltip>{{ $t('Edit') }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                round
-                dense
-                icon="visibility"
-                color="grey-7"
-                @click.stop="openTaxTypeDetailDialog(props.row)"
-              >
-                <q-tooltip>{{ $t('ViewDetails', 'View details') }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="props.row.isCustom"
-                flat
-                round
-                dense
-                icon="delete"
-                color="negative"
-                @click.stop="confirmDeleteTaxType(props.row)"
-              >
-                <q-tooltip>{{ $t('Delete') }}</q-tooltip>
-              </q-btn>
             </q-td>
           </q-tr>
         </template>
@@ -174,6 +138,69 @@
           </div>
         </template>
       </q-table>
+
+      <TaxTypeDetailDialog
+        v-model="taxTypeDetailDialog.show"
+        :tax-type="taxTypeDetailDialog.taxType"
+      >
+        <template #actions="{ taxType }">
+          <q-btn-dropdown
+            split
+            no-caps
+            color="brandblue"
+            icon="edit"
+            :label="$t('Edit')"
+            :disable-main-btn="!taxType?.isCustom"
+            @click="openEditTaxTypeDialog(taxType)"
+          >
+            <q-list style="min-width: 220px">
+              <q-item
+                v-if="!isDefaultTaxType(taxType)"
+                clickable
+                v-close-popup
+                @click="setAsDefaultTaxType(taxType)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="star_border" />
+                </q-item-section>
+                <q-item-section>
+                  {{ $t('SetAsDefaultTaxType', 'Set as default tax type') }}
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-if="taxType?.isCustom"
+                clickable
+                v-close-popup
+                @click="confirmDeleteTaxType(taxType)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="delete" color="negative" />
+                </q-item-section>
+                <q-item-section class="text-negative">
+                  {{ $t('Delete') }}
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-if="taxType?.source === 'platform'"
+                clickable
+                v-close-popup
+                :disable="isDefaultTaxType(taxType)"
+                @click="confirmDetachTaxType(taxType)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="link_off" color="negative" />
+                </q-item-section>
+                <q-item-section class="text-negative">
+                  {{ $t('RemoveFromShop', 'Remove from shop') }}
+                </q-item-section>
+                <q-tooltip v-if="isDefaultTaxType(taxType)">
+                  {{ $t('SetAnotherDefaultToRemove', 'Set another tax type as default before removing this one') }}
+                </q-tooltip>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+        </template>
+      </TaxTypeDetailDialog>
     </q-pull-to-refresh>
   </q-page>
 </template>
@@ -208,6 +235,7 @@ export default defineComponent({
     MarketplaceHeader,
     LimitOffsetPagination,
     TaxSetupStatusBanner,
+    TaxTypeDetailDialog,
   },
   setup() {
     const { t: $t } = useI18n()
@@ -353,25 +381,24 @@ export default defineComponent({
       })
     }
 
-    function openCreateTaxTypeDialog() {
-      $q.dialog({
-        component: TaxTypeFormDialog,
-      }).onOk(() => fetchTaxTypes({ offset: 0 }))
+    const taxTypeDetailDialog = ref({ show: false, taxType: null })
+
+    function openTaxTypeDetailDialog(taxType) {
+      taxTypeDetailDialog.value.taxType = taxType
+      taxTypeDetailDialog.value.show = true
+    }
+
+    function closeTaxTypeDetailDialog() {
+      taxTypeDetailDialog.value.show = false
     }
 
     function openEditTaxTypeDialog(taxType) {
       if (!taxType?.isCustom) return
+      closeTaxTypeDetailDialog()
       $q.dialog({
         component: TaxTypeFormDialog,
         componentProps: { taxType },
       }).onOk(() => fetchTaxTypes({ offset: 0 }))
-    }
-
-    function openTaxTypeDetailDialog(taxType) {
-      $q.dialog({
-        component: TaxTypeDetailDialog,
-        componentProps: { taxType },
-      })
     }
 
     function goToTaxRegimeSetup() {
@@ -403,6 +430,7 @@ export default defineComponent({
 
     function confirmDeleteTaxType(taxType) {
       if (!taxType?.isCustom) return
+      closeTaxTypeDetailDialog()
       $q.dialog({
         title: $t('DeleteTaxType', 'Delete tax type'),
         message: $t(
@@ -437,6 +465,46 @@ export default defineComponent({
         })
     }
 
+    function confirmDetachTaxType(taxType) {
+      if (!taxType?.id || taxType.source !== 'platform') return
+      if (isDefaultTaxType(taxType)) return
+      closeTaxTypeDetailDialog()
+      $q.dialog({
+        title: $t('RemoveTaxTypeFromShop', 'Remove tax type from shop'),
+        message: $t(
+          'RemoveTaxTypeFromShopConfirm',
+          { name: taxType.name },
+          `Remove tax type "${taxType.name}" from this shop? It will no longer be available here, but you can add it again later.`,
+        ),
+        color: 'negative',
+        ok: { label: $t('Remove', 'Remove'), color: 'negative', noCaps: true },
+        cancel: { label: $t('Cancel'), flat: true, noCaps: true },
+      }).onOk(() => detachTaxType(taxType))
+    }
+
+    function detachTaxType(taxType) {
+      if (!taxType?.id) return Promise.resolve()
+      return backend.delete(`shops/${marketplaceStore.activeShopId}/tax-types/${taxType.id}/`)
+        .then(() => {
+          $q.notify({
+            type: 'positive',
+            message: $t('TaxTypeRemovedFromShop', 'Tax type removed from shop'),
+          })
+          return Promise.allSettled([
+            fetchTaxTypes({ offset: 0 }),
+            marketplaceStore.refetchShopSettings(),
+          ])
+        })
+        .catch(error => {
+          $q.notify({
+            type: 'negative',
+            message: error?.response?.data?.detail
+              || (Array.isArray(error?.response?.data) ? error.response.data[0] : null)
+              || $t('FailedToRemoveTaxType', 'Failed to remove tax type from shop'),
+          })
+        })
+    }
+
     async function refreshShopSettingsIfNeeded() {
       if (isTaxSetupComplete.value) return
       return marketplaceStore.refetchShopSettingsIfStale({ maxAge: SHOP_SETTINGS_MAX_AGE }).catch(() => {})
@@ -454,7 +522,6 @@ export default defineComponent({
       { name: 'name', align: 'left', label: $t('Name'), field: 'name', sortable: true },
       { name: 'code', align: 'left', label: $t('Code'), field: 'code', sortable: true, classes: 'hidden-xs' },
       { name: 'value', align: 'center', label: $t('Rate', 'Rate'), field: 'value', sortable: true },
-      { name: 'actions', align: 'left', label: '', field: 'id' },
     ]
 
     onMounted(() => refreshPage())
@@ -481,13 +548,15 @@ export default defineComponent({
       removeFilter,
       resetFilters,
       openFiltersDialog,
-      openCreateTaxTypeDialog,
       openEditTaxTypeDialog,
       openTaxTypeDetailDialog,
+      taxTypeDetailDialog,
       goToTaxRegimeSetup,
       setAsDefaultTaxType,
       confirmDeleteTaxType,
       deleteTaxType,
+      confirmDetachTaxType,
+      detachTaxType,
       fetchTaxTypes,
       refreshPage,
     }

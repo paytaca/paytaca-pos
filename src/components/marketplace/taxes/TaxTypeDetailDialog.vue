@@ -1,87 +1,98 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
-    <q-card class="q-pa-md rounded-borders" style="width:100%;max-width:560px;max-height:85vh;overflow:auto;">
-      <div class="row items-center no-wrap q-mb-sm">
+  <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
+    <q-card class="rounded-borders column no-wrap" style="width:100%;max-width:560px;max-height:85vh;">
+      <div class="q-pa-md row items-center no-wrap">
         <div class="text-h6 q-space">
           {{ taxType?.name || $t('TaxType', 'Tax type') }}
         </div>
         <q-btn flat icon="close" padding="sm" v-close-popup />
       </div>
 
-      <div class="q-gutter-y-sm q-mb-md">
-        <div class="row items-center">
-          <div class="text-grey q-space">{{ $t('Code') }}</div>
-          <div>{{ getTaxCodeLabel(taxType?.code) }}</div>
-        </div>
-        <div class="row items-center">
-          <div class="text-grey q-space">{{ $t('Rate', 'Rate') }}</div>
-          <div>
-            <template v-if="taxRateLabel(taxType)">
-              {{ taxRateLabel(taxType) }}
-            </template>
-            <span v-else class="text-grey">—</span>
-          </div>
-        </div>
-        <div v-if="taxType?.source" class="row items-center">
-          <div class="text-grey q-space">{{ $t('Source') }}</div>
-          <div>
-            {{ taxType?.source === 'custom' ? $t('Custom') : $t('Platform') }}
-          </div>
-        </div>
-        <div v-if="isDefault" class="row items-center">
-          <div class="text-grey q-space">{{ $t('Default', 'Default') }}</div>
-          <q-chip dense size="sm" color="amber-1" text-color="dark" icon="star">
-            {{ $t('DefaultTaxType', 'Default tax type') }}
-          </q-chip>
-        </div>
-      </div>
-
       <q-separator />
 
-      <div class="text-subtitle1 q-mt-md q-mb-sm">{{ $t('Products') }}</div>
-
-      <div v-if="fetchingProducts" class="text-center q-pa-md">
-        <q-spinner color="brandblue" />
-      </div>
-      <div v-else-if="!products.length" class="text-grey text-center q-pa-md">
-        {{ $t('NoProductsUnderTaxType', 'No products are using this tax type.') }}
-      </div>
-      <q-list v-else separator>
-        <q-item v-for="product in products" :key="product.id">
-          <q-item-section v-if="product.displayImageUrl" avatar>
-            <img :src="product.displayImageUrl" width="40" class="rounded-borders" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>{{ product.name }}</q-item-label>
-            <q-item-label caption>#{{ product.id }}</q-item-label>
-          </q-item-section>
-          <q-item-section side>
-            <q-item-label v-if="product.markupPriceRangeText">
-              {{ product.markupPriceRangeText }}
-              {{ marketplaceStore.currency }}
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-      </q-list>
-
-      <div class="row items-center q-mt-sm">
-        <div class="text-caption text-grey">
-          {{ products.length }} / {{ pagination.count }}
+      <div class="q-pa-md col overflow-auto">
+        <div class="q-gutter-y-sm q-mb-md">
+          <div class="row items-center">
+            <div class="text-grey q-space">{{ $t('Code') }}</div>
+            <div>{{ getTaxCodeLabel(taxType?.code) }}</div>
+          </div>
+          <div class="row items-center">
+            <div class="text-grey q-space">{{ $t('Rate', 'Rate') }}</div>
+            <div>
+              <template v-if="taxRateLabel(taxType)">
+                {{ taxRateLabel(taxType) }}
+              </template>
+              <span v-else class="text-grey">—</span>
+            </div>
+          </div>
+          <div v-if="taxType?.source" class="row items-center">
+            <div class="text-grey q-space">{{ $t('Source') }}</div>
+            <div>
+              {{ taxType?.source === 'custom' ? $t('Custom') : $t('Platform') }}
+            </div>
+          </div>
+          <div v-if="isDefault" class="row items-center">
+            <div class="text-grey q-space">{{ $t('Default', 'Default') }}</div>
+            <q-chip dense size="sm" color="amber-1" text-color="dark" icon="star">
+              {{ $t('DefaultTaxType', 'Default tax type') }}
+            </q-chip>
+          </div>
         </div>
-        <q-space />
-        <LimitOffsetPagination
-          :pagination-props="{
-            maxPages: 5,
-            rounded: true,
-            padding: 'sm',
-            flat: true,
-            boundaryNumbers: true,
-          }"
-          :hide-below-pages="2"
-          :modelValue="pagination"
-          @update:modelValue="fetchProducts"
-        />
+
+        <q-separator />
+
+        <div class="text-subtitle1 q-mt-md q-mb-sm">{{ $t('Products') }}</div>
+
+        <div v-if="fetchingProducts" class="text-center q-pa-md">
+          <q-spinner color="brandblue" />
+        </div>
+        <div v-else-if="!products.length" class="text-grey text-center q-pa-md">
+          {{ $t('NoProductsUnderTaxType', 'No products are using this tax type.') }}
+        </div>
+        <q-list v-else separator>
+          <q-item v-for="product in products" :key="product.id">
+            <q-item-section v-if="product.displayImageUrl" avatar>
+              <img :src="product.displayImageUrl" width="40" class="rounded-borders" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ product.name }}</q-item-label>
+              <q-item-label caption>#{{ product.id }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-item-label v-if="product.markupPriceRangeText">
+                {{ product.markupPriceRangeText }}
+                {{ marketplaceStore.currency }}
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+
+        <div class="row items-center q-mt-sm">
+          <div class="text-caption text-grey">
+            {{ products.length }} / {{ pagination.count }}
+          </div>
+          <q-space />
+          <LimitOffsetPagination
+            :pagination-props="{
+              maxPages: 5,
+              rounded: true,
+              padding: 'sm',
+              flat: true,
+              boundaryNumbers: true,
+            }"
+            :hide-below-pages="2"
+            :modelValue="pagination"
+            @update:modelValue="fetchProducts"
+          />
+        </div>
       </div>
+
+      <template v-if="$slots.actions">
+        <q-separator />
+        <div class="q-pa-md actions-footer">
+          <slot name="actions" :tax-type="taxType" />
+        </div>
+      </template>
     </q-card>
   </q-dialog>
 </template>
@@ -172,3 +183,21 @@ export default defineComponent({
   },
 })
 </script>
+<style scoped>
+.actions-footer {
+  width: 100%;
+  max-width: 350px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.actions-footer :deep(.q-btn-dropdown--split) {
+  width: 100%;
+}
+.actions-footer :deep(.q-btn-dropdown--split > .q-btn-item) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.actions-footer :deep(.q-btn-dropdown--split > .q-btn-dropdown__arrow-container) {
+  flex: 0 0 auto;
+}
+</style>

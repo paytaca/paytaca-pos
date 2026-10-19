@@ -45,10 +45,10 @@
             icon="add"
             padding="sm"
             color="brandblue"
-            :to="{ name: 'marketplace-benefit-create' }"
+            :to="{ name: 'marketplace-benefit-add' }"
           >
             <q-tooltip>
-              {{ $t('CreateBenefitProgram', {}, 'Create benefit program') }}
+              {{ $t('AddBenefitProgram', {}, 'Add benefit program') }}
             </q-tooltip>
           </q-btn>
         </div>
@@ -95,7 +95,7 @@
           <q-tr
             :props="props"
             class="cursor-pointer"
-            @click="navigateToForm(props.row.id)"
+            @click="openBenefitProgramDetailDialog(props.row)"
           >
             <q-td key="name" :props="props">
               <div class="row items-center q-gutter-x-xs">
@@ -161,33 +161,6 @@
               </div>
               <span v-else class="text-grey text-caption">—</span>
             </q-td>
-            <q-td key="actions" :props="props" class="text-center">
-              <q-btn
-                flat
-                round
-                dense
-                :icon="props.row.source === 'custom' ? 'edit' : 'visibility'"
-                :color="props.row.source === 'custom' ? 'brandblue' : 'grey-6'"
-                size="sm"
-                @click.stop="navigateToForm(props.row.id)"
-              >
-                <q-tooltip>
-                  {{ props.row.source === 'custom' ? $t('Edit') : $t('View') }}
-                </q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="props.row.isCustom"
-                flat
-                round
-                dense
-                icon="delete"
-                color="negative"
-                size="sm"
-                @click.stop="confirmDeleteBenefitProgram(props.row)"
-              >
-                <q-tooltip>{{ $t('Delete') }}</q-tooltip>
-              </q-btn>
-            </q-td>
           </q-tr>
         </template>
         <template v-slot:bottom>
@@ -212,6 +185,52 @@
           </div>
         </template>
       </q-table>
+
+      <BenefitProgramDetailDialog
+        v-model="benefitProgramDetailDialog.show"
+        :benefit-program="benefitProgramDetailDialog.benefitProgram"
+      >
+        <template #actions="{ benefitProgram }">
+          <q-btn-dropdown
+            split
+            no-caps
+            color="brandblue"
+            icon="edit"
+            :label="$t('Edit')"
+            :disable-main-btn="!benefitProgram?.isCustom"
+            @click="navigateToForm(benefitProgram.id)"
+          >
+            <q-list style="min-width: 200px">
+              <q-item
+                v-if="benefitProgram?.isCustom"
+                clickable
+                v-close-popup
+                @click="confirmDeleteBenefitProgram(benefitProgram)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="delete" color="negative" />
+                </q-item-section>
+                <q-item-section class="text-negative">
+                  {{ $t('Delete') }}
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-else
+                clickable
+                v-close-popup
+                @click="confirmDetachBenefitProgram(benefitProgram)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="link_off" color="negative" />
+                </q-item-section>
+                <q-item-section class="text-negative">
+                  {{ $t('RemoveFromShop', 'Remove from shop') }}
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+        </template>
+      </BenefitProgramDetailDialog>
     </q-pull-to-refresh>
   </q-page>
 </template>
@@ -228,6 +247,7 @@ import { defineComponent, ref, computed, watch, onMounted } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import BenefitProgramsFiltersDialog from 'src/components/marketplace/benefits/BenefitProgramsFiltersDialog.vue'
+import BenefitProgramDetailDialog from 'src/components/marketplace/benefits/BenefitProgramDetailDialog.vue'
 
 const DEFAULT_LIMIT = 10
 
@@ -236,6 +256,7 @@ export default defineComponent({
   components: {
     MarketplaceHeader,
     LimitOffsetPagination,
+    BenefitProgramDetailDialog,
   },
   setup() {
     const { t: $t } = useI18n()
@@ -423,14 +444,27 @@ export default defineComponent({
 
     // --- Navigation ---
     function navigateToForm(benefitProgramId) {
+      closeBenefitProgramDetailDialog()
       $router.push({
         name: 'marketplace-benefit-edit',
         params: { benefitProgramId },
       })
     }
 
+    const benefitProgramDetailDialog = ref({ show: false, benefitProgram: null })
+
+    function openBenefitProgramDetailDialog(benefitProgram) {
+      benefitProgramDetailDialog.value.benefitProgram = benefitProgram
+      benefitProgramDetailDialog.value.show = true
+    }
+
+    function closeBenefitProgramDetailDialog() {
+      benefitProgramDetailDialog.value.show = false
+    }
+
     function confirmDeleteBenefitProgram(program) {
       if (!program?.isCustom) return
+      closeBenefitProgramDetailDialog()
       $q.dialog({
         title: $t('DeleteBenefitProgram', {}, 'Delete benefit program'),
         message: $t(
@@ -463,6 +497,43 @@ export default defineComponent({
         })
     }
 
+    function confirmDetachBenefitProgram(program) {
+      if (!program?.id || program.source !== 'platform') return
+      closeBenefitProgramDetailDialog()
+      $q.dialog({
+        title: $t('RemoveBenefitProgramFromShop', {}, 'Remove benefit program from shop'),
+        message: $t(
+          'RemoveBenefitProgramFromShopConfirm',
+          { name: program.name },
+          `Remove benefit program "${program.name}" from this shop? It will no longer be available here, but you can add it again later.`,
+        ),
+        color: 'negative',
+        ok: { label: $t('Remove', 'Remove'), color: 'negative', noCaps: true },
+        cancel: { label: $t('Cancel'), flat: true, noCaps: true },
+      }).onOk(() => detachBenefitProgram(program))
+    }
+
+    function detachBenefitProgram(program) {
+      if (!program?.id) return Promise.resolve()
+      return backend.delete(`shops/${marketplaceStore.activeShopId}/benefit-programs/${program.id}/`)
+        .then(() => {
+          $q.notify({
+            type: 'positive',
+            message: $t('BenefitProgramRemovedFromShop', {}, 'Benefit program removed from shop'),
+          })
+          return fetchBenefitPrograms({ offset: 0 })
+        })
+        .catch(error => {
+          const data = error?.response?.data
+          $q.notify({
+            type: 'negative',
+            message: data?.detail
+              || (Array.isArray(data) ? data[0] : null)
+              || $t('FailedToRemoveBenefitProgram', {}, 'Failed to remove benefit program from shop'),
+          })
+        })
+    }
+
     async function refreshPage(done = () => {}) {
       try {
         await Promise.allSettled([
@@ -479,7 +550,6 @@ export default defineComponent({
       { name: 'beneficiaryCategories', align: 'left', label: $t('BeneficiaryCategories', {}, 'Beneficiary Categories'), field: 'beneficiaryCategoryCodes' },
       { name: 'taxType', align: 'left', label: $t('TaxType', {}, 'Tax Type'), field: (row) => row.taxType?.name },
       { name: 'discounts', align: 'center', label: $t('Discounts'), field: 'discounts', classes: 'hidden-xs' },
-      { name: 'actions', align: 'center', label: '', field: 'id' },
     ]
 
     onMounted(() => refreshPage())
@@ -512,6 +582,10 @@ export default defineComponent({
       navigateToForm,
       confirmDeleteBenefitProgram,
       deleteBenefitProgram,
+      confirmDetachBenefitProgram,
+      detachBenefitProgram,
+      benefitProgramDetailDialog,
+      openBenefitProgramDetailDialog,
 
       fetchBenefitPrograms,
       fetchBeneficiaryCategories,
