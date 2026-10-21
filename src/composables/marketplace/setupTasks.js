@@ -140,7 +140,7 @@ export function useSetupTasks(opts = {}) {
         title: $t('SetupTaskBranchLocation', 'Add your branch location'),
         hint: $t(
           'SetupTaskBranchLocationHint',
-          "Pin this branch's coordinates. This is set outside the app and is used for storefront hours.",
+          "The shop's coordinates is not set. Contact the owner to set a pin location in Paytaca app's merchant admin.",
         ),
         roles: ['admin'],
         order: 50,
@@ -155,6 +155,8 @@ export function useSetupTasks(opts = {}) {
   })
 
   const tasks = computed(() => {
+    // Covers both session ("not now") and permanent ("do not show again")
+    // dismissals.
     const dismissedSlugs = taskDefs.value
       .filter(def => setupTasksStore.isDismissed(def.key))
       .map(def => def.slug)
@@ -180,8 +182,18 @@ export function useSetupTasks(opts = {}) {
     if (index.value >= tasks.value.length) index.value = 0
   })
 
-  function dismiss(task) {
-    if (task?.key) setupTasksStore.dismiss(task.key)
+  /**
+   * Dismisses a task.
+   *
+   * @param {Object} task resolved setup task
+   * @param {Object} [opts]
+   * @param {Boolean} [opts.permanent] "do not show again" instead of the
+   *   session-only dismissal
+   */
+  function dismiss(task, opts = {}) {
+    if (!task?.key) return
+    if (opts.permanent) setupTasksStore.dismissPermanent(task.key)
+    else setupTasksStore.dismiss(task.key)
   }
   function goTo(task) {
     if (task?.action) $router.push(task.action)
