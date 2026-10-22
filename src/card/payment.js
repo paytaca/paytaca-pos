@@ -427,6 +427,9 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
   // it MUST equal the on-chain active version or we refuse to sign.
   const contractVersion = data.contract_version;
   console.log('Card contract version from preimage response:', contractVersion ?? '(default)');
+  // Check before loading the merchant key or rebuilding a transaction for a
+  // version that the server did not use. This applies to BCH and FT taps.
+  assertServerVersionMatches(contractVersion, resolution.activeVersion);
 
   // The preimage record is bound to this server-generated tx_id for the whole
   // preimage -> card-signing -> spend flow. The spend step echoes it back.
@@ -453,7 +456,7 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
   // Local validation rebuilds the BCH-only spend; the server-built FT tx
   // carries extra FT inputs/outputs, so FT taps skip the byte-for-byte rebuild
   // and rely on tx_id replay from the server's stored record in the spend step.
-  // Both paths still enforce the resolved version rule.
+  // Both paths have already enforced the resolved version rule above.
   if (!isFtTap) {
     await validatePreimages({
       activeVersion: resolution.activeVersion,
@@ -462,8 +465,6 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
       merchant,
       recipient
     });
-  } else {
-    assertServerVersionMatches(contractVersion, resolution.activeVersion);
   }
 
   const preimages = data.preimages;
