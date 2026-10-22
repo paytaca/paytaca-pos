@@ -295,6 +295,7 @@ export default defineComponent({
             walletStoreState.xPubKey = xpubkey;
             walletStoreState.posId = Number(response?.data?.posid);
             walletStoreState.linkCode = data.link_code;
+            if (deviceInfo?.uuid) walletStoreState.deviceId = deviceInfo.uuid;
           }
         });
       } catch(error) {

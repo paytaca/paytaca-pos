@@ -1,22 +1,22 @@
 {
   "name": "paytaca-pos",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Point-of-Sale system with inventory for Bitcoin Cash-accepting merchants",
   "author": "joemar@paytaca.com",
   "private": true,
   "dependencies": {
-    "@capacitor-community/native-audio": "6.0.0",
-    "@capacitor-mlkit/barcode-scanning": "6.2.0",
-    "@capacitor/android": "6.2.1",
-    "@capacitor/app": "6.0.3",
-    "@capacitor/camera": "6.1.3",
-    "@capacitor/cli": "6.2.1",
-    "@capacitor/core": "6.2.1",
-    "@capacitor/device": "6.0.3",
-    "@capacitor/ios": "6.2.1",
-    "@capacitor/keyboard": "6.0.4",
-    "@capacitor/push-notifications": "6.0.5",
-    "@exxili/capacitor-nfc": "0.0.13",
-    "capacitor-secure-storage-plugin": "0.10.0"
+    "@capacitor-community/native-audio": "^8.0.0",
+    "@capacitor-mlkit/barcode-scanning": "^8.2.1",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/camera": "^8.2.5",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/device": "^8.0.3",
+    "@capacitor/ios": "^8.5.3",
+    "@capacitor/keyboard": "^8.0.6",
+    "@capacitor/push-notifications": "^8.1.3",
+    "@exxili/capacitor-nfc": "^0.0.14",
+    "capacitor-secure-storage-plugin": "^0.13.0"
   }
 }

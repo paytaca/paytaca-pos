@@ -1,4 +1,4 @@
-platform :ios, '13.0'
+platform :ios, '15.5'
 use_frameworks!
 
 # workaround to avoid Xcode caching of Pods that requires
@@ -27,6 +27,13 @@ end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      # Keep every pod at the app's minimum iOS version. Some plugins (e.g.
+      # @exxili/capacitor-nfc) still declare iOS 13, which fails to compile
+      # against Capacitor's iOS 15 minimum.
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
+    end
+
     if target.name == 'GoogleToolboxForMac'
       next if target.resources_build_phase.files_references.any? { |f|
         f.path&.end_with?('PrivacyInfo.xcprivacy')

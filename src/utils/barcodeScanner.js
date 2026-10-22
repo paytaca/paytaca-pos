@@ -3,6 +3,8 @@ import { Capacitor } from "@capacitor/core";
 let BarcodeScanner = null;
 let BarcodeFormat = null;
 
+let activeScan = null;
+
 async function getBarcodeScanner() {
   if (!Capacitor.isNativePlatform()) return null;
   if (BarcodeScanner) return { BarcodeScanner, BarcodeFormat };
@@ -63,41 +65,102 @@ export async function requestPermission() {
 
 export async function prepareScanner() {
   const scanner = await getBarcodeScanner();
-  if (!scanner) return false;
+  if (!scanner) return { prepared: false, error: null };
 
   const { BarcodeScanner } = scanner;
   try {
     const { supported } = await BarcodeScanner.isSupported();
-    return supported;
+    if (!supported) {
+      return { prepared: false, error: "Barcode scanning is not supported on this device" };
+    }
+    return { prepared: true, error: null };
   } catch (error) {
     console.warn("BarcodeScanner prepare error:", error);
-    return false;
+    return { prepared: false, error: null };
   }
+}
+
+function finishScan(result) {
+  const scan = activeScan;
+  if (!scan) return;
+  activeScan = null;
+  scan.finish(result);
 }
 
 export async function startScan() {
   const scanner = await getBarcodeScanner();
-  if (!scanner) return { hasContent: false };
+  if (!scanner) return { hasContent: false, canceled: false, error: null };
 
   const { BarcodeScanner, BarcodeFormat } = scanner;
-  try {
-    const { barcodes } = await BarcodeScanner.scan({
-      formats: [BarcodeFormat.QrCode],
-    });
-    if (barcodes && barcodes.length > 0) {
-      return { hasContent: true, content: barcodes[0].rawValue };
-    }
-    return { hasContent: false };
-  } catch (error) {
-    console.warn("BarcodeScanner startScan error:", error);
-    return { hasContent: false };
+
+  if (activeScan) {
+    finishScan({ hasContent: false, canceled: true, error: null });
   }
+
+  return new Promise((resolve) => {
+    const listenerPromises = [];
+
+    const finish = (result) => {
+      activeScan = null;
+      listenerPromises.forEach((promise) =>
+        Promise.resolve(promise)
+          .then((handle) => handle?.remove?.())
+          .catch(() => {})
+      );
+      try {
+        BarcodeScanner.stopScan().catch(() => {});
+      } catch (e) {
+        // Camera not started yet
+      }
+      resolve(result);
+    };
+
+    activeScan = { finish };
+
+    const registerListener = (eventName, handler) => {
+      const promise = BarcodeScanner.addListener(eventName, handler).catch((error) => {
+        console.warn("BarcodeScanner listener error:", error);
+        return null;
+      });
+      listenerPromises.push(promise);
+    };
+
+    registerListener("barcodesScanned", (event) => {
+      const barcode = event?.barcodes?.find?.((b) => b?.rawValue);
+      if (!barcode) return;
+      finish({ hasContent: true, content: barcode.rawValue, canceled: false, error: null });
+    });
+
+    registerListener("scanError", (event) => {
+      console.warn("BarcodeScanner scanError:", event);
+      finish({ hasContent: false, canceled: false, error: event?.message || "The scan failed" });
+    });
+
+    BarcodeScanner.startScan({
+      formats: [BarcodeFormat.QrCode],
+      lensFacing: "BACK",
+    }).catch((error) => {
+      console.warn("BarcodeScanner startScan error:", error);
+      const message = typeof error === "string" ? error : error?.message || "";
+      finish({ hasContent: false, canceled: false, error: message || "The scan failed" });
+    });
+  });
 }
 
-// The new plugin uses a modal model — scan() resolves when done.
-// stopScan is kept for API compatibility but is a no-op.
 export async function stopScan() {
-  // No-op: @capacitor-mlkit/barcode-scanning scan() is modal and self-closing.
+  const scanner = await getBarcodeScanner();
+  if (!scanner) return;
+
+  const { BarcodeScanner } = scanner;
+  if (activeScan) {
+    finishScan({ hasContent: false, canceled: true, error: null });
+    return;
+  }
+  try {
+    await BarcodeScanner.stopScan();
+  } catch (error) {
+    console.warn("BarcodeScanner stopScan error:", error);
+  }
 }
 
 export async function openAppSettings() {

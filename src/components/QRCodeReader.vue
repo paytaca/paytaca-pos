@@ -133,13 +133,15 @@ export default {
     async function prepareScanner() {
       const status = await checkPermissionUtil();
       if (status?.granted) {
-        const prepared = await prepareScannerUtil();
+        const { prepared, error } = await prepareScannerUtil();
         if (prepared) {
+          // The bundled ML Kit camera preview is rendered behind the WebView,
+          // so this overlay UI (box + close) is the actual scanner view
           scannerUIVisible.value = true;
           await scanBarcode();
         } else {
           innerVal.value = false;
-          $emit("error", "Failed to prepare scanner");
+          $emit("error", error || "Failed to prepare scanner");
         }
       } else {
         innerVal.value = false;
@@ -175,10 +177,15 @@ export default {
     async function scanBarcode() {
       adjustComponentsClasslist(true);
       const res = await startScan();
+      stopScan();
+      if (res.canceled) return;
+      if (res.error) {
+        $emit("error", res.error);
+        return;
+      }
       if (res.hasContent) {
         $emit("decode", res.content);
       }
-      stopScan();
     }
 
     function stopScan() {
@@ -194,6 +201,7 @@ export default {
 
       const appContainer = document.getElementById("q-app");
       const scannerUI = scannerContainerRef.value;
+      const root = document.documentElement;
       const transparent = "transparent-body";
       const visibilityHidden = "visibility-hide";
       const visibilityVisible = "visibility-visible";
@@ -204,11 +212,13 @@ export default {
 
       if (isScanning) {
         document.body.classList.add(transparent);
+        root?.classList?.add?.(transparent);
         appContainer?.classList?.add?.(visibilityHidden);
         scannerUI?.classList?.add?.(scannerActive);
         scannerUI?.classList?.add?.(visibilityVisible);
       } else {
         document.body.classList.remove(transparent);
+        root?.classList?.remove?.(transparent);
         appContainer?.classList?.remove?.(visibilityHidden);
         scannerUI?.classList?.remove?.(visibilityVisible);
         scannerUI?.classList?.remove?.(scannerActive);

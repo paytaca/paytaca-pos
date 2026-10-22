@@ -417,6 +417,7 @@ export function usePaymentTracking({
     if (data?.records?.length != 2) {
       console.error('Invalid NFC data received:', data)
       $q.loading.hide()
+      stopNFCScanner()
       return
     }
 
@@ -427,6 +428,7 @@ export function usePaymentTracking({
     if (!urlRecord || !textRecord) {
       console.error('NFC data missing required URI or text records:', data)
       $q.loading.hide()
+      stopNFCScanner()
       return
     }
 
@@ -471,6 +473,7 @@ export function usePaymentTracking({
     if (!cashAddress) {
       console.error('No receiving address available for processing NFC URL')
       $q.loading.hide()
+      stopNFCScanner()
       return
     }
 
@@ -562,6 +565,10 @@ export function usePaymentTracking({
         label: t('OK', 'OK'),
         color: 'green'
       },
+    }).onOk(() => {
+      stopNFCScanner()
+    }).onDismiss(() => {
+      stopNFCScanner()
     })
   }
 
@@ -576,6 +583,10 @@ export function usePaymentTracking({
         label: t('OK', 'OK'),
         color: 'red'
       }
+    }).onOk(() => {
+      stopNFCScanner()
+    }).onDismiss(() => {
+      stopNFCScanner()
     })
   }
 
