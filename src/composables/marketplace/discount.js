@@ -325,6 +325,18 @@ export function useDiscountTypeHelpers() {
   }
 
   /**
+   * Per-unit applies only to fixed discounts on line items.
+   * @param {import('src/marketplace/objects').DiscountType} discount
+   */
+  function isPerUnitDiscount(discount) {
+    return Boolean(
+      discount?.isPerUnit &&
+        discount?.type === "fixed" &&
+        discount?.scope === "line_item"
+    );
+  }
+
+  /**
    * Value label for a discount, e.g. `10%`, `50 PHP`, or with the cap
    * `10% max 100 PHP` (disable with `{ includeMax: false }`).
    * @param {import('src/marketplace/objects').DiscountType} discount
@@ -339,6 +351,9 @@ export function useDiscountTypeHelpers() {
     } else if (discount?.value != null && Number.isFinite(Number(discount.value))) {
       const value = Number(discount.value).toFixed(2);
       label = currency ? `${Number(value)} ${currency}` : `${Number(value)}`;
+      if (isPerUnitDiscount(discount)) {
+        label += ` / ${$t("Unit", "unit")}`;
+      }
     }
 
     const maxAmount = Number(discount?.maxAmount);
@@ -364,6 +379,7 @@ export function useDiscountTypeHelpers() {
     getDiscountScopeLabel,
     getDiscountTypeLabel,
     getDiscountCurrencySymbol,
+    isPerUnitDiscount,
     formatDiscountValue,
     getDiscountDateRangeText,
   };

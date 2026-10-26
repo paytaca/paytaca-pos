@@ -125,18 +125,29 @@
               {{ getDiscountScopeLabel(props.row.scope) }}
             </q-td>
             <q-td key="type" :props="props">
-              <q-chip
-                dense
-                size="sm"
-                :color="
-                  props.row.type === DiscountType.TYPES.PCTG
-                    ? 'purple-1'
-                    : 'green-1'
-                "
-                text-color="dark"
-              >
-                {{ getDiscountTypeLabel(props.row.type) }}
-              </q-chip>
+              <div class="row items-center q-gutter-x-xs">
+                <q-chip
+                  dense
+                  size="sm"
+                  :color="
+                    props.row.type === DiscountType.TYPES.PCTG
+                      ? 'purple-1'
+                      : 'green-1'
+                  "
+                  text-color="dark"
+                >
+                  {{ getDiscountTypeLabel(props.row.type) }}
+                </q-chip>
+                <q-chip
+                  v-if="isPerUnitDiscount(props.row)"
+                  dense
+                  size="sm"
+                  color="teal-1"
+                  text-color="dark"
+                >
+                  {{ $t("PerUnit", "Per unit") }}
+                </q-chip>
+              </div>
             </q-td>
             <q-td key="value" :props="props">
               <div>{{ formatDiscountValue(props.row, { includeMax: false }) }}</div>
@@ -295,6 +306,7 @@ export default defineComponent({
       getDiscountCodeLabel,
       getDiscountScopeLabel,
       getDiscountTypeLabel,
+      isPerUnitDiscount,
       formatDiscountValue,
       getDiscountDateRangeText,
     } = useDiscountTypeHelpers();
@@ -653,6 +665,7 @@ export default defineComponent({
       getDiscountCodeLabel,
       getDiscountScopeLabel,
       getDiscountTypeLabel,
+      isPerUnitDiscount,
       formatDiscountValue,
       getTotalConditions,
       getDiscountDateRangeText,

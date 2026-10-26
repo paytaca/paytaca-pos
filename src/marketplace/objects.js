@@ -562,6 +562,7 @@ export class DiscountType {
    * @param {String} data.code
    * @param {String} data.scope
    * @param {String} data.type
+   * @param {Boolean} [data.is_per_unit] applies fixed line item discounts per unit
    * @param {Number} data.value
    * @param {Number} data.max_amount
    * @param {Number} [data.max_redemptions] null means unlimited
@@ -580,6 +581,7 @@ export class DiscountType {
     this.code = data?.code;
     this.scope = data?.scope;
     this.type = data?.type;
+    this.isPerUnit = Boolean(data?.is_per_unit);
     this.value = parseFloat(data?.value);
     this.maxAmount = data?.max_amount && parseFloat(data?.max_amount);
     this.maxRedemptions = data?.max_redemptions ?? null;

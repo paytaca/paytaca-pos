@@ -56,16 +56,16 @@
             :error-message="formErrors?.name"
             :rules="[(val) => Boolean(val) || $t('Required')]"
           />
-          <div>{{ $t("ActivationCode", {}, "Activation Code") }}*</div>
+          <div>{{ $t("ActivationCode", {}, "Activation Code") }}</div>
           <q-input
             dense
             outlined
             :loading="loading"
             :disable="!isEditable || loading"
+            :placeholder="$t('Optional')"
             v-model="formData.activationCode"
             :error="Boolean(formErrors?.activationCode)"
             :error-message="formErrors?.activationCode"
-            :rules="[(val) => Boolean(val) || $t('Required')]"
           />
           <div>{{ $t("Code") }}*</div>
           <q-select
@@ -168,6 +168,32 @@
               />
             </div>
           </div>
+          <q-slide-transition>
+            <div v-if="isPerUnitApplicable" class="q-mb-sm">
+              <div class="row items-center q-gutter-x-xs">
+                <q-checkbox
+                  dense
+                  :model-value="formData.isPerUnit"
+                  :disable="!isEditable || loading"
+                  :label="$t('PerUnit', 'Per unit')"
+                  @update:model-value="(val) => (formData.isPerUnit = val)"
+                />
+                <HelpIcon :title="$t('PerUnit', 'Per unit')">
+                  <div class="text-body2">
+                    {{
+                      $t(
+                        "PerUnitDescription",
+                        "Apply this fixed amount to each unit instead of once per line item."
+                      )
+                    }}
+                  </div>
+                </HelpIcon>
+              </div>
+              <div v-if="formErrors?.isPerUnit" class="text-negative text-caption">
+                {{ formErrors.isPerUnit }}
+              </div>
+            </div>
+          </q-slide-transition>
           <div>{{ $t("MaxAmount", {}, "Max Amount") }}*</div>
           <q-input
             dense
@@ -423,7 +449,7 @@ import { useMarketplaceStore } from "src/stores/marketplace";
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { defineComponent, onMounted, ref, computed } from "vue";
+import { defineComponent, onMounted, ref, computed, watch } from "vue";
 import MarketplaceHeader from "src/components/marketplace/MarketplaceHeader.vue";
 import DateTimePickerDialog from "src/components/DateTimePickerDialog.vue";
 import HelpIcon from "src/components/HelpIcon.vue";
@@ -494,6 +520,7 @@ export default defineComponent({
       code: "",
       scope: "",
       type: "",
+      isPerUnit: false,
       value: 10,
       maxAmount: null,
       maxRedemptions: null,
@@ -508,6 +535,7 @@ export default defineComponent({
       formData.value.code = discountType.value?.code;
       formData.value.scope = discountType.value?.scope;
       formData.value.type = discountType.value?.type;
+      formData.value.isPerUnit = Boolean(discountType.value?.isPerUnit);
       formData.value.value =
         discountType.value?.type === DiscountType.TYPES.PCTG
           ? discountType.value?.value * 100 || 0
@@ -527,6 +555,20 @@ export default defineComponent({
         discountType.value.conditionGroups
       );
     }
+
+    const isPerUnitApplicable = computed(() => {
+      return (
+        formData.value.type === DiscountType.TYPES.FIXED &&
+        formData.value.scope === "line_item"
+      );
+    });
+
+    watch(
+      () => [formData.value.type, formData.value.scope],
+      () => {
+        if (!isPerUnitApplicable.value) formData.value.isPerUnit = false;
+      }
+    );
 
     const deviceTimezone = computed(() => {
       return Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -563,6 +605,7 @@ export default defineComponent({
       code: "",
       scope: "",
       type: "",
+      isPerUnit: "",
       value: "",
       maxAmount: "",
       maxRedemptions: "",
@@ -579,6 +622,7 @@ export default defineComponent({
         code: "",
         scope: "",
         type: "",
+        isPerUnit: "",
         value: "",
         maxAmount: "",
         maxRedemptions: "",
@@ -612,6 +656,9 @@ export default defineComponent({
       formErrors.value.code = errorParser.firstElementOrValue(data?.code);
       formErrors.value.scope = errorParser.firstElementOrValue(data?.scope);
       formErrors.value.type = errorParser.firstElementOrValue(data?.type);
+      formErrors.value.isPerUnit = errorParser.firstElementOrValue(
+        data?.is_per_unit
+      );
       formErrors.value.value = errorParser.firstElementOrValue(data?.value);
       formErrors.value.maxAmount = errorParser.firstElementOrValue(
         data?.max_amount
@@ -635,6 +682,7 @@ export default defineComponent({
         formErrors.value.code ||
         formErrors.value.scope ||
         formErrors.value.type ||
+        formErrors.value.isPerUnit ||
         formErrors.value.value ||
         formErrors.value.maxAmount ||
         formErrors.value.maxRedemptions ||
@@ -683,10 +731,13 @@ export default defineComponent({
 
       const data = {
         name: formData.value.name,
-        activation_code: formData.value.activationCode,
+        activation_code: formData.value.activationCode || null,
         code: formData.value.code,
         scope: formData.value.scope,
         type: formData.value.type,
+        is_per_unit: isPerUnitApplicable.value
+          ? Boolean(formData.value.isPerUnit)
+          : false,
         value:
           formData.value.type === "percentage"
             ? formData.value.value / 100
@@ -734,6 +785,7 @@ export default defineComponent({
       fetchingDiscount,
       discountType,
       isEditable,
+      isPerUnitApplicable,
 
       loading,
       formReady,

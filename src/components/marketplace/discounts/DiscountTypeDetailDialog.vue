@@ -25,7 +25,18 @@
           </div>
           <div class="row items-center">
             <div class="text-grey q-space">{{ $t('Type', 'Type') }}</div>
-            <div>{{ getDiscountTypeLabel(discount?.type) }}</div>
+            <div class="row items-center q-gutter-x-xs">
+              <span>{{ getDiscountTypeLabel(discount?.type) }}</span>
+              <q-chip
+                v-if="isPerUnitDiscount(discount)"
+                dense
+                size="sm"
+                color="teal-1"
+                text-color="dark"
+              >
+                {{ $t('PerUnit', 'Per unit') }}
+              </q-chip>
+            </div>
           </div>
           <div class="row items-center">
             <div class="text-grey q-space">{{ $t('Value', 'Value') }}</div>
@@ -131,6 +142,7 @@ export default defineComponent({
       getDiscountScopeLabel,
       getDiscountTypeLabel,
       getDiscountCurrencySymbol,
+      isPerUnitDiscount,
       formatDiscountValue,
       getDiscountDateRangeText,
     } = useDiscountTypeHelpers()
@@ -196,6 +208,7 @@ export default defineComponent({
       getDiscountScopeLabel,
       getDiscountTypeLabel,
       getDiscountCurrencySymbol,
+      isPerUnitDiscount,
       formatDiscountValue,
       getDiscountDateRangeText,
     }
