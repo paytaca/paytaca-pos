@@ -56,17 +56,6 @@
             :error-message="formErrors?.name"
             :rules="[(val) => Boolean(val) || $t('Required')]"
           />
-          <div>{{ $t("ActivationCode", {}, "Activation Code") }}</div>
-          <q-input
-            dense
-            outlined
-            :loading="loading"
-            :disable="!isEditable || loading"
-            :placeholder="$t('Optional')"
-            v-model="formData.activationCode"
-            :error="Boolean(formErrors?.activationCode)"
-            :error-message="formErrors?.activationCode"
-          />
           <div>{{ $t("Code") }}*</div>
           <q-select
             dense
@@ -207,6 +196,37 @@
             :suffix="marketplaceStore?.currency"
             :rules="[(val) => !val || val > 0 || $t('Invalid')]"
           />
+        </q-card-section>
+      </q-card>
+
+      <q-card>
+        <q-card-section class="q-gutter-y-xs">
+          <div class="text-subtitle1">
+            {{ $t("UsageAndValidity", "Usage & Validity") }}
+          </div>
+          <div class="row items-center q-gutter-x-xs">
+            <div>{{ $t("ActivationCode", {}, "Activation Code") }}</div>
+            <HelpIcon :title="$t('ActivationCode', 'Activation Code')">
+              <div class="text-body2">
+                {{
+                  $t(
+                    "ActivationCodeDescription",
+                    "Optional. Customers enter this code to redeem the discount. Without a code, the discount is applied automatically when its conditions are met."
+                  )
+                }}
+              </div>
+            </HelpIcon>
+          </div>
+          <q-input
+            dense
+            outlined
+            :loading="loading"
+            :disable="!isEditable || loading"
+            :placeholder="$t('Optional')"
+            v-model="formData.activationCode"
+            :error="Boolean(formErrors?.activationCode)"
+            :error-message="formErrors?.activationCode"
+          />
           <q-separator spaced />
           <div class="row items-center q-gutter-x-xs">
             <div class="text-subtitle2">
@@ -217,7 +237,7 @@
                 {{
                   $t(
                     "RedemptionLimitsDescription",
-                    "How many times this discount can be redeemed with its activation code."
+                    "Limits on how many times this discount can be used, whether it is applied automatically or redeemed with an activation code."
                   )
                 }}
               </div>
@@ -288,6 +308,60 @@
                     val === null ||
                     val === '' ||
                     (Number.isInteger(Number(val)) && Number(val) >= 1) ||
+                    $t('Invalid'),
+                ]"
+              />
+            </div>
+          </div>
+          <div class="row no-wrap items-end q-gutter-xs">
+            <div class="col-6">
+              <div>
+                {{ $t("MaxRedeemableAmount", "Max Redeemable Amount") }}
+              </div>
+              <q-input
+                dense
+                outlined
+                type="number"
+                min="1"
+                step="1"
+                :loading="loading"
+                :disable="!isEditable || loading"
+                :placeholder="$t('Optional')"
+                v-model.number="formData.maxRedeemableAmount"
+                :error="Boolean(formErrors?.maxRedeemableAmount)"
+                :error-message="formErrors?.maxRedeemableAmount"
+                :suffix="marketplaceStore?.currency"
+                :rules="[
+                  (val) =>
+                    val === null ||
+                    val === '' ||
+                    (Number.isFinite(Number(val)) && Number(val) >= 0) ||
+                    $t('Invalid'),
+                ]"
+              />
+            </div>
+            <div class="col-6">
+              <div>
+                {{ $t("PerCustomer", "Per Customer") }}
+              </div>
+              <q-input
+                dense
+                outlined
+                type="number"
+                min="1"
+                step="1"
+                :loading="loading"
+                :disable="!isEditable || loading"
+                :placeholder="$t('Optional')"
+                v-model.number="formData.maxRedeemableAmountPerCustomer"
+                :error="Boolean(formErrors?.maxRedeemableAmountPerCustomer)"
+                :error-message="formErrors?.maxRedeemableAmountPerCustomer"
+                :suffix="marketplaceStore?.currency"
+                :rules="[
+                  (val) =>
+                    val === null ||
+                    val === '' ||
+                    (Number.isFinite(Number(val)) && Number(val) >= 0) ||
                     $t('Invalid'),
                 ]"
               />
@@ -525,6 +599,8 @@ export default defineComponent({
       maxAmount: null,
       maxRedemptions: null,
       maxRedemptionsPerCustomer: null,
+      maxRedeemableAmount: null,
+      maxRedeemableAmountPerCustomer: null,
       startsAt: "",
       endsAt: "",
       rootConditionGroup: null,
@@ -541,10 +617,11 @@ export default defineComponent({
           ? discountType.value?.value * 100 || 0
           : discountType.value?.value || 0;
       formData.value.maxAmount = discountType.value?.maxAmount ?? null;
-      formData.value.maxRedemptions =
-        discountType.value?.maxRedemptions ?? null;
-      formData.value.maxRedemptionsPerCustomer =
-        discountType.value?.maxRedemptionsPerCustomer ?? null;
+      formData.value.maxRedemptions = discountType.value?.maxRedemptions ?? null;
+      formData.value.maxRedemptionsPerCustomer = discountType.value?.maxRedemptionsPerCustomer ?? null;
+      formData.value.maxRedeemableAmount = discountType.value?.maxRedeemableAmount ?? null;
+      formData.value.maxRedeemableAmountPerCustomer = discountType.value?.maxRedeemableAmountPerCustomer ?? null;
+
       formData.value.startsAt = discountType.value?.startsAt
         ? discountType.value.startsAt.toISOString()
         : "";
@@ -598,7 +675,7 @@ export default defineComponent({
       });
     }
 
-    const formErrors = ref({
+    const _emptyFormErrors = () => ({
       detail: [],
       name: "",
       activationCode: "",
@@ -610,27 +687,15 @@ export default defineComponent({
       maxAmount: "",
       maxRedemptions: "",
       maxRedemptionsPerCustomer: "",
+      maxRedeemableAmount: "",
+      maxRedeemableAmountPerCustomer: "",
       startsAt: "",
       endsAt: "",
       rootConditionGroup: null,
-    });
+    })
+    const formErrors = ref(_emptyFormErrors());
     function resetFormErrors() {
-      formErrors.value = {
-        detail: [],
-        name: "",
-        activationCode: "",
-        code: "",
-        scope: "",
-        type: "",
-        isPerUnit: "",
-        value: "",
-        maxAmount: "",
-        maxRedemptions: "",
-        maxRedemptionsPerCustomer: "",
-        startsAt: "",
-        endsAt: "",
-        rootConditionGroup: null,
-      };
+      formErrors.value = _emptyFormErrors()
     }
 
     function parseErrorResponse(error) {
@@ -687,6 +752,8 @@ export default defineComponent({
         formErrors.value.maxAmount ||
         formErrors.value.maxRedemptions ||
         formErrors.value.maxRedemptionsPerCustomer ||
+        formErrors.value.maxRedeemableAmount ||
+        formErrors.value.maxRedeemableAmountPerCustomer ||
         formErrors.value.startsAt ||
         formErrors.value.endsAt ||
         formErrors.value.rootConditionGroup;
@@ -744,8 +811,9 @@ export default defineComponent({
             : formData.value.value,
         max_amount: formData.value.maxAmount,
         max_redemptions: formData.value.maxRedemptions || null,
-        max_redemptions_per_customer:
-          formData.value.maxRedemptionsPerCustomer || null,
+        max_redemptions_per_customer: formData.value.maxRedemptionsPerCustomer || null,
+        max_redeemable_amount: formData.value.maxRedeemableAmount || null,
+        max_redeemable_amount_per_customer: formData.value.maxRedeemableAmountPerCustomer || null,
         starts_at: startsAt,
         ends_at: endsAt,
         root_condition_group: formData.value.rootConditionGroup

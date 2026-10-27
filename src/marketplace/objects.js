@@ -567,6 +567,9 @@ export class DiscountType {
    * @param {Number} data.max_amount
    * @param {Number} [data.max_redemptions] null means unlimited
    * @param {Number} [data.max_redemptions_per_customer] null means unlimited
+   * @param {Number} data.max_amount
+   * @param {Number} [data.max_redeemable_amount] null means unlimited
+   * @param {Number} [data.max_redeemable_amount_per_customer] null means unlimited
    * @param {Object} data.currency
    * @param {Object[]} data.condition_groups
    * @param {Number} data.applied_amount
@@ -585,8 +588,9 @@ export class DiscountType {
     this.value = parseFloat(data?.value);
     this.maxAmount = data?.max_amount && parseFloat(data?.max_amount);
     this.maxRedemptions = data?.max_redemptions ?? null;
-    this.maxRedemptionsPerCustomer =
-      data?.max_redemptions_per_customer ?? null;
+    this.maxRedemptionsPerCustomer = data?.max_redemptions_per_customer ?? null;
+    this.maxRedeemableAmount = data?.max_redeemable_amount ?? null;
+    this.maxRedeemableAmountPerCustomer = data?.max_redeemable_amount_per_customer ?? null;
     this.currency = {
       code: data?.currency?.code,
       symbol: data?.currency?.symbol,
