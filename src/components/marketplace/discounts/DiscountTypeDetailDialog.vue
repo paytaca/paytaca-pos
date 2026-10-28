@@ -14,85 +14,104 @@
         <div v-if="loading" class="text-center q-pa-md">
           <q-spinner color="brandblue" />
         </div>
-        <div v-else class="q-gutter-y-sm">
-          <div class="row items-center">
-            <div class="text-grey q-space">{{ $t('Code') }}</div>
-            <div>{{ getDiscountCodeLabel(discount?.code) }}</div>
-          </div>
-          <div class="row items-center">
-            <div class="text-grey q-space">{{ $t('Scope', 'Scope') }}</div>
-            <div>{{ getDiscountScopeLabel(discount?.scope) }}</div>
-          </div>
-          <div class="row items-center">
-            <div class="text-grey q-space">{{ $t('Type', 'Type') }}</div>
-            <div class="row items-center q-gutter-x-xs">
-              <span>{{ getDiscountTypeLabel(discount?.type) }}</span>
-              <q-chip
-                v-if="isPerUnitDiscount(discount)"
-                dense
-                size="sm"
-                color="teal-1"
-                text-color="dark"
-              >
-                {{ $t('PerUnit', 'Per unit') }}
-              </q-chip>
+        <div v-else class="q-gutter-y-md">
+          <div class="q-gutter-y-sm">
+            <div class="text-subtitle2">{{ $t('Details') }}</div>
+            <div class="row items-center">
+              <div class="text-grey q-space">{{ $t('Code') }}</div>
+              <div>{{ getDiscountCodeLabel(discount?.code) }}</div>
             </div>
-          </div>
-          <div class="row items-center">
-            <div class="text-grey q-space">{{ $t('Value', 'Value') }}</div>
-            <div>{{ formatDiscountValue(discount, { includeMax: false }) }}</div>
-          </div>
-          <div v-if="discount?.source" class="row items-center">
-            <div class="text-grey q-space">{{ $t('Source') }}</div>
-            <div>{{ discount.source === 'custom' ? $t('Custom') : $t('Platform') }}</div>
-          </div>
-          <div v-if="discount?.activationCode" class="row items-center">
-            <div class="text-grey q-space">{{ $t('ActivationCode', 'Activation code') }}</div>
-            <div>{{ discount.activationCode }}</div>
-          </div>
-          <div v-if="Number.isFinite(discount?.maxAmount)" class="row items-center">
-            <div class="text-grey q-space">{{ $t('MaxAmount', 'Max amount') }}</div>
-            <div>{{ Number(discount.maxAmount.toFixed(2)) }} {{ getDiscountCurrencySymbol(discount) }}</div>
-          </div>
-          <div v-if="discount?.maxRedemptions != null" class="row items-center">
-            <div class="text-grey q-space">{{ $t('MaxRedemptions', 'Max redemptions') }}</div>
-            <div>{{ discount.maxRedemptions }}</div>
-          </div>
-          <div v-if="getDiscountDateRangeText(discount)" class="row items-center">
-            <div class="text-grey q-space">{{ $t('Valid', 'Valid') }}</div>
-            <div>{{ getDiscountDateRangeText(discount) }}</div>
+            <div class="row items-center">
+              <div class="text-grey q-space">{{ $t('Scope', 'Scope') }}</div>
+              <div>{{ getDiscountScopeLabel(discount?.scope) }}</div>
+            </div>
+            <div class="row items-center">
+              <div class="text-grey q-space">{{ $t('Type', 'Type') }}</div>
+              <div class="row items-center q-gutter-x-xs">
+                <span>{{ getDiscountTypeLabel(discount?.type) }}</span>
+                <q-chip
+                  v-if="isPerUnitDiscount(discount)"
+                  dense
+                  size="sm"
+                  color="teal-1"
+                  text-color="dark"
+                >
+                  {{ $t('PerUnit', 'Per unit') }}
+                </q-chip>
+              </div>
+            </div>
+            <div class="row items-center">
+              <div class="text-grey q-space">{{ $t('Value', 'Value') }}</div>
+              <div>{{ formatDiscountValue(discount, { includeMax: false }) }}</div>
+            </div>
+            <div v-if="Number.isFinite(discount?.maxAmount)" class="row items-center">
+              <div class="text-grey q-space">{{ $t('MaxAmount', 'Max amount') }}</div>
+              <div>{{ Number(discount.maxAmount.toFixed(2)) }} {{ getDiscountCurrencySymbol(discount) }}</div>
+            </div>
+            <div v-if="discount?.source" class="row items-center">
+              <div class="text-grey q-space">{{ $t('Source') }}</div>
+              <div>{{ discount.source === 'custom' ? $t('Custom') : $t('Platform') }}</div>
+            </div>
           </div>
 
-          <div v-if="conditionCount > 0">
-            <div
-              class="row items-center cursor-pointer"
-              role="button"
-              tabindex="0"
-              :aria-expanded="showConditions ? 'true' : 'false'"
-              @click="showConditions = !showConditions"
-              @keydown.enter.prevent="showConditions = !showConditions"
-              @keydown.space.prevent="showConditions = !showConditions"
-            >
-              <div class="text-subtitle2 q-space">{{ $t('Conditions') }}</div>
-              <q-chip dense size="sm" color="blue-1" text-color="dark">
-                {{ conditionCount }}
-              </q-chip>
-              <q-icon
-                :name="showConditions ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
-                size="20px"
-                color="grey-7"
-              />
+          <template v-if="hasUsageInfo">
+            <q-separator />
+            <div class="q-gutter-y-sm">
+              <div class="text-subtitle2">
+                {{ $t('UsageAndValidity', 'Usage & Validity') }}
+              </div>
+              <div v-if="discount?.activationCode" class="row items-center">
+                <div class="text-grey q-space">{{ $t('ActivationCode', 'Activation code') }}</div>
+                <div>{{ discount.activationCode }}</div>
+              </div>
+              <div v-if="redemptionLimitsText" class="row items-center">
+                <div class="text-grey q-space">{{ $t('RedemptionLimits', 'Redemption limits') }}</div>
+                <div>{{ redemptionLimitsText }}</div>
+              </div>
+              <div v-if="redeemableAmountsText" class="row items-center">
+                <div class="text-grey q-space">{{ $t('MaxRedeemableAmount', 'Max redeemable amount') }}</div>
+                <div>{{ redeemableAmountsText }}</div>
+              </div>
+              <div v-if="getDiscountDateRangeText(discount)" class="row items-center">
+                <div class="text-grey q-space">{{ $t('Valid', 'Valid') }}</div>
+                <div>{{ getDiscountDateRangeText(discount) }}</div>
+              </div>
             </div>
-            <div v-if="showConditions" class="q-mt-sm">
-              <DiscountConditionGroupForm
-                :key="conditionsKey"
-                :model-value="conditionGroupsData"
-                :current-depth="1"
-                :max-depth="3"
-                readonly
-              />
+          </template>
+
+          <template v-if="conditionCount > 0">
+            <q-separator />
+            <div>
+              <div
+                class="row items-center cursor-pointer"
+                role="button"
+                tabindex="0"
+                :aria-expanded="showConditions ? 'true' : 'false'"
+                @click="showConditions = !showConditions"
+                @keydown.enter.prevent="showConditions = !showConditions"
+                @keydown.space.prevent="showConditions = !showConditions"
+              >
+                <div class="text-subtitle2 q-space">{{ $t('Conditions') }}</div>
+                <q-chip dense size="sm" color="blue-1" text-color="dark">
+                  {{ conditionCount }}
+                </q-chip>
+                <q-icon
+                  :name="showConditions ? 'keyboard_arrow_up' : 'keyboard_arrow_down'"
+                  size="20px"
+                  color="grey-7"
+                />
+              </div>
+              <div v-if="showConditions" class="q-mt-sm">
+                <DiscountConditionGroupForm
+                  :key="conditionsKey"
+                  :model-value="conditionGroupsData"
+                  :current-depth="1"
+                  :max-depth="3"
+                  readonly
+                />
+              </div>
             </div>
-          </div>
+          </template>
         </div>
       </div>
 
@@ -169,6 +188,61 @@ export default defineComponent({
       convertFlatConditionGroupsToFormData(discount.value?.conditionGroups),
     )
 
+    // Usage & validity values. Limits are rendered on a single row so the total
+    // and the per-customer cap read as one setting instead of two look-alike
+    // rows with the same "Per customer" label.
+    function formatAmountValue(value, discountType) {
+      const amount = Number(value)
+      if (!Number.isFinite(amount)) return ''
+      const currency = getDiscountCurrencySymbol(discountType)
+      const text = String(Number(amount.toFixed(2)))
+      return currency ? `${text} ${currency}` : text
+    }
+
+    function formatLimitValue(total, perCustomer, formatValue) {
+      const format = typeof formatValue === 'function' ? formatValue : (value) => String(value)
+      const hasTotal = total !== null && total !== undefined && total !== ''
+      const hasPerCustomer =
+        perCustomer !== null && perCustomer !== undefined && perCustomer !== ''
+      if (!hasTotal && !hasPerCustomer) return ''
+      if (!hasTotal) {
+        return $t(
+          'PerCustomerLimitValue',
+          { value: format(perCustomer) },
+          '{value} per customer',
+        )
+      }
+      const totalText = format(total)
+      if (!hasPerCustomer) return totalText
+      return $t(
+        'TotalAndPerCustomerLimitValue',
+        { total: totalText, perCustomer: format(perCustomer) },
+        '{total} ({perCustomer} per customer)',
+      )
+    }
+
+    const redemptionLimitsText = computed(() =>
+      formatLimitValue(
+        discount.value?.maxRedemptions,
+        discount.value?.maxRedemptionsPerCustomer,
+      ),
+    )
+    const redeemableAmountsText = computed(() =>
+      formatLimitValue(
+        discount.value?.maxRedeemableAmount,
+        discount.value?.maxRedeemableAmountPerCustomer,
+        (value) => formatAmountValue(value, discount.value),
+      ),
+    )
+    const hasUsageInfo = computed(() =>
+      Boolean(
+        discount.value?.activationCode ||
+          redemptionLimitsText.value ||
+          redeemableAmountsText.value ||
+          getDiscountDateRangeText(discount.value),
+      ),
+    )
+
     // The form reads its model on setup only, so remount it whenever the
     // discount record is replaced, and collapse it when moving to another row.
     watch(discount, () => { conditionsKey.value += 1 })
@@ -204,6 +278,9 @@ export default defineComponent({
       conditionsKey,
       conditionCount,
       conditionGroupsData,
+      hasUsageInfo,
+      redemptionLimitsText,
+      redeemableAmountsText,
       getDiscountCodeLabel,
       getDiscountScopeLabel,
       getDiscountTypeLabel,

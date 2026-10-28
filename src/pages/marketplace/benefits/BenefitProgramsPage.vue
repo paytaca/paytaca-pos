@@ -360,7 +360,8 @@ export default defineComponent({
     const fetchingBeneficiaryCategories = ref(false)
     function fetchBeneficiaryCategories() {
       fetchingBeneficiaryCategories.value = true
-      return backend.get(`beneficiary-categories/`)
+      const params = { shop_ids: marketplaceStore.shopData?.id ?? null }
+      return backend.get(`beneficiary-categories/`, { params })
         .then(response => {
           if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
           beneficiaryCategories.value = response.data.results
