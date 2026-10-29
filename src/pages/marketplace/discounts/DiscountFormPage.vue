@@ -511,6 +511,7 @@
           color="brandblue"
           class="full-width"
           type="submit"
+          :loading="loading"
         />
       </div>
     </q-form>
@@ -528,6 +529,7 @@ import MarketplaceHeader from "src/components/marketplace/MarketplaceHeader.vue"
 import DateTimePickerDialog from "src/components/DateTimePickerDialog.vue";
 import HelpIcon from "src/components/HelpIcon.vue";
 import DiscountConditionGroupForm from "src/components/marketplace/discounts/DiscountConditionGroupForm.vue";
+import DiscountForecastDialog from "src/components/marketplace/discounts/DiscountForecastDialog.vue";
 import { errorParser, formatTimestampToText } from "src/marketplace/utils";
 import { DiscountType } from "src/marketplace/objects";
 
@@ -785,10 +787,8 @@ export default defineComponent({
       };
     }
 
-    function submit() {
-      if (!isEditable.value) return;
+    function buildDiscountPayload() {
       const discountTypeId = discountType.value.id;
-
       const startsAt = formData.value.startsAt
         ? new Date(formData.value.startsAt)
         : undefined;
@@ -796,7 +796,7 @@ export default defineComponent({
         ? new Date(formData.value.endsAt)
         : undefined;
 
-      const data = {
+      return {
         name: formData.value.name,
         activation_code: formData.value.activationCode || null,
         code: formData.value.code,
@@ -821,6 +821,61 @@ export default defineComponent({
           : undefined,
         shop_id: discountTypeId ? undefined : marketplaceStore.shopData?.id,
       };
+    }
+
+    function optionalNumber(value) {
+      if (value === "" || value === null || value === undefined) return null;
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    function buildForecastRequest(data) {
+      const request = {
+        shop_id:
+          marketplaceStore.shopData?.id || marketplaceStore.activeShopId,
+        timezone: new Date().getTimezoneOffset() * 60,
+        discount: {
+          name: data.name,
+          code: data.code,
+          scope: data.scope,
+          type: data.type,
+          value: data.value,
+          max_amount: optionalNumber(data.max_amount),
+          is_per_unit: data.is_per_unit,
+          max_redemptions: optionalNumber(data.max_redemptions),
+          max_redeemable_amount: optionalNumber(data.max_redeemable_amount),
+        },
+      };
+      if (data.root_condition_group) {
+        request.root_condition_group = data.root_condition_group;
+      }
+      return request;
+    }
+
+    const forecastDialogOpen = ref(false);
+    function submit() {
+      if (!isEditable.value || loading.value) return;
+      const data = buildDiscountPayload();
+
+      // Editing an existing discount saves directly. A new discount is
+      // previewed against recent sales before it is created.
+      if (props.discountId) return saveDiscount(data);
+      if (forecastDialogOpen.value) return;
+
+      forecastDialogOpen.value = true;
+      return $q
+        .dialog({
+          component: DiscountForecastDialog,
+          componentProps: { forecastRequest: buildForecastRequest(data) },
+        })
+        .onOk(() => saveDiscount(data))
+        .onDismiss(() => {
+          forecastDialogOpen.value = false;
+        });
+    }
+
+    function saveDiscount(data) {
+      const discountTypeId = discountType.value.id;
       const request = discountTypeId
         ? backend.patch(`discount-types/${discountTypeId}/`, data)
         : backend.post("discount-types/", data);
