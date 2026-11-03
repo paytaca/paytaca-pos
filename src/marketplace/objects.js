@@ -1661,7 +1661,9 @@ export class PurchaseOrderItem {
    * @param {Number} data.id
    * @param {Object} data.variant
    * @param {String} data.item_name
+   * @param {Number} data.pending_quantity
    * @param {Number} data.quantity
+   * @param {Number} data.received_quantity
    * @param {Number} data.cost_price
    * @param {String} [data.delivered_at]
    * @param {String} [data.expires_at]
@@ -1675,7 +1677,10 @@ export class PurchaseOrderItem {
     });
     this.id = data?.id;
     this.variant = Variant.parse(data?.variant);
+    this.pendingQuantity = data?.pending_quantity;
     this.quantity = data?.quantity;
+    this.receivedQuantity = data?.received_quantity;
+    
     this.costPrice = data?.cost_price;
     if (data?.delivered_at) this.deliveredAt = new Date(data.delivered_at);
     else if (this.deliveredAt) this.deliveredAt = undefined;
@@ -1729,6 +1734,8 @@ export class PurchaseOrder {
    * @param {{ id:Number, name:String }} data.shop
    * @param {{ id:Number, name:String, phone_number:String, location:Object }} data.vendor
    * @param {Number} [data.items_count]
+   * @param {Number} [data.total_received]
+   * @param {Number} [data.total_quantity]
    * @param {Object[]} [data.items]
    * @param {String} data.reviewed_at
    * @param {Object} data.reviewed_by
@@ -1752,6 +1759,10 @@ export class PurchaseOrder {
     this.shop = data?.shop;
     this.vendor = Vendor.parse(data?.vendor);
     this.itemsCount = data?.items_count;
+    if (data?.total_received !== undefined)
+      this.totalReceived = data?.total_received;
+    if (data?.total_quantity !== undefined)
+      this.totalQuantity = data?.total_quantity;
     if (Array.isArray(data?.items))
       this.items = data?.items?.map(PurchaseOrderItem.parse);
 

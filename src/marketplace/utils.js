@@ -41,7 +41,7 @@ export function formatStatusGeneric(value='') {
   if (typeof value !== 'string') return
   const result = capitalize(value).replaceAll('_', ' ')
   const translationKey = result.split(' ').map(capitalize).join('')
-  return $t(translationKey, {}, result)
+  return $t(translationKey, {}, result);
 }
 
 /** 
@@ -74,7 +74,7 @@ export function formatPurchaseOrderStatus(value) {
     case 'received':
     case 'complete':
     default:
-      if (typeof value === 'string') formatStatusGeneric(value)
+      return formatStatusGeneric(value);
   }
 }
 

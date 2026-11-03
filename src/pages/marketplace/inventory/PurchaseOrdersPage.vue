@@ -227,13 +227,27 @@
             class="text-underline"
             @click="() => showPurchaseOrderItems(props.row)"
           >
-            {{
-              $t(
-                'ItemCount',
-                { count: props.row?.items?.length || props.row?.itemsCount },
-                `${ (props.row?.items?.length || props.row?.itemsCount) } item(s)`
-              )
-            }}
+            <div>
+              {{
+                $t(
+                  'ItemCount',
+                  { count: props.row?.items?.length || props.row?.itemsCount },
+                  `${ (props.row?.items?.length || props.row?.itemsCount) } item(s)`
+                )
+              }}
+            </div>
+            <div v-if="props.row?.totalQuantity" class="text-caption text-grey">
+              {{
+                $t(
+                  'ItemsReceivedProgress',
+                  {
+                    received: props.row?.totalReceived || 0,
+                    total: props.row?.totalQuantity || 0,
+                  },
+                  `${ props.row?.totalReceived || 0 } of ${ props.row?.totalQuantity || 0 } items received`
+                )
+              }}
+            </div>
           </q-td>
         </template>
   
