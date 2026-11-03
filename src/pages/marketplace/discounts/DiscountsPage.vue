@@ -226,6 +226,7 @@
       <DiscountTypeDetailDialog
         v-model="discountDetailDialog.show"
         :discount-type="discountDetailDialog.discountType"
+        show-report
       >
         <template #actions="{ discountType }">
           <q-btn-dropdown
