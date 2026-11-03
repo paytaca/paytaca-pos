@@ -4,6 +4,8 @@ import {
   extractServerMessage,
   serverError,
   errorTexts,
+  isCardAuthenticationError,
+  shouldReauthenticateCardRequest,
 } from '../src/card/errors.js'
 
 describe('card-server error message plumbing', () => {
@@ -47,5 +49,13 @@ describe('card-server error message plumbing', () => {
     assert.equal(maintenance.message, 'Card server upgrading')
     assert.equal(maintenance.data.error, 'MAINTENANCE')
     assert.equal(maintenance.data.eta, '10 min')
+  })
+
+  it('classifies invalid credentials without authorizing spend retries', () => {
+    const authFailure = new Error('Request failed with status code 403')
+    authFailure.response = { status: 403 }
+    assert.equal(isCardAuthenticationError(authFailure), true)
+    assert.equal(shouldReauthenticateCardRequest('preimage', authFailure), true)
+    assert.equal(shouldReauthenticateCardRequest('spend', authFailure), false)
   })
 })

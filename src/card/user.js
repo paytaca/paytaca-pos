@@ -3,14 +3,13 @@ import { useWalletStore } from 'stores/wallet'
 import { backend } from './backend.js';
 import { loadSignerFromWIF } from './keypair.js';
 import { getPublicKeyFromPrivate } from './utils.js';
+import { CARD_API_BASE_URL } from './config.js'
+import { createCardAuthStorage } from './auth-storage.js'
+import { isCardAuthenticationError } from './errors.js'
 
-const TOKEN_STORAGE_KEY = 'card-auth-key'
+const authStorage = createCardAuthStorage(SecureStoragePlugin, CARD_API_BASE_URL)
 const WIF_STORAGE_KEY = 'card-auth-wif'
-
-function isMissingSecureStorageKeyError(error) {
-    const message = String(error?.message || '')
-    return message.includes('Item with given key does not exist')
-}
+let reauthenticationPromise = null
 
 /**
  * Merchant user authentication and card-data utilities.
@@ -114,8 +113,6 @@ export class MerchantUser {
      * @returns {Promise<void>}
      */
     async login() {
-        console.log('Starting Card User login process...');
-
         try {
             const keypair = this.signer.keypair();
         
@@ -134,7 +131,6 @@ export class MerchantUser {
             }
 
         } catch (error) {
-            console.error('Login failed:', error);
             throw error;
         }
     }
@@ -150,9 +146,45 @@ export async function fetchCardMerchantUser(publicKey) {
         const response = await backend.get(`/auth/merchant/${publicKey}/`);
         return await MerchantUser.createWithSigner(response.data);
     } catch (error) {
-        console.error('Card Merchant User fetch failed:', error.response?.status || error.message);
         throw error;
     }
+}
+
+async function refreshCardSocketAuthentication() {
+    const { cardSocket } = await import('./socket.js');
+    await cardSocket.refreshAuthentication();
+}
+
+/**
+ * Clears the current backend's session and performs the existing
+ * challenge/signature login. This is deliberately separate from transaction
+ * requests so it can never replay a spend or finalization request.
+ */
+export function reauthenticateCardMerchant() {
+    if (reauthenticationPromise) return reauthenticationPromise;
+
+    reauthenticationPromise = (async () => {
+        const privateKeyWif = await getPrivateKeyWif();
+        if (!privateKeyWif) {
+            throw new Error('No private key WIF found for current wallet');
+        }
+
+        await clearAuthToken();
+        const signer = loadSignerFromWIF(privateKeyWif);
+        const publicKey = signer.keypair().publicKey;
+        const user = await MerchantUser.createWithSigner({ public_key: publicKey });
+        await user.login();
+
+        // A socket may have been warmed up with the invalid session before the
+        // HTTP request discovered it. Refresh its handshake without replaying
+        // any card transaction.
+        await refreshCardSocketAuthentication();
+        return fetchCardMerchantUser(publicKey);
+    })().finally(() => {
+        reauthenticationPromise = null;
+    });
+
+    return reauthenticationPromise;
 }
 
 /**
@@ -172,16 +204,18 @@ export async function loadCardMerchantUser() {
         
         if (!user || !user.is_authenticated) {
             await user.login();
+            await refreshCardSocketAuthentication();
         }
         
         return user;
     } catch (error) {
-        console.error('Error loading Card Merchant User:', error);
+        if (isCardAuthenticationError(error)) {
+            return reauthenticateCardMerchant();
+        }
         if (error.response && error.response.status === 404) {
-            console.error('Card Merchant User not found for this wallet.');
-            await clearAuthToken().catch((clearError) => {
+            await clearAuthToken().catch(() => {
                 // Do not mask the original 404 with storage cleanup noise.
-                console.warn('Unable to clear card auth token after 404:', clearError)
+                console.warn('Unable to clear card auth session after 404')
             });
         }
         throw error;
@@ -193,22 +227,7 @@ export async function loadCardMerchantUser() {
  * @returns {Promise<object|string|null>}
  */
 export async function getAuthSession () {
-    try {
-        const result = await SecureStoragePlugin.get({ key: TOKEN_STORAGE_KEY });
-        const rawValue = result.value;
-        if (rawValue == null) {
-            return null;
-        }
-
-        try {
-            return JSON.parse(rawValue);
-        } catch {
-            return rawValue;
-        }
-    } catch (error) {
-        console.error(`Item with key ${TOKEN_STORAGE_KEY} does not exist:`, error);
-        return null;
-    }
+    return authStorage.getSession();
 }
 
 /**
@@ -216,16 +235,7 @@ export async function getAuthSession () {
  * @returns {Promise<string|null>}
  */
 export async function getAuthToken () {
-    const session = await getAuthSession();
-    if (session == null) {
-        return null;
-    }
-
-    if (typeof session === 'object') {
-        return session.token ?? null;
-    }
-
-    return session;
+    return authStorage.getToken();
 }
 
 /**
@@ -234,17 +244,7 @@ export async function getAuthToken () {
  * @returns {Promise<string|undefined>}
  */
 export async function saveAuthToken (value) {
-    console.log('Saving auth token...');
-    try {
-        const storedValue = typeof value === 'string' ? value : JSON.stringify(value);
-        const result = await SecureStoragePlugin.set({ key: TOKEN_STORAGE_KEY, value: storedValue });
-        return result.value;
-    } catch (error) {
-        console.error('Failed to save auth token:', error);
-        throw error;
-    } finally {
-        console.log('saveAuthToken completed');
-    }
+    return authStorage.save(value);
 }
 
 /**
@@ -252,18 +252,7 @@ export async function saveAuthToken (value) {
  * @returns {Promise<void>}
  */
 export async function clearAuthToken () {
-    console.log('Clearing auth token...');
-    try {
-        await SecureStoragePlugin.remove({ key: TOKEN_STORAGE_KEY });
-        console.log('Card auth token deleted');
-    } catch (error) {
-        if (isMissingSecureStorageKeyError(error)) {
-            console.log('Card auth token already cleared')
-            return
-        }
-        console.error('Failed to clear auth token:', error);
-        throw error;
-    }
+    return authStorage.clear();
 }
 
 export async function savePrivateKeyWif(wif) {

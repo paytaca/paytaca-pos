@@ -1,11 +1,5 @@
 import { cborEncode, cborDecode, normalizeBytesToHex, hexToBytes } from './binary'
-
-const DEV_FALLBACK_API_BASE_URL = 'http://localhost:8002/api'
-const API_BASE_URL =
-  process.env.CARD_API_BASE_URL ||
-  (process.env.NODE_ENV === 'development' ? DEV_FALLBACK_API_BASE_URL : '')
-
-const DEFAULT_WS_PATH = process.env.CARD_SOCKET_PATH || '/ws/cards/'
+import { CARD_API_BASE_URL, CARD_SOCKET_PATH } from './config.js'
 
 /**
  * Derives the card backend WebSocket URL from CARD_API_BASE_URL, mirroring the
@@ -13,12 +7,9 @@ const DEFAULT_WS_PATH = process.env.CARD_SOCKET_PATH || '/ws/cards/'
  * @returns {string} e.g. "wss://card-server.paytaca.com/ws/cards/"
  */
 export function deriveCardSocketUrl() {
-  if (!API_BASE_URL) {
-    throw new Error('CARD_API_BASE_URL is required outside development builds')
-  }
-  const parsed = new URL(API_BASE_URL)
+  const parsed = new URL(CARD_API_BASE_URL)
   const scheme = parsed.protocol === 'https:' ? 'wss' : 'ws'
-  const path = DEFAULT_WS_PATH.startsWith('/') ? DEFAULT_WS_PATH : `/${DEFAULT_WS_PATH}`
+  const path = CARD_SOCKET_PATH.startsWith('/') ? CARD_SOCKET_PATH : `/${CARD_SOCKET_PATH}`
   return `${scheme}://${parsed.host}${path}`
 }
 
@@ -256,6 +247,21 @@ export class CardSocket {
     } else {
       this.disconnect()
     }
+  }
+
+  /**
+   * Sends the current stored credentials on an already-open connection after
+   * a successful challenge/signature login. Future connections read them too.
+   */
+  async refreshAuthentication() {
+    if (!this.enabled) return false
+    if (!this.isConnected) {
+      this.warmUp()
+      return false
+    }
+    this._authenticated = false
+    this._authPromise = this._sendAuth()
+    return this._authPromise
   }
 
   /**

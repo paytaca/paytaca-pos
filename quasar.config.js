@@ -12,6 +12,32 @@ const ESLintPlugin = require("eslint-webpack-plugin");
 
 const { configure } = require("quasar/wrappers");
 
+// Only explicitly allowlisted values may be copied into the client bundle. Do
+// not spread the complete .env object: server-only values such as contract
+// API write tokens must never become POS build-time environment variables.
+const PUBLIC_ENV_KEYS = [
+  "WATCHTOWER_API",
+  "WATCHTOWER_WEBSOCKET",
+  "WATCHTOWER_PROJECT_ID",
+  "MARKETPLACE_BASE_URL",
+  "MARKETPLACE_AUTH_TOTP_BASE_SECRET",
+  "VAPID_PUBLIC_KEY",
+  "PURELYPEER_HEADER_VALUE",
+  "COINGECKO_API_KEY",
+  "PINATA_GATEWAY_TOKEN",
+  "SECURE_STORAGE_KEY",
+  "CARD_API_BASE_URL",
+  "CARD_SOCKET_PATH",
+  "CARD_SOCKET_FORMAT",
+];
+
+const dotenvValues = require("dotenv").config().parsed || {};
+const publicEnv = Object.fromEntries(
+  PUBLIC_ENV_KEYS
+    .map((key) => [key, process.env[key] || dotenvValues[key]])
+    .filter(([, value]) => value),
+);
+
 module.exports = configure(function (ctx) {
   return {
     // https://v2.quasar.dev/quasar-cli-webpack/supporting-ts
@@ -61,26 +87,7 @@ module.exports = configure(function (ctx) {
 
       env: Object.assign(
         {},
-        require("dotenv").config().parsed,
-        Object.fromEntries(
-          [
-            "WATCHTOWER_API",
-            "WATCHTOWER_WEBSOCKET",
-            "WATCHTOWER_PROJECT_ID",
-            "MARKETPLACE_BASE_URL",
-            "MARKETPLACE_AUTH_TOTP_BASE_SECRET",
-            "VAPID_PUBLIC_KEY",
-            "PURELYPEER_HEADER_VALUE",
-            "COINGECKO_API_KEY",
-            "PINATA_GATEWAY_TOKEN",
-            "SECURE_STORAGE_KEY",
-            "CARD_API_BASE_URL",
-            "CARD_SOCKET_PATH",
-            "CARD_SOCKET_FORMAT",
-          ]
-            .filter((key) => process.env[key])
-            .map((key) => [key, process.env[key]]),
-        ),
+        publicEnv,
       ),
 
       // transpile: false,

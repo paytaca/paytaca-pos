@@ -44,3 +44,16 @@ export function errorTexts(error) {
     error?.data?.message,
   ].filter((part) => typeof part === 'string').join(' ').toLowerCase()
 }
+
+export function isCardAuthenticationError(error) {
+  const status = error?.status ?? error?.response?.status
+  const code = error?.code ?? error?.data?.code ?? error?.response?.data?.code
+  if ([401, 403].includes(status) || [401, 403].includes(code)) return true
+  return /invalid authentication token|invalid token|not authenticated|authentication credentials/.test(errorTexts(error))
+}
+
+// Credential recovery is safe only before a server-side transaction is
+// created. In particular, never use this for a spend/finalization request.
+export function shouldReauthenticateCardRequest(stage, error) {
+  return stage === 'preimage' && isCardAuthenticationError(error)
+}

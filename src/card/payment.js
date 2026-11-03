@@ -13,7 +13,14 @@ import {
   applyNfcMaintenanceErrorToCache,
   shouldBlockNfcTap,
 } from "./maintenance"
-import { extractServerMessage, serverError, errorTexts } from "./errors"
+import {
+  extractServerMessage,
+  serverError,
+  errorTexts,
+  isCardAuthenticationError,
+  shouldReauthenticateCardRequest,
+} from "./errors"
+import { reauthenticateCardMerchant } from "./user"
 
 export { NfcMaintenanceError, isNfcMaintenanceError, extractServerMessage }
 
@@ -185,9 +192,7 @@ async function ensureNfcNotUnderMaintenance() {
   }
 }
 
-async function requestPreimages({ merchantId, receivingAddress, amountSats, piccData, cmac, tokenCategory, tokenAmount }) {
-  await ensureNfcNotUnderMaintenance()
-
+async function requestPreimagesOnce({ merchantId, receivingAddress, amountSats, piccData, cmac, tokenCategory, tokenAmount }) {
   let socketMaintenanceError = null
   const buildPayload = () => {
     const payload = {
@@ -231,6 +236,7 @@ async function requestPreimages({ merchantId, receivingAddress, amountSats, picc
       throw applyNfcMaintenanceErrorToCache(error?.response ? error : (socketMaintenanceError || error))
     }
     const failure = serverError(error.response?.data, error.message || 'Error during preimage request')
+    failure.status = error.response?.status
     console.error(failure.message);
     throw failure;
   });
@@ -249,6 +255,29 @@ async function requestPreimages({ merchantId, receivingAddress, amountSats, picc
     console.warn('Socket preimage hit maintenance but HTTPS succeeded; proceeding with HTTPS result.');
   }
   return data;
+}
+
+/**
+ * Requests preimages with one credential recovery attempt. A preimage is the
+ * only payment stage safe to retry after authentication; spend/finalization
+ * never calls this recovery path.
+ */
+async function requestPreimages(params) {
+  await ensureNfcNotUnderMaintenance()
+
+  let reauthenticated = false
+  for (;;) {
+    try {
+      return await requestPreimagesOnce(params)
+    } catch (error) {
+      if (!reauthenticated && shouldReauthenticateCardRequest('preimage', error)) {
+        reauthenticated = true
+        await reauthenticateCardMerchant()
+        continue
+      }
+      throw error
+    }
+  }
 }
 
 /**
@@ -296,6 +325,13 @@ async function attemptSpend(uid, params) {
       }
       return data;
     } catch (error) {
+      // Never fall back to a second finalization request when the socket
+      // rejected credentials. Recovery is intentionally limited to preimage.
+      if (isCardAuthenticationError(error)) {
+        const failure = serverError(error.response?.data, error.message || 'Card authentication failed')
+        failure.status = error.response?.status
+        throw failure
+      }
       console.warn('Socket spend request failed, falling back to HTTPS:', error.message);
     }
   }
