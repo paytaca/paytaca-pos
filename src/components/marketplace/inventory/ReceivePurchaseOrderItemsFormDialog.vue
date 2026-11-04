@@ -12,7 +12,7 @@
       <q-card-section class="q-pb-none">
         <div class="row items-center no-wrap">
           <div class="text-h6 q-space">
-            {{ $t('ReceiveItems', {}, 'Receive items') }}
+            {{ $t('ReceiveItems', 'Receive items') }}
             <template v-if="purchaseOrder?.number">
               -
               {{
@@ -48,55 +48,45 @@
 
           <div class="row q-col-gutter-sm">
             <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey">
-                {{ $t('ReceivedAt', {}, 'Received at') }}
-              </div>
-              <div class="row items-center no-wrap">
-                <q-btn
-                  flat
-                  dense
-                  no-caps
-                  align="left"
-                  class="col"
-                  :disable="loading"
-                  :label="
-                    form.receivedAt
-                      ? formatTimestampToText(form.receivedAt)
-                      : $t('SetDate', {}, 'Set date')
-                  "
-                  @click="
-                    () =>
-                      openDateTimePicker(
-                        form,
-                        'receivedAt',
-                        'ReceivedAt',
-                        'Received at'
-                      )
-                  "
-                />
-                <q-btn
-                  v-if="form.receivedAt"
-                  flat
-                  round
-                  dense
-                  size="sm"
-                  icon="close"
-                  :disable="loading"
-                  @click="() => (form.receivedAt = null)"
-                />
-              </div>
+              <q-field
+                dense
+                outlined
+                :disable="loading"
+                :model-value="form.receivedAt"
+                :label="$t('ReceivedAt', 'Received at')"
+                clearable
+                @clear="() => (form.receivedAt = null)"
+              >
+                <template v-slot:control>
+                  <div
+                    class="full-width no-outline cursor-pointer"
+                    tabindex="0"
+                    @click="openDateTimePicker(form, 'receivedAt', $t('ReceivedAt', 'Received at'))"
+                  >
+                    {{ form.receivedAt ? formatTimestampToText(form.receivedAt) : '' }}
+                  </div>
+                </template>
+                <template v-slot:append>
+                  <q-icon
+                    name="event"
+                    class="cursor-pointer"
+                    @click.stop="openDateTimePicker(form, 'receivedAt', $t('ReceivedAt', 'Received at'))"
+                  />
+                </template>
+              </q-field>
             </div>
             <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey">
-                {{ $t('ReceivedBy', {}, 'Received by') }}
-              </div>
-              <div class="text-body2 q-pt-xs">
-                {{
+              <q-input
+                dense
+                outlined
+                readonly
+                :model-value="
                   marketplaceStore.user?.fullName ||
                   marketplaceStore.user?.username ||
-                  $t('You', {}, 'You')
-                }}
-              </div>
+                  $t('You')
+                "
+                :label="$t('ReceivedBy', 'Received by')"
+              />
             </div>
             <div class="col-12">
               <q-input
@@ -104,13 +94,7 @@
                 outlined
                 :disable="loading"
                 v-model="form.supplierDocumentNumber"
-                :label="
-                  $t(
-                    'SupplierDocumentNumber',
-                    {},
-                    'Supplier document number'
-                  )
-                "
+                :label="$t('SupplierDocumentNumber', 'Supplier document number')"
               />
             </div>
             <div class="col-12">
@@ -121,14 +105,14 @@
                 type="textarea"
                 :disable="loading"
                 v-model="form.notes"
-                :label="$t('Notes', {}, 'Notes')"
+                :label="$t('Notes')"
               />
             </div>
           </div>
 
           <div class="row items-center q-mt-md">
             <div class="text-subtitle1 q-space">
-              {{ $t('ItemsToReceive', {}, 'Items to receive') }}
+              {{ $t('ItemsToReceive', 'Items to receive') }}
             </div>
             <q-btn
               v-if="form.lines?.length"
@@ -138,15 +122,15 @@
               :disable="loading"
               :label="
                 allLinesSelected
-                  ? $t('DeselectAll', {}, 'Deselect all')
-                  : $t('SelectAll', {}, 'Select all')
+                  ? $t('DeselectAll', 'Deselect all')
+                  : $t('SelectAll', 'Select all')
               "
               @click="() => toggleSelectAll(!allLinesSelected)"
             />
           </div>
 
           <div v-if="!form.lines?.length" class="text-grey text-center q-py-md">
-            {{ $t('NoPendingItemsToReceive', {}, 'No pending items to receive') }}
+            {{ $t('NoPendingItemsToReceive', 'No pending items to receive') }}
           </div>
 
           <q-expansion-item
@@ -213,7 +197,7 @@
                       :min="0"
                       :max="pendingQuantityOf(line.purchaseOrderItem)"
                       v-model.number="line.quantityReceived"
-                      :label="$t('QuantityReceived', {}, 'Quantity received')"
+                      :label="$t('QuantityReceived', 'Quantity received')"
                     />
                   </div>
                   <div class="col-6">
@@ -225,7 +209,7 @@
                       :min="0"
                       :max="line.quantityReceived"
                       v-model.number="line.quantityRejected"
-                      :label="$t('QuantityRejected', {}, 'Quantity rejected')"
+                      :label="$t('QuantityRejected', 'Quantity rejected')"
                     />
                   </div>
                   <div class="col-12 col-sm-6">
@@ -237,7 +221,7 @@
                       :min="0"
                       :suffix="purchaseOrder?.currency?.symbol"
                       v-model.number="line.unitCost"
-                      :label="$t('UnitCost', {}, 'Unit cost')"
+                      :label="$t('UnitCost', 'Unit cost')"
                     />
                   </div>
                   <div class="col-12 col-sm-6">
@@ -247,87 +231,65 @@
                       :disable="loading"
                       v-model="line.supplierBatchNumber"
                       :label="
-                        $t('SupplierBatchNumber', {}, 'Supplier batch number')
+                        $t('SupplierBatchNumber', 'Supplier batch number')
                       "
                     />
                   </div>
                   <div class="col-12 col-sm-6">
-                    <div class="text-caption text-grey">
-                      {{ $t('ManufacturedAt', {}, 'Manufactured at') }}
-                    </div>
-                    <div class="row items-center no-wrap">
-                      <q-btn
-                        flat
-                        dense
-                        no-caps
-                        align="left"
-                        class="col"
-                        :disable="loading"
-                        :label="
-                          line.manufacturedAt
-                            ? formatTimestampToText(line.manufacturedAt)
-                            : $t('SetDate', {}, 'Set date')
-                        "
-                        @click="
-                          () =>
-                            openDateTimePicker(
-                              line,
-                              'manufacturedAt',
-                              'ManufacturedAt',
-                              'Manufactured at'
-                            )
-                        "
-                      />
-                      <q-btn
-                        v-if="line.manufacturedAt"
-                        flat
-                        round
-                        dense
-                        size="sm"
-                        icon="close"
-                        :disable="loading"
-                        @click="() => (line.manufacturedAt = null)"
-                      />
-                    </div>
+                    <q-field
+                      dense
+                      outlined
+                      :disable="loading"
+                      :model-value="line.manufacturedAt"
+                      :label="$t('ManufacturedAt', 'Manufactured at')"
+                      clearable
+                      @clear="() => (line.manufacturedAt = null)"
+                    >
+                      <template v-slot:control>
+                        <div
+                          class="full-width no-outline cursor-pointer"
+                          tabindex="0"
+                          @click="openDateTimePicker(line, 'manufacturedAt', $t('ManufacturedAt', 'Manufactured at'))"
+                        >
+                          {{ line.manufacturedAt ? formatTimestampToText(line.manufacturedAt) : '' }}
+                        </div>
+                      </template>
+                      <template v-slot:append>
+                        <q-icon
+                          name="event"
+                          class="cursor-pointer"
+                          @click.stop="openDateTimePicker(line, 'manufacturedAt', $t('ManufacturedAt', 'Manufactured at'))"
+                        />
+                      </template>
+                    </q-field>
                   </div>
                   <div class="col-12 col-sm-6">
-                    <div class="text-caption text-grey">
-                      {{ $t('ExpiresAt', {}, 'Expires at') }}
-                    </div>
-                    <div class="row items-center no-wrap">
-                      <q-btn
-                        flat
-                        dense
-                        no-caps
-                        align="left"
-                        class="col"
-                        :disable="loading"
-                        :label="
-                          line.expiresAt
-                            ? formatTimestampToText(line.expiresAt)
-                            : $t('SetDate', {}, 'Set date')
-                        "
-                        @click="
-                          () =>
-                            openDateTimePicker(
-                              line,
-                              'expiresAt',
-                              'ExpiresAt',
-                              'Expires at'
-                            )
-                        "
-                      />
-                      <q-btn
-                        v-if="line.expiresAt"
-                        flat
-                        round
-                        dense
-                        size="sm"
-                        icon="close"
-                        :disable="loading"
-                        @click="() => (line.expiresAt = null)"
-                      />
-                    </div>
+                    <q-field
+                      dense
+                      outlined
+                      :disable="loading"
+                      :model-value="line.expiresAt"
+                      :label="$t('ExpiresAt', 'Expires at')"
+                      clearable
+                      @clear="() => (line.expiresAt = null)"
+                    >
+                      <template v-slot:control>
+                        <div
+                          class="full-width no-outline cursor-pointer"
+                          tabindex="0"
+                          @click="openDateTimePicker(line, 'expiresAt', $t('ExpiresAt', 'Expires at'))"
+                        >
+                          {{ line.expiresAt ? formatTimestampToText(line.expiresAt) : '' }}
+                        </div>
+                      </template>
+                      <template v-slot:append>
+                        <q-icon
+                          name="event"
+                          class="cursor-pointer"
+                          @click.stop="openDateTimePicker(line, 'expiresAt', $t('ExpiresAt', 'Expires at'))"
+                        />
+                      </template>
+                    </q-field>
                   </div>
                   <div class="col-12">
                     <q-input
@@ -337,7 +299,7 @@
                       type="textarea"
                       :disable="loading"
                       v-model="line.remarks"
-                      :label="$t('Remarks', {}, 'Remarks')"
+                      :label="$t('Remarks')"
                     />
                   </div>
                 </div>
@@ -353,19 +315,13 @@
               class="full-width"
               :loading="loading"
               :disable="loading || !canSubmit"
-              :label="$t('ReceiveItems', {}, 'Receive items')"
+              :label="$t('ReceiveItems', 'Receive items')"
             />
             <div
               v-if="form.lines?.length && !selectedLines?.length"
               class="text-caption text-grey text-center q-mt-xs"
             >
-              {{
-                $t(
-                  'SelectItemsToReceiveMsg',
-                  {},
-                  'Select at least one item to receive'
-                )
-              }}
+              {{ $t('SelectItemsToReceiveMsg', 'Select at least one item to receive') }}
             </div>
           </div>
         </q-form>
@@ -476,12 +432,12 @@ export default defineComponent({
       return variant?.imageUrl || variant?.product?.imageUrl
     }
 
-    function openDateTimePicker(target, field, titleKey, title) {
+    function openDateTimePicker(target, field, title) {
       $q.dialog({
         component: DateTimePickerDialog,
         componentProps: {
           modelValue: target[field] || '',
-          title: $t(titleKey, {}, title),
+          title,
         },
       }).onOk((iso) => {
         target[field] = iso
@@ -514,11 +470,7 @@ export default defineComponent({
     function submit() {
       if (!selectedLines.value.length) {
         errors.value = [
-          $t(
-            'SelectItemsToReceiveMsg',
-            {},
-            'Select at least one item to receive'
-          ),
+          $t('SelectItemsToReceiveMsg', 'Select at least one item to receive'),
         ]
         return
       }
@@ -527,7 +479,7 @@ export default defineComponent({
         const itemName =
           line.purchaseOrderItem?.variant?.itemName ||
           line.purchaseOrderItem?.raw?.item_name ||
-          $t('Item', {}, 'Item')
+          $t('Item')
         const pendingQuantity =
           Number(line.purchaseOrderItem?.pendingQuantity) || 0
         const quantityReceived = Number(line.quantityReceived) || 0
@@ -599,7 +551,7 @@ export default defineComponent({
           const messages = extractErrorMessages(error?.response?.data)
           errors.value = messages.length
             ? messages
-            : [$t('ReceiveItemsError', {}, 'Unable to receive items')]
+            : [$t('ReceiveItemsError', 'Unable to receive items')]
           return Promise.reject(error)
         })
         .finally(() => {
