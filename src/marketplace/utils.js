@@ -37,6 +37,16 @@ export function formatDateToText(timestamp) {
   return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(dateObj)
 }
 
+/**
+ * @param {{ quantity?: Number, originalQuantity?: Number }} stock
+ */
+export function formatStockQuantity(stock) {
+  const quantity = stock?.quantity ?? 0
+  const originalQuantity = stock?.originalQuantity
+  if (originalQuantity === null || originalQuantity === undefined) return quantity
+  return `${quantity} / ${originalQuantity}`
+}
+
 export function formatStatusGeneric(value='') {
   if (typeof value !== 'string') return
   const result = capitalize(value).replaceAll('_', ' ')

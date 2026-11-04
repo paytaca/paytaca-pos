@@ -260,7 +260,7 @@
         <template v-slot:body-cell-quantity="props">
           <q-td :props="props">
             <span class="text-underline">
-              {{ props.row.quantity }}
+              {{ formatStockQuantity(props.row) }}
               <q-spinner v-if="props.row.$state.updatingFields?.has('quantity')" class="q-ml-xs"/>
               <StockQtyPopupEdit :stock="props.row" @updated="updateStockData"/>
             </span>
@@ -292,6 +292,34 @@
                   autofocus
                   @keyup.enter="scope.set"
                 />
+              </q-popup-edit>
+            </span>
+          </q-td>
+        </template>
+        <template v-slot:body-cell-manufactured-at="props">
+          <q-td :props="props">
+            <span>
+              <span v-if="props.row.manufacturedAt" class="text-underline">
+                {{ formatDateRelative(props.row.manufacturedAt) }}
+              </span>
+              <span v-else class="text-grey text-underline">
+                {{ $t('SetManufacturedAt', 'Set manufactured date') }}
+              </span>
+              <q-spinner v-if="props.row.$state.updatingFields?.has('manufactured_at')" class="q-ml-xs"/>
+              <q-popup-edit
+                :model-value="props.row.manufacturedAt?.toISOString()"
+                :cover="false"
+                self="top middle"
+                @update:model-value="val => updateStock(props.row, 'manufactured_at', val ? new Date(val).toISOString() : null)"
+                v-slot="scope"
+                class="q-pa-none"
+              >
+                <q-date v-model="scope.value" flat mask="YYYY-MM-DD">
+                  <div class="row items-center justify-end">
+                    <q-btn v-close-popup no-caps :label="$t('Close')" flat/>
+                    <q-btn v-close-popup no-caps :label="$t('Set')" color="brandblue" @click="() => scope.set()"/>
+                  </div>
+                </q-date>
               </q-popup-edit>
             </span>
           </q-td>
@@ -356,7 +384,7 @@
 <script>
 import { backend } from "src/marketplace/backend";
 import { Product, PurchaseOrder, Stock, Variant } from "src/marketplace/objects";
-import { formatDateRelative, formatTimestampToText } from "src/marketplace/utils";
+import { formatDateRelative, formatStatusGeneric, formatStockQuantity, formatTimestampToText } from "src/marketplace/utils";
 import { useMarketplaceStore } from "src/stores/marketplace";
 import { useQuasar } from "quasar";
 import { useI18n } from 'vue-i18n'
@@ -538,10 +566,13 @@ export default defineComponent({
     const table = ref()
     const stocksTableColumns = [
       { name: 'product', align: 'left', label: t('Product'), field: obj => [obj?.variant?.product?.name, obj?.variant?.name].filter(Boolean).join('- '), sortable: true },
+      { name: 'batch-number', align: 'left', label: t('BatchNumber', 'Batch Number'), field: 'batchNumber', sortable: true },
+      { name: 'status', align: 'center', label: t('Status'), field: 'status', format: formatStatusGeneric, sortable: true },
       // { name: 'variant', align: 'center', label: t('Variant'), field: obj => obj?.variant?.name },
       { name: 'purchase-order', align: 'center', label: t('PurchaseOrder'), field: 'purchaseOrderNumber', sortable: true },
       { name: 'quantity', align: 'center', label: t('Qty'), field: 'quantity', sortable: true },
       { name: 'cost-price', align: 'center', label: t('CostPrice'), field: obj => obj.costPrice && `${obj.costPrice} ${marketplaceStore?.currency}`, sortable: true },
+      { name: 'manufactured-at', align: 'center', label: t('ManufacturedAt', 'Manufactured at'), field: obj => obj.manufacturedAt, format: val => val ? formatDateRelative(val) : '', sortable: true },
       { name: 'expires-at', align: 'center', label: t('Expires'), field: obj => obj.expiresAt, format: val => val ? formatDateRelative(val) : '', sortable: true },
       // { name: 'created-at', align: 'center', label: t('Created') },
       { name: 'updated-at', align: 'center', label: t('Updated'), sortable: true },
@@ -549,8 +580,11 @@ export default defineComponent({
     ]
     const sortFieldNameMap = {
       product: 'item_name',
+      'batch-number': 'batch_number',
+      status: 'status',
       'purchase-order': 'purchase_order_number',
       'cost-price': 'cost_price',
+      'manufactured-at': 'manufactured_at',
       'expires-at': 'expires_at',
       'updated-at': 'updated_at',
     }
@@ -741,7 +775,7 @@ export default defineComponent({
       refreshPage,
 
       // utils funcs
-      formatDateRelative, formatTimestampToText,
+      formatDateRelative, formatStockQuantity, formatTimestampToText,
     }
   },
 });

@@ -226,6 +226,8 @@ export class Stock {
   /**
    * @param {Object} data
    * @param {Number} data.id
+   * @param {String} data.batch_number
+   * @param {String} data.status
    * @param {Object} data.variant
    * @param {Number} data.variant.id
    * @param {Number} data.variant.code
@@ -236,8 +238,11 @@ export class Stock {
    * @param {String} data.variant.product.image_url
    * @param {String} data.variant.product.name
    * @param {Number} data.quantity
+   * @param {Number} data.original_quantity
    * @param {Number} [data.cost_price]
+   * @param {String} [data.currency_symbol]
    * @param {String} [data.expires_at]
+   * @param {String} [data.manufactured_at]
    * @param {{id: Number: name: String }} data.shop
    * @param {Object} data.metadata
    * @param {Number} [data.purchase_order_id]
@@ -252,12 +257,16 @@ export class Stock {
       value: data,
     });
     this.id = data?.id;
+    this.batchNumber = data?.batch_number;
+    this.status = data?.status;
     this.variant = Variant.parse(data?.variant);
     this.quantity = data?.quantity;
+    this.originalQuantity = data?.original_quantity;
     this.costPrice = data?.cost_price;
+    this.currencySymbol = data?.currency_symbol;
     this.shop = data?.shop;
-    if (data?.expires_at) this.expiresAt = new Date(data?.expires_at);
-    else if (this.expiresAt) this.expiresAt = undefined;
+    this.expiresAt = data?.expires_at ? new Date(data?.expires_at) : null;
+    this.manufacturedAt = data?.manufactured_at ? new Date(data?.manufactured_at) : null;
     this.metadata = data?.metadata;
     this.purchaseOrderId = data?.purchase_order_id;
     this.purchaseOrderNumber = data?.purchase_order_number;

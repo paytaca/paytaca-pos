@@ -39,9 +39,17 @@
             </q-item-label>
           </div>
 
+          <div v-if="stock.batchNumber" class="col-6 col-sm-4 q-pa-sm">
+            <q-item-label class="text-caption top text-grey">{{ $t('BatchNumber', 'Batch Number') }}</q-item-label>
+            <q-item-label>{{ stock.batchNumber }}</q-item-label>
+          </div>
+          <div v-if="stock.status" class="col-6 col-sm-4 q-pa-sm">
+            <q-item-label class="text-caption top text-grey">{{ $t('Status') }}</q-item-label>
+            <q-item-label>{{ formatStatusGeneric(stock.status) }}</q-item-label>
+          </div>
           <div class="col-6 col-sm-4 q-pa-sm">
             <q-item-label class="text-caption top text-grey">{{ $t('Quantity') }}</q-item-label>
-            <q-item-label>{{ stock.quantity || 0 }}</q-item-label>
+            <q-item-label>{{ formatStockQuantity(stock) }}</q-item-label>
           </div>
           <div v-if="stock.costPrice" class="col-6 col-sm-4 q-pa-sm">
             <q-item-label class="text-caption top text-grey">{{ $t('CostPrice') }}</q-item-label>
@@ -50,6 +58,13 @@
           <div v-if="stock.shop?.name && displayShop" class="col-6 col-sm-4 q-pa-sm">
             <q-item-label class="text-caption top text-grey">{{ $t('Shop') }}</q-item-label>
             <q-item-label>{{ stock.shop?.name }}</q-item-label>
+          </div>
+          <div v-if="stock.manufacturedAt" class="col-6 col-sm-4 q-pa-sm">
+            <q-item-label class="text-caption top text-grey">{{ $t('ManufacturedAt', 'Manufactured at') }}</q-item-label>
+            <q-item-label>{{ formatDateRelative(stock.manufacturedAt) }}</q-item-label>
+            <q-menu class="q-pa-sm">
+              {{ formatTimestampToText(stock.manufacturedAt) }}
+            </q-menu>
           </div>
           <div v-if="stock.expiresAt" class="col-6 col-sm-4 q-pa-sm">
             <q-item-label class="text-caption top text-grey">{{ $t('Expires') }}</q-item-label>
@@ -198,7 +213,7 @@
 <script>
 
 import { PurchaseOrder, SalesOrder, Stock, StockAdjustment, StockRecount } from 'src/marketplace/objects'
-import { formatDateRelative, formatTimestampToText } from 'src/marketplace/utils'
+import { formatDateRelative, formatStatusGeneric, formatStockQuantity, formatTimestampToText } from 'src/marketplace/utils'
 import { defineComponent, onMounted, ref, watch } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { useMarketplaceStore } from 'src/stores/marketplace'
@@ -314,6 +329,8 @@ export default defineComponent({
 
         // utils funcs
         formatDateRelative,
+        formatStatusGeneric,
+        formatStockQuantity,
         formatTimestampToText,
     };
   },
