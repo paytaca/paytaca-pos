@@ -1859,6 +1859,8 @@ export class PurchaseOrderUpdates {
     ITEM_ADD: "item_add",
     ITEM_REMOVE: "item_remove",
     ITEM_UPDATE: "item_update",
+    RECEIPT_POSTED: "receipt_posted",
+    RECEIPT_VOIDED: "receipt_voided",
     OTHER: "other",
   });
 

@@ -33,8 +33,8 @@
                 {{
                   $t(
                     'PreviousValue',
-                    { value: purchaseOrderUpdate?.prevValue },
-                    `Previous: ${purchaseOrderUpdate?.prevValue}`
+                    { value: formatUpdateValue(purchaseOrderUpdate?.prevValue) },
+                    `Previous: ${formatUpdateValue(purchaseOrderUpdate?.prevValue)}`
                   )
                 }}
               </q-item-label>
@@ -42,8 +42,8 @@
                 {{
                   $t(
                     'NewValue',
-                    { value: purchaseOrderUpdate?.newValue },
-                    `New: ${purchaseOrderUpdate?.newValue}`
+                    { value: formatUpdateValue(purchaseOrderUpdate?.newValue) },
+                    `New: ${formatUpdateValue(purchaseOrderUpdate?.newValue)}`
                   )
                 }}
               </q-item-label>
@@ -92,6 +92,12 @@ export default defineComponent({
   ],
   setup(props, { emit: $emit }) {
     const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+
+    function formatUpdateValue(value) {
+      if (value === null || value === undefined || value === '') return '—'
+      if (typeof value === 'object') return JSON.stringify(value)
+      return String(value)
+    }
 
     const innerVal = ref(props.modelValue)
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
@@ -161,6 +167,7 @@ export default defineComponent({
       formatDateRelative,
       formatTimestampToText,
       capitalize,
+      formatUpdateValue,
     }
   },
 })

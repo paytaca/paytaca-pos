@@ -1,5 +1,5 @@
 import { OrderUpdates, PurchaseOrderUpdates } from "./objects";
-import { formatTimestampToText, formatDateToText, formatOrderStatus } from "./utils";
+import { formatTimestampToText, formatDateToText, formatOrderStatus, formatStatusGeneric } from "./utils";
 
 /**
  * 
@@ -56,6 +56,42 @@ export function getOrderUpdatesTexts(obj) {
 }
 
 /**
+ * @param {PurchaseOrderUpdates} obj
+ */
+function getPurchaseOrderReceiptUpdatesTexts(obj) {
+  const texts = []
+  const prevStatus = obj.prevValue?.status
+  const newStatus = obj.newValue?.status
+  if (prevStatus && newStatus && prevStatus != newStatus) {
+    texts.push(`Updated status from '${formatStatusGeneric(prevStatus)}' to '${formatStatusGeneric(newStatus)}'`)
+  }
+
+  const receiptNumber = obj.newValue?.receipt_number || obj.prevValue?.receipt_number
+  const isVoided = obj.updateType == obj.UpdateTypes.RECEIPT_VOIDED
+
+  texts.push(`${isVoided ? 'Voided' : 'Posted'} receipt${receiptNumber ? ` ${receiptNumber}` : ''}`)
+
+  if (!isVoided) {
+    const lines = Array.isArray(obj.newValue?.lines) ? obj.newValue.lines : []
+    for (const line of lines) {
+      if (!line?.item_name) continue
+      let text = `Received ${line.quantity_received} of ${line.item_name}`
+      if (line.quantity_rejected) text += ` (${line.quantity_rejected} rejected)`
+      texts.push(text)
+
+      if (line.supplier_batch_number) {
+        texts.push(`Set batch number to '${line.supplier_batch_number}'`)
+      }
+      if (line.expires_at) {
+        texts.push(`Set expiration date to ${formatDateToText(line.expires_at)}`)
+      }
+    }
+  }
+
+  return texts
+}
+
+/**
  * @param {PurchaseOrderUpdates} obj 
  */
 export function getPurchaseOrderUpdatesTexts(obj) {
@@ -93,6 +129,8 @@ export function getPurchaseOrderUpdatesTexts(obj) {
     }
 
     return texts
+  } else if ([obj.UpdateTypes.RECEIPT_POSTED, obj.UpdateTypes.RECEIPT_VOIDED].includes(obj.updateType)) {
+    return getPurchaseOrderReceiptUpdatesTexts(obj)
   } else if (obj.updateType == obj.UpdateTypes.OTHER) {
     const texts = []
     if (['complete', 'received'].includes(obj.newValue.status)) {
