@@ -16,6 +16,7 @@ import tapToPayV2Artifact from "src/card/contract/tap-to-pay-v2.artifact.json";
 import Watchtower from 'watchtower-cash-js0.3.1';
 import { normalizeVersionHint } from './version.js';
 import { cardElectrumProvider } from './provider.js';
+import { buildWithServerLocktime } from './locktime.js';
 
 const watchtower = new Watchtower()
 
@@ -234,9 +235,10 @@ export class TapToPayContract {
      * @param {Object} param0.recipient - The recipient information
      * @param {string} param0.recipient.address - The recipient Bitcoin address
      * @param {bigint} param0.recipient.amount - The amount to send in satoshis
+     * @param {number} param0.locktime - Locktime decoded from the server transaction
      * @returns {Promise<{ txHex: string, preimages: Array, inputs: Array }>} The built transaction hex, preimages, and inputs
      */
-    async generateSpendPreimages({ merchant, recipient, timing }) {
+    async generateSpendPreimages({ merchant, recipient, timing, locktime }) {
         const backendPk = this.params.backendPk
         const contract = this.getRawContract();
         const measure = (name, operation) => timing ? timing.stage(name, operation) : operation()
@@ -335,12 +337,9 @@ export class TapToPayContract {
             .from(inputs)
             .to(outputs)
 
-        // Read the height independently on every rebuild. Supplying it as the
-        // locktime avoids the identical implicit lookup inside tx.build(), and
-        // separates network time from the local build in the timing logs.
-        const blockHeight = await measure('validation_block_height', () => contract.provider.getBlockHeight())
-        tx.withTime(blockHeight)
-        const builtHex = await measure('validation_tx_build', () => tx.build())
+        // Only locktime comes from the server. All inputs/outputs, fees and
+        // change above remain independent, with byte-for-byte checks afterward.
+        const builtHex = await measure('validation_tx_build', () => buildWithServerLocktime(tx, locktime))
         const builtTx = decodeTransaction(hexToBin(builtHex))
         if (typeof builtTx === 'string') {
             throw new Error(`Failed to decode built transaction: ${builtTx}`)

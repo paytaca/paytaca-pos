@@ -7,6 +7,7 @@ import { getPublicKeyFromPrivate } from "./utils"
 import { TapToPayContract, tapToPayArtifactForVersion } from "./contract/taptopay"
 import { resolveActiveContract } from "./contract/resolution.js"
 import { assertServerVersionMatches, verifySpendBuild } from "./contract/verify.js"
+import { decodeServerTransaction } from "./contract/locktime.js"
 import {
   NfcMaintenanceError,
   isNfcMaintenanceError,
@@ -108,15 +109,17 @@ async function resolveCardContract(contractParameters) {
  * @param {Object} activeContractParameters - { backendPk, category, version }
  * @param {Object} merchant
  * @param {Object} recipient
+ * @param {Object} timing
+ * @param {number} locktime - Decoded server locktime; no chain-height lookup
  * @returns {Promise<{ txHex: string, preimages: Array, inputs: Array }>}
  */
-async function buildExpectedSpend(activeContractParameters, merchant, recipient, timing) {
+async function buildExpectedSpend(activeContractParameters, merchant, recipient, timing, locktime) {
   const contract = new TapToPayContract(
     activeContractParameters.backendPk,
     activeContractParameters.category,
     activeContractParameters.version
   )
-  return contract.generateSpendPreimages({ merchant, recipient, timing })
+  return contract.generateSpendPreimages({ merchant, recipient, timing, locktime })
 }
 
 /**
@@ -130,13 +133,14 @@ async function buildExpectedSpend(activeContractParameters, merchant, recipient,
  * @param {Object} param0.activeContractParameters - for the local rebuild
  * @param {Object} param0.merchant
  * @param {Object} param0.recipient
+ * @param {number} param0.locktime - Only transaction field adopted from the server
  * @returns {Promise<void>}
  */
-async function validatePreimages({ activeVersion, server, activeContractParameters, merchant, recipient, timing }) {
+async function validatePreimages({ activeVersion, server, activeContractParameters, merchant, recipient, timing, locktime }) {
   console.log('Validating preimages...');
   const startTime = performance.now();
 
-  const expected = await buildExpectedSpend(activeContractParameters, merchant, recipient, timing)
+  const expected = await buildExpectedSpend(activeContractParameters, merchant, recipient, timing, locktime)
   verifySpendBuild({ activeVersion, server, expected })
 
   const endTime = performance.now();
@@ -472,6 +476,9 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
     // Check before loading the merchant key or rebuilding a transaction for a
     // version that the server did not use. This applies to BCH and FT taps.
     assertServerVersionMatches(contractVersion, resolution.activeVersion);
+    // Both WebSocket and HTTPS responses reach this point. Adopt only the
+    // decoded locktime; inputs, outputs and preimages are rebuilt independently.
+    const serverTx = decodeServerTransaction(data.txHex);
 
     // The preimage record is bound to this server-generated tx_id for the whole
     // preimage -> card-signing -> spend flow. The spend step echoes it back.
@@ -506,7 +513,8 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
         activeContractParameters,
         merchant,
         recipient,
-        timing
+        timing,
+        locktime: serverTx.locktime
       }));
     }
 
