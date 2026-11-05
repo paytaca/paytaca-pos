@@ -217,6 +217,7 @@
                       dense
                       outlined
                       type="number"
+                      step="0.001"
                       :disable="loading"
                       :min="0"
                       :suffix="purchaseOrder?.currency?.symbol"

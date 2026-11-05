@@ -10,6 +10,39 @@
           </div>
         </template>
       </MarketplaceHeader>
+      <div class="row items-center justify-end q-mb-sm">
+        <q-btn-dropdown
+          :disable-dropdown="salesGraph.loading"
+          padding="xs sm"
+          outline
+          no-caps
+          icon="filter_list"
+          :label="productVariantFilterLabel"
+        >
+          <q-list>
+            <q-item clickable v-close-popup @click="selectProduct()">
+              <q-item-section>
+                <q-item-label>{{ $t('SelectProduct', 'Select Product') }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="selectVariant()">
+              <q-item-section>
+                <q-item-label>{{ $t('SelectVariant', 'Select Variant') }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              v-if="selectedProduct || selectedVariant"
+              clickable
+              v-close-popup
+              @click="clearProductVariantFilter()"
+            >
+              <q-item-section>
+                <q-item-label>{{ $t('ClearFilter', 'Clear filter') }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+      </div>
       <div class="row">
         <div
           v-for="(summary, key) in summaries" :key="key"
@@ -87,6 +120,11 @@
           </div>
         </div> -->
       </div>
+      <VariantSearchDialog
+        v-model="showVariantSearchDialog"
+        hide-scanner
+        @ok="onVariantSelected"
+      />
     </q-pull-to-refresh>
   </q-page>
 </template>
@@ -98,6 +136,8 @@ import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
+import ProductSearchDialog from 'src/components/marketplace/ProductSearchDialog.vue'
+import VariantSearchDialog from 'src/components/marketplace/sales/VariantSearchDialog.vue'
 import VueApexCharts from "vue3-apexcharts";
 
 export default defineComponent({
@@ -105,11 +145,64 @@ export default defineComponent({
   components: {
     VueApexCharts,
     MarketplaceHeader,
+    VariantSearchDialog,
   },
   setup() {
     const $q = useQuasar()
     const { t } = useI18n()
     const marketplaceStore = useMarketplaceStore()
+
+    const selectedProduct = ref(null)
+    const selectedVariant = ref(null)
+    const showVariantSearchDialog = ref(false)
+
+    const productVariantFilterLabel = computed(() => {
+      if (selectedVariant.value) {
+        const variantName = selectedVariant.value?.itemName
+          || [selectedVariant.value?.product?.name, selectedVariant.value?.name].filter(Boolean).join(' - ')
+        return `${t('Variant')}: ${variantName || `#${selectedVariant.value?.id}`}`
+      }
+      if (selectedProduct.value) {
+        return `${t('Product')}: ${selectedProduct.value?.name || `#${selectedProduct.value?.id}`}`
+      }
+      return t('AllProducts', 'All Products')
+    })
+
+    const productVariantFilterParams = computed(() => {
+      if (selectedVariant.value?.id) return { variant_id: selectedVariant.value.id }
+      if (selectedProduct.value?.id) return { product_id: selectedProduct.value.id }
+      return {}
+    })
+
+    function onProductSelected(product) {
+      selectedProduct.value = product || null
+      if (product) selectedVariant.value = null
+    }
+
+    function onVariantSelected(variant) {
+      selectedVariant.value = variant || null
+      if (variant) selectedProduct.value = null
+    }
+
+    function clearProductVariantFilter() {
+      selectedProduct.value = null
+      selectedVariant.value = null
+    }
+
+    function selectProduct() {
+      $q.dialog({
+        component: ProductSearchDialog,
+        componentProps: {
+          selected: selectedProduct.value || undefined,
+          ok: { label: t('Done'), color: 'brandblue' },
+          cancel: true,
+        },
+      }).onOk(product => onProductSelected(product))
+    }
+
+    function selectVariant() {
+      showVariantSearchDialog.value = true
+    }
 
     const summaries = ref({
       today:     { data: [].map(() => Object({ total: 0, count: 0, currency: '' })), loading: false, label: t('Today')},
@@ -149,6 +242,7 @@ export default defineComponent({
       const requests = Object.getOwnPropertyNames(rangeTs)
         .map(async range => {
           const data = {
+            ...productVariantFilterParams.value,
             shop_id: marketplaceStore.activeShopId,
             timestamp_from: rangeTs[range].from.toISOString(),
             timestamp_to: rangeTs[range].to.toISOString(),
@@ -219,9 +313,17 @@ export default defineComponent({
     })
 
     watch(salesGraphParams, () => updateSalesGraph(), { deep: true })
+    watch(
+      () => [selectedProduct.value?.id, selectedVariant.value?.id],
+      () => {
+        updateSummary()
+        updateSalesGraph()
+      },
+    )
     onMounted(() => updateSalesGraph())
     function updateSalesGraph() {
       const data = {
+        ...productVariantFilterParams.value,
         timestamp_from: salesGraphParams.value?.range?.from?.toISOString(),
         timestamp_to: salesGraphParams.value?.range?.to?.toISOString(),
         interval: salesGraphParams.value?.interval,
@@ -345,6 +447,16 @@ export default defineComponent({
 
     return {
       summaries,
+
+      selectedProduct,
+      selectedVariant,
+      showVariantSearchDialog,
+      productVariantFilterLabel,
+      onProductSelected,
+      onVariantSelected,
+      clearProductVariantFilter,
+      selectProduct,
+      selectVariant,
 
       predefinedRangeOpts,
       salesGraphParams,

@@ -146,7 +146,10 @@ export default defineComponent({
           pagination.value.offset = response?.data?.offset || 0
         })
         .then(() => {
-          innerSelected.value.forEach(product => {
+          const selectedItems = Array.isArray(innerSelected.value)
+            ? innerSelected.value
+            : [innerSelected.value].filter(Boolean)
+          selectedItems.forEach(product => {
             if (products.value.find(_product => _product?.id == product?.id)) return
             products.value.push(product)
           })
