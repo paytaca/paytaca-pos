@@ -1,4 +1,6 @@
 import axios from "axios";
+import { useWalletStore } from "src/stores/wallet";
+import { useAddressesStore } from "src/stores/addresses";
 import { convertIpfsUrl } from "src/utils/ipfs";
 
 const BCMR_BACKEND_CHIP = axios.create({
@@ -8,23 +10,10 @@ const BCMR_BACKEND_MAIN = axios.create({
   baseURL: "https://bcmr.paytaca.com/api",
 });
 
-let walletStore = null;
-let addressesStore = null;
-
-function getStores() {
-  if (!walletStore) {
-    const { useWalletStore } = require("src/stores/wallet");
-    walletStore = useWalletStore();
-  }
-  if (!addressesStore) {
-    const { useAddressesStore } = require("src/stores/addresses");
-    addressesStore = useAddressesStore();
-  }
-  return { walletStore, addressesStore };
-}
-
 export function getBcmrBackend() {
-  const { walletStore, addressesStore } = getStores();
+  // Resolve stores when called, after Pinia is initialized.
+  const walletStore = useWalletStore();
+  const addressesStore = useAddressesStore();
 
   const address =
     walletStore.firstReceivingAddress ||

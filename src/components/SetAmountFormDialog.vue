@@ -798,7 +798,14 @@ export default defineComponent({
       stopRateRefreshTimer();
     });
 
-    watch(cryptoCurrencyOpts, () => fetchMissingCashtokenDataFromOptions());
+    watch(cryptoCurrencyOpts, (options) => {
+      // Metadata loading replaces option objects; refresh the selected objects too.
+      for (const selection of [selectedCurrency, paymentCurrency]) {
+        const option = options.find((asset) => asset.id === selection.value?.id);
+        if (option) selection.value = option;
+      }
+      fetchMissingCashtokenDataFromOptions();
+    });
     function fetchMissingCashtokenDataFromOptions() {
       for (const asset of cryptoCurrencyOpts.value) {
         if (!asset?.id?.startsWith?.("ct/") || asset?.valid !== false) continue;
