@@ -10,6 +10,7 @@ import { payWithCard, FT_DUST_SATS, isNfcMaintenanceError } from 'src/card/payme
 import { cardSocket } from 'src/card/socket'
 import { createCardPaymentTiming } from 'src/card/timing'
 import { createPreparedCardSession } from 'src/card/prepared-session'
+import { cardElectrumProvider } from 'src/card/contract/provider.js'
 import { loadCardMerchantUser } from 'src/card/user'
 import { toTokenAddress } from 'src/utils/crypto'
 import {
@@ -371,6 +372,7 @@ export function usePaymentTracking({
     if (!shouldScanNfc.value || nfcScannerActive.value) return
 
     cardSocket.warmUp()
+    cardElectrumProvider.warmUp()
     preparedCardSession.warmUp(walletStore.walletHash)
 
     const status = await refreshNfcMaintenance()

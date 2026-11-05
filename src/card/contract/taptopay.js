@@ -15,6 +15,7 @@ import tapToPayV1Artifact from "src/card/contract/tap-to-pay-v1.artifact.json";
 import tapToPayV2Artifact from "src/card/contract/tap-to-pay-v2.artifact.json";
 import Watchtower from 'watchtower-cash-js0.3.1';
 import { normalizeVersionHint } from './version.js';
+import { cardElectrumProvider } from './provider.js';
 
 const watchtower = new Watchtower()
 
@@ -115,7 +116,7 @@ export class TapToPayContract {
             contractCreationParams.category
         ];
 
-        const contract = new Contract(this.artifact, contractParams)
+        const contract = new Contract(this.artifact, contractParams, { provider: cardElectrumProvider })
         return contract;
     }
 
@@ -334,6 +335,11 @@ export class TapToPayContract {
             .from(inputs)
             .to(outputs)
 
+        // Read the height independently on every rebuild. Supplying it as the
+        // locktime avoids the identical implicit lookup inside tx.build(), and
+        // separates network time from the local build in the timing logs.
+        const blockHeight = await measure('validation_block_height', () => contract.provider.getBlockHeight())
+        tx.withTime(blockHeight)
         const builtHex = await measure('validation_tx_build', () => tx.build())
         const builtTx = decodeTransaction(hexToBin(builtHex))
         if (typeof builtTx === 'string') {
