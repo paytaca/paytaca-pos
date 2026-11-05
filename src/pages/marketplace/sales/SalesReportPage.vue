@@ -48,22 +48,7 @@
           v-for="(summary, key) in summaries" :key="key"
           class="col-6 col-sm-4 q-pa-sm"
         >
-          <q-card style="height:100%;">
-            <q-card-section>
-              <div class="row items-center">
-                <div class="text-subtitle1">{{ summary?.label }}</div>
-                <q-spinner v-if="summary?.loading" class="q-ml-xs"/> 
-              </div>
-              <template v-if="summary.data?.length">
-                <div v-for="(report, index) in summary.data" :key="index">
-                  {{ formatCurrencyAmount(report?.total) }} {{ report?.currency }}
-                </div>
-              </template>
-              <div v-else class="text-grey">
-                {{ $t('None') }}
-              </div>
-            </q-card-section>
-          </q-card>
+          <SalesReportSummaryCard :summary="summary" />
         </div>
       </div>
 
@@ -103,23 +88,65 @@
           </q-list>
         </q-btn-dropdown>
       </div>
+      <div class="row items-center q-mt-xs">
+        <div class="text-caption text-grey q-mr-sm">{{ $t('Show', 'Show') }}:</div>
+        <q-option-group
+          :disable="salesGraph.loading"
+          inline
+          :options="salesGraphMetricOptions"
+          v-model="salesGraphMetric"
+        />
+      </div>
       <div class="column items-center" style="overflow-x:auto;overflow-y:clip;">
         <VueApexCharts
+          v-if="salesGraphChart.series.length"
           class="chart"
-          :type="salesGraphChart?.options?.xaxis?.categories?.length > 5 ? 'bar' : 'bar'"
+          type="bar"
           :options="salesGraphChart.options"
           :series="salesGraphChart.series"
         />
-        <!-- <div class="q-px-sm">
-          <div v-for="(data, index) in salesGraph?.data" :key="index" class="row">
-            <div v-if="salesGraph?.data?.[index-1]?.timestamp != data?.timestamp">
-              {{ formatDate(data?.timestamp, salesGraph?.interval) || data?.timestamp }}
-            </div>
-            <q-space/>
-            <div>{{ data?.total }} {{ data?.currency }}</div>
-          </div>
-        </div> -->
+        <div v-else-if="!salesGraph.loading" class="text-grey q-py-md">
+          {{ $t('None') }}
+        </div>
       </div>
+      <q-table
+        class="q-mt-md full-width"
+        :loading="salesGraph.loading"
+        :loading-label="$t('Loading')"
+        :columns="salesReportTableColumns"
+        :rows="salesReportRows"
+        :no-data-label="$t('None')"
+        row-key="key"
+        :pagination="{ rowsPerPage: 0 }"
+        hide-pagination
+        binary-state-sort
+      >
+        <template v-slot:body-cell-timestamp="props">
+          <q-td :props="props">
+            {{ formatDate(props.row?.timestamp, salesGraph.interval) || props.row?.timestamp }}
+          </q-td>
+        </template>
+        <template v-slot:body-cell-total="props">
+          <q-td :props="props">
+            {{ formatMoney(props.row?.total, props.row?.currency) }}
+          </q-td>
+        </template>
+        <template v-slot:body-cell-count="props">
+          <q-td :props="props">
+            {{ formatCount(props.row?.count) }}
+          </q-td>
+        </template>
+        <template v-slot:body-cell-total_profit="props">
+          <q-td :props="props" :class="profitColor(props.row?.total_profit)">
+            {{ formatMoney(props.row?.total_profit, props.row?.currency) }}
+          </q-td>
+        </template>
+        <template v-slot:body-cell-total_uncosted="props">
+          <q-td :props="props" :class="props.row?.total_uncosted > 0 ? 'text-warning' : ''">
+            {{ formatMoney(props.row?.total_uncosted, props.row?.currency) }}
+          </q-td>
+        </template>
+      </q-table>
       <VariantSearchDialog
         v-model="showVariantSearchDialog"
         hide-scanner
@@ -137,6 +164,7 @@ import { useI18n } from 'vue-i18n'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import MarketplaceHeader from 'src/components/marketplace/MarketplaceHeader.vue'
 import ProductSearchDialog from 'src/components/marketplace/ProductSearchDialog.vue'
+import SalesReportSummaryCard from 'src/components/marketplace/sales/SalesReportSummaryCard.vue'
 import VariantSearchDialog from 'src/components/marketplace/sales/VariantSearchDialog.vue'
 import VueApexCharts from "vue3-apexcharts";
 
@@ -145,6 +173,7 @@ export default defineComponent({
   components: {
     VueApexCharts,
     MarketplaceHeader,
+    SalesReportSummaryCard,
     VariantSearchDialog,
   },
   setup() {
@@ -307,10 +336,20 @@ export default defineComponent({
           timestamp: '',
           count: 0,
           total: 0,
+          total_profit: 0,
+          total_uncosted: 0,
           currency: '',
         }
       })
     })
+
+    const salesGraphMetric = ref('total')
+    const salesGraphMetricOptions = computed(() => [
+      { label: t('Sales'), value: 'total' },
+      { label: t('Profit', 'Profit'), value: 'total_profit' },
+      { label: t('Uncosted', 'Uncosted'), value: 'total_uncosted' },
+      { label: t('Transactions'), value: 'count' },
+    ])
 
     watch(salesGraphParams, () => updateSalesGraph(), { deep: true })
     watch(
@@ -349,44 +388,82 @@ export default defineComponent({
     }
 
     const groupedSalesGraphData = computed(() => {
-      const groupedData = [].map(() => {
-        return {
-          timestamp: '', summaries: [{ currency: '', total: 0, count: 0 }],
-        }
-      })
-      salesGraph.value.data.forEach(data => {
+      const groupedData = []
+      const graphData = Array.isArray(salesGraph.value.data) ? salesGraph.value.data : []
+      graphData.forEach(data => {
         const group = groupedData.find(g => g?.timestamp == data?.timestamp) || { timestamp: data?.timestamp, summaries: []}
         group.summaries.push({
           currency: data?.currency,
           total: data?.total,
           count: data?.count,
+          total_profit: data?.total_profit,
+          total_uncosted: data?.total_uncosted,
         })
         if (groupedData.indexOf(group) < 0) groupedData.push(group)
       })
 
-      groupedData.reverse()
+      groupedData.sort((group1, group2) => {
+        const date1 = new Date(group1?.timestamp)
+        const date2 = new Date(group2?.timestamp)
+        if (isNaN(date1 * 1) || isNaN(date2 * 1)) return 0
+        return date1 - date2
+      })
       return groupedData
     })
 
+    const salesReportRows = computed(() => {
+      const graphData = Array.isArray(salesGraph.value.data) ? salesGraph.value.data : []
+      return graphData.map((report, index) => {
+        return {
+          key: `${report?.timestamp}-${report?.currency}-${index}`,
+          timestamp: report?.timestamp,
+          currency: report?.currency,
+          total: report?.total,
+          count: report?.count,
+          total_profit: report?.total_profit,
+          total_uncosted: report?.total_uncosted,
+        }
+      }).sort((row1, row2) => {
+        const date1 = new Date(row1?.timestamp)
+        const date2 = new Date(row2?.timestamp)
+        if (isNaN(date1 * 1) || isNaN(date2 * 1)) return 0
+        if (date1 - date2 !== 0) return date2 - date1
+        return String(row1?.currency || '').localeCompare(String(row2?.currency || ''))
+      })
+    })
+
+    const salesReportTableColumns = computed(() => [
+      { name: 'timestamp', label: t('Date'), field: 'timestamp', align: 'left', sortable: true },
+      { name: 'currency', label: t('Currency'), field: 'currency', align: 'left', sortable: true },
+      { name: 'total', label: t('Sales'), field: 'total', align: 'right', sortable: true },
+      { name: 'count', label: t('Transactions'), field: 'count', align: 'right', sortable: true },
+      { name: 'total_profit', label: t('Profit', 'Profit'), field: 'total_profit', align: 'right', sortable: true },
+      { name: 'total_uncosted', label: t('UncostedSales', 'Uncosted sales'), field: 'total_uncosted', align: 'right', sortable: true },
+    ])
+
     const salesGraphChart = computed(() => {
+      const metric = salesGraphMetric.value
+      const isCount = metric === 'count'
       const data = {
         options: {
           theme: { mode: $q.dark.isActive ? 'dark' : 'light' },
-          xaxis: {
-            categories: [1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998],
+          xaxis: { categories: [] },
+          chart: { width: '100%', height: '100%', toolbar: { show: false } },
+          plotOptions: { bar: { columnWidth: '55%', borderRadius: 3 } },
+          dataLabels: { enabled: false },
+          legend: { position: 'bottom' },
+          yaxis: {
+            labels: {
+              formatter: value => isCount ? formatCount(value) : formatCurrencyAmount(value),
+            },
           },
-          chart: { width: '100%', height: '100%' },
+          tooltip: {
+            y: {
+              formatter: value => isCount ? formatCount(value) : formatCurrencyAmount(value),
+            },
+          },
         },
-        series: [
-          {
-            name: "series-1",
-            data: [30, 40, 45, 50, 49, 60, 70, 81],
-          },
-          {
-            name: "series-2",
-            data: [32, 30, 15, 80, 29, 80, 30, 51],
-          },
-        ],
+        series: [],
       }
 
       const currencies = []
@@ -400,14 +477,15 @@ export default defineComponent({
 
       data.options.xaxis.categories = groupedSalesGraphData.value
         .map(group => group.timestamp)
-        .map(timestamp => formatDate(timestamp, salesGraph.value.interval))
-      
+        .map(timestamp => formatDate(timestamp, salesGraph.value.interval) || timestamp)
+
       data.series = currencies.map(currency => {
         return {
           name: currency,
-          data: groupedSalesGraphData.value.map(group =>  {
-            return formatCurrencyAmount(group.summaries.find(summary => summary?.currency === currency)?.total || null)
-          })
+          data: groupedSalesGraphData.value.map(group => {
+            const summary = group.summaries.find(summary => summary?.currency === currency)
+            return Number(summary?.[metric] || 0)
+          }),
         }
       })
 
@@ -427,6 +505,40 @@ export default defineComponent({
       } finally {
         done()
       }
+    }
+
+    function toNumber(value) {
+      if (value === null || value === undefined || value === '') return NaN
+      return Number(value)
+    }
+
+    /**
+     * @param {Number | String} value
+     * @param {String} currency
+     */
+    function formatMoney(value, currency) {
+      const amount = toNumber(value)
+      if (!Number.isFinite(amount)) return '—'
+      const text = formatCurrencyAmount(amount)
+      return currency ? `${text} ${currency}` : text
+    }
+
+    /**
+     * @param {Number | String} value
+     */
+    function formatCount(value) {
+      const amount = toNumber(value)
+      if (!Number.isFinite(amount)) return '0'
+      return new Intl.NumberFormat(navigator.language).format(amount)
+    }
+
+    /**
+     * @param {Number | String} value
+     */
+    function profitColor(value) {
+      const amount = toNumber(value)
+      if (!Number.isFinite(amount) || amount === 0) return 'text-grey'
+      return amount < 0 ? 'text-negative' : 'text-positive'
     }
 
     /**
@@ -462,11 +574,18 @@ export default defineComponent({
       salesGraphParams,
       salesGraph,
       salesGraphChart,
+      salesGraphMetric,
+      salesGraphMetricOptions,
+      salesReportRows,
+      salesReportTableColumns,
       refreshPage,
 
       // utils funcs
       formatDate,
       formatCurrencyAmount,
+      formatMoney,
+      formatCount,
+      profitColor,
     }
   },
 })
