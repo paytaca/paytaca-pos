@@ -1,4 +1,5 @@
 import { getPrivateKeyWif } from "./user"
+import { createCardPaymentTiming } from "./timing"
 import { signPreimages } from "./utils"
 import { backend } from "./backend"
 import { cardSocket, delay } from "./socket"
@@ -109,13 +110,13 @@ async function resolveCardContract(contractParameters) {
  * @param {Object} recipient
  * @returns {Promise<{ txHex: string, preimages: Array, inputs: Array }>}
  */
-async function buildExpectedSpend(activeContractParameters, merchant, recipient) {
+async function buildExpectedSpend(activeContractParameters, merchant, recipient, timing) {
   const contract = new TapToPayContract(
     activeContractParameters.backendPk,
     activeContractParameters.category,
     activeContractParameters.version
   )
-  return contract.generateSpendPreimages({ merchant, recipient })
+  return contract.generateSpendPreimages({ merchant, recipient, timing })
 }
 
 /**
@@ -131,11 +132,11 @@ async function buildExpectedSpend(activeContractParameters, merchant, recipient)
  * @param {Object} param0.recipient
  * @returns {Promise<void>}
  */
-async function validatePreimages({ activeVersion, server, activeContractParameters, merchant, recipient }) {
+async function validatePreimages({ activeVersion, server, activeContractParameters, merchant, recipient, timing }) {
   console.log('Validating preimages...');
   const startTime = performance.now();
 
-  const expected = await buildExpectedSpend(activeContractParameters, merchant, recipient)
+  const expected = await buildExpectedSpend(activeContractParameters, merchant, recipient, timing)
   verifySpendBuild({ activeVersion, server, expected })
 
   const endTime = performance.now();
@@ -262,17 +263,15 @@ async function requestPreimagesOnce({ merchantId, receivingAddress, amountSats, 
  * only payment stage safe to retry after authentication; spend/finalization
  * never calls this recovery path.
  */
-async function requestPreimages(params) {
-  await ensureNfcNotUnderMaintenance()
-
+async function requestPreimages(params, timing) {
   let reauthenticated = false
   for (;;) {
     try {
-      return await requestPreimagesOnce(params)
+      return await timing.stage('preimage_request', () => requestPreimagesOnce(params))
     } catch (error) {
       if (!reauthenticated && shouldReauthenticateCardRequest('preimage', error)) {
         reauthenticated = true
-        await reauthenticateCardMerchant()
+        await timing.stage('reauthentication', () => reauthenticateCardMerchant())
         continue
       }
       throw error
@@ -418,114 +417,126 @@ async function requestSpend(uid, { merchantId, toAddress, txId, signatures }) {
   * @param {object} params.contractParameters - The contract parameters for rebuilding the contract
   * @param {string} [params.tokenCategory] - FT category hex, omit for BCH taps
   * @param {string|number} [params.tokenAmount] - FT base units, omit for BCH taps
+  * @param {object} [params.timing] - Shared timing started at NFC detection
   * @returns {Promise<object>} The response data from the spend transaction
   */
-export async function payWithCard({ uid, merchantId, receivingAddress, amountSats, url, contractParameters, tokenCategory, tokenAmount }) {
-  // time the entire payWithCard process
-  const startTime = performance.now();
-  console.log('Starting payWithCard process...');
+export async function payWithCard({ uid, merchantId, receivingAddress, amountSats, url, contractParameters, tokenCategory, tokenAmount, timing: suppliedTiming }) {
+  const timing = suppliedTiming || createCardPaymentTiming()
+  let outcome = 'failed'
+  try {
+    // time the entire payWithCard process
+    const startTime = performance.now();
+    console.log('Starting payWithCard process...');
 
-  const { piccData, cmac } = await parseUrl(url);
+    const { piccData, cmac } = await timing.stage('parse_card_url', () => parseUrl(url));
 
-  // Connection-state check: make sure the persistent socket is open before
-  // processing the tap. If it is not ready yet (handshake in progress or stale),
-  // wait for/trigger a reconnect rather than assuming readiness. On failure the
-  // per-request helpers fall back to HTTPS so taps still succeed.
-  const socketReady = await cardSocket.ensureConnected({ timeout: SOCKET_CONNECT_TIMEOUT_MS });
-  if (socketReady) {
-    console.log('Card socket connected, using persistent WebSocket for payment.');
-  } else {
-    console.warn('Card socket not ready, falling back to HTTPS for payment.');
+    const isFtTap = tokenCategory != null && tokenAmount != null;
+
+    // These reads are independent. Complete all gates before creating a server
+    // preimage record, preserving the full TTL for validation and signing.
+    const preparation = await Promise.allSettled([
+      timing.stage('socket_connection', () => cardSocket.ensureConnected({ timeout: SOCKET_CONNECT_TIMEOUT_MS })),
+      timing.stage('contract_resolution', () => resolveCardContract(contractParameters)),
+      timing.stage('maintenance_check', () => ensureNfcNotUnderMaintenance()),
+    ]);
+    for (const result of preparation) {
+      if (result.status === 'rejected') throw result.reason;
+    }
+    const socketReady = preparation[0].value;
+    const resolution = preparation[1].value;
+    if (socketReady) {
+      console.log('Card socket connected, using persistent WebSocket for payment.');
+    } else {
+      console.warn('Card socket not ready, falling back to HTTPS for payment.');
+    }
+
+    const activeContractParameters = {
+      backendPk: contractParameters.backendPk,
+      category: resolution.activeCategory,
+      version: resolution.activeVersion
+    };
+
+    const data = await requestPreimages({
+      merchantId,
+      receivingAddress,
+      amountSats,
+      piccData,
+      cmac,
+      ...(isFtTap ? { tokenCategory, tokenAmount } : {})
+    }, timing);
+
+    // The backend reports which contract version it built for. It is only a hint:
+    // it MUST equal the on-chain active version or we refuse to sign.
+    const contractVersion = data.contract_version;
+    console.log('Card contract version from preimage response:', contractVersion ?? '(default)');
+    // Check before loading the merchant key or rebuilding a transaction for a
+    // version that the server did not use. This applies to BCH and FT taps.
+    assertServerVersionMatches(contractVersion, resolution.activeVersion);
+
+    // The preimage record is bound to this server-generated tx_id for the whole
+    // preimage -> card-signing -> spend flow. The spend step echoes it back.
+    const txId = data.tx_id;
+    if (!txId) {
+      throw new Error('Preimage response did not include a tx_id; cannot finalize the spend');
+    }
+    const preimageReceivedAt = performance.now();
+
+    const privkey = await timing.stage('merchant_key_load', () => getPrivateKeyWif())
+    if (!privkey) {
+      throw new Error('Merchant private key not found. Please enable NFC payments in Settings first.')
+    }
+    const merchant = {
+      id: merchantId,
+      pubkey: getPublicKeyFromPrivate(privkey)
+    }
+
+    const recipient = {
+      address: receivingAddress,
+      amount: amountSats
+    }
+
+    // Local validation rebuilds the BCH-only spend; the server-built FT tx
+    // carries extra FT inputs/outputs, so FT taps skip the byte-for-byte rebuild
+    // and rely on tx_id replay from the server's stored record in the spend step.
+    // Both paths have already enforced the resolved version rule above.
+    if (!isFtTap) {
+      await timing.stage('local_validation', () => validatePreimages({
+        activeVersion: resolution.activeVersion,
+        server: data,
+        activeContractParameters,
+        merchant,
+        recipient,
+        timing
+      }));
+    }
+
+    const preimages = data.preimages;
+    const signatures = (await timing.stage('signing', () => signPreimages({
+      preimages,
+      wif: privkey
+    }))).map(({ inputIndex, merchantSigHex }) => ({ inputIndex, merchantSigHex }));
+
+    // Guard against slow card signing crossing the server's record window
+    // (TRANSACTION_TTL_SECONDS). If the tx_id has likely expired, a new tap is
+    // required and retrying the spend would only fail.
+    const elapsedMs = performance.now() - preimageReceivedAt;
+    if (elapsedMs > PREIMAGE_TTL_MS - PREIMAGE_TTL_MARGIN_MS) {
+      throw new Error('Spend preimage record expired; please tap the card again to retry');
+    }
+
+    const spendData = await timing.stage('spend_request', () => requestSpend(uid, {
+      merchantId,
+      toAddress: receivingAddress,
+      txId,
+      signatures
+    }));
+
+    const endTime = performance.now();
+    console.log('payWithCard process completed successfully in', (endTime - startTime) / 1000, 'seconds');
+
+    outcome = spendData?.success ? 'success' : 'unsuccessful'
+    return spendData
+  } finally {
+    if (!suppliedTiming) timing.finish(outcome)
   }
-
-  const isFtTap = tokenCategory != null && tokenAmount != null;
-
-  // Resolve the ACTIVE contract on-chain first. This both fails fast before we
-  // ask the server for anything, and avoids burning the server's preimage TTL
-  // on a card whose active version we cannot confirm.
-  const resolution = await resolveCardContract(contractParameters);
-  const activeContractParameters = {
-    backendPk: contractParameters.backendPk,
-    category: resolution.activeCategory,
-    version: resolution.activeVersion
-  };
-
-  const data = await requestPreimages({
-    merchantId,
-    receivingAddress,
-    amountSats,
-    piccData,
-    cmac,
-    ...(isFtTap ? { tokenCategory, tokenAmount } : {})
-  });
-
-  // The backend reports which contract version it built for. It is only a hint:
-  // it MUST equal the on-chain active version or we refuse to sign.
-  const contractVersion = data.contract_version;
-  console.log('Card contract version from preimage response:', contractVersion ?? '(default)');
-  // Check before loading the merchant key or rebuilding a transaction for a
-  // version that the server did not use. This applies to BCH and FT taps.
-  assertServerVersionMatches(contractVersion, resolution.activeVersion);
-
-  // The preimage record is bound to this server-generated tx_id for the whole
-  // preimage -> card-signing -> spend flow. The spend step echoes it back.
-  const txId = data.tx_id;
-  if (!txId) {
-    throw new Error('Preimage response did not include a tx_id; cannot finalize the spend');
-  }
-  const preimageReceivedAt = performance.now();
-
-  const privkey = await getPrivateKeyWif()
-  if (!privkey) {
-    throw new Error('Merchant private key not found. Please enable NFC payments in Settings first.')
-  }
-  const merchant = { 
-    id: merchantId,
-    pubkey: getPublicKeyFromPrivate(privkey)
-  }
-
-  const recipient = { 
-    address: receivingAddress, 
-    amount: amountSats 
-  }
-
-  // Local validation rebuilds the BCH-only spend; the server-built FT tx
-  // carries extra FT inputs/outputs, so FT taps skip the byte-for-byte rebuild
-  // and rely on tx_id replay from the server's stored record in the spend step.
-  // Both paths have already enforced the resolved version rule above.
-  if (!isFtTap) {
-    await validatePreimages({
-      activeVersion: resolution.activeVersion,
-      server: data,
-      activeContractParameters,
-      merchant,
-      recipient
-    });
-  }
-
-  const preimages = data.preimages;
-  const signatures = (await signPreimages({
-    preimages,
-    wif: privkey
-  })).map(({ inputIndex, merchantSigHex }) => ({ inputIndex, merchantSigHex }));
-
-  // Guard against slow card signing crossing the server's record window
-  // (TRANSACTION_TTL_SECONDS). If the tx_id has likely expired, a new tap is
-  // required and retrying the spend would only fail.
-  const elapsedMs = performance.now() - preimageReceivedAt;
-  if (elapsedMs > PREIMAGE_TTL_MS - PREIMAGE_TTL_MARGIN_MS) {
-    throw new Error('Spend preimage record expired; please tap the card again to retry');
-  }
-
-  const spendData = await requestSpend(uid, {
-    merchantId,
-    toAddress: receivingAddress,
-    txId,
-    signatures
-  });
-  
-  const endTime = performance.now();
-  console.log('payWithCard process completed successfully in', (endTime - startTime) / 1000, 'seconds');
-
-  return spendData
 }

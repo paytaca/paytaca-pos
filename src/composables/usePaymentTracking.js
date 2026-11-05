@@ -8,6 +8,8 @@ import { Capacitor } from '@capacitor/core'
 import { startNFCScan, stopNFCScan } from 'src/utils/nfcScanner'
 import { payWithCard, FT_DUST_SATS, isNfcMaintenanceError } from 'src/card/payment'
 import { cardSocket } from 'src/card/socket'
+import { createCardPaymentTiming } from 'src/card/timing'
+import { createPreparedCardSession } from 'src/card/prepared-session'
 import { loadCardMerchantUser } from 'src/card/user'
 import { toTokenAddress } from 'src/utils/crypto'
 import {
@@ -363,9 +365,13 @@ export function usePaymentTracking({
   }
 
   const nfcStatusNotification = ref(null)
+  const preparedCardSession = createPreparedCardSession(loadCardMerchantUser)
 
   async function setupNFCScanner(onCancel) {
     if (!shouldScanNfc.value || nfcScannerActive.value) return
+
+    cardSocket.warmUp()
+    preparedCardSession.warmUp(walletStore.walletHash)
 
     const status = await refreshNfcMaintenance()
     const { blocked } = shouldBlockNfcTap(status, getRunningAppVersion())
@@ -385,6 +391,7 @@ export function usePaymentTracking({
   }
 
   async function stopNFCScanner() {
+    preparedCardSession.clear()
     if (!nfcScannerActive.value) return
 
     try {
@@ -406,67 +413,73 @@ export function usePaymentTracking({
   }
 
   async function handleNFCData(data) {
-
-    $q.loading.show({
-      message: t('ProcessingCardPayment', 'Processing card payment...'),
-      boxClass: 'bg-grey-2 text-grey-9',
-      spinnerColor: 'primary'
-    })
-
-    console.log('NFC listener status received:', data)
-    if (data?.records?.length != 2) {
-      console.error('Invalid NFC data received:', data)
-      $q.loading.hide()
-      stopNFCScanner()
-      return
-    }
-
-    const records = data.records
-    const urlRecord = records.find(record => record.type === 'uri')
-    const textRecord = records.find(record => record.type === 'text')
-
-    if (!urlRecord || !textRecord) {
-      console.error('NFC data missing required URI or text records:', data)
-      $q.loading.hide()
-      stopNFCScanner()
-      return
-    }
-
-    const uid = data.uid
-    const url = urlRecord.payload
-    const contractParams = textRecord.payload
-    let merchant = null
-
-    // Warm up the persistent card socket in parallel with the merchant user
-    // load so the connection is ready (or reconnected) by the time the tap is
-    // processed, reducing the first-tap latency.
-    cardSocket.warmUp()
-
+    // Total ends at the spend response, before the success dialog and the
+    // separate Watchtower receipt notification (not block confirmation).
+    const timing = createCardPaymentTiming()
     try {
-      merchant = await loadCardMerchantUser()    
-    } catch (error) {
-      $q.loading.hide()
-      console.error('Error loading merchant user from NFC data:', error)
-      if (error.message === 'No private key WIF found for current wallet') {
-        nfcStatusNotification.value = $q.notify({
-          classes: 'q-mt-lg',
-          position: 'top',
-          timeout: 3000,
-          icon: 'mdi-close-circle',
-          color: 'primary',
-          message: 'Please set up a wallet first to enable NFC payments.',
-        })
+      $q.loading.show({
+        message: t('ProcessingCardPayment', 'Processing card payment...'),
+        boxClass: 'bg-grey-2 text-grey-9',
+        spinnerColor: 'primary'
+      })
+
+      console.log('NFC listener status received:', data)
+      if (data?.records?.length != 2) {
+        console.error('Invalid NFC data received:', data)
+        $q.loading.hide()
+        stopNFCScanner()
         return
       }
 
-      showNfcPaymentError(error)
-      return
-    }
-    
-    await onNFCUrlReceived({ merchant, uid, url, contractParams })
-  } 
+      const records = data.records
+      const urlRecord = records.find(record => record.type === 'uri')
+      const textRecord = records.find(record => record.type === 'text')
 
-  async function onNFCUrlReceived({ merchant, uid, url, contractParams }) {
+      if (!urlRecord || !textRecord) {
+        console.error('NFC data missing required URI or text records:', data)
+        $q.loading.hide()
+        stopNFCScanner()
+        return
+      }
+
+      const uid = data.uid
+      const url = urlRecord.payload
+      const contractParams = textRecord.payload
+      let merchant = null
+
+      // Warm up the persistent card socket in parallel with the merchant user
+      // load so the connection is ready (or reconnected) by the time the tap is
+      // processed, reducing the first-tap latency.
+      cardSocket.warmUp()
+
+      try {
+        merchant = await timing.stage('merchant_session_load', () => preparedCardSession.get(walletStore.walletHash))
+      } catch (error) {
+        $q.loading.hide()
+        console.error('Error loading merchant user from NFC data:', error)
+        if (error.message === 'No private key WIF found for current wallet') {
+          nfcStatusNotification.value = $q.notify({
+            classes: 'q-mt-lg',
+            position: 'top',
+            timeout: 3000,
+            icon: 'mdi-close-circle',
+            color: 'primary',
+            message: 'Please set up a wallet first to enable NFC payments.',
+          })
+          return
+        }
+
+        showNfcPaymentError(error)
+        return
+      }
+
+      await onNFCUrlReceived({ merchant, uid, url, contractParams, timing })
+    } finally {
+      timing.finish('failed')
+    }
+  }
+
+  async function onNFCUrlReceived({ merchant, uid, url, contractParams, timing }) {
     console.log('Processing NFC URL received:', { merchant, uid, url, contractParams })
 
     const cashAddress = addressSet.value?.receiving
@@ -538,7 +551,8 @@ export function usePaymentTracking({
 
     console.log('Spending with params:', params)
     try {
-      const result = await payWithCard(params)
+      const result = await payWithCard({ ...params, timing })
+      timing.finish(result?.success ? 'success' : 'unsuccessful')
       console.log('Payment result:', result)
       if (result?.success) {
         showNfcPaymentSuccess()

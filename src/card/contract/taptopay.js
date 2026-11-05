@@ -203,11 +203,12 @@ export class TapToPayContract {
      * Gets the merchant authentication category and the corresponding auth ownership token.
      * @returns {Promise<{ authOwnershipToken: Object, authCategory: string }>} The auth ownership token and its category
      */
-    async getMerchantAuthCategory () {
+    async getMerchantAuthCategory (timing) {
         // Get ownership tokens
         const ownershipCategory = this.params.category
         const tokenAddress = this.getTokenAddress()
-        const ownershipTokens = await this.getTokenUtxos(ownershipCategory, tokenAddress)
+        const fetchOwnership = () => this.getTokenUtxos(ownershipCategory, tokenAddress)
+        const ownershipTokens = await (timing ? timing.stage('validation_ownership_fetch', fetchOwnership) : fetchOwnership())
 
         // Find the auth ownership token
         let authCategory
@@ -234,14 +235,21 @@ export class TapToPayContract {
      * @param {bigint} param0.recipient.amount - The amount to send in satoshis
      * @returns {Promise<{ txHex: string, preimages: Array, inputs: Array }>} The built transaction hex, preimages, and inputs
      */
-    async generateSpendPreimages({ merchant, recipient }) {
+    async generateSpendPreimages({ merchant, recipient, timing }) {
         const backendPk = this.params.backendPk
         const contract = this.getRawContract();
-        const { utxos } = await this.getBchUtxos()
-        const bchUtxos = sortUtxos(utxos.filter(utxo => utxo.token === undefined))
+        const measure = (name, operation) => timing ? timing.stage(name, operation) : operation()
         const tokenAddress = this.getTokenAddress()
-        const {authOwnershipToken, authCategory: merchantAuthCategory} = await this.getMerchantAuthCategory()
-        const authTokenUtxos = await this.getTokenUtxos(merchantAuthCategory, tokenAddress)
+        // BCH funding is independent of the ownership -> authorization chain.
+        const [{ utxos }, { authOwnershipToken, authTokenUtxos, merchantAuthCategory }] = await Promise.all([
+            measure('validation_bch_fetch', () => this.getBchUtxos()),
+            (async () => {
+                const { authOwnershipToken, authCategory: merchantAuthCategory } = await this.getMerchantAuthCategory(timing)
+                const authTokenUtxos = await measure('validation_auth_fetch', () => this.getTokenUtxos(merchantAuthCategory, tokenAddress))
+                return { authOwnershipToken, authTokenUtxos, merchantAuthCategory }
+            })()
+        ])
+        const bchUtxos = sortUtxos(utxos.filter(utxo => utxo.token === undefined))
 
         // Segregate the global auth token and merchant-specific auth tokens
         let globalAuthNft
@@ -326,7 +334,7 @@ export class TapToPayContract {
             .from(inputs)
             .to(outputs)
 
-        const builtHex = await tx.build()
+        const builtHex = await measure('validation_tx_build', () => tx.build())
         const builtTx = decodeTransaction(hexToBin(builtHex))
         if (typeof builtTx === 'string') {
             throw new Error(`Failed to decode built transaction: ${builtTx}`)
