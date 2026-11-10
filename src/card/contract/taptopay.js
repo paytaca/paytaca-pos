@@ -1,22 +1,18 @@
-import { Contract, placeholderSignature } from "cashscript0.11.5";
-import { createSighashPreimage, cashScriptOutputToLibauthOutput } from 'cashscript/dist/utils.js';
-import { scriptToBytecode } from '@cashscript/utils';
+import { Contract } from "cashscript0.11.5";
 import { 
     toTokenAddress, 
     reverseHex,
-    decodeCommitment,
-    encodeMerchantHash,
     decodeOwnershipCommitment,
-    sortUtxos,
     pubkeyToPkHash
-} from "src/card/utils";
-import { binToHex, decodeTransaction, hexToBin, utf8ToBin } from '@bitauth/libauth';
+} from "../utils.js";
 import tapToPayV1Artifact from "src/card/contract/tap-to-pay-v1.artifact.json";
 import tapToPayV2Artifact from "src/card/contract/tap-to-pay-v2.artifact.json";
+import historicalV1Artifact from "src/card/contract/tap-to-pay-v1-pre-mutate.artifact.json";
+import { buildSpendPreimages } from "./spend.js";
+import { supportedRevisions } from "./revisions.js";
 import Watchtower from 'watchtower-cash-js0.3.1';
 import { normalizeVersionHint } from './version.js';
 import { cardElectrumProvider } from './provider.js';
-import { buildWithServerLocktime } from './locktime.js';
 
 const watchtower = new Watchtower()
 
@@ -76,7 +72,7 @@ export class TapToPayContract {
      * @param {string} category - The contract ownership token category
      * @param {string|number} [version] - Contract version to instantiate (origin or active)
      */
-    constructor(backendPk, category, version) {
+    constructor(backendPk, category, version, revision = 'current') {
         this.params = {
             backendPk: backendPk,
             backendPkh: pubkeyToPkHash(backendPk),
@@ -84,7 +80,11 @@ export class TapToPayContract {
         };
         const { key, artifact } = tapToPayArtifactForVersion(version);
         this.version = key;
-        this._artifact = artifact;
+        if (!supportedRevisions(Number(key.slice(1))).includes(revision)) {
+            throw new Error(`Unsupported TapToPay script revision: ${revision}`);
+        }
+        this.revision = revision;
+        this._artifact = revision === 'pre-mutate-v1' ? historicalV1Artifact : artifact;
     }
 
     /**
@@ -164,27 +164,29 @@ export class TapToPayContract {
      *   chain read failure never degrades into "no pointer / not migrated".
      * @returns {Promise<Array>}
      */
-    async getTokenUtxos(tokenId, tokenAddress, { throwOnError = false } = {}) {
+    async getTokenUtxos(tokenId, tokenAddress, { throwOnError = false, isNft = true } = {}) {
         let result = []
         try {
             const response = await watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/${tokenId}/`, {
                 params: {
-                    is_cashtoken_nft: true
+                    is_cashtoken_nft: isNft
                 }}
             )
+            if (!Array.isArray(response.data?.utxos)) {
+                throw new Error('Malformed token UTXO response')
+            }
             result = response.data?.utxos?.map(utxo => ({
                 txid: utxo.txid,
                 token: {
                     category: utxo.tokenid,
                     amount: BigInt(utxo.amount),
-                    nft: {
-                        capability: utxo.capability,
-                        commitment: utxo.commitment,
-                    }
+                    ...(isNft || utxo.capability != null || utxo.commitment ? {
+                        nft: { capability: utxo.capability, commitment: utxo.commitment }
+                    } : {})
                 },
                 vout: utxo.vout,
                 satoshis: BigInt(utxo.value)
-            })) || []
+            }))
         } catch (error) {
             console.error('Error fetching token UTXOs:', error)
             if (throwOnError) throw error
@@ -209,14 +211,14 @@ export class TapToPayContract {
         // Get ownership tokens
         const ownershipCategory = this.params.category
         const tokenAddress = this.getTokenAddress()
-        const fetchOwnership = () => this.getTokenUtxos(ownershipCategory, tokenAddress)
+        const fetchOwnership = () => this.getTokenUtxos(ownershipCategory, tokenAddress, { throwOnError: true })
         const ownershipTokens = await (timing ? timing.stage('validation_ownership_fetch', fetchOwnership) : fetchOwnership())
 
         // Find the auth ownership token
         let authCategory
         const authOwnershipToken = ownershipTokens.find(utxo => {
             const decodedCommitment = utxo.token?.nft?.commitment ? decodeOwnershipCommitment(utxo.token.nft.commitment) : undefined
-            if (decodedCommitment.type === 'cat') {
+            if (utxo.token?.category === ownershipCategory && decodedCommitment?.type === 'cat') {
                 authCategory = decodedCommitment.value
                 return true
             }
@@ -239,138 +241,22 @@ export class TapToPayContract {
      * @returns {Promise<{ txHex: string, preimages: Array, inputs: Array }>} The built transaction hex, preimages, and inputs
      */
     async generateSpendPreimages({ merchant, recipient, timing, locktime }) {
-        const backendPk = this.params.backendPk
-        const contract = this.getRawContract();
-        const measure = (name, operation) => timing ? timing.stage(name, operation) : operation()
         const tokenAddress = this.getTokenAddress()
-        // BCH funding is independent of the ownership -> authorization chain.
-        const [{ utxos }, { authOwnershipToken, authTokenUtxos, merchantAuthCategory }] = await Promise.all([
-            measure('validation_bch_fetch', () => this.getBchUtxos()),
-            (async () => {
-                const { authOwnershipToken, authCategory: merchantAuthCategory } = await this.getMerchantAuthCategory(timing)
-                const authTokenUtxos = await measure('validation_auth_fetch', () => this.getTokenUtxos(merchantAuthCategory, tokenAddress))
-                return { authOwnershipToken, authTokenUtxos, merchantAuthCategory }
-            })()
+        const [{ utxos }, { authOwnershipToken, authCategory }] = await Promise.all([
+            this.getBchUtxos(), this.getMerchantAuthCategory(timing)
         ])
-        const bchUtxos = sortUtxos(utxos.filter(utxo => utxo.token === undefined))
-
-        // Segregate the global auth token and merchant-specific auth tokens
-        let globalAuthNft
-        let merchantAuthNfts = []
-        authTokenUtxos.forEach(utxo => {
-            if (utxo.token) {
-                const token = utxo.token
-                if (token.category === merchantAuthCategory && token.nft) {
-                    const commitment = utxo.token.nft.commitment
-                    // Skip version-pointer commitments so they are not treated as auth NFTs.
-                    if (typeof commitment === 'string' && /^0x?02/i.test(commitment)) {
-                        return
-                    }
-                    const decodedCommitment = commitment ? decodeCommitment(commitment) : undefined
-                    const nftData = { decodedCommitment, utxo }
-                    if (decodedCommitment.hash === undefined) {
-                        // this is the global auth token
-                        globalAuthNft = nftData
-                    } else {
-                        // these are merchant-specific auth token
-                        merchantAuthNfts.push(nftData)
-                    }
-                }
-            }
+        if (!authOwnershipToken || !authCategory) throw new Error('Missing contract ownership token')
+        const [authTokenUtxos, ftUtxos] = await Promise.all([
+            this.getTokenUtxos(authCategory, tokenAddress, { throwOnError: true }),
+            recipient.token_category ? this.getTokenUtxos(recipient.token_category, tokenAddress, {
+                throwOnError: true, isNft: false
+            }) : []
+        ])
+        return buildSpendPreimages({
+            contract: this.getRawContract(), version: Number(this.version.slice(1)),
+            revision: this.revision, backendPk: this.params.backendPk, merchant,
+            recipient, bchUtxos: utxos, authOwnershipToken, authCategory,
+            authTokenUtxos, ftUtxos, locktime, timing
         })
-
-        // Use the globalAuthNft if it is ON
-        let authNft
-        let useGlobalAuthNft = globalAuthNft && globalAuthNft.decodedCommitment.authorized
-
-        if (useGlobalAuthNft) {
-            authNft = globalAuthNft.utxo
-        } else {
-            const {hex: merchantHash} = encodeMerchantHash({
-                merchantId: merchant.id,
-                merchantPk: merchant.pubkey
-            })
-            const merchantAuthNft = merchantAuthNfts.find(nft => {
-                return nft.decodedCommitment.hash === merchantHash
-            })
-            authNft = merchantAuthNft ? merchantAuthNft.utxo : undefined
-        }
-
-        if (!authNft) {
-            throw new Error('No valid authentication NFT found for this merchant')
-        }
-
-        const inputs = [
-            authOwnershipToken,
-            authNft,
-            ...bchUtxos
-        ]
-
-        const merchantId = merchant.id.toString()
-        const encodedMerchantId = utf8ToBin(merchantId);
-        const outputs = [
-            {
-                to: toTokenAddress(contract.address),
-                amount: authOwnershipToken.satoshis,
-                token: authOwnershipToken.token // auth ownership token not mutated
-            },
-            {
-                to: toTokenAddress(contract.address),
-                amount: authNft.satoshis,
-                token: authNft.token // merchant auth token not mutated
-            },
-            {
-                to: recipient.address,
-                amount: BigInt(recipient.amount)
-            }
-            // change handled automatically
-        ]
-
-        const tx = contract.functions
-            .spend(
-                encodedMerchantId,
-                placeholderSignature(), 
-                merchant.pubkey, 
-                placeholderSignature(),
-                backendPk
-            )
-            .from(inputs)
-            .to(outputs)
-
-        // Only locktime comes from the server. All inputs/outputs, fees and
-        // change above remain independent, with byte-for-byte checks afterward.
-        const builtHex = await measure('validation_tx_build', () => buildWithServerLocktime(tx, locktime))
-        const builtTx = decodeTransaction(hexToBin(builtHex))
-        if (typeof builtTx === 'string') {
-            throw new Error(`Failed to decode built transaction: ${builtTx}`)
-        }
-
-        const inputsForPreimage = inputs
-        const sourceOutputs = inputsForPreimage.map(utxo => cashScriptOutputToLibauthOutput({
-            to: utxo.token ? contract.tokenAddress : contract.address,
-            amount: utxo.satoshis,
-            token: utxo.token
-        }))
-
-        const preimagePerInput = []
-        for (let i = 0; i < inputsForPreimage.length; i++) {
-            const preimage = createSighashPreimage(
-                builtTx, 
-                sourceOutputs,
-                i,
-                scriptToBytecode(contract.redeemScript),
-                0x41
-            )
-            preimagePerInput.push({
-                inputIndex: i,
-                preimage: binToHex(preimage)
-            })
-        }
-
-        return {
-            txHex: builtHex,
-            preimages: preimagePerInput,
-            inputs: inputsForPreimage
-        }
     }
 }

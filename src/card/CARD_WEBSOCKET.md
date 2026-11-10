@@ -99,6 +99,7 @@ Response (mirrors the REST response body):
     "uid": "...",
     "tx_id": "11111111-1111-4111-8111-111111111111",
     "contract_version": "v2",
+    "contract_address": "<active payment contract BCH address>",
     "txHex": "0200...",
     "preimages": [...],
     "inputs": [...]
@@ -106,10 +107,21 @@ Response (mirrors the REST response body):
 }
 ```
 
-`contract_version` identifies which tap-to-pay contract artifact the server
-used to build the transaction (e.g. `v1`, `v2`). The client rebuilds the
-contract from the matching artifact when validating preimages. When the field
-is absent (older server) the client defaults to `v1`.
+`contract_version` reports the lineage (`v1` or `v2`) and must match the
+independently resolved on-chain active version. `contract_address` is required
+and identifies the active payment contract, not the origin when migrated.
+The POS derives candidate addresses from card parameters and its local artifact
+allowlist (current V1, pre-mutate V1, current V2); it rejects missing/unknown
+addresses, version mismatches and disagreement with its independent ownership
+and migration-pointer checks. Neither field authorizes arbitrary contract code.
+
+BCH **and FT** transactions are independently rebuilt before signing, including
+inputs, token amounts, recipient, change, fees and preimages. Only locktime is
+adopted from the server transaction. A different input selection (for example,
+due to reservations or a changing UTXO set) rejects the payment; validation is
+never skipped. Deploy the backend response/builder change before this POS
+version: old backends without `contract_address` are rejected.
+See [the historical contract audit](HISTORICAL_CONTRACT_AUDIT.md).
 
 `tx_id` is a server-generated identifier. The server persists the UTXO
 selection and built transaction under this id for a finite window

@@ -5,7 +5,7 @@ import { backend } from "./backend"
 import { cardSocket, delay } from "./socket"
 import { getPublicKeyFromPrivate } from "./utils"
 import { TapToPayContract, tapToPayArtifactForVersion } from "./contract/taptopay"
-import { resolveActiveContract } from "./contract/resolution.js"
+import { resolveSupportedContract, selectContractRevision } from "./contract/revisions.js"
 import { assertServerVersionMatches, verifySpendBuild } from "./contract/verify.js"
 import { decodeServerTransaction } from "./contract/locktime.js"
 import {
@@ -85,12 +85,12 @@ async function resolveCardContract(contractParameters) {
   const originVersion = hasVersion ? contractParameters.version : 1
 
   const originContract = new TapToPayContract(backendPk, category, originVersion)
-  const resolution = await resolveActiveContract({
+  const resolution = await resolveSupportedContract({
     backendPk,
     category,
     originVersion,
-    deriveTokenAddress: ({ backendPk: pk, category: cat, version }) =>
-      new TapToPayContract(pk, cat, version).getTokenAddress(),
+    deriveTokenAddress: ({ backendPk: pk, category: cat, version, revision }) =>
+      new TapToPayContract(pk, cat, version, revision).getTokenAddress(),
     fetchTokenUtxos: (tokenId, tokenAddress) =>
       originContract.getTokenUtxos(tokenId, tokenAddress, { throwOnError: true }),
   })
@@ -117,7 +117,8 @@ async function buildExpectedSpend(activeContractParameters, merchant, recipient,
   const contract = new TapToPayContract(
     activeContractParameters.backendPk,
     activeContractParameters.category,
-    activeContractParameters.version
+    activeContractParameters.version,
+    activeContractParameters.revision
   )
   return contract.generateSpendPreimages({ merchant, recipient, timing, locktime })
 }
@@ -434,6 +435,9 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
 
     const { piccData, cmac } = await timing.stage('parse_card_url', () => parseUrl(url));
 
+    if ((tokenCategory != null) !== (tokenAmount != null)) {
+      throw new Error('Both token category and amount are required')
+    }
     const isFtTap = tokenCategory != null && tokenAmount != null;
 
     // These reads are independent. Complete all gates before creating a server
@@ -457,7 +461,8 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
     const activeContractParameters = {
       backendPk: contractParameters.backendPk,
       category: resolution.activeCategory,
-      version: resolution.activeVersion
+      version: resolution.activeVersion,
+      revision: resolution.activeRevision
     };
 
     const data = await requestPreimages({
@@ -478,6 +483,15 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
     assertServerVersionMatches(contractVersion, resolution.activeVersion);
     // Both WebSocket and HTTPS responses reach this point. Adopt only the
     // decoded locktime; inputs, outputs and preimages are rebuilt independently.
+    const selectedRevision = selectContractRevision({
+      version: resolution.activeVersion,
+      address: data.contract_address,
+      deriveAddress: revision => new TapToPayContract(contractParameters.backendPk,
+        resolution.activeCategory, resolution.activeVersion, revision).getRawContract().address,
+    })
+    if (selectedRevision !== resolution.activeRevision) {
+      throw new Error('Server contract address disagrees with on-chain script resolution')
+    }
     const serverTx = decodeServerTransaction(data.txHex);
 
     // The preimage record is bound to this server-generated tx_id for the whole
@@ -499,24 +513,20 @@ export async function payWithCard({ uid, merchantId, receivingAddress, amountSat
 
     const recipient = {
       address: receivingAddress,
-      amount: amountSats
+      amount: amountSats,
+      ...(isFtTap ? { token_category: tokenCategory, token_amount: String(tokenAmount) } : {})
     }
 
-    // Local validation rebuilds the BCH-only spend; the server-built FT tx
-    // carries extra FT inputs/outputs, so FT taps skip the byte-for-byte rebuild
-    // and rely on tx_id replay from the server's stored record in the spend step.
-    // Both paths have already enforced the resolved version rule above.
-    if (!isFtTap) {
-      await timing.stage('local_validation', () => validatePreimages({
-        activeVersion: resolution.activeVersion,
-        server: data,
-        activeContractParameters,
-        merchant,
-        recipient,
-        timing,
-        locktime: serverTx.locktime
-      }));
-    }
+    // BCH and FT both require independent reconstruction before signing.
+    await timing.stage('local_validation', () => validatePreimages({
+      activeVersion: resolution.activeVersion,
+      server: data,
+      activeContractParameters,
+      merchant,
+      recipient,
+      timing,
+      locktime: serverTx.locktime
+    }));
 
     const preimages = data.preimages;
     const signatures = (await timing.stage('signing', () => signPreimages({
